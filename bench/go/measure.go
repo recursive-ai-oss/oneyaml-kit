@@ -183,8 +183,17 @@ func timeRunner(r Runner, cfg Config) Timing {
 // sample of a few runs would pay it on every collection it follows and report an allocation count
 // several times the steady state, one that moves with the sample size. So the clock starts with
 // the pools full, and the figures are what a run costs in steady state.
-func warmUp(r Runner) {
-	r.Prepare(1).Run()
+//
+// The set-up garbage of that run is neither timed nor counted. The run's own allocations are
+// returned: they are what the first call after a collection costs, which the steady-state figures
+// leave out.
+func warmUp(r Runner) uint64 {
+	b := r.Prepare(1)
+	var m0, m1 runtime.MemStats
+	runtime.ReadMemStats(&m0)
+	b.Run()
+	runtime.ReadMemStats(&m1)
+	return m1.Mallocs - m0.Mallocs
 }
 
 // Memory is the result of the memory pass.
@@ -196,6 +205,9 @@ type Memory struct {
 	PeakBytes      uint64
 	AllocatedBytes uint64
 	Allocations    uint64
+	// FirstRunAllocations is what the unmeasured run right after a collection allocated: the cost of
+	// a first call, with the pools and caches a collection emptied still to fill.
+	FirstRunAllocations uint64
 }
 
 // avgRunsFor is how many runs the allocation figures of the memory pass are averaged over:
@@ -281,12 +293,14 @@ func memoryPass(r Runner, runs, group int) Memory {
 	runtime.KeepAlive(batch)
 	batch = nil
 
-	var allocBytes, mallocs, total uint64
+	var allocBytes, mallocs, total, first uint64
 	for left := runs; left > 0; {
 		k := min(left, group)
 		avg := r.Prepare(k)
 		runtime.GC()
-		warmUp(r)
+		if n := warmUp(r); total == 0 {
+			first = n
+		}
 		runtime.ReadMemStats(&before)
 		avg.Run()
 		runtime.ReadMemStats(&after)
@@ -298,7 +312,7 @@ func memoryPass(r Runner, runs, group int) Memory {
 	}
 	return Memory{RetainedBytes: retained, PeakBytes: peak,
 		AllocatedBytes: (allocBytes + total/2) / total,
-		Allocations:    (mallocs + total/2) / total}
+		Allocations:    (mallocs + total/2) / total, FirstRunAllocations: first}
 }
 
 // agree checks the memory pass against the allocation counts testing.B took in the timed
@@ -325,16 +339,19 @@ func agree(t Timing, m Memory) string {
 // or a patch changes its document, so it always gets a state of its own.
 func mayShareState(t Task) bool { return t != EditScript && t != PatchTask }
 
-// shareState lets a runner run a batch over one starting state when the task may, after checking
-// that two runs over one state give the same answer. It returns the reason to refuse the cell, or
-// "" when the runner is fine (shared or not).
+// shareState lets a runner run a batch over one starting state when the task may and the runner
+// passes VerifyShared. It returns why the runner does not share, or "" when it does. Not sharing is
+// never a failure: the library is right, and its batches build a new state for every run.
 func shareState(t Task, r Runner) string {
 	sh, ok := r.(SharedState)
-	if !ok || !mayShareState(t) {
-		return ""
+	if !ok {
+		return "the runner cannot share a state"
+	}
+	if !mayShareState(t) {
+		return "the task changes its state"
 	}
 	if err := sh.VerifyShared(); err != nil {
-		return "the task changes its starting state, so a batch cannot share one: " + err.Error()
+		return err.Error()
 	}
 	sh.ShareState()
 	return ""

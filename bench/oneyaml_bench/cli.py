@@ -83,8 +83,8 @@ def known_unchecked(result: dict, env=None) -> dict[str, list[str]]:
 
 def known_problems(result: dict, env=None) -> list[str]:
     """Checks every language's deviation list against the cells measured and against the
-    full set of libraries, tasks and workloads. Entries of a library that is not in this build
-    (see unavailable_libraries) are left out of the check."""
+    full set of libraries, tasks and workloads. A library that is not in this build (see
+    unavailable_libraries) has no cells, so its entries are checked for form only."""
     problems = []
     universe = workloads.universe()
     for lang, h in run.discover().items():
@@ -93,9 +93,14 @@ def known_problems(result: dict, env=None) -> list[str]:
         path = h["_dir"] / "known.json"
         known = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"entries": []}
         gone = unavailable_libraries(h, env)
-        known = {**known, "entries": [e for e in known.get("entries", [])
-                                      if e["cell"].split("/", 1)[0] not in gone]}
         libs = {x["id"] for x in result["harnesses"][lang]["libraries"] if x["role"] != "control"}
+        for lib, var in sorted(gone.items()):
+            if lib in libs:
+                problems.append(f"{lang}: library {lib} is in the build but {var} is not set")
+        # The entries of an absent library still get the structural checks (a repeated entry, a
+        # missing reason, an unknown workload or task); only the comparison with measured cells
+        # cannot happen, because there are none.
+        libs |= set(gone)
         problems += [f"{lang}: {p}" for p in results.verify_known(result["cells"], known, lang, universe, libs)]
     return problems
 

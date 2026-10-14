@@ -355,6 +355,9 @@ def validate(result: dict) -> None:
             r = c["memory"].get("retained_bytes")
             if r is not None and (not isinstance(r, int) or r < 0):
                 raise ResultError(f"cell {ident} has a bad retained_bytes")
+            f = c["memory"].get("first_run_allocations")
+            if f is not None and (not isinstance(f, int) or f < 0):
+                raise ResultError(f"cell {ident} has a bad first_run_allocations")
         elif has_numbers:
             # The rule that matters most: a wrong or missing answer never carries a number.
             raise ResultError(f"cell {ident} is {c['status']} but carries numbers")

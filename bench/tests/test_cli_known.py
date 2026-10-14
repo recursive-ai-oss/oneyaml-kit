@@ -70,6 +70,19 @@ class OptionalLibraries(unittest.TestCase):
         self.assertEqual(problems, [])
         self.assertEqual(unchecked, {"extra (KIT_EXTRA_SRC is not set)": ["extra/dump/w"]})
 
+    def test_an_absent_librarys_entries_still_get_the_structural_checks(self):
+        entries = [self.ENTRY, self.ENTRY, {"cell": "extra/dump/nowhere", "status": "differs", "reason": "x"},
+                   {"cell": "extra/task/w", "status": "differs"}]
+        problems, _ = self.run_check({}, in_build=False, entries=entries)
+        text = "\n".join(problems)
+        self.assertIn("is listed twice", text)
+        self.assertIn("no workload 'nowhere'", text)
+        self.assertIn("has no reason", text)
+
+    def test_a_library_in_the_build_without_its_variable_is_reported(self):
+        problems, _ = self.run_check({}, in_build=True)
+        self.assertTrue(any("is in the build but KIT_EXTRA_SRC is not set" in p for p in problems), problems)
+
     def test_without_the_variable_the_entries_would_be_stale(self):
         # What the absent case guards against: the same run, with the variable counted as set.
         problems, _ = self.run_check({"KIT_EXTRA_SRC": "/x"}, in_build=False)

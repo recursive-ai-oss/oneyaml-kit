@@ -167,6 +167,9 @@ for one run of the task, taken in a separate pass from the timed ones:
   starting state the task is given (a parsed document, say), not the process's resident set;
 - `allocated_bytes`: bytes the task itself requested, cumulative;
 - `allocations`: the number of allocation calls the task made;
+- `first_run_allocations` (optional; Go): the allocation calls of the one unmeasured run that follows a collection,
+  before the figures are taken. The figures above are steady-state averages without it; it is the cost of a
+  first call, with the pools and caches a collection emptied still to fill. Charts and tables do not show it.
 - `retained_bytes` (optional, `null` or absent where a runtime cannot measure it): what one run
   leaves behind. It has one definition in every harness: the live heap one full collection after
   the run, less the live heap just before the run, with the starting state held in both readings
