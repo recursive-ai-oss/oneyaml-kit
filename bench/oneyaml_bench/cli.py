@@ -52,9 +52,39 @@ def known_lists(result: dict) -> dict[str, dict]:
     return out
 
 
-def known_problems(result: dict) -> list[str]:
+def unavailable_libraries(h: dict, env=None) -> dict[str, str]:
+    """The libraries of a harness that are compiled in only when an environment variable names
+    their checkout, and that are not in this build because it is not set: library id -> variable.
+
+    `optional_libraries` in harness.json maps each variable to the libraries it brings in. Like an
+    adapter whose `requires_env` is missing, such a library is not available here, which is not a
+    failure: its known deviations cannot be checked, and are not reported as stale."""
+    env = os.environ if env is None else env
+    return {lib: var for var, libs in h.get("optional_libraries", {}).items() if not env.get(var)
+            for lib in libs}
+
+
+def known_unchecked(result: dict, env=None) -> dict[str, list[str]]:
+    """Known-deviation entries left unchecked because their library is not in this build, by
+    library, with the variable that would bring it in."""
+    out: dict[str, list[str]] = {}
+    for lang, h in run.discover().items():
+        if lang not in result["harnesses"]:
+            continue
+        gone = unavailable_libraries(h, env)
+        path = h["_dir"] / "known.json"
+        known = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"entries": []}
+        for e in known.get("entries", []):
+            lib = e["cell"].split("/", 1)[0]
+            if lib in gone:
+                out.setdefault(f"{lib} ({gone[lib]} is not set)", []).append(e["cell"])
+    return out
+
+
+def known_problems(result: dict, env=None) -> list[str]:
     """Checks every language's deviation list against the cells measured and against the
-    full set of libraries, tasks and workloads."""
+    full set of libraries, tasks and workloads. A library that is not in this build (see
+    unavailable_libraries) has no cells, so its entries are checked for form only."""
     problems = []
     universe = workloads.universe()
     for lang, h in run.discover().items():
@@ -62,7 +92,15 @@ def known_problems(result: dict) -> list[str]:
             continue
         path = h["_dir"] / "known.json"
         known = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"entries": []}
+        gone = unavailable_libraries(h, env)
         libs = {x["id"] for x in result["harnesses"][lang]["libraries"] if x["role"] != "control"}
+        for lib, var in sorted(gone.items()):
+            if lib in libs:
+                problems.append(f"{lang}: library {lib} is in the build but {var} is not set")
+        # The entries of an absent library still get the structural checks (a repeated entry, a
+        # missing reason, an unknown workload or task); only the comparison with measured cells
+        # cannot happen, because there are none.
+        libs |= set(gone)
         problems += [f"{lang}: {p}" for p in results.verify_known(result["cells"], known, lang, universe, libs)]
     return problems
 
@@ -117,6 +155,8 @@ def cmd_run(a: argparse.Namespace) -> int:
     k = known_counts(result, problems)
     print(f"known deviations: {k['listed']} listed, {k['unlisted']} unlisted, {k['stale']} stale, "
           f"{k['other']} other problems: {'ok' if not problems else 'MISMATCH'}")
+    for what, cells_ in sorted(known_unchecked(result).items()):
+        print(f"  not checked: {len(cells_)} known deviations of {what}")
     for p in problems[:5]:
         print(f"  {p}")
     if len(problems) > 5:

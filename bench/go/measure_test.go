@@ -2,7 +2,9 @@ package main
 
 import (
 	"strings"
+	"sync"
 	"testing"
+	"time"
 )
 
 var keep [][]byte
@@ -93,29 +95,71 @@ func coldStartRunner() Runner {
 		}, bytesProduct)
 }
 
-// testing.B ran two runs per sample, so it saw (2*40+6)/2 = 43 allocations per run. A memory pass
-// that averages 64 runs after one cold start reads 40 and the check refuses the cell, though both
-// are right about the library. Grouping the runs as the samples were gives the same figure.
-func TestMemoryPassSeesTheColdStartTheSamplesSaw(t *testing.T) {
-	timed := Timing{ItersPerSample: 2, Chunk: 2, AllocsPerOp: 43, BytesPerOp: 43 * 112}
+// A library that keeps a buffer in a sync.Pool allocates a few dozen times in the first run after a
+// collection and twice in every run after it. A user pays the first once per collection; a timed
+// sample of three runs that followed a collection would pay it on every sample, and report five
+// times the steady state. The clock must start with the pool full, in the timed samples and in the
+// memory pass alike, so both read the steady state and agree.
+var (
+	poolSink []byte
+	poolNews int
+	bufPool  = sync.Pool{New: func() any {
+		poolNews++
+		parts := make([][]byte, 30)
+		for i := range parts {
+			parts[i] = make([]byte, 16)
+		}
+		return &parts
+	}}
+)
 
-	flat := memoryPass(coldStartRunner(), 64, 64)
-	if d := agree(timed, flat); d == "" {
-		t.Errorf("without grouping the figures should disagree here: %+v", flat)
+// pooledRunner takes about 300 microseconds a run, so a one-millisecond sample holds three or four.
+func pooledRunner() Runner {
+	return newRunner(func() struct{} { return struct{}{} },
+		func(*struct{}) ([]byte, error) {
+			buf := bufPool.Get().(*[][]byte)
+			for t0 := time.Now(); time.Since(t0) < 300*time.Microsecond; {
+			}
+			out := make([]byte, 64) // the answer
+			poolSink = make([]byte, 8)
+			bufPool.Put(buf)
+			return out, nil
+		}, bytesProduct)
+}
+
+func TestPoolBackedLibraryReadsTheSteadyStateInBothPasses(t *testing.T) {
+	r := pooledRunner()
+	tm := timeRunner(r, quickConfig())
+	if tm.ItersPerSample > 10 {
+		t.Fatalf("the sample holds %d runs; the test needs a few", tm.ItersPerSample)
 	}
-	grouped := memoryPass(coldStartRunner(), 64, 2)
-	if d := agree(timed, grouped); d != "" {
-		t.Errorf("grouped like the samples, the figures must agree: %v (%+v)", d, grouped)
+	m := memoryPass(r, avgRunsFor(tm, quickConfig()), min(tm.ItersPerSample, tm.Chunk))
+	if tm.AllocsPerOp < 1.9 || tm.AllocsPerOp > 2.5 {
+		t.Errorf("testing.B counted %.1f allocations a run; the steady state is 2", tm.AllocsPerOp)
 	}
-	if grouped.Allocations < 42 || grouped.Allocations > 44 {
-		t.Errorf("expected about 43 allocations a run, got %d", grouped.Allocations)
+	if m.Allocations != 2 {
+		t.Errorf("the memory pass counted %d allocations a run; the steady state is 2", m.Allocations)
+	}
+	if d := agree(tm, m); d != "" {
+		t.Error(d)
 	}
 }
 
-// Grouping must not hide a real difference: a library that allocates twice as much in the timed
-// runs as in the memory pass is still refused.
-func TestGroupedMemoryPassStillRefusesARealDisagreement(t *testing.T) {
-	timed := Timing{ItersPerSample: 2, Chunk: 2, AllocsPerOp: 86, BytesPerOp: 86 * 112}
+// With the pool full the timed runs of a task with a cold start read the same as the steady state.
+func TestWarmUpRemovesTheColdStartFromTheTimedRuns(t *testing.T) {
+	steady := Timing{ItersPerSample: 2, Chunk: 2, AllocsPerOp: 40, BytesPerOp: 40 * 112}
+	m := memoryPass(coldStartRunner(), 64, 2)
+	if d := agree(steady, m); d != "" {
+		t.Errorf("the memory pass must read the steady state: %v (%+v)", d, m)
+	}
+	if m.Allocations != 40 {
+		t.Errorf("expected 40 allocations a run, got %d", m.Allocations)
+	}
+}
+
+// Warming up must not hide a real difference: a figure twice the steady state is still refused.
+func TestWarmedMemoryPassStillRefusesARealDisagreement(t *testing.T) {
+	timed := Timing{ItersPerSample: 2, Chunk: 2, AllocsPerOp: 80, BytesPerOp: 80 * 112}
 	m := memoryPass(coldStartRunner(), 64, 2)
 	if agree(timed, m) == "" {
 		t.Errorf("a doubled allocation count was accepted: %+v", m)

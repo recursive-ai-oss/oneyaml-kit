@@ -33,6 +33,13 @@ bench/<language>/
 `{build}` is the build directory the driver chooses, so build output never lands in the
 repository. `build` runs in the harness directory. `counters` is optional.
 
+`optional_libraries` (optional) names libraries that are compiled in only when an environment
+variable points at their checkout: `{"KIT_ONEYAML_GO_SRC": ["oneyaml-go"]}`. When the variable is
+not set the build has no such library, and the driver does not check that library's known
+deviations (it says how many it left unchecked, and why), so a list that includes them is not
+reported as stale. When the variable is set the entries are checked like any other, and an entry
+for a library the build does not contain is stale.
+
 ## Command line
 
 ```
@@ -115,6 +122,8 @@ the driver restarts `run` with `--skip` for the cells already begun.
    must check it, not assume it: run the task twice over one state and compare the two answers, and
    refuse the runner (a failed cell, never a number) when the second differs from the first. A task
    that changes its state, an edit or a patch applied in place, always gets a state of its own.
+   The Go harness shares a state for every task except `edit-script` and `patch`, and refuses (an
+   `error` cell) a runner whose second answer over one state differs from the first.
 4. **Judge the whole answer.**
    - `typed-load` and `generic-load`: value equality, where an integer is not the float with
      the same digits and `"1"` is not `1`. For a stream, an array of documents.
@@ -158,6 +167,9 @@ for one run of the task, taken in a separate pass from the timed ones:
   starting state the task is given (a parsed document, say), not the process's resident set;
 - `allocated_bytes`: bytes the task itself requested, cumulative;
 - `allocations`: the number of allocation calls the task made;
+- `first_run_allocations` (optional; Go): the allocation calls of the one unmeasured run that follows a collection,
+  before the figures are taken. The figures above are steady-state averages without it; it is the cost of a
+  first call, with the pools and caches a collection emptied still to fill. Charts and tables do not show it.
 - `retained_bytes` (optional, `null` or absent where a runtime cannot measure it): what one run
   leaves behind. It has one definition in every harness: the live heap one full collection after
   the run, less the live heap just before the run, with the starting state held in both readings
@@ -171,7 +183,7 @@ for one run of the task, taken in a separate pass from the timed ones:
 | Language | `method` | How |
 |---|---|---|
 | Rust | `counting global allocator` | a `GlobalAlloc` wrapper counts, switched on for the one pass; exact. `retained_bytes` is the wrapper's live bytes after the run, less its live bytes just before the run, with the starting state held |
-| Go | `runtime.MemStats, sampled` | The **peak** pass: build the starting state, `runtime.GC()`, then run the task once with a sampler goroutine reading `HeapAlloc` every millisecond; `peak_bytes` is the highest `HeapAlloc` seen (the reading right after the run counts too, because a task shorter than the sampling interval is not seen by the sampler) **less the `HeapAlloc` the process held before the starting state was built**, so the harness's own data is not charged to the task. `HeapAlloc` includes garbage not yet collected, so it is an upper bound on live bytes at the moment of the reading. The **allocation** figures, `allocated_bytes` (ΔTotalAlloc) and `allocations` (ΔMallocs), are `testing.B`'s `B/op` and `allocs/op` averaged over all the timed samples, because a library that keeps buffers in a pool allocates fewer bytes per run the longer the heap stays unchanged, and one cold run is not the steady state. These are per-op averages, so what a library allocates once after each collection (a pool or cache the collector emptied, refilled by the first run) is spread over the iterations of a sample, and the figure can shift slightly with the sample size: a task that runs twice per sample shows half of that cost on every run, one that runs fifty times shows a fiftieth. A separate pass averages the same two counters over up to 64 runs, in groups of the sample size with a collection before each group, so it sees the same cold starts, and the cell fails (`error`) when the number of calls differs by more than 5% or the bytes by more than 25%. `retained_bytes` is the `HeapAlloc` after one `runtime.GC()` following the peak run, less the `HeapAlloc` just before that run |
+| Go | `runtime.MemStats, sampled` | The **peak** pass: build the starting state, `runtime.GC()`, then run the task once with a sampler goroutine reading `HeapAlloc` every millisecond; `peak_bytes` is the highest `HeapAlloc` seen (the reading right after the run counts too, because a task shorter than the sampling interval is not seen by the sampler) **less the `HeapAlloc` the process held before the starting state was built**, so the harness's own data is not charged to the task. `HeapAlloc` includes garbage not yet collected, so it is an upper bound on live bytes at the moment of the reading. The **allocation** figures, `allocated_bytes` (ΔTotalAlloc) and `allocations` (ΔMallocs), are `testing.B`'s `B/op` and `allocs/op` averaged over all the timed samples, because a library that keeps buffers in a pool allocates fewer bytes per run the longer the heap stays unchanged, and one cold run is not the steady state. These are per-op averages over timed runs that start in the steady state: after the collection that precedes each chunk of runs the harness makes one unmeasured run, so what a library keeps in a `sync.Pool` or a cache (which a collection empties) is full again when the clock starts. A user's program pays the refill once per collection, spread over thousands of runs; a sample of a few runs that paid it every time would report several times the allocations a run really costs, and the figure would move with the sample size. A separate pass averages the same two counters over up to 64 runs, taken the same way (a collection, one unmeasured run, then the measured ones), and the cell fails (`error`) when the number of calls differs by more than 5% or the bytes by more than 25%. `retained_bytes` is the `HeapAlloc` after one `runtime.GC()` following the peak run, less the `HeapAlloc` just before that run |
 | .NET | `GC.GetAllocatedBytesForCurrentThread, no-GC region` | `allocated_bytes` is the change in `GC.GetAllocatedBytesForCurrentThread()` over one run of the task on the measuring thread, exact. `peak_bytes` is the starting state plus `allocated_bytes`: the run happens inside a no-GC region sized from an earlier run (and repeated in a larger one if the runtime leaves it), so no collection frees anything during it and the figure does not depend on what ran before, how full the young generation was, or which cells were selected. The state is the live bytes a full, blocking, compacting collection reports as promoted, read before and after the state is built (before finalizers run, so a library's array pools are in both readings or in neither). The figure counts objects the task has dropped that the collector has not yet reclaimed, so it is an upper bound on the managed heap a process needs, not the live data alone. The pass runs after the cell has been timed (and so warmed), because unoptimised code allocates more than the optimised code a user's program runs. Within a process the figures repeat to the byte; between processes `allocated_bytes` moves by a few percent in steps, because dynamic PGO changes how many objects the JIT keeps on the stack. An untracked run comes first, so memory a library keeps for reuse (array pools, caches) already exists and appears in neither figure; `retained_bytes` is where it shows: its own pass, after the peak and allocation figures, takes a full collection with a fresh starting state held, runs the task once (it drops its result), takes another full collection, and reports the difference. It is a pass of its own because the collections would otherwise trim the pools the other passes need. `allocations` is `null`: the runtime has no in-process count of allocation calls (`GCAllocationTick` fires once per 100 KB) |
 
 A field a runtime cannot measure is `null` and the report shows `n/a`; the method string

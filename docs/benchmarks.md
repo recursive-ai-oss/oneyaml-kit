@@ -119,8 +119,12 @@ places and are written to `out/bench/workloads/` before a run:
   The Go harness cannot count through an allocator, so it reads `runtime.MemStats` instead
   and says so in each cell's method (`runtime.MemStats, sampled`); its peak is the highest
   heap reading seen and is not the same quantity as the Rust one. Its allocation figures are
-  `testing.B` per-op averages, so a cost paid once after each collection is spread over the
-  iterations of a sample and the figure can shift slightly with the sample size. The exact method is in
+  `testing.B` per-op averages in steady state: after each collection the harness makes one unmeasured
+  run, so the pools and caches a library refills after a collection are full when counting starts.
+  A program that calls the library once, or rarely between collections, also pays that refill, which
+  these figures leave out. What a library keeps in its pools shows in `retained_bytes`, and the
+  allocations of that first run after a collection are recorded as `first_run_allocations`, in the
+  result file only. The exact method is in
   [benchmark-adapters.md](benchmark-adapters.md#memory), and a table never mixes methods.
 - **Memory in .NET** is not an allocator count: allocated bytes are exact, the peak is the starting
   state plus every byte the task requested, measured in a no-GC region so that it does not depend on the

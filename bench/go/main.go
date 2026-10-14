@@ -177,6 +177,7 @@ func oneCell(lib Library, task Task, w *Workload, cfg Config) map[string]any {
 		return rec
 	}
 	rec["variant"] = v.Variant
+	shareState(task, runner)
 
 	t := timeRunner(runner, cfg)
 	if t.Panic != nil {
@@ -196,7 +197,8 @@ func oneCell(lib Library, task Task, w *Workload, cfg Config) map[string]any {
 	// Peak comes from the memory pass. The bytes and calls are testing.B's averages over all the
 	// timed runs, the largest sample, which the memory pass has just confirmed.
 	rec["memory"] = map[string]any{"method": memoryMethod, "peak_bytes": m.PeakBytes, "retained_bytes": m.RetainedBytes,
-		"allocated_bytes": uint64(math.Round(t.BytesPerOp)), "allocations": uint64(math.Round(t.AllocsPerOp))}
+		"allocated_bytes": uint64(math.Round(t.BytesPerOp)), "allocations": uint64(math.Round(t.AllocsPerOp)),
+		"first_run_allocations": m.FirstRunAllocations}
 	return rec
 }
 

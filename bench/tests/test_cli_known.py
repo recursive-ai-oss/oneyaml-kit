@@ -43,5 +43,72 @@ class KnownCounts(unittest.TestCase):
         self.assertEqual(self.counts(cells, problems), {"listed": 1, "unlisted": 1, "stale": 2, "other": 1})
 
 
+class OptionalLibraries(unittest.TestCase):
+    """Entries for a library that is compiled in only when a variable names its checkout."""
+
+    ENTRY = {"cell": "extra/dump/w", "status": "differs", "reason": "x"}
+
+    def run_check(self, env, in_build, cell_status="differs", entries=None):
+        import tempfile
+        import json
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            (d / "known.json").write_text(json.dumps({"entries": [self.ENTRY] if entries is None else entries}), encoding="utf-8")
+            harness = {"language": "go", "_dir": d, "optional_libraries": {"KIT_EXTRA_SRC": ["extra"]}}
+            libs = [{"id": "other", "role": "competitor"}] + (
+                [{"id": "extra", "role": "own"}] if in_build else [])
+            cells = [cell("other", "ok")] + ([cell("extra", cell_status)] if in_build else [])
+            for c in cells:
+                c["role"] = "own" if c["library"] == "extra" else "competitor"
+            result = {"cells": cells, "harnesses": {"go": {"libraries": libs}}}
+            with mock.patch.object(cli.run, "discover", return_value={"go": harness}), \
+                    mock.patch.object(cli.workloads, "universe", return_value={"w": ["dump"]}):
+                return cli.known_problems(result, env), cli.known_unchecked(result, env)
+
+    def test_an_absent_library_is_not_stale(self):
+        problems, unchecked = self.run_check({}, in_build=False)
+        self.assertEqual(problems, [])
+        self.assertEqual(unchecked, {"extra (KIT_EXTRA_SRC is not set)": ["extra/dump/w"]})
+
+    def test_an_absent_librarys_entries_still_get_the_structural_checks(self):
+        entries = [self.ENTRY, self.ENTRY, {"cell": "extra/dump/nowhere", "status": "differs", "reason": "x"},
+                   {"cell": "extra/task/w", "status": "differs"}]
+        problems, _ = self.run_check({}, in_build=False, entries=entries)
+        text = "\n".join(problems)
+        self.assertIn("is listed twice", text)
+        self.assertIn("no workload 'nowhere'", text)
+        self.assertIn("has no reason", text)
+
+    def test_a_library_in_the_build_without_its_variable_is_reported(self):
+        problems, _ = self.run_check({}, in_build=True)
+        self.assertTrue(any("is in the build but KIT_EXTRA_SRC is not set" in p for p in problems), problems)
+
+    def test_without_the_variable_the_entries_would_be_stale(self):
+        # What the absent case guards against: the same run, with the variable counted as set.
+        problems, _ = self.run_check({"KIT_EXTRA_SRC": "/x"}, in_build=False)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("stale known deviation extra/dump/w", problems[0])
+
+    def test_a_present_library_is_checked_and_matches(self):
+        problems, unchecked = self.run_check({"KIT_EXTRA_SRC": "/x"}, in_build=True)
+        self.assertEqual(problems, [])
+        self.assertEqual(unchecked, {})
+
+    def test_a_present_library_with_a_stale_entry_fails(self):
+        problems, _ = self.run_check({"KIT_EXTRA_SRC": "/x"}, in_build=True, cell_status="ok")
+        self.assertEqual(len(problems), 1)
+        self.assertIn("stale known deviation extra/dump/w: it is now ok", problems[0])
+
+    def test_a_present_library_with_an_unlisted_deviation_fails(self):
+        problems, _ = self.run_check({"KIT_EXTRA_SRC": "/x"}, in_build=True, entries=[])
+        self.assertEqual(len(problems), 1)
+        self.assertIn("unlisted deviation extra/dump/w", problems[0])
+
+    def test_the_harnesses_name_their_optional_libraries(self):
+        for lang, var in (("go", "KIT_ONEYAML_GO_SRC"), ("csharp", "KIT_ONEYAML_CSHARP_SRC")):
+            h = cli.run.discover()[lang]
+            self.assertIn(var, h["optional_libraries"], lang)
+
+
 if __name__ == "__main__":
     unittest.main()
