@@ -3,6 +3,8 @@
 /*
 !/.gitignore
 !/README.md
+!/LICENSE-MIT
+!/LICENSE-APACHE
 !/bin
 !/docs
 !/suites

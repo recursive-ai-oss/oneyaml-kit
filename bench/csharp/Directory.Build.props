@@ -11,4 +11,10 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);artifacts/**;bin/**;obj/**</DefaultItemExcludes>
   </PropertyGroup>
 
+  <!-- Licence of the kit's code, and a guard: none of these projects is ever packed or published. -->
+  <PropertyGroup>
+    <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
 </Project>

@@ -2,7 +2,7 @@
   "name": "oneyaml-kit-referee-js",
   "private": true,
   "description": "Reads the real-file workloads with an independent JavaScript YAML 1.2 parser, to check the frozen expected values.",
-  "license": "MIT",
+  "license": "MIT OR Apache-2.0",
   "type": "module",
   "dependencies": {
     "yaml": "2.9.1"

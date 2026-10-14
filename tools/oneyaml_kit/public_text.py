@@ -5,6 +5,7 @@ The patterns are assembled from fragments so that this file does not match itsel
 
 from __future__ import annotations
 
+import hashlib
 import re
 import subprocess
 from pathlib import Path
@@ -52,6 +53,13 @@ HASH = re.compile(r"\b[0-9a-f]{40}\b")
 
 # Vendored third-party data is not ours to edit and is checked by its digest instead.
 SKIP_PREFIXES = ("suites/yaml-test-suite/data-",)
+# The vendored suite's own licence file is not ours to edit.
+LICENSE_TEXTS = {"suites/yaml-test-suite/LICENSE"}
+# The CC0 1.0 legal code is quoted verbatim and contains ordinary legal words the check would flag, so it is
+# skipped, but only while it is byte for byte the standard text (the same file the awesome-compose repository
+# ships): any edit puts it back under the scan.
+CC0_PATH = "suites/own/LICENSE"
+CC0_SHA256 = "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
 # Files that may mention a commit hash (provenance records and lockfiles).
 HASH_OK_NAMES = {"SOURCE.md", "Cargo.lock", "pins.json"}
 
@@ -75,7 +83,9 @@ def scan(paths: list[Path], root: Path = ROOT) -> list[str]:
             rel = p.resolve().relative_to(root.resolve()).as_posix()
         except ValueError:
             rel = p.as_posix()
-        if rel.startswith(SKIP_PREFIXES) or rel == "suites/yaml-test-suite/LICENSE":
+        if rel.startswith(SKIP_PREFIXES) or rel in LICENSE_TEXTS:
+            continue
+        if rel == CC0_PATH and hashlib.sha256(p.read_bytes()).hexdigest() == CC0_SHA256:
             continue
         vendored = p.name in ("input.yaml", "expected.json") or "/LICENSES/" in rel
         if rel.startswith("bench/workloads/real/") and vendored:

@@ -4,6 +4,7 @@ description = "In-process benchmark harness for Rust YAML libraries (wall-clock,
 version = "0.1.0"
 edition = "2021"
 publish = false
+license = "MIT OR Apache-2.0"
 
 [[bin]]
 name = "oneyaml-bench-rust"
