@@ -29,6 +29,8 @@ CSHARP = run.ROOT / "csharp"
 DOTNET = shutil.which(os.environ.get("DOTNET", "dotnet")) or (
     os.environ.get("DOTNET") if os.environ.get("DOTNET") and Path(os.environ["DOTNET"]).exists() else None)
 LIBRARIES = ["yamldotnet", "sharpyaml", "sharpyaml-model", "sharpyaml-syntax", "vyaml", "yaml2jsonnode"]
+# Built in only when KIT_ONEYAML_CSHARP_SRC names a checkout; one row per binding path.
+OWN = ["oneyaml-csharp", "oneyaml-csharp-gen"]
 
 
 def build_root() -> Path:
@@ -91,6 +93,19 @@ class Files(unittest.TestCase):
             self.assertIn("BUILD_DIR", text)
             self.assertNotIn("$dir/artifacts", text)
 
+    def test_oneyaml_csharp_is_linked_only_when_a_checkout_is_named(self):
+        proj = (CSHARP / "Bench.csproj").read_text(encoding="utf-8")
+        # The reference, the define and the unlocked restore all hang on the variable, so a build without it
+        # is the competitors alone under the lock file.
+        self.assertEqual(proj.count("Condition=\"'$(OneYamlSrc)' != ''\""), 1)
+        self.assertIn("ONEYAML_LINKED", proj)
+        self.assertIn("NuGetLockFilePath", proj)  # the unlocked build never writes a lock file here
+        libs = (CSHARP / "src" / "Libs" / "OneYamlLibs.cs").read_text(encoding="utf-8")
+        self.assertTrue(libs.startswith("#if ONEYAML_LINKED"))
+        for lib in OWN:
+            self.assertIn(f'"{lib}"', libs)
+        self.assertIn("KIT_ONEYAML_CSHARP_SRC", (CSHARP / "build.sh").read_text(encoding="utf-8"))
+
     def test_the_controls_are_not_compiled_into_a_measurement_build(self):
         proj = (CSHARP / "Bench.csproj").read_text(encoding="utf-8")
         self.assertIn('<Compile Remove="src/Libs/Control.cs" Condition="\'$(Selftest)\' != \'true\'" />', proj)
@@ -132,7 +147,7 @@ class Files(unittest.TestCase):
             self.assertNotIn(e["cell"], seen)
             seen.add(e["cell"])
             lib, task, workload = e["cell"].split("/", 2)
-            self.assertIn(lib, LIBRARIES)
+            self.assertIn(lib, LIBRARIES + OWN)
         # An edit whose lookup and new text are the harness's code is listed as such, and only those are.
         edits = [e for e in known["entries"] if e["cell"].startswith("sharpyaml-syntax/edit-script/")]
         self.assertTrue(edits)
@@ -184,7 +199,8 @@ class Pipeline(unittest.TestCase):
         only = ["reference-a", "reference-b", "gha-workflow", "compose-merge-2k", "records-4k", "deep-flow"]
         rec, cells, restarts = self.harness(self.wl, only, name="slice")
         self.assertEqual(restarts, 0)
-        self.assertEqual({lib["id"] for lib in rec["libraries"]}, set(LIBRARIES))
+        expected = set(LIBRARIES) | (set(OWN) if os.environ.get("KIT_ONEYAML_CSHARP_SRC") else set())
+        self.assertEqual({lib["id"] for lib in rec["libraries"]}, expected)
         self.assertFalse(rec["selftest_build"])
         # The runtime runs with its defaults, as a user's program does.
         for flag in ("tiered_compilation", "quick_jit", "tiered_pgo"):

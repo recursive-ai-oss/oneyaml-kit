@@ -9,6 +9,18 @@ build=${1:?usage: build.sh BUILD_DIR}
 art=$build/dotnet
 extra=
 if [ "${SELFTEST:-}" = 1 ]; then extra=-p:Selftest=true; art=$build/dotnet-selftest; fi
+# With KIT_ONEYAML_CSHARP_SRC naming a checkout of oneyaml-csharp the harness measures it too; the
+# commit is stamped in as the library's version. Without it the build is the competitors alone.
+link=
+if [ -n "${KIT_ONEYAML_CSHARP_SRC:-}" ]; then
+	src=$(cd "$KIT_ONEYAML_CSHARP_SRC" && pwd)
+	test -f "$src/src/OneYaml/OneYaml.csproj" || { echo "no src/OneYaml/OneYaml.csproj in KIT_ONEYAML_CSHARP_SRC" >&2; exit 1; }
+	rev=devel
+	if [ "$(git -C "$src" rev-parse --show-toplevel 2>/dev/null)" = "$src" ]; then
+		rev=$(git -C "$src" rev-parse --short=12 HEAD 2>/dev/null || echo devel)
+	fi
+	link="-p:OneYamlSrc=$src -p:OneYamlRevision=$rev"
+fi
 KIT_DOTNET_ARTIFACTS=$art exec "${DOTNET:-dotnet}" build "$dir/Bench.csproj" -c Release \
   --artifacts-path "$art" --nologo -v quiet -clp:NoSummary -nodeReuse:false \
-  -p:UseSharedCompilation=false $extra
+  -p:UseSharedCompilation=false $extra $link

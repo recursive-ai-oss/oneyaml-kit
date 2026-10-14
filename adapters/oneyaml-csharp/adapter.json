@@ -1,0 +1,10 @@
+{
+  "format": "oneyaml-kit-adapter/1",
+  "name": "oneyaml-csharp",
+  "language": "csharp",
+  "build": ["./build.sh"],
+  "command": ["./run.sh"],
+  "requires_env": ["KIT_ONEYAML_CSHARP_SRC"],
+  "timeout_seconds": 10,
+  "deviations": "deviations.json"
+}
