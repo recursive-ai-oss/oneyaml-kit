@@ -1,15 +1,22 @@
 """The gate: the hand-over tier by default, everything with --full.
 
 * Hand-over (default): the kit core, plus only the areas a change touched (by the files that
-  differ from the base branch), so it stays well inside three minutes however many
-  adapters are added. A change to the kit's own code or cases also runs the reference
-  adapter, because those can change what every adapter scores.
-* Full (`--full`): every area and every adapter. CI runs this.
+  differ from the base branch), and in each area only the quick steps: formatting, lint, the
+  unit and self-tests, and a tiny smoke run of a benchmark harness. A change to the kit's own
+  code or cases also runs the reference adapter, because those can change what every adapter
+  scores. The run fails when it takes longer than its time budget, so the tier cannot grow
+  slow unnoticed; a step that is too slow for it belongs in the full tier.
+* Full (`--full`): every area, every adapter and every step, including the slow ones (the
+  end-to-end benchmark pipeline tests, the quick benchmark run over every workload and the
+  counter check). CI runs this.
 
 An area is a part of the repository with its own checks: `core`, one per adapter language
-(`rust`, `go`, `csharp`, ...) and `bench`. Areas run one after the other, or side by side
-with `--jobs`. Every step runs even after a failure, because the checks are independent and one run should
-show everything that is wrong. Each step's output goes to a log under the output directory
+(`rust`, `go`, `csharp`, ...) and the benchmark areas: `bench` (the driver, report and
+workloads, no toolchain needed) and one per harness language (`bench-rust`, `bench-go`,
+`bench-csharp`), so a change to one harness never builds the others. Areas run side by side
+with `--jobs` (by default a few at a time), and their steps one after the other. Every step
+runs even after a failure, because the checks are independent and one run should show
+everything that is wrong. Each step's output goes to a log under the output directory
 and is shown only when the step fails.
 """
 
@@ -41,6 +48,23 @@ LANG_TESTS = {"rust": "test_adapter_oneyaml_rust.py", "go": "test_adapters_go.py
               "csharp": "test_adapter_dotnet.py"}
 GO_CHECK = ["sh", "-c", 'test -z "$(gofmt -l .)" && go vet ./... && go test -short ./...']
 REFERENCE = "rust"  # the quick adapter that stands in for the rest on a core change
+# The benchmark harness languages. Each has an area of its own, `bench-<language>`.
+BENCH_LANGS = ("rust", "go", "csharp")
+BENCH_REFERENCE = "rust"  # the harness that stands in for the rest on a driver change
+# Test modules of the benchmark harness that build and run a real harness end to end. They are
+# full-tier work; the rest of bench/tests is quick enough for the hand-over tier. Each entry is a
+# fragment of a file name, and each must match a file, so a renamed module cannot slip through.
+BENCH_SLOW_TESTS = ("pipeline", "csharp")
+# The module that holds each harness's end-to-end tests; the full tier runs them in that
+# harness's area.
+BENCH_PIPELINE_TESTS = {"rust": "test_pipeline.py", "go": "test_pipeline_go.py", "csharp": "test_csharp.py"}
+# The smoke run: a few small workloads, one of them typed, through one harness.
+SMOKE_WORKLOADS = ("reference-a", "reference-b", "gha-workflow")
+# The hand-over tier's wall-clock budget in seconds. The hard limit is three minutes; the margin
+# covers a slower machine and cold caches.
+BUDGET_SECONDS = 150
+DEFAULT_JOBS = 4
+AREA_NAMES_BENCH = ["bench", *(f"bench-{lang}" for lang in BENCH_LANGS)]
 
 
 @dataclass
@@ -51,6 +75,9 @@ class Step:
     cwd: str = "."
     env: dict = field(default_factory=dict)
     drop_env: tuple = ()
+    # "both": every run. "hand-over": only the hand-over tier (a quick stand-in for a slow full
+    # step). "full": only --full.
+    tier: str = "both"
 
 
 def py() -> str:
@@ -73,11 +100,26 @@ def adapter_dirs(root: Path) -> dict[str, dict]:
     return out
 
 
+def bench_area(parts: list[str]) -> str:
+    """The benchmark area of a path under bench/: a harness language's own folder or test
+    module selects that harness alone; anything else belongs to the shared driver."""
+    if len(parts) > 2 and parts[1] in BENCH_LANGS:
+        return f"bench-{parts[1]}"
+    if len(parts) == 3 and parts[1] == "tests":
+        name = parts[2]
+        for lang in BENCH_LANGS:
+            if lang != BENCH_REFERENCE and lang in name:
+                return f"bench-{lang}"
+        if "pipeline" in name:
+            return f"bench-{BENCH_REFERENCE}"
+    return "bench"
+
+
 def classify(path: str, adapters: dict) -> str | tuple[str, str]:
     """The area of a changed file; for an adapter file, (language, adapter name)."""
     parts = path.split("/")
     if parts[0] == "bench" or path == "bin/bench":
-        return "bench"
+        return bench_area(parts)
     if parts[0] == "adapters" and len(parts) > 1:
         if parts[1] in SHARED:
             return SHARED[parts[1]]
@@ -148,11 +190,12 @@ def select_areas(files: list[str], root: Path, full: bool) -> tuple[list[str], d
     ads = adapter_dirs(root)
     langs = sorted({a["language"] for a in ads.values()})
     if full:
-        return ["core", *langs, "bench"], {lang: None for lang in langs}, "full mode"
+        return ["core", *langs, *AREA_NAMES_BENCH], {lang: None for lang in langs}, "full mode"
     areas = {"core"}
     touched: dict[str, set[str] | None] = {}
     core_code = False
     bench = False
+    driver = False
     for f in files:
         c = classify(f, ads)
         if isinstance(c, tuple):
@@ -160,10 +203,14 @@ def select_areas(files: list[str], root: Path, full: bool) -> tuple[list[str], d
             areas.add(lang)
             if touched.get(lang, set()) is not None:
                 touched.setdefault(lang, set()).add(name)
-        elif c in langs or c == "bench":
+        elif c in langs or c in AREA_NAMES_BENCH:
             areas.add(c)
             if c in langs:
                 touched[c] = None  # a shared file or the language's test: every adapter
+            # A change to the shared driver can break any harness, so one stands in for them;
+            # the driver's own tests need no toolchain.
+            if c == "bench" and not f.startswith("bench/tests/"):
+                driver = True
         else:
             if f.startswith(CORE_CODE):
                 core_code = True
@@ -174,14 +221,96 @@ def select_areas(files: list[str], root: Path, full: bool) -> tuple[list[str], d
         areas.add(REFERENCE)
         touched[REFERENCE] = None
         why += f"; kit code or cases changed, so the reference adapter ({REFERENCE}) runs too"
+    if driver and BENCH_REFERENCE in BENCH_LANGS:
+        areas.add(f"bench-{BENCH_REFERENCE}")
+        why += f"; the benchmark driver changed, so the {BENCH_REFERENCE} harness runs a smoke test"
     if bench:
         areas.add("bench")
         why += "; kit code changed, and the benchmark harness imports it"
-    order = ["core", *langs, "bench"]
+    order = ["core", *langs, *AREA_NAMES_BENCH]
     return [a for a in order if a in areas], touched, why
 
 
-def build_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[Step]:
+def bench_test_modules(root: Path) -> list[str]:
+    """The benchmark test modules the hand-over tier runs: all but the slow end-to-end ones."""
+    names = sorted(p.stem for p in (root / "bench" / "tests").glob("test_*.py"))
+    return [n for n in names if not any(frag in n for frag in BENCH_SLOW_TESTS)]
+
+
+def bench_steps(root: Path, out: Path, target: str) -> list[Step]:
+    """The benchmark driver, report and workloads. The hand-over tier runs their unit tests,
+    which need no toolchain, in both tiers. The full tier then runs a quick run of every harness
+    over every workload and checks the instruction counters against their baseline; the
+    end-to-end tests of each harness are in its own area."""
+    own = {"CARGO_TARGET_DIR": f"{target}-bench"}
+    return [
+        Step("bench", "benchmark unit tests", [py(), "-m", "unittest", "-q", *bench_test_modules(root)],
+             "bench/tests"),
+        Step("bench", "benchmark quick run", [py(), "bin/bench", "run"], env=own, tier="full"),
+        Step("bench", "benchmark counters",
+             [py(), "bin/bench", "check", str(out / "bench" / "results.json"),
+              "--baseline", "bench/rust/counters.json"], tier="full"),
+    ]
+
+
+def bench_lang_steps(area: str, root: Path, out: Path, target: str, dotnet: str) -> list[Step]:
+    """One benchmark harness. Each language builds into a directory of its own, so areas that
+    run side by side never wait on one another's build lock. The hand-over tier checks format
+    and lint, runs the harness's own tests and a smoke run over a few small workloads; the
+    full tier adds the end-to-end pipeline tests (and, for Rust, the lint of the build without
+    the control libraries)."""
+    lang = area[len("bench-"):]
+    own = {"CARGO_TARGET_DIR": f"{target}-{area}"}
+    d = f"bench/{lang}"
+    smoke = Step(area, f"benchmark {lang} smoke run",
+                 [py(), "bin/bench", "run", "--lang", lang, *[x for w in SMOKE_WORKLOADS for x in ("--workload", w)],
+                  "--out", str(out / "bench-smoke" / lang)], env=own,
+                 tier="hand-over")  # the full tier's quick run covers every workload
+    pipeline = BENCH_PIPELINE_TESTS[lang]
+    pipe = Step(area, f"benchmark {lang} pipeline tests",
+                [py(), "-m", "unittest", "discover", "-s", "bench/tests", "-p", pipeline, "-q"], env=own,
+                tier="full")
+    if lang == "rust":
+        sel = f"{target}-selftest"
+        return [
+            Step(area, "benchmark fmt", ["cargo", "fmt", "--check"], d),
+            # The self-test build is a superset of the plain build, so its lint covers the hand-over
+            # tier; the full tier lints the plain build as well.
+            Step(area, "benchmark clippy", ["cargo", "clippy", "--release", "--locked", "--quiet", "--all-targets",
+                                            "--", "-D", "warnings"], d, own, tier="full"),
+            # The self-test build has fake libraries in it, so it gets its own build directory.
+            Step(area, "benchmark self-test clippy",
+                 ["cargo", "clippy", "--release", "--locked", "--quiet", "--all-targets", "--features", "selftest",
+                  "--", "-D", "warnings"], d, {"CARGO_TARGET_DIR": sel}),
+            Step(area, "benchmark self-test", ["cargo", "test", "--release", "--locked", "--quiet", "--features",
+                                               "selftest"], d, {"CARGO_TARGET_DIR": sel}),
+            smoke, pipe,
+        ]
+    if lang == "go":
+        return [
+            Step(area, "benchmark go: gofmt, vet, test", GO_CHECK, d),
+            # The self-test build has fake libraries in it, so only its tests use the tag.
+            Step(area, "benchmark go self-test",
+                 ["sh", "-c", "go vet -tags selftest ./... && go test -short -tags selftest ./..."], d),
+            smoke, pipe,
+        ]
+    return [
+        Step(area, "benchmark .NET harness format",
+             [dotnet, "format", "whitespace", "bench/csharp/Bench.csproj", "--verify-no-changes"]),
+        # The harness's files are checked without an SDK; the class that builds it is the pipeline test.
+        Step(area, "benchmark .NET harness files",
+             [py(), "-m", "unittest", "-q", "test_csharp.Files"], "bench/tests", tier="hand-over"),
+        smoke, pipe,
+    ]
+
+
+def build_steps(areas: list[str], touched: dict, root: Path, out: Path, full: bool = True) -> list[Step]:
+    """The steps of the areas, in order. `full` is every step; without it, the hand-over tier."""
+    return [s for s in _all_steps(areas, touched, root, out)
+            if s.tier == "both" or s.tier == ("full" if full else "hand-over")]
+
+
+def _all_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[Step]:
     ads = adapter_dirs(root)
     target = os.environ.get("CARGO_TARGET_DIR") or str(out / "target")
     steps: list[Step] = []
@@ -196,30 +325,9 @@ def build_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[
                 Step("core", "public text", [py(), "bin/kit", "public-text"]),
             ]
         elif area == "bench":
-            sel = f"{target}-selftest"
-            steps += [
-                Step("bench", "benchmark tests", [py(), "-m", "unittest", "discover", "-s", "bench/tests", "-q"]),
-                Step("bench", "benchmark fmt", ["cargo", "fmt", "--check"], "bench/rust"),
-                Step("bench", "benchmark clippy", ["cargo", "clippy", "--release", "--locked", "--quiet",
-                                                   "--all-targets", "--", "-D", "warnings"], "bench/rust"),
-                # The self-test build has fake libraries in it, so it gets its own build directory.
-                Step("bench", "benchmark self-test clippy",
-                     ["cargo", "clippy", "--release", "--locked", "--quiet", "--all-targets",
-                      "--features", "selftest", "--", "-D", "warnings"], "bench/rust", {"CARGO_TARGET_DIR": sel}),
-                Step("bench", "benchmark self-test", ["cargo", "test", "--release", "--locked", "--quiet",
-                                                      "--features", "selftest"], "bench/rust",
-                     {"CARGO_TARGET_DIR": sel}),
-                Step("bench", "benchmark go: gofmt, vet, test", GO_CHECK, "bench/go"),
-                # The self-test build has fake libraries in it, so only its tests use the tag.
-                Step("bench", "benchmark go self-test",
-                     ["sh", "-c", "go vet -tags selftest ./... && go test -short -tags selftest ./..."], "bench/go"),
-                Step("bench", "benchmark .NET harness format",
-                     [dotnet, "format", "whitespace", "bench/csharp/Bench.csproj", "--verify-no-changes"]),
-                Step("bench", "benchmark quick run", [py(), "bin/bench", "run"]),
-                Step("bench", "benchmark counters",
-                     [py(), "bin/bench", "check", str(out / "bench" / "results.json"),
-                      "--baseline", "bench/rust/counters.json"]),
-            ]
+            steps += bench_steps(root, out, target)
+        elif area.startswith("bench-"):
+            steps += bench_lang_steps(area, root, out, target, dotnet)
         else:
             names = sorted(n for n, a in ads.items() if a["language"] == area)
             only = touched.get(area)
@@ -274,13 +382,38 @@ def run_step(step: Step, root: Path, out: Path, base_env: dict, index: int) -> d
             "log": log, "argv": step.argv}
 
 
+def default_jobs() -> int:
+    """Areas to run side by side when --jobs is not given: a few, because each area's build can
+    use every core and the memory of a shared host is the tighter limit."""
+    return max(1, min(DEFAULT_JOBS, os.cpu_count() or 1))
+
+
+# Areas that build the most go first when they run side by side.
+HEAVY = {"csharp": 5, "bench-csharp": 4, "rust": 3, "bench-rust": 3, "go": 2, "bench-go": 1, "bench": 1}
+
+
+def weight(area: str) -> int:
+    return HEAVY.get(area, 0)
+
+
+def over_budget(total: float, budget: float | None, results: list[dict]) -> str | None:
+    """A message when the hand-over run took longer than its budget, naming the slowest steps
+    so the one to move to the full tier is clear; None when within budget or unbudgeted."""
+    if budget is None or total <= budget:
+        return None
+    slow = sorted(results, key=lambda r: -r["seconds"])[:3]
+    names = ", ".join(f"{r['area']}: {r['name']} ({r['seconds']:.0f} s)" for r in slow)
+    return (f"gate: the hand-over tier took {total:.0f} s, over its budget of {budget:g} s; "
+            f"the slowest steps were {names}. Make them faster or move them to the full tier.")
+
+
 def main(args) -> int:
     root = ROOT
     out = Path(args.out or os.environ.get("KIT_OUT") or root / "out")
     (out / "gate").mkdir(parents=True, exist_ok=True)
     files: list[str] = []
     why = ""
-    known = ["core", *sorted({a["language"] for a in adapter_dirs(root).values()}), "bench"]
+    known = ["core", *sorted({a["language"] for a in adapter_dirs(root).values()}), *AREA_NAMES_BENCH]
     if args.areas:
         areas = [a for a in args.areas.split(",") if a]
         unknown = [a for a in areas if a not in known]
@@ -302,7 +435,7 @@ def main(args) -> int:
         areas, touched, why = select_areas(files, root, args.full)
         if args.full:
             why = "full mode"
-    steps = build_steps(areas, touched, root, out)
+    steps = build_steps(areas, touched, root, out, full=args.full)
     rev = revision(root, args.base)
     if rev.get("available"):
         print(f"gate: revision HEAD {rev['head'][:12]}, base {rev['base']} at "
@@ -336,21 +469,30 @@ def main(args) -> int:
                     tail = r["log"].read_text(errors="replace").splitlines()[-25:]
                     print("\n".join("      " + t for t in tail), flush=True)
 
-    with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as ex:
-        list(ex.map(run_area, areas))
+    jobs = args.jobs if args.jobs else default_jobs()
+    with ThreadPoolExecutor(max_workers=max(1, jobs)) as ex:
+        # Slowest first, so the last area to start is not the one that takes longest.
+        list(ex.map(run_area, sorted(areas, key=lambda a: -weight(a))))
     total = time.monotonic() - t_all
     by_area: dict[str, float] = {}
     for r in results:
         by_area[r["area"]] = by_area.get(r["area"], 0) + r["seconds"]
     failed = [r for r in results if r["rc"] != 0]
+    budget = None if args.full else (BUDGET_SECONDS if args.budget is None else args.budget)
+    over = over_budget(total, budget, results)
     print("gate: " + ", ".join(f"{a} {t:.1f} s" for a, t in by_area.items()) + f"; wall-clock {total:.1f} s")
     (out / "gate" / "summary.json").write_text(json.dumps({
         "mode": "full" if args.full else "hand-over", "revision": rev, "areas": areas, "wall_seconds": round(total, 1),
+        "jobs": jobs, "budget_seconds": budget, "over_budget": over is not None,
         "areas_seconds": {a: round(t, 1) for a, t in by_area.items()},
         "steps": [{"area": r["area"], "name": r["name"], "ok": r["rc"] == 0, "seconds": round(r["seconds"], 1)}
                   for r in results]}, indent=1) + "\n")
+    if over:
+        print(over, file=sys.stderr)
     if failed:
         print(f"gate: FAILED ({len(failed)} of {len(results)} steps)")
+        return 1
+    if over:
         return 1
     print("gate: ok")
     return 0

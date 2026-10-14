@@ -32,6 +32,7 @@ bin/kit coverage                  # which YAML 1.2.2 productions and error paths
 bin/gate                          # hand-over gate: the kit core and the areas your change touched
 bin/gate --full                   # everything, every adapter (CI runs this)
 bin/gate --plan                   # show what would run
+bin/gate --areas bench-go         # named areas instead of choosing by changes
 bin/bench run                     # benchmarks, quick mode: results.json, report.md and charts in out/bench/
 bin/bench run --mode full         # full mode; labelled publishable only on a quiet host
 ```
@@ -42,10 +43,19 @@ its deviation list does not name, or when a list entry has gone stale.
 
 The gate has two tiers. The hand-over gate (`bin/gate`) always runs the kit core (corpus
 pins, the kit's own tests, the public-text check) and adds an area only when the files that
-differ from `main` touch it: an adapter language, the benchmark harness, or, for a change to
-the kit's code or cases, the reference adapter. Areas are the adapter languages (`rust`,
-`go`, `csharp`, ...), `bench` and `core`. The full gate (`bin/gate --full`) runs every area
-and every adapter; it is what CI runs, with `--jobs` to run areas side by side. Each step
+differ from `main` touch it, and then only that area's quick steps: format and lint checks,
+unit and self-tests, and for a benchmark harness a smoke run over three small workloads. Areas
+are the adapter languages (`rust`, `go`, `csharp`, ...), `bench` (the benchmark driver, report
+and workloads), one benchmark area per harness language (`bench-rust`, `bench-go`,
+`bench-csharp`, so a change to one harness never builds another) and `core`. A change to the
+kit's code or cases also runs the reference adapter, and a change to the benchmark driver also
+smoke-tests the Rust harness. Areas run side by side, four at a time unless `--jobs` says
+otherwise. The hand-over gate has a time budget of 150 seconds (`--budget`) and fails when a run
+exceeds it, which keeps the tier inside its three-minute limit; the fix is a faster step or
+moving it to the full tier. The full gate (`bin/gate --full`) runs every area and every
+step, including the slow ones (the end-to-end benchmark pipeline tests, the quick benchmark
+run over every workload, the counter check, the plain-build lint of the Rust harness); it is
+what CI runs, and it has no budget. Each step
 logs under `out/gate/` and shows its output only when it fails. Before any step the gate
 prints, and `out/gate/summary.json` records, the revision it checked: HEAD, the base and merge
 base, a fingerprint of the change against the merge base (the binary diff plus the path and
