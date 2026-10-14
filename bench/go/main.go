@@ -184,7 +184,7 @@ func oneCell(lib Library, task Task, w *Workload, cfg Config) map[string]any {
 		delete(rec, "variant")
 		return rec
 	}
-	m := memoryPass(runner, avgRunsFor(t, cfg))
+	m := memoryPass(runner, avgRunsFor(t, cfg), min(t.ItersPerSample, t.Chunk))
 	if d := agree(t, m); d != "" {
 		put("error", d)
 		delete(rec, "variant")
