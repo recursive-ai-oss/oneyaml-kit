@@ -20,6 +20,8 @@ public sealed class YamlDotNetLib : ILibrary
     {
         ["api"] = "DeserializerBuilder / SerializerBuilder, reflection",
         ["deserializer"] = "camel-case naming, WithAttemptingUnquotedStringTypeDeserialization (so untyped scalars are numbers and booleans, not strings)",
+        ["serializer"] = "WithQuotingNecessaryStrings (the library's own option for writing a string that reads as a number or a boolean in quotes, so the text reads back as the same value)",
+        ["input and output"] = "UTF-8 bytes in and out: the text is decoded and encoded inside the timed work, as it is for every library that works on strings",
         ["limits"] = "defaults",
     };
 
@@ -29,7 +31,7 @@ public sealed class YamlDotNetLib : ILibrary
         .WithAttemptingUnquotedStringTypeDeserialization()
         .Build();
 
-    static readonly ISerializer S = new SerializerBuilder().Build();
+    static readonly ISerializer S = new SerializerBuilder().WithQuotingNecessaryStrings().Build();
 
     /// <summary>Every document of a stream as a generic tree: one document through the string API, several
     /// through the parser.</summary>
@@ -45,6 +47,7 @@ public sealed class YamlDotNetLib : ILibrary
 
     public Runner Runner(BenchTask task, Workload w)
     {
+        var input = w.Input;
         var text = w.InputText;
         bool single = w.Documents == 1;
         switch (task)
@@ -52,17 +55,17 @@ public sealed class YamlDotNetLib : ILibrary
             case BenchTask.TypedLoad:
                 return w.TypedModel switch
                 {
-                    "gha" => new FnRunner<int, Workflow>(() => 0, _ => D.Deserialize<Workflow>(text), t => new Product.Value(Conv.WorkflowJ(t))),
-                    "records" => new FnRunner<int, List<Record>>(() => 0, _ => D.Deserialize<List<Record>>(text), t => new Product.Value(Conv.Records(t))),
+                    "gha" => new FnRunner<int, Workflow>(() => 0, _ => D.Deserialize<Workflow>(Support.Utf8.GetString(input)), t => new Product.Value(Conv.WorkflowJ(t))),
+                    "records" => new FnRunner<int, List<Record>>(() => 0, _ => D.Deserialize<List<Record>>(Support.Utf8.GetString(input)), t => new Product.Value(Conv.Records(t))),
                     _ => throw Support.No("no typed model for this workload"),
                 };
             case BenchTask.GenericLoad:
-                return new FnRunner<int, List<object?>>(() => 0, _ => LoadAll(text, single),
+                return new FnRunner<int, List<object?>>(() => 0, _ => LoadAll(Support.Utf8.GetString(input), single),
                     docs => new Product.Value(Conv.Docs(docs.Select(Conv.FromObject).ToList())));
             case BenchTask.Dump:
                 if (!single) throw Support.No("dump is defined for one document");
-                return new FnRunner<object?, string>(() => D.Deserialize<object>(text), tree => S.Serialize(tree!),
-                    s => new Product.Bytes(Support.Utf8.GetBytes(s)));
+                return new FnRunner<object?, byte[]>(() => D.Deserialize<object>(text), tree => Support.Utf8.GetBytes(S.Serialize(tree!)),
+                    b => new Product.Bytes(b), sharedState: true);
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
                 throw Support.No("no lossless document: comments and layout are discarded");
             default:

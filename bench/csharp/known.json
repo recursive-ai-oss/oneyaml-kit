@@ -3,6 +3,82 @@
  "language": "csharp",
  "entries": [
   {
+   "cell": "sharpyaml/dump/compose-merge-1m",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
+  },
+  {
+   "cell": "sharpyaml/dump/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
+  },
+  {
+   "cell": "sharpyaml/dump/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
+  },
+  {
+   "cell": "sharpyaml/dump/deep-block",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml/dump/deep-flow",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml/dump/records-1m",
+   "status": "differs",
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "sharpyaml/dump/records-4k",
+   "status": "differs",
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "sharpyaml/dump/records-64k",
+   "status": "differs",
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "sharpyaml/dump/records-8m",
+   "status": "differs",
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "sharpyaml/generic-load/compose-merge-1m",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
+  },
+  {
+   "cell": "sharpyaml/generic-load/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
+  },
+  {
+   "cell": "sharpyaml/generic-load/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
+  },
+  {
+   "cell": "sharpyaml/generic-load/deep-block",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml/generic-load/deep-flow",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
    "cell": "sharpyaml-model/dump/deep-block",
    "status": "rejects",
    "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
@@ -222,88 +298,138 @@
    "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
   },
   {
+   "cell": "sharpyaml-syntax/edit-script/compose-merge-1m",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/compose-merge-2k",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/compose-merge-64k",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/compose-wordpress",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/gha-workflow",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/helm-ingress-nginx",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/helm-values-1m",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/helm-values-64k",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/openapi-100k",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/openapi-8m",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/openapi-api-with-examples",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/openapi-petstore",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/prometheus-config",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/records-1m",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/records-4k",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/records-64k",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/records-8m",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/reference-a",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/reference-b",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/wide-map-1m",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
+   "cell": "sharpyaml-syntax/edit-script/wide-map-64k",
+   "status": "ok",
+   "variant": "harness-rendered",
+   "reason": "The library only replaces a range of characters: it has no path or value API. The harness finds each edit's node in the parsed tree's tokens and writes the new value's text (style, quoting, block header, chomping) inside the timed work, so the edit is judged as the harness's work on the library's tree and is shown apart from the other rows."
+  },
+  {
    "cell": "sharpyaml-syntax/unchanged-emit/deep-block",
    "status": "rejects",
    "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
   },
   {
    "cell": "sharpyaml-syntax/unchanged-emit/deep-flow",
-   "status": "rejects",
-   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
-  },
-  {
-   "cell": "sharpyaml/dump/compose-merge-1m",
-   "status": "ok",
-   "variant": "merged",
-   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
-  },
-  {
-   "cell": "sharpyaml/dump/compose-merge-2k",
-   "status": "ok",
-   "variant": "merged",
-   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
-  },
-  {
-   "cell": "sharpyaml/dump/compose-merge-64k",
-   "status": "ok",
-   "variant": "merged",
-   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
-  },
-  {
-   "cell": "sharpyaml/dump/deep-block",
-   "status": "rejects",
-   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
-  },
-  {
-   "cell": "sharpyaml/dump/deep-flow",
-   "status": "rejects",
-   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
-  },
-  {
-   "cell": "sharpyaml/dump/records-1m",
-   "status": "differs",
-   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
-  },
-  {
-   "cell": "sharpyaml/dump/records-4k",
-   "status": "differs",
-   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
-  },
-  {
-   "cell": "sharpyaml/dump/records-64k",
-   "status": "differs",
-   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
-  },
-  {
-   "cell": "sharpyaml/dump/records-8m",
-   "status": "differs",
-   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
-  },
-  {
-   "cell": "sharpyaml/generic-load/compose-merge-1m",
-   "status": "ok",
-   "variant": "merged",
-   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
-  },
-  {
-   "cell": "sharpyaml/generic-load/compose-merge-2k",
-   "status": "ok",
-   "variant": "merged",
-   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
-  },
-  {
-   "cell": "sharpyaml/generic-load/compose-merge-64k",
-   "status": "ok",
-   "variant": "merged",
-   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
-  },
-  {
-   "cell": "sharpyaml/generic-load/deep-block",
-   "status": "rejects",
-   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
-  },
-  {
-   "cell": "sharpyaml/generic-load/deep-flow",
    "status": "rejects",
    "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
   },
@@ -393,21 +519,6 @@
    "reason": "Works on data, not on text: the document is parsed into a JSON tree, the patch is applied there, and a new document is written, so comments, blank lines, quoting and layout are lost. It is the patch baseline that does not keep the document, not a lossless editor."
   },
   {
-   "cell": "yamldotnet/dump/compose-merge-1m",
-   "status": "differs",
-   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
-  },
-  {
-   "cell": "yamldotnet/dump/compose-merge-2k",
-   "status": "differs",
-   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
-  },
-  {
-   "cell": "yamldotnet/dump/compose-merge-64k",
-   "status": "differs",
-   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
-  },
-  {
    "cell": "yamldotnet/dump/deep-block",
    "status": "rejects",
    "reason": "The serializer refuses to write nesting deeper than its default recursion limit of 50; the workload nests 100 levels. The limit is the library's default and is not raised."
@@ -418,29 +529,24 @@
    "reason": "The serializer refuses to write nesting deeper than its default recursion limit of 50; the workload nests 100 levels. The limit is the library's default and is not raised."
   },
   {
-   "cell": "yamldotnet/dump/helm-ingress-nginx",
-   "status": "differs",
-   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
-  },
-  {
    "cell": "yamldotnet/dump/records-1m",
    "status": "differs",
-   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
   },
   {
    "cell": "yamldotnet/dump/records-4k",
    "status": "differs",
-   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
   },
   {
    "cell": "yamldotnet/dump/records-64k",
    "status": "differs",
-   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
   },
   {
    "cell": "yamldotnet/dump/records-8m",
    "status": "differs",
-   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
   }
  ]
 }

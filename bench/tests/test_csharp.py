@@ -98,6 +98,29 @@ class Files(unittest.TestCase):
             self.assertTrue((CSHARP / "src" / ("Libs/" + f if f == "Control.cs" else f)).read_text(encoding="utf-8")
                             .lstrip().startswith("#if SELFTEST"), f)
 
+    def test_the_runtime_keeps_its_defaults_and_the_harness_warms_up_instead(self):
+        # A user's program runs with tiered compilation and dynamic PGO on. Switching them off made library code
+        # start as fully optimised code, which no program gets, and moved the libraries' ratios by up to a fifth.
+        proj = (CSHARP / "Bench.csproj").read_text(encoding="utf-8")
+        for switch in ("TieredPGO", "TieredCompilationQuickJit", "TieredCompilation", "TC_QuickJit"):
+            self.assertNotIn(f"<{switch}>", proj, switch)
+        for text in (proj, (CSHARP / "build.sh").read_text(encoding="utf-8"), (CSHARP / "run.sh").read_text(encoding="utf-8")):
+            self.assertNotRegex(text, r"(?i)DOTNET_(TieredPGO|TieredCompilation|TC_)", "an environment switch")
+        measure = (CSHARP / "src" / "Measure.cs").read_text(encoding="utf-8")
+        self.assertIn("GetCompiledMethodCount", measure)
+        # The shipped runtime configuration file must not carry the switches either.
+        self.assertFalse(list(CSHARP.glob("*.runtimeconfig*.json")))
+
+    def test_the_harness_says_what_it_measures_in_its_readme(self):
+        readme = (CSHARP / "README.md").read_text(encoding="utf-8")
+        flat = " ".join(readme.split())
+        for needle in ("harness-rendered", "retained_bytes", "no-GC region", "settle window", "default limit",
+                       "UTF-8 bytes"):
+            self.assertIn(needle, flat, needle)
+        contract = " ".join((run.ROOT.parent / "docs" / "benchmark-adapters.md").read_text(encoding="utf-8").split())
+        self.assertIn("`harness-rendered`", contract)
+        self.assertIn("no-GC region", contract)
+
     def test_the_known_deviations_are_well_formed(self):
         known = json.loads((CSHARP / "known.json").read_text(encoding="utf-8"))
         self.assertEqual(known["language"], "csharp")
@@ -110,6 +133,20 @@ class Files(unittest.TestCase):
             seen.add(e["cell"])
             lib, task, workload = e["cell"].split("/", 2)
             self.assertIn(lib, LIBRARIES)
+        # An edit whose lookup and new text are the harness's code is listed as such, and only those are.
+        edits = [e for e in known["entries"] if e["cell"].startswith("sharpyaml-syntax/edit-script/")]
+        self.assertTrue(edits)
+        for e in edits:
+            self.assertEqual((e["status"], e.get("variant")), ("ok", "harness-rendered"), e["cell"])
+        self.assertFalse([e for e in known["entries"] if e.get("variant") == "harness-rendered"
+                          and not e["cell"].startswith("sharpyaml-syntax/edit-script/")])
+        # YamlDotNet's serializer has the library's own quoting option on, so its dumps of numeric-looking
+        # strings are right and are not listed.
+        self.assertFalse([e for e in known["entries"]
+                          if e["cell"].startswith("yamldotnet/dump/") and "reads as a number" in e["reason"]])
+        for e in known["entries"]:
+            if e["status"] == "rejects" and "depth" in e["reason"]:
+                self.assertIn("not raised", e["reason"], e["cell"])
 
 
 @unittest.skipUnless(DOTNET, "the .NET SDK is not available (set DOTNET)")
@@ -149,6 +186,10 @@ class Pipeline(unittest.TestCase):
         self.assertEqual(restarts, 0)
         self.assertEqual({lib["id"] for lib in rec["libraries"]}, set(LIBRARIES))
         self.assertFalse(rec["selftest_build"])
+        # The runtime runs with its defaults, as a user's program does.
+        for flag in ("tiered_compilation", "quick_jit", "tiered_pgo"):
+            self.assertEqual(rec["flags"][flag], "default (on)", flag)
+        self.assertIn("compiled", rec["flags"]["warmup"])
         res = self.result_of(rec, cells, [m for m in self.metas if m["id"] in only])
         results.validate(res)
         md = report.render(res, self.out / "slice-report")
@@ -161,10 +202,15 @@ class Pipeline(unittest.TestCase):
                 continue
             self.assertGreater(c["time"]["median_ns"], 0)
             self.assertEqual(c["time"]["samples"], 5)
-            self.assertEqual(c["memory"]["method"], "GC.GetAllocatedBytesForCurrentThread")
+            self.assertEqual(c["memory"]["method"], "GC.GetAllocatedBytesForCurrentThread, no-GC region")
             self.assertGreaterEqual(c["memory"]["allocated_bytes"], 0)
             self.assertGreater(c["memory"]["peak_bytes"], 0)
             self.assertIsNone(c["memory"]["allocations"])
+            # What the library keeps after a run is its own figure, taken in a fresh process.
+            self.assertGreater(c["memory"]["retained_bytes"], 0, c["library"])
+            # The code that was timed was warmed until the JIT stopped compiling.
+            self.assertTrue(c["time"]["warmup_settled"], (c["library"], c["task"], c["workload"]))
+            self.assertGreater(c["time"]["warmup_ms"], 0)
         # Every library the guard let through read the file the same way.
         by = {(c["library"], c["task"], c["workload"]): c for c in cells}
         for lib in ("yamldotnet", "sharpyaml", "vyaml", "yaml2jsonnode"):
@@ -189,14 +235,42 @@ class Pipeline(unittest.TestCase):
             self.assertNotIn("time", c)
             self.assertIn("byte 0", c["detail"])
 
+    def test_an_edit_the_harness_writes_is_labelled_so_and_is_timed_with_its_lookup(self):
+        _, cells, _ = self.harness(self.wl, ["gha-workflow", "reference-b"], ["sharpyaml-syntax"], ["edit-script"],
+                                   name="rendered")
+        self.assertEqual(len(cells), 2)
+        for c in cells:
+            self.assertEqual((c["status"], c["variant"]), ("ok", "harness-rendered"), c["workload"])
+        # The lookup and the new text are inside the clock now, so an edit of a parsed tree costs more than
+        # handing the text back, and it allocates (the nodes it looks through and the text it writes).
+        _, emit, _ = self.harness(self.wl, ["gha-workflow"], ["sharpyaml-syntax"], ["unchanged-emit"], name="emit")
+        edit = {c["workload"]: c for c in cells}["gha-workflow"]
+        self.assertGreater(edit["time"]["median_ns"], 3 * emit[0]["time"]["median_ns"])
+        self.assertGreater(edit["memory"]["allocated_bytes"], 10_000)
+
+    def test_the_peak_does_not_depend_on_which_cells_ran_before_it(self):
+        # A collection inside the run used to make the peak the size of the heap at that moment, which
+        # depended on the cells that ran earlier.
+        alone = self.harness(self.wl, ["records-4k"], ["yamldotnet"], ["generic-load"], name="alone")[1][0]
+        after = self.harness(self.wl, ["records-4k", "gha-workflow"], ["vyaml", "sharpyaml", "yamldotnet"],
+                             ["generic-load", "dump"], name="after")[1]
+        late = [c for c in after if c["library"] == "yamldotnet" and c["task"] == "generic-load"
+                and c["workload"] == "records-4k"][0]
+        # Two processes: what the profile led the JIT to optimise moves the allocation by a few percent either way.
+        for field in ("allocated_bytes", "peak_bytes"):
+            self.assertLess(abs(alone["memory"][field] - late["memory"][field]), 0.15 * alone["memory"][field], field)
+
     def test_a_dump_a_library_writes_wrongly_is_a_wrong_answer(self):
-        _, cells, _ = self.harness(self.wl, ["reference-a", "records-4k"], ["vyaml", "yamldotnet"], ["dump"], name="dumps")
+        _, cells, _ = self.harness(self.wl, ["reference-a", "records-4k", "compose-merge-2k"], ["vyaml", "yamldotnet"], ["dump"], name="dumps")
         by = {(c["library"], c["workload"]): c for c in cells}
         # A string that ends in a line break loses it; a number written plain reads back as a number.
         self.assertEqual(by[("vyaml", "reference-a")]["status"], "differs")
         self.assertIn("/b", by[("vyaml", "reference-a")]["detail"])
+        # YamlDotNet's own option for quoting such strings is on, so a string that looks like a number reads back as
+        # a string; a float with no fractional part is still written as an integer.
+        self.assertEqual(by[("yamldotnet", "compose-merge-2k")]["status"], "ok")
         self.assertEqual(by[("yamldotnet", "records-4k")]["status"], "differs")
-        self.assertIn("read back", by[("yamldotnet", "records-4k")]["detail"])
+        self.assertIn("812", by[("yamldotnet", "records-4k")]["detail"])
         self.assertEqual(by[("yamldotnet", "reference-a")]["status"], "ok")
 
     def test_a_library_limit_is_a_refusal_and_not_a_crash(self):
@@ -205,22 +279,28 @@ class Pipeline(unittest.TestCase):
         self.assertEqual(restarts, 0)
         self.assertEqual(by["sharpyaml"]["status"], "rejects")
         self.assertIn("maximum nesting depth", by["sharpyaml"]["detail"])
+        # The report shows the detail, so the reason a default limit is not a defect of the harness is in it.
+        self.assertTrue(by["sharpyaml"]["detail"].startswith("default limit, not raised"), by["sharpyaml"]["detail"])
         self.assertEqual(by["vyaml"]["status"], "ok")
 
     # -- the numbers ----------------------------------------------------------------------
 
-    def test_allocation_figures_repeat_to_the_byte(self):
+    def test_allocation_figures_agree_between_processes_to_what_the_profile_changes(self):
+        # Within a process the figures are exact (the harness's own tests check that). Across processes, dynamic PGO
+        # lets the JIT keep more or fewer objects on the stack, so the bytes a task requests move in small steps;
+        # without the profile they repeat to the byte. A larger difference would be a measurement fault.
         a = self.harness(self.wl, ["gha-workflow"], ["yamldotnet", "vyaml"], ["generic-load"], name="rep1")[1]
         b = self.harness(self.wl, ["gha-workflow"], ["yamldotnet", "vyaml"], ["generic-load"], name="rep2")[1]
         for x, y in zip(a, b):
             self.assertEqual(x["status"], "ok")
-            self.assertEqual(x["memory"]["allocated_bytes"], y["memory"]["allocated_bytes"], x["library"])
-            self.assertEqual(x["memory"]["peak_bytes"], y["memory"]["peak_bytes"], x["library"])
+            for field in ("allocated_bytes", "peak_bytes"):
+                self.assertLess(abs(x["memory"][field] - y["memory"][field]), 0.15 * x["memory"][field], (x["library"], field))
 
-    def test_the_syntax_tree_gives_the_text_back_without_allocating(self):
+    def test_the_syntax_tree_gives_the_text_back_as_bytes_it_has_to_encode(self):
         _, cells, _ = self.harness(self.wl, ["gha-workflow"], ["sharpyaml-syntax"], ["unchanged-emit", "document-parse"], name="tree")
         by = {c["task"]: c for c in cells}
-        self.assertEqual(by["unchanged-emit"]["memory"]["allocated_bytes"], 0)
+        # The text goes out as UTF-8 bytes, like every library's output, so the encoding is allocation inside the clock.
+        self.assertGreaterEqual(by["unchanged-emit"]["memory"]["allocated_bytes"], 9000)
         # The tree it parsed is the starting state, so it is in the peak.
         self.assertGreater(by["unchanged-emit"]["memory"]["peak_bytes"], 9000)
         self.assertEqual(by["document-parse"]["variant"], "bytes-only")

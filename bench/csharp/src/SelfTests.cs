@@ -1,4 +1,6 @@
 #if SELFTEST
+using System.Diagnostics.Tracing;
+using System.Runtime;
 using System.Text;
 using OneYamlKit.Bench.Libs;
 using SharpYaml.Syntax;
@@ -13,6 +15,9 @@ namespace OneYamlKit.Bench;
 public static class SelfTests
 {
     sealed class Failure(string message) : Exception(message);
+
+    // Writing to a static keeps the optimiser from removing an allocation whose result is never read.
+    static volatile byte[]? Sink;
 
     static void Check(bool ok, string what) { if (!ok) throw new Failure(what); }
     static void Equal<T>(T got, T want, string what)
@@ -39,6 +44,38 @@ public static class SelfTests
         Guard.Judge(t, w, () => p, () => f, referee ?? NoReferee);
     static Product V(string json) => new Product.Value(P(json));
     static Product B(string s) => new Product.Bytes(Encoding.UTF8.GetBytes(s));
+
+    /// <summary>Collects the runtime's method-load events: for each method, the sequence of versions the JIT
+    /// produced. In .NET 10 the tier is bits 7 to 9 of the event's flags: 3 is unoptimised, 6 is unoptimised
+    /// and instrumented, 4 is optimised. A method that ends in 4 after a 6 was optimised with a profile.</summary>
+    sealed class TierListener : EventListener
+    {
+        readonly Dictionary<ulong, (string Ns, string Seq)> _methods = new();
+
+        protected override void OnEventSourceCreated(EventSource source)
+        {
+            if (source.Name == "Microsoft-Windows-DotNETRuntime") EnableEvents(source, EventLevel.Verbose, (EventKeywords)0x10);
+        }
+
+        protected override void OnEventWritten(EventWrittenEventArgs e)
+        {
+            if (e.EventName == null || !e.EventName.StartsWith("MethodLoadVerbose", StringComparison.Ordinal) || e.Payload == null || e.PayloadNames == null) return;
+            ulong id = Convert.ToUInt64(e.Payload[e.PayloadNames.IndexOf("MethodID")]);
+            var ns = e.Payload[e.PayloadNames.IndexOf("MethodNamespace")] as string ?? "";
+            uint tier = (Convert.ToUInt32(e.Payload[e.PayloadNames.IndexOf("MethodFlags")]) >> 7) & 7;
+            lock (_methods) _methods[id] = (ns, _methods.TryGetValue(id, out var old) ? old.Seq + tier : tier.ToString());
+        }
+
+        public int Loads(string ns)
+        {
+            lock (_methods) return _methods.Values.Where(m => m.Ns.StartsWith(ns, StringComparison.Ordinal)).Sum(m => m.Seq.Length);
+        }
+
+        public int Optimised(string ns)
+        {
+            lock (_methods) return _methods.Values.Count(m => m.Ns.StartsWith(ns, StringComparison.Ordinal) && m.Seq.EndsWith('4') && m.Seq.Contains('6'));
+        }
+    }
 
     static readonly List<(string, Action)> Tests =
     [
@@ -196,10 +233,9 @@ public static class SelfTests
         {
             string Apply(string input, string expected, params Op[] ops)
             {
-                var w = Wl(input, expected, editOps: [.. ops]);
                 var tree = YamlSyntaxTree.Parse(input, new YamlSyntaxOptions { IncludeTrivia = true });
-                foreach (var (start, length, raw) in SharpYamlEdits.Plan(w)) tree = tree.WithTextChange(start, length, raw);
-                return tree.ToFullString();
+                try { return SharpYamlEdits.Apply(tree, ops).ToFullString(); }
+                catch (Unsupported u) { throw new Failure($"{u.Message} (steps {string.Join(", ", ops.Select(o => o.Name + " " + o.Path))})"); }
             }
             Op Set(string path, J v) => new("replace", path, v);
             Op Del(string path) => new("remove", path, null);
@@ -222,9 +258,34 @@ public static class SelfTests
                   input.Replace("  k: 1\n", "").Replace("a: 1  # keep", "a: true  # keep"), "edits do not move each other");
             Equal(Apply(input, value, Del("/f")),
                   input.Replace("f: [1, 2]\n", ""), "a flow value goes with its key");
+            // A sequence that is not indented under its key has no start or end token of its own.
+            var flat = "ik:\n- x\n- y: 2\n  z: 3\nnext: 1\nempty:\nlast: &a !!str v\n\"q k\": old\nnest:\n  # a comment before the first key\n  k: 1\n  j: 2\n";
+            const string flatValue = """{"ik":["x",{"y":2,"z":3}],"next":1,"empty":null,"last":"v","q k":"old","nest":{"k":1,"j":2}}""";
+            Equal(Apply(flat, flatValue, Set("/ik/0", J.Of("w"))),
+                  flat.Replace("- x\n", "- w\n"), "an item of a sequence with no indent");
+            Equal(Apply(flat, flatValue, Set("/ik/1/z", J.Of(4))),
+                  flat.Replace("z: 3", "z: 4"), "a mapping inside such a sequence");
+            Equal(Apply(flat, flatValue, Set("/next", J.Of(9))),
+                  flat.Replace("next: 1", "next: 9"), "the key after such a sequence is not part of it");
+            Equal(Apply(flat, flatValue, Del("/ik/0")),
+                  flat.Replace("- x\n", ""), "an item of such a sequence goes with its dash");
+            Equal(Apply(flat, flatValue, Set("/last", J.Of("new"))),
+                  flat.Replace("&a !!str v", "&a !!str new"), "an anchor and a tag stay");
+            Equal(Apply(flat, flatValue, Set("/q k", J.Of("fresh"))),
+                  flat.Replace("old", "fresh"), "a key in quotes is found by its value");
+            Equal(Apply(flat, flatValue, Set("/nest/j", J.Of(5))),
+                  flat.Replace("j: 2", "j: 5"), "a mapping that starts after a comment line");
+            Equal(Apply(flat, flatValue, Del("/empty")),
+                  flat.Replace("empty:\n", ""), "a key with no value is removed whole");
             try
             {
-                SharpYamlEdits.Plan(Wl("{a: 1, b: 2}\n", """{"a":1,"b":2}""", editOps: [Del("/b")]));
+                SharpYamlEdits.Apply(YamlSyntaxTree.Parse(flat, new YamlSyntaxOptions { IncludeTrivia = true }), [Set("/empty", J.Of("x"))]);
+                Check(false, "an empty value was replaced");
+            }
+            catch (Unsupported) { }
+            try
+            {
+                SharpYamlEdits.Apply(YamlSyntaxTree.Parse("{a: 1, b: 2}\n", new YamlSyntaxOptions { IncludeTrivia = true }), [Del("/b")]);
                 Check(false, "removal inside a flow mapping was prepared");
             }
             catch (Unsupported) { }
@@ -248,6 +309,96 @@ public static class SelfTests
             Check(u2.PeakBytes is >= (2 << 20) and < (2 << 20) + 16384, "the state counts toward the peak: " + u2.PeakBytes);
             // The same cell measured twice agrees to the byte.
             Equal(Measure.Memory(alloc).AllocatedBytes, u1.AllocatedBytes, "repeatable");
+        }),
+        ("a runner may share one state only if the task leaves it alone", () =>
+        {
+            int built = 0;
+            var honest = new FnRunner<int[], byte[]>(() => { built++; return [7]; }, s => [(byte)s[0]], b => new Product.Bytes(b), sharedState: true);
+            honest.Check();
+            var batch = honest.Prepare(5);
+            Equal(built, 2, "one state for the check (both of its runs), one for the whole batch");
+            batch.Run();
+            var mutating = new FnRunner<int[], byte[]>(() => [0], s => [(byte)(++s[0])], b => new Product.Bytes(b), sharedState: true);
+            try { mutating.Check(); Check(false, "a task that changes its state was allowed to share it"); }
+            catch (InvalidOperationException e) { Check(e.Message.Contains("starting state"), e.Message); }
+            var own = new FnRunner<int[], byte[]>(() => [0], s => [(byte)(++s[0])], b => new Product.Bytes(b));
+            Equal(own.Check() is Product.Bytes, true, "a runner with a state per task may change it");
+        }),
+        ("a batch is never smaller than the sample target asks for, however slow its states are to build", () =>
+        {
+            // The states take about 2 ms to build and the task about 5 us. A budget on set-up time used to cut the
+            // batch to a handful, which made the cost of one invocation the answer.
+            var slow = new FnRunner<int, long>(
+                () => { var t = System.Diagnostics.Stopwatch.StartNew(); while (t.Elapsed.TotalMilliseconds < 2) { } return 0; },
+                _ => { long x = 0; for (int i = 0; i < 3000; i++) x += i; return x; }, _ => new Product.Bytes([]));
+            Measure.ArtifactsPath = Path.Combine(Path.GetTempPath(), "oneyaml-bench-selftest-" + Environment.ProcessId);
+            var cfg = Config.Quick with { WarmupMaxMs = 300, SettleWindowMs = 20 };
+            var t = Measure.Time(slow, cfg);
+            Check(t.ItersPerSample * t.Median >= 0.5 * cfg.SampleTargetMs * 1e6,
+                  $"a sample of {t.ItersPerSample} tasks of {t.Median:F0} ns is shorter than half the {cfg.SampleTargetMs} ms target");
+            Equal(t.SamplesNs.Length, cfg.MinSamples, "samples are cut only down to the minimum");
+        }),
+        ("the peak is the starting state plus what the task requested, whatever the collector did before", () =>
+        {
+            // 300 MB of small objects, dropped as they are made: more than any young generation holds, so a
+            // collection inside the run frees most of it, and a peak read from the heap would depend on when
+            // the collection happened.
+            var churn = new FnRunner<byte[], int>(() => new byte[1 << 20], s =>
+            {
+                int n = 0;
+                for (int i = 0; i < 300_000; i++) { Sink = new byte[1000]; n++; }
+                return n + s.Length;
+            }, _ => new Product.Bytes([]));
+            var a = Measure.Memory(churn);
+            Equal(a.PeakBytes, a.StateBytes + a.AllocatedBytes, "peak is the state plus what was requested");
+            Check(a.AllocatedBytes >= 300_000_000, "allocated bytes: " + a.AllocatedBytes);
+            // Fill the young generation with other work, then measure again, and again after a full collection.
+            for (int i = 0; i < 2000; i++) GC.KeepAlive(new byte[40_000]);
+            var b = Measure.Memory(churn);
+            GC.Collect();
+            var c = Measure.Memory(churn);
+            // What the task requested is exact; the state is a difference of two live-size readings and can move by a
+            // few kilobytes with what else is alive.
+            Equal(b.AllocatedBytes, a.AllocatedBytes, "requested after other allocation");
+            Equal(c.AllocatedBytes, a.AllocatedBytes, "requested after a full collection");
+            Check(Math.Abs(b.PeakBytes - a.PeakBytes) < a.PeakBytes / 100, $"peak after other allocation: {b.PeakBytes} against {a.PeakBytes}");
+            Check(Math.Abs(c.PeakBytes - a.PeakBytes) < a.PeakBytes / 100, $"peak after a full collection: {c.PeakBytes} against {a.PeakBytes}");
+        }),
+        ("what a library keeps after a run is reported apart from the peak", () =>
+        {
+            var keep = new List<byte[]>();
+            var keeper = new FnRunner<int, int>(() => 0, _ => { keep.Add(new byte[1 << 20]); return 1; }, _ => new Product.Bytes([]));
+            var tidy = new FnRunner<int, byte[]>(() => 0, _ => new byte[1 << 20], _ => new Product.Bytes([]));
+            long kept = Measure.Retained(keeper);
+            Check(kept >= (1 << 20), "a buffer the library holds on to is retained: " + kept);
+            Check(Measure.Retained(tidy) < 64 * 1024, "garbage is not retained: " + Measure.Retained(tidy));
+            GC.KeepAlive(keep);
+        }),
+        ("warming up under the full-mode policy reaches optimised, profiled code and the JIT then goes quiet", () =>
+        {
+            // The same function the harness calls before it times a cell, with the full-mode settings, on a real
+            // library. A method that is called often goes through three versions: unoptimised, instrumented for
+            // the profile, and optimised with the profile's help. The runtime reports each as a method load.
+            var text = Encoding.UTF8.GetBytes(string.Concat(Enumerable.Range(0, 120).Select(i => $"key{i}: [1, 2.5, 'x']\nm{i}:\n  a: b\n  c: [true, null]\n")));
+            var vyaml = new FnRunner<int, object?>(() => 0, _ => VYaml.Serialization.YamlSerializer.Deserialize<object>(new ReadOnlyMemory<byte>(text)), _ => new Product.Bytes([]));
+            var sharp = new FnRunner<int, object?>(() => 0, _ => SharpYaml.YamlSerializer.Deserialize<object>(Encoding.UTF8.GetString(text)), _ => new Product.Bytes([]));
+            using var tiers = new TierListener();
+            // A policy that stops after 30 ms cannot get there: the runtime waits 100 ms before it even counts calls.
+            var hasty = Measure.WarmUp(sharp, Config.Quick with { WarmupMaxMs = 30, SettleWindowMs = 0, SettleWindows = 0 }, 1000);
+            Equal(hasty.Settled, true, "a policy with no window settles at once");
+            System.Threading.Thread.Sleep(300);
+            Equal(tiers.Optimised("SharpYaml"), 0, "optimised methods after a 30 ms warm-up");
+            var full = Measure.WarmUp(vyaml, Config.Full, 1000);
+            Check(full.Settled, $"the full-mode warm-up did not settle in {full.Ms:F0} ms");
+            System.Threading.Thread.Sleep(300);
+            int optimised = tiers.Optimised("VYaml");
+            Check(optimised >= 5, $"methods that reached optimised code after instrumentation: {optimised}");
+            // Quiet: another stretch of the same work makes the JIT produce no new version of any VYaml method.
+            int loads = tiers.Loads("VYaml");
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            while (clock.ElapsedMilliseconds < 500) vyaml.Prepare(1).Run();
+            System.Threading.Thread.Sleep(300);
+            Equal(tiers.Loads("VYaml"), loads, "VYaml methods compiled after the warm-up");
         }),
         ("a timed cell takes the configured number of samples and reports time per task", () =>
         {

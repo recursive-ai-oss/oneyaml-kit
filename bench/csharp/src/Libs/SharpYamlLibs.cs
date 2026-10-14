@@ -19,7 +19,8 @@ public sealed class SharpYamlLib : ILibrary
     {
         ["api"] = "YamlSerializer, typed models through a source-generated YamlSerializerContext, untyped as object",
         ["untyped load"] = "ReferenceHandling = Preserve (the documented requirement for any input with aliases), schema Core",
-        ["limits"] = "defaults (MaxDepth 64)",
+        ["limits"] = "defaults (MaxDepth 64), not raised",
+        ["input and output"] = "UTF-8 bytes in and out: the text is decoded and encoded inside the timed work, as it is for every library that works on strings",
     };
 
     // Aliases are refused when reading into `object` unless references are preserved, and the workloads
@@ -29,27 +30,28 @@ public sealed class SharpYamlLib : ILibrary
 
     public Runner Runner(BenchTask task, Workload w)
     {
+        var input = w.Input;
         var text = w.InputText;
         switch (task)
         {
             case BenchTask.TypedLoad:
                 return w.TypedModel switch
                 {
-                    "gha" => new FnRunner<int, Workflow?>(() => 0, _ => YamlSerializer.Deserialize(text, SharpYamlContext.Default.Workflow),
+                    "gha" => new FnRunner<int, Workflow?>(() => 0, _ => YamlSerializer.Deserialize(Support.Utf8.GetString(input), SharpYamlContext.Default.Workflow),
                         t => new Product.Value(Conv.WorkflowJ(t!))),
-                    "records" => new FnRunner<int, List<Record>?>(() => 0, _ => YamlSerializer.Deserialize(text, SharpYamlContext.Default.ListRecord),
+                    "records" => new FnRunner<int, List<Record>?>(() => 0, _ => YamlSerializer.Deserialize(Support.Utf8.GetString(input), SharpYamlContext.Default.ListRecord),
                         t => new Product.Value(Conv.Records(t!))),
                     _ => throw Support.No("no typed model for this workload"),
                 };
             case BenchTask.GenericLoad:
                 if (w.Documents != 1) throw Support.No("the serializer reads one document per call; the model API reads a stream");
-                return new FnRunner<int, object?>(() => 0, _ => YamlSerializer.Deserialize<object>(text, LoadOptions),
+                return new FnRunner<int, object?>(() => 0, _ => YamlSerializer.Deserialize<object>(Support.Utf8.GetString(input), LoadOptions),
                     t => new Product.Value(Conv.FromObject(t)));
             case BenchTask.Dump:
                 if (w.Documents != 1) throw Support.No("dump is defined for one document");
-                return new FnRunner<object?, string>(() => YamlSerializer.Deserialize<object>(text, LoadOptions),
-                    tree => YamlSerializer.Serialize<object?>(tree, DumpOptions),
-                    s => new Product.Bytes(Support.Utf8.GetBytes(s)));
+                return new FnRunner<object?, byte[]>(() => YamlSerializer.Deserialize<object>(text, LoadOptions),
+                    tree => Support.Utf8.GetBytes(YamlSerializer.Serialize<object?>(tree, DumpOptions)),
+                    b => new Product.Bytes(b), sharedState: true);
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
                 throw Support.No("the serializer keeps no comments or layout; see sharpyaml-syntax");
             default:
@@ -71,21 +73,24 @@ public sealed class SharpYamlModelLib : ILibrary
     {
         ["api"] = "SharpYaml.Model.YamlStream.Load; nodes written back with YamlNode.ToString",
         ["values"] = "the tree holds scalar text; the harness resolves plain scalars by the core schema when it reads the tree",
+        ["limits"] = "defaults (MaxDepth 64), not raised",
+        ["input and output"] = "UTF-8 bytes in and out: the text is decoded and encoded inside the timed work, as it is for every library that works on strings",
     };
 
     public Runner Runner(BenchTask task, Workload w)
     {
+        var input = w.Input;
         var text = w.InputText;
         switch (task)
         {
             case BenchTask.GenericLoad:
-                return new FnRunner<int, YamlStream>(() => 0, _ => YamlStream.Load(new StringReader(text)),
+                return new FnRunner<int, YamlStream>(() => 0, _ => YamlStream.Load(new StringReader(Support.Utf8.GetString(input))),
                     s => new Product.Value(Conv.Docs(s.Select(d => ModelJ(d.Contents)).ToList())));
             case BenchTask.Dump:
                 if (w.Documents != 1) throw Support.No("dump is defined for one document");
-                return new FnRunner<YamlStream, string>(() => YamlStream.Load(new StringReader(text)),
-                    s => s[0].Contents!.ToString(),
-                    s => new Product.Bytes(Support.Utf8.GetBytes(s)));
+                return new FnRunner<YamlStream, byte[]>(() => YamlStream.Load(new StringReader(text)),
+                    s => Support.Utf8.GetBytes(s[0].Contents!.ToString()),
+                    b => new Product.Bytes(b), sharedState: true);
             case BenchTask.TypedLoad:
                 throw Support.No("the node model is untyped; see sharpyaml");
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
@@ -130,32 +135,40 @@ public sealed class SharpYamlSyntaxLib : ILibrary
     {
         ["api"] = "SharpYaml.Syntax.YamlSyntaxTree.Parse (IncludeTrivia), ToFullString, WithTextChange",
         ["document value"] = "the tree gives no value, so document-parse is judged on the bytes it writes back",
-        ["edits"] = "span and replacement text are worked out from the workload's pointers before the clock; the timed work is one WithTextChange per edit, last edit first",
+        ["edits"] = "the timed work finds each edit's node in the parsed tree's tokens, writes the new value's text (style, quoting, block header, chomping) and applies one WithTextChange per edit, last edit first; the library has no path or value API, so that lookup and writing are the harness's own code and the cell is reported as variant harness-rendered",
+        ["limits"] = "defaults (MaxDepth 64), not raised",
+        ["input and output"] = "UTF-8 bytes in and out: the text is decoded and encoded inside the timed work, as it is for every library that works on strings",
     };
 
     static readonly YamlSyntaxOptions Options = new() { IncludeTrivia = true };
 
+    /// <summary>The variant of an edit whose lookup and new text are the harness's code, not the library's: the
+    /// library only replaces a range of characters. Such a cell is shown apart and never sets the reference that
+    /// others are compared with.</summary>
+    public const string HarnessRendered = "harness-rendered";
+
     public Runner Runner(BenchTask task, Workload w)
     {
+        var input = w.Input;
         var text = w.InputText;
         switch (task)
         {
             case BenchTask.DocumentParse:
-                return new FnRunner<int, YamlSyntaxTree>(() => 0, _ => YamlSyntaxTree.Parse(text, Options),
+                return new FnRunner<int, YamlSyntaxTree>(() => 0, _ => YamlSyntaxTree.Parse(Support.Utf8.GetString(input), Options),
                     t => new Product.Document(null, Support.Utf8.GetBytes(t.ToFullString())));
             case BenchTask.UnchangedEmit:
-                return new FnRunner<YamlSyntaxTree, string>(() => YamlSyntaxTree.Parse(text, Options), t => t.ToFullString(),
-                    s => new Product.Bytes(Support.Utf8.GetBytes(s)));
+                return new FnRunner<YamlSyntaxTree, byte[]>(() => YamlSyntaxTree.Parse(text, Options),
+                    t => Support.Utf8.GetBytes(t.ToFullString()),
+                    b => new Product.Bytes(b), sharedState: true);
             case BenchTask.EditScript:
                 {
-                    var edits = SharpYamlEdits.Plan(w);
-                    return new FnRunner<YamlSyntaxTree, string>(() => YamlSyntaxTree.Parse(text, Options),
-                        t =>
-                        {
-                            foreach (var (start, length, raw) in edits) t = t.WithTextChange(start, length, raw);
-                            return t.ToFullString();
-                        },
-                        s => new Product.Bytes(Support.Utf8.GetBytes(s)));
+                    var ops = w.EditOps;
+                    // A trial on a throw-away tree finds out, before anything is timed, whether the harness can
+                    // express these edits at all.
+                    SharpYamlEdits.Apply(YamlSyntaxTree.Parse(text, Options), ops);
+                    return new FnRunner<YamlSyntaxTree, byte[]>(() => YamlSyntaxTree.Parse(text, Options),
+                        t => Support.Utf8.GetBytes(SharpYamlEdits.Apply(t, ops).ToFullString()),
+                        b => new Product.Bytes(b), sharedState: true, variant: HarnessRendered);
                 }
             case BenchTask.TypedLoad or BenchTask.GenericLoad or BenchTask.Dump:
                 throw Support.No("the syntax tree gives no values; see sharpyaml");

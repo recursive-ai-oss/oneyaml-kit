@@ -2,123 +2,298 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using SharpYaml;
-using SharpYaml.Events;
+using SharpYaml.Syntax;
 
 namespace OneYamlKit.Bench.Libs;
 
-/// <summary>Works out, from the workload's pointers and before the clock, the text changes that
-/// <c>YamlSyntaxTree.WithTextChange</c> needs. The library replaces a range of source characters and
-/// nothing more: finding the range of a node, writing the YAML text for a new value in a style that can
-/// hold it, and removing a whole entry are all the caller's work. The nodes come from the library's own
-/// event parser (its start and end marks); the value text follows the style of the value it replaces.
-/// Changes are returned last first, so that an earlier change never moves a later one.</summary>
+/// <summary>Edits a <c>YamlSyntaxTree</c> from RFC 6902 steps. The library replaces a range of source
+/// characters and nothing more: finding the range of a node, writing the YAML text for a new value in a style
+/// that can hold it, and removing a whole entry are all the caller's work, so this is harness code and a cell
+/// that uses it is reported as <c>harness-rendered</c>. Everything here runs inside the clock: the lookup walks
+/// the tokens of the tree that was parsed before it, and the replacement text follows the style of the value it
+/// replaces. Changes are applied last first, so that an earlier change never moves a later one.</summary>
 public static class SharpYamlEdits
 {
     sealed class Node
     {
-        public required string Kind; // scalar, sequence, mapping, alias
+        public required string Kind; // scalar, sequence, mapping, alias, empty
         public int Start;            // first character
         public int Last;             // one past the last character
-        public string Text = "";
-        public string? Anchor, Tag;
+        public string Text = "";     // a scalar's source text, quotes and block header included
         public ScalarStyle Style;
-        public bool Flow;
+        public bool Flow, Implicit;  // implicit: a block sequence that is not indented under its key
         public List<Node> Items = [];
         public Node? Parent;
+        public int Dash = -1;        // a sequence item: where its dash is
+        public Node? PendingKey;     // a mapping being read: the key still waiting for its value
+        public bool Waiting;         // a mapping after its colon, a sequence after its dash: the next node is the value
     }
 
-    static string? Nz(string? s) => string.IsNullOrEmpty(s) ? null : s;
+    static Node Empty() => new() { Kind = "empty" };
 
-    static Node Load(string text, int docIndex)
+    static ScalarStyle StyleOf(string raw) => raw.Length == 0 ? ScalarStyle.Plain : raw[0] switch
     {
-        var stack = new Stack<Node>();
-        Node? root = null;
-        int doc = -1;
-        void Add(Node n)
-        {
-            if (doc != docIndex) return;
-            if (stack.Count > 0) { n.Parent = stack.Peek(); stack.Peek().Items.Add(n); } else root = n;
-        }
-        var parser = Parser.CreateParser(new StringReader(text));
-        while (parser.MoveNext())
-        {
-            var e = parser.Current;
-            switch (e)
-            {
-                case DocumentStart: doc++; break;
-                case Scalar s:
-                    Add(new Node { Kind = "scalar", Start = s.Start.Index, Last = s.End.Index, Text = s.Value, Style = s.Style, Anchor = Nz(s.Anchor), Tag = Nz(s.Tag) });
-                    break;
-                case AnchorAlias a:
-                    Add(new Node { Kind = "alias", Start = a.Start.Index, Last = a.End.Index, Text = a.Value });
-                    break;
-                case SequenceStart ss:
-                    if (doc == docIndex) { var n = new Node { Kind = "sequence", Start = ss.Start.Index, Flow = ss.Style == YamlStyle.Flow }; Add(n); stack.Push(n); }
-                    break;
-                case MappingStart ms:
-                    if (doc == docIndex) { var n = new Node { Kind = "mapping", Start = ms.Start.Index, Flow = ms.Style == YamlStyle.Flow }; Add(n); stack.Push(n); }
-                    break;
-                case SequenceEnd or MappingEnd:
-                    if (doc == docIndex)
-                    {
-                        var n = stack.Pop();
-                        // A flow collection ends at its closing bracket; a block collection at the end of its last child.
-                        n.Last = n.Flow ? e.Start.Index + 1 : n.Items.Count > 0 ? n.Items.Max(c => c.Last) : n.Start;
-                    }
-                    break;
-            }
-        }
-        return root ?? throw new InvalidOperationException("the document has no content");
-    }
+        '\'' => ScalarStyle.SingleQuoted,
+        '"' => ScalarStyle.DoubleQuoted,
+        '|' => ScalarStyle.Literal,
+        '>' => ScalarStyle.Folded,
+        _ => ScalarStyle.Plain,
+    };
 
-    public static List<(int Start, int Length, string Raw)> Plan(Workload w)
+    /// <summary>The value of a key from its source text: quotes removed and the escapes a key can hold resolved.</summary>
+    static string KeyText(Node k)
     {
-        var text = w.InputText;
-        var root = Load(text, 0);
-        var edits = new List<(int, int, string)>();
-        foreach (var op in w.EditOps)
+        var t = k.Text;
+        switch (k.Style)
         {
-            var segs = Pointer.Segments(w.BaseValue, op.Path, false);
-            var node = root;
-            Node? parentMapKey = null;
-            foreach (var seg in segs)
-            {
-                if (node.Kind == "alias") throw Support.No("an edit through an alias is not prepared by the harness");
-                if (seg.IsKey)
+            case ScalarStyle.SingleQuoted when t.Length >= 2: return t[1..^1].Replace("''", "'");
+            case ScalarStyle.DoubleQuoted when t.Length >= 2:
                 {
-                    if (node.Kind != "mapping") throw Support.No("pointer does not follow the document");
-                    Node? hit = null;
-                    for (int i = 0; i + 1 < node.Items.Count && hit == null; i += 2)
-                        if (node.Items[i].Kind == "scalar" && node.Items[i].Text == seg.Key) { parentMapKey = node.Items[i]; hit = node.Items[i + 1]; }
-                    node = hit ?? throw Support.No($"key {seg.Key} not found");
+                    var sb = new StringBuilder();
+                    for (int i = 1; i < t.Length - 1; i++)
+                    {
+                        if (t[i] != '\\' || i + 1 >= t.Length - 1) { sb.Append(t[i]); continue; }
+                        char c = t[++i];
+                        switch (c)
+                        {
+                            case 'n': sb.Append('\n'); break;
+                            case 't': sb.Append('\t'); break;
+                            case 'r': sb.Append('\r'); break;
+                            case '0': sb.Append('\0'); break;
+                            case 'x' when i + 2 < t.Length: sb.Append((char)int.Parse(t.AsSpan(i + 1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture)); i += 2; break;
+                            case 'u' when i + 4 < t.Length: sb.Append((char)int.Parse(t.AsSpan(i + 1, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture)); i += 4; break;
+                            default: sb.Append(c); break;
+                        }
+                    }
+                    return sb.ToString();
+                }
+            default: return t;
+        }
+    }
+
+    /// <summary>The tokens with the zero-width structure markers that share one position put in a fixed order. The tree
+    /// lists them in an order that varies with the surroundings (a key marker before or after the end of the block
+    /// it follows, before or after the start of the block it opens), so the walk below would otherwise read the same
+    /// structure two ways. Ends come first, then starts, then keys.</summary>
+    static List<YamlSyntaxToken> Ordered(IReadOnlyList<YamlSyntaxToken> tokens)
+    {
+        static int Rank(YamlSyntaxKind k) => k switch
+        {
+            YamlSyntaxKind.BlockEnd => 0,
+            YamlSyntaxKind.BlockMappingStart or YamlSyntaxKind.BlockSequenceStart => 1,
+            YamlSyntaxKind.Key => 2,
+            _ => -1,
+        };
+        var result = new List<YamlSyntaxToken>(tokens.Count);
+        for (int i = 0; i < tokens.Count; i++)
+        {
+            var t = tokens[i];
+            if (Rank(t.Kind) < 0 || t.Span.Start.Index != t.Span.End.Index) { result.Add(t); continue; }
+            int j = i + 1;
+            while (j < tokens.Count && Rank(tokens[j].Kind) >= 0 && tokens[j].Span.Start.Index == t.Span.Start.Index && tokens[j].Span.End.Index == t.Span.Start.Index) j++;
+            var run = new List<YamlSyntaxToken>(j - i);
+            for (int k = i; k < j; k++) run.Add(tokens[k]);
+            result.AddRange(run.OrderBy(x => Rank(x.Kind)));
+            i = j - 1;
+        }
+        return result;
+    }
+
+    /// <summary>Reads the structure of the first document from the tree's tokens. A block sequence directly under
+    /// a mapping key has no start or end token of its own, so it begins at its first dash and ends when the next
+    /// key or the end of the mapping arrives; an empty value has no token at all and is noticed by the token that
+    /// follows its colon.</summary>
+    static Node Index(YamlSyntaxTree tree)
+    {
+        Node? root = null;
+        var stack = new List<Node>();
+        int dash = -1;
+        Node? Top() => stack.Count > 0 ? stack[^1] : null;
+
+        void Attach(Node n)
+        {
+            var top = Top();
+            if (top == null) { root ??= n; return; }
+            n.Parent = top;
+            if (top.Kind == "mapping")
+            {
+                if (top.Waiting)
+                {
+                    top.Items.Add(top.PendingKey ?? Empty());
+                    top.Items.Add(n);
+                    top.PendingKey = null;
+                    top.Waiting = false;
                 }
                 else
                 {
-                    if (node.Kind != "sequence" || seg.Index >= node.Items.Count) throw Support.No("pointer does not follow the document");
-                    parentMapKey = null;
-                    node = node.Items[seg.Index];
+                    if (top.PendingKey != null) { top.Items.Add(top.PendingKey); top.Items.Add(Empty()); }
+                    top.PendingKey = n;
                 }
+            }
+            else
+            {
+                n.Dash = dash;
+                dash = -1;
+                top.Items.Add(n);
+                top.Waiting = false;
+            }
+        }
+
+        void Finish(Node n, int? flowEnd)
+        {
+            if (n.Kind == "mapping" && (n.PendingKey != null || n.Waiting))
+            {
+                n.Items.Add(n.PendingKey ?? Empty());
+                n.Items.Add(Empty());
+                n.PendingKey = null;
+                n.Waiting = false;
+            }
+            n.Last = flowEnd ?? (n.Items.Count > 0 ? n.Items.Max(c => c.Last) : n.Start);
+        }
+
+        void Pop(int? flowEnd)
+        {
+            var n = stack[^1];
+            stack.RemoveAt(stack.Count - 1);
+            Finish(n, flowEnd);
+        }
+
+        void CloseImplicit() { while (Top() is { Implicit: true }) Pop(null); }
+
+        var tokens = Ordered(tree.Tokens);
+        for (int ti = 0; ti < tokens.Count; ti++)
+        {
+            var tk = tokens[ti];
+            switch (tk.Kind)
+            {
+                case YamlSyntaxKind.DocumentStart or YamlSyntaxKind.DocumentEnd:
+                    if (root != null) goto done;
+                    break;
+                case YamlSyntaxKind.Key:
+                    CloseImplicit();
+                    if (Top() is { Kind: "mapping", Waiting: true } m)
+                    {
+                        m.Items.Add(m.PendingKey ?? Empty());
+                        m.Items.Add(Empty());
+                        m.PendingKey = null;
+                        m.Waiting = false;
+                    }
+                    break;
+                case YamlSyntaxKind.BlockMappingStart or YamlSyntaxKind.FlowMappingStart:
+                    {
+                        var n = new Node { Kind = "mapping", Start = tk.Span.Start.Index, Flow = tk.Kind == YamlSyntaxKind.FlowMappingStart };
+                        Attach(n);
+                        stack.Add(n);
+                        break;
+                    }
+                case YamlSyntaxKind.BlockSequenceStart or YamlSyntaxKind.FlowSequenceStart:
+                    {
+                        var n = new Node { Kind = "sequence", Start = tk.Span.Start.Index, Flow = tk.Kind == YamlSyntaxKind.FlowSequenceStart };
+                        Attach(n);
+                        stack.Add(n);
+                        break;
+                    }
+                case YamlSyntaxKind.BlockEntry:
+                    {
+                        var top = Top();
+                        if (top is { Kind: "mapping", Waiting: true })
+                        {
+                            var q = new Node { Kind = "sequence", Start = tk.Span.Start.Index, Implicit = true };
+                            Attach(q);
+                            stack.Add(q);
+                            top = q;
+                        }
+                        if (top is { Kind: "sequence" })
+                        {
+                            if (top.Waiting) top.Items.Add(Empty());
+                            top.Waiting = true;
+                        }
+                        dash = tk.Span.Start.Index;
+                        break;
+                    }
+                case YamlSyntaxKind.FlowEntry:
+                    if (Top() is { Kind: "mapping", Waiting: true } fm)
+                    {
+                        fm.Items.Add(fm.PendingKey ?? Empty());
+                        fm.Items.Add(Empty());
+                        fm.PendingKey = null;
+                        fm.Waiting = false;
+                    }
+                    break;
+                case YamlSyntaxKind.Value:
+                    if (Top() is { Kind: "mapping" } vm)
+                    {
+                        vm.PendingKey ??= Empty();
+                        vm.Waiting = true;
+                    }
+                    break;
+                case YamlSyntaxKind.Scalar:
+                    Attach(new Node { Kind = "scalar", Start = tk.Span.Start.Index, Last = tk.Span.End.Index, Text = tk.Text, Style = StyleOf(tk.Text) });
+                    break;
+                case YamlSyntaxKind.AnchorAlias:
+                    Attach(new Node { Kind = "alias", Start = tk.Span.Start.Index, Last = tk.Span.End.Index, Text = tk.Text });
+                    break;
+                case YamlSyntaxKind.BlockEnd:
+                    CloseImplicit();
+                    if (stack.Count > 0) Pop(null);
+                    break;
+                case YamlSyntaxKind.FlowSequenceEnd or YamlSyntaxKind.FlowMappingEnd:
+                    if (stack.Count > 0) Pop(tk.Span.Start.Index + 1);
+                    break;
+            }
+        }
+    done:
+        while (stack.Count > 0) Pop(null);
+        return root ?? throw new InvalidOperationException("the document has no content");
+    }
+
+    /// <summary>Applies the steps to the tree and returns the edited tree. Steps the harness cannot express
+    /// (through an alias, a collection value, removal inside a flow collection) throw <see cref="Unsupported"/>.</summary>
+    public static YamlSyntaxTree Apply(YamlSyntaxTree tree, IReadOnlyList<Op> ops)
+    {
+        var text = tree.Text;
+        var root = Index(tree);
+        var edits = new List<(int Start, int Length, string Raw)>();
+        foreach (var op in ops)
+        {
+            var node = root;
+            Node? key = null;
+            foreach (var token in Pointer.Tokens(op.Path))
+            {
+                if (node.Kind == "alias") throw Support.No("an edit through an alias is not prepared by the harness");
+                if (node.Kind == "mapping")
+                {
+                    Node? hit = null;
+                    for (int i = 0; i + 1 < node.Items.Count && hit == null; i += 2)
+                        if (node.Items[i].Kind == "scalar" && KeyText(node.Items[i]) == token) { key = node.Items[i]; hit = node.Items[i + 1]; }
+                    node = hit ?? throw Support.No($"key {token} not found");
+                }
+                else if (node.Kind == "sequence")
+                {
+                    if (!int.TryParse(token, NumberStyles.None, CultureInfo.InvariantCulture, out var index) || index >= node.Items.Count)
+                        throw Support.No("pointer does not follow the document");
+                    key = null;
+                    node = node.Items[index];
+                }
+                else throw Support.No("pointer does not follow the document");
             }
             switch (op.Name)
             {
                 case "replace":
+                    if (node.Kind == "empty") throw Support.No("an empty value has no text to replace");
                     if (node.Kind != "scalar") throw Support.No("replacing a collection is not prepared by the harness");
                     if (op.Value == null || op.Value is J.Arr or J.Obj) throw Support.No("a collection value is not prepared by the harness");
-                    {
-                        var original = text[node.Start..node.Last];
-                        if (original.StartsWith('&') || original.StartsWith('!')) throw Support.No("the scalar's span includes its anchor or tag");
-                        edits.Add((node.Start, node.Last - node.Start, Render(text, node, original, op.Value)));
-                    }
+                    edits.Add((node.Start, node.Last - node.Start, Render(text, node, text[node.Start..node.Last], op.Value)));
                     break;
                 case "remove":
                     {
                         // A mapping entry is its key and value; a sequence item is its dash and node.
-                        bool isEntry = parentMapKey != null && node.Parent?.Kind == "mapping";
-                        int from = isEntry ? parentMapKey!.Start : DashStart(text, node.Start);
-                        if (node.Parent is { Flow: true }) throw Support.No("removal inside a flow collection is not prepared by the harness");
+                        bool isEntry = key != null;
+                        if ((isEntry ? key!.Parent : node.Parent) is { Flow: true }) throw Support.No("removal inside a flow collection is not prepared by the harness");
+                        int from = isEntry ? key!.Start : node.Dash >= 0 ? node.Dash : throw Support.No("the sequence item has no dash before it");
                         int ls = LineStart(text, from);
                         if (text[ls..from].Trim(' ').Length != 0) throw Support.No("the removed entry does not start its line");
-                        int end = node.Last;
+                        int end = node.Kind == "empty" ? key!.Last : node.Last;
                         int le = end > 0 && text[end - 1] == '\n' ? end : LineEnd(text, end);
                         edits.Add((ls, le - ls, ""));
                     }
@@ -127,7 +302,9 @@ public static class SharpYamlEdits
                     throw Support.No($"operation {op.Name} is not an edit of this API");
             }
         }
-        return edits.OrderByDescending(e => e.Item1).ToList();
+        edits.Sort((a, b) => b.Start.CompareTo(a.Start));
+        foreach (var (start, length, raw) in edits) tree = tree.WithTextChange(start, length, raw);
+        return tree;
     }
 
     static int LineStart(string t, int i)
@@ -140,15 +317,6 @@ public static class SharpYamlEdits
     {
         int n = t.IndexOf('\n', i);
         return n < 0 ? t.Length : n + 1;
-    }
-
-    /// <summary>The position of the dash in front of a sequence item that starts at <paramref name="start"/>.</summary>
-    static int DashStart(string t, int start)
-    {
-        int i = start - 1;
-        while (i >= 0 && (t[i] == ' ' || t[i] == '\t')) i--;
-        if (i < 0 || t[i] != '-') throw Support.No("the sequence item has no dash before it");
-        return i;
     }
 
     // ---- the text of a new value ---------------------------------------------------------------------

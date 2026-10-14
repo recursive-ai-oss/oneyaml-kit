@@ -86,7 +86,9 @@ the driver restarts `run` with `--skip` for the cells already begun.
   has `time` and `memory`. Every other status has a `detail`. `unjudged` is for a dump whose
   output the harness's reference parsers read differently; it is not a verdict on the library.
 - `variant` names which accepted expectation matched: `spec`, `merged` (`<<` applied while
-  loading), `bytes-only` (a document with no value to compare, judged on its bytes) or
+  loading), `bytes-only` (a document with no value to compare, judged on its bytes),
+  `harness-rendered` (an edit whose lookup and new text are the harness's code, because the library
+  only replaces a range of characters) or
   `value-only` (a patch baseline that works on JSON and so cannot keep the text, judged on the
   value its output holds; see the patch rule below) or `harness-rendered` (the library edits a
   tree but has no writer that keeps the text, so the harness renders the edited tree to text itself
@@ -160,7 +162,7 @@ for one run of the task, taken in a separate pass from the timed ones:
 |---|---|---|
 | Rust | `counting global allocator` | a `GlobalAlloc` wrapper counts, switched on for the one pass; exact |
 | Go | `runtime.MemStats, sampled` | The **peak** pass: build the starting state, `runtime.GC()`, then run the task once with a sampler goroutine reading `HeapAlloc` every millisecond; `peak_bytes` is the highest `HeapAlloc` seen (the reading right after the run counts too, because a task shorter than the sampling interval is not seen by the sampler) **less the `HeapAlloc` the process held before the starting state was built**, so the harness's own data is not charged to the task. `HeapAlloc` includes garbage not yet collected, so it is an upper bound on live bytes at the moment of the reading. The **allocation** figures, `allocated_bytes` (ΔTotalAlloc) and `allocations` (ΔMallocs), are `testing.B`'s `B/op` and `allocs/op` averaged over all the timed samples, because a library that keeps buffers in a pool allocates fewer bytes per run the longer the heap stays unchanged, and one cold run is not the steady state. A separate pass averages the same two counters over up to 64 runs, and the cell fails (`error`) when the number of calls differs by more than 5% or the bytes by more than 25%. `retained_bytes` is the `HeapAlloc` after one `runtime.GC()` following the peak run, less the `HeapAlloc` just before that run |
-| .NET | `GC.GetAllocatedBytesForCurrentThread` | `allocated_bytes` is the change in `GC.GetAllocatedBytesForCurrentThread()` over one run of the task on the measuring thread, exact. `peak_bytes` is the starting state plus the growth of the managed heap during the run. The state is the live bytes a full, blocking, compacting collection reports as promoted, read before and after the state is built (before finalizers run, so a library's array pools are in both readings or in neither). The growth is exactly `allocated_bytes` when no collection happens during the run, because nothing is freed then; when one does, it is the highest `GC.GetTotalMemory(false)` read by a second thread (and at the end of the run) over its value at the start. The size counts objects the task has dropped that the collector has not yet reclaimed, so it is the managed heap a process needs, not the live data alone. An untracked run comes first, so memory a library keeps for reuse (array pools, caches) already exists and appears in neither figure; a library that pools its buffers looks cheaper here than its resident size is. `allocations` is `null`: the runtime has no in-process count of allocation calls (`GCAllocationTick` fires once per 100 KB) |
+| .NET | `GC.GetAllocatedBytesForCurrentThread, no-GC region` | `allocated_bytes` is the change in `GC.GetAllocatedBytesForCurrentThread()` over one run of the task on the measuring thread, exact. `peak_bytes` is the starting state plus `allocated_bytes`: the run happens inside a no-GC region sized from an earlier run (and repeated in a larger one if the runtime leaves it), so no collection frees anything during it and the figure does not depend on what ran before, how full the young generation was, or which cells were selected. The state is the live bytes a full, blocking, compacting collection reports as promoted, read before and after the state is built (before finalizers run, so a library's array pools are in both readings or in neither). The figure counts objects the task has dropped that the collector has not yet reclaimed, so it is an upper bound on the managed heap a process needs, not the live data alone. The pass runs after the cell has been timed (and so warmed), because unoptimised code allocates more than the optimised code a user's program runs. Within a process the figures repeat to the byte; between processes `allocated_bytes` moves by a few percent in steps, because dynamic PGO changes how many objects the JIT keeps on the stack. An untracked run comes first, so memory a library keeps for reuse (array pools, caches) already exists and appears in neither figure; `retained_bytes` is where it shows: the live bytes left after one run with the state and the result dropped, minus those before the state was built, taken in a fresh process so that no earlier cell has filled the pools. `allocations` is `null`: the runtime has no in-process count of allocation calls (`GCAllocationTick` fires once per 100 KB) |
 
 A field a runtime cannot measure is `null` and the report shows `n/a`; the method string
 says what was used. Never fill a gap with a different quantity under the same name.
@@ -237,6 +239,26 @@ fill the sample target, capped by the heap the states hold. Workstation, non-con
 in the project file (an in-process job cannot change it) and recorded in `flags`. BenchmarkDotNet
 collects garbage between iterations, which also empties the array pools some libraries keep, so the set-up
 runs one untracked task first and the clock sees a program in its steady state.
+
+The runtime keeps its defaults (tiered compilation, quick JIT, dynamic PGO), because that is what a user's
+program runs with. Before it calibrates, the harness warms the cell until the number of methods the JIT has
+compiled (`JitInfo.GetCompiledMethodCount`) stays unchanged for a whole settle window, which spans one tiering
+step (the runtime waits 100 ms without new unoptimised code before it counts calls), so the code that is timed
+is the optimised code the profile produced. The cell records how long that took and whether it settled
+(`warmup_ms`, `warmup_settled`, `warmup_compiled_methods` in `time`), and the harness record names the policy in
+`flags.warmup`. Switching quick JIT or PGO off would measure a program nobody runs.
+
+A batch is always as large as the sample target needs. A task that only reads its starting state runs the
+whole batch over one shared state (the guard runs it twice over one state and fails a runner whose second
+answer differs); other tasks build one state each, and a cell whose states are slow to build takes fewer
+samples, never fewer tasks per sample, because a batch of one measures the fixed cost of an invocation.
+
+Every library is handed UTF-8 bytes and returns UTF-8 bytes, which is the form of a file: a library that works
+on strings decodes and encodes inside the timed work, and one that works on bytes does not.
+
+An edit whose lookup and new text are written by the harness because the library only replaces a range of
+characters (SharpYaml's syntax tree) is reported with the variant `harness-rendered`. Its work is done inside
+the clock, and it is listed as a known deviation.
 
 `harness.json` has no counters, and its `build` and `command` take the build directory as their first
 argument (`./build.sh {build}`, `./run.sh {build}`), so output goes under it and never into the source tree.
