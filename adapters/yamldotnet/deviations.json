@@ -1568,13 +1568,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Error category differs: expected one of limit, got other"
-  },
-  {
-   "case": "own:schema/code-constructing-tags-are-kept-or-refused",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Refuses the document with an error the adapter cannot map to the kit's names (other); the case needs unresolved-tag"
   }
  ]
 }

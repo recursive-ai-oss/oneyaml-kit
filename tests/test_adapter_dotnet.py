@@ -8,7 +8,10 @@ it is not on PATH).
 import base64
 import os
 import shutil
+import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 
 import support  # noqa: F401
 from oneyaml_kit import cases as C
@@ -218,6 +221,26 @@ class DotnetAdapters(unittest.TestCase):
         finally:
             ad.close()
 
+    def test_yamldotnet_names_a_refused_tag_and_only_a_refused_tag(self):
+        m = load_manifest("yamldotnet")
+        ad = SubprocessAdapter(m["command"], cwd=m["_dir"], timeout=30)
+        ad.start()
+        try:
+            tagged = (b"!color red\n", b"- !shape {kind: circle}\n", b"!!python/object/apply:os.system [x]\n")
+            for i, doc in enumerate(tagged):
+                r = ad.run("tag%d" % i, "value", doc, {})
+                self.assertEqual((r["status"], r["error"]["category"]), ("error", "unresolved-tag"), doc)
+            # Other refusals from the same call must keep their own names, so the mapping cannot have widened.
+            for i, doc in enumerate((b"a: [1\n", b"a: b: c\n", b"*nope\n", b"a: 'open\n")):
+                r = ad.run("bad%d" % i, "value", doc, {})
+                self.assertEqual(r["status"], "error", doc)
+                self.assertNotEqual(r["error"]["category"], "unresolved-tag", doc)
+            # The parser alone takes tags: only the deserializer refuses them.
+            r = ad.run("ev", "events", b"!color red\n", {})
+            self.assertEqual(r["status"], "ok")
+        finally:
+            ad.close()
+
     def test_a_missing_document_reports_the_document_as_the_library_would_write_it(self):
         m = load_manifest("yaml2jsonnode")
         ad = SubprocessAdapter(m["command"], cwd=m["_dir"], timeout=30)
@@ -261,6 +284,50 @@ class DotnetAdapters(unittest.TestCase):
             self.assertEqual(m["language"], "csharp")
             self.assertNotIn("memory_limit_mb", m)  # the runtime reserves address space far beyond its use
             self.assertTrue((ADAPTERS / n / "packages.lock.json").is_file(), n)
+
+
+@unittest.skipUnless(os.environ.get("KIT_ADAPTER_TESTS") == "1" and HAVE_DOTNET,
+                     "set KIT_ADAPTER_TESTS=1 and provide dotnet to build and run the .NET adapters")
+class StaleBuildOutput(unittest.TestCase):
+    """Output left inside a project folder by an earlier run must neither break nor feed the next build."""
+
+    SRC = ADAPTERS
+
+    def build(self, props_text=None):
+        work = Path(tempfile.mkdtemp(prefix="stale-", dir=os.environ.get("TMPDIR")))
+        self.addCleanup(shutil.rmtree, work, True)
+        skip = shutil.ignore_patterns("bin", "obj", "artifacts")
+        (work / "adapters").mkdir()
+        for name in ("yamldotnet", "dotnet-common"):
+            shutil.copytree(self.SRC / name, work / "adapters" / name, ignore=skip)
+        shutil.copy(self.SRC / "Directory.Build.props", work / "adapters")
+        if props_text is not None:
+            (work / "adapters" / "Directory.Build.props").write_text(props_text)
+        # Leftovers of the three shapes an earlier run can produce, with source files that cannot compile.
+        for name in ("yamldotnet", "dotnet-common"):
+            for left in ("artifacts/obj/Release", "artifacts/bin", "bin/Release", "obj"):
+                d = work / "adapters" / name / left
+                d.mkdir(parents=True)
+                (d / "leftover.cs").write_text("this is not C#\n")
+        art = work / "out"
+        env = dict(os.environ, KIT_DOTNET_ARTIFACTS=str(art))
+        p = subprocess.run(["sh", str(work / "adapters" / "yamldotnet" / "build.sh")], env=env,
+                           capture_output=True, text=True, timeout=250)
+        return p, art
+
+    def test_leftover_folders_in_the_project_are_not_built_and_not_used(self):
+        p, art = self.build()
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertTrue((art / "bin" / "YamlDotNetAdapter" / "release" / "OneYamlKit.Adapter.YamlDotNet.dll").is_file())
+
+    def test_the_leftovers_do_break_a_build_without_the_exclusion(self):
+        # Proves the case above bites: without the exclusion the same state fails to compile.
+        props = (self.SRC / "Directory.Build.props").read_text()
+        self.assertIn("artifacts/**", props)
+        bare = ("<Project>\n  <PropertyGroup Condition=\"'$(KIT_DOTNET_ARTIFACTS)' != ''\">\n"
+                "    <ArtifactsPath>$(KIT_DOTNET_ARTIFACTS)</ArtifactsPath>\n  </PropertyGroup>\n</Project>\n")
+        p, _ = self.build(bare)
+        self.assertNotEqual(p.returncode, 0)
 
 
 if __name__ == "__main__":

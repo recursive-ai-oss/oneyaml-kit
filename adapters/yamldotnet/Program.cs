@@ -47,12 +47,18 @@ sealed class YamlDotNetKitAdapter : IAdapter
         return d.Transformed ? o.Emulating("decode") : o;
     }
 
+    const string UnresolvedTagMessage = "Encountered an unresolved tag";
+
     static Failure Describe(Exception e, string text)
     {
-        // The category comes from the exception type the library chose; its message is never read.
+        // The category comes from the exception type the library chose. The one exception is a refused tag:
+        // the library reports it as a plain YamlException (no subclass of its own) and only the start of its
+        // message tells it from other plain ones, so the match is on the exact type plus that fixed prefix.
         var category = e switch
         {
             SyntaxErrorException or SemanticErrorException => "syntax",
+            YamlException when e.GetType() == typeof(YamlException)
+                && e.Message.StartsWith(UnresolvedTagMessage, StringComparison.Ordinal) => "unresolved-tag",
             _ => "other",
         };
         if (e is YamlException y && !(y.Start.Line == 0 && y.Start.Column == 0))
