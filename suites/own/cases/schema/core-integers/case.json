@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/core-integers",
+ "title": "Core schema integers: decimal, octal with 0o, hexadecimal; a leading zero is still decimal",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": 12,
+    "b": -7,
+    "c": 3,
+    "d": 12,
+    "e": 255,
+    "f": 777,
+    "g": 0
+   }
+  ]
+ }
+}

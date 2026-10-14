@@ -1,0 +1,24 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/position-ignores-the-byte-order-mark",
+ "title": "The byte order mark is not a character of the text, so it is not counted",
+ "category": "diagnostics",
+ "origin": "spec",
+ "productions": [
+  "3"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 7.3.1"
+ ],
+ "notes": "After the double-quoted scalar \"x\" only white space, a comment or a line break can follow, so the y is the first character that cannot belong to a valid document. It is the seventh character of the decoded text; counting the byte order mark as a character would make it the eighth. Every convention for pointing at the error (the character, the end of the scalar before it) gives 7 when the mark is not counted. Positions are 1-based lines and columns counted in characters of the decoded text; the position of an error is the first character that cannot belong to any valid document (docs/case-format.md).",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 7
+ }
+}

@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/refuse-ambiguous-key",
+ "title": "Two keys that match one pointer token make the edit ambiguous",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "docs/edit-semantics.md",
+  "RFC 6901 section 3"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/80",
+    "value": "c"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "refused-ambiguous",
+  "unchanged": true
+ }
+}

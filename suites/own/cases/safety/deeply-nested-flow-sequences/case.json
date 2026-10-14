@@ -1,0 +1,25 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/deeply-nested-flow-sequences",
+ "title": "Twenty thousand nested flow sequences give exactly the events, or a limit error, within bounds",
+ "category": "safety",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 7.4.1",
+  "YAML 1.2.2 section 3.2.1"
+ ],
+ "notes": "The input is valid YAML. A library that reads it must give exactly the expected events; one that refuses it must say so with a limit error. A crash, a hang, a wrong result, or more than the stated time or memory fails. The input and its events come from the specification; the resource bounds are the robustness requirement of the kit, not a rule of the specification.",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "events",
+   "file": "expected.events"
+  }
+ }
+}

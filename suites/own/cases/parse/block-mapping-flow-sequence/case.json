@@ -1,0 +1,22 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/block-mapping-flow-sequence",
+ "title": "Block mapping with a flow sequence value",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "137"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.2.2",
+  "YAML 1.2.2 section 7.4.1"
+ ],
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

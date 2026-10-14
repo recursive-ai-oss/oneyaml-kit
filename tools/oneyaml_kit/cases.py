@@ -1,0 +1,527 @@
+"""Case model and loaders.
+
+A case is language-neutral data: input bytes, one operation and one expectation.
+Two sources feed the same in-memory model:
+
+* our own suite (`suites/own/cases/<category>/<name>/case.json` plus raw files);
+* the vendored yaml-test-suite release (its own directory layout), with our
+  corrected expectations from `corrections.json` kept beside the upstream ones.
+
+Input and expected bytes are only ever read and written as bytes. Nothing in this
+module decodes them except where a file is defined to be text (event lists).
+"""
+
+from __future__ import annotations
+
+import base64
+import hashlib
+import json
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+CASE_FORMAT = "oneyaml-kit-case/2"
+CORRECTIONS_FORMAT = "oneyaml-kit-corrections/2"
+
+CATEGORIES = ("parse", "schema", "edit", "diagnostics", "safety", "compat", "roundtrip")
+ORIGINS = ("spec", "bug", "fuzz", "real-world", "competitor", "upstream")
+OPERATIONS = ("events", "value", "patch")
+EXPECT_KINDS = ("events", "value", "bytes", "error", "bounded")
+# Error categories a case may name. "any" means "an error of any kind".
+ERROR_CATEGORIES = (
+    "any",
+    "syntax",
+    "encoding",
+    "limit",
+    "patch-path",
+    "patch-test",
+    "patch-invalid",
+    "refused-alias",
+    "refused-ambiguous",
+)
+PATCH_OPS = ("add", "remove", "replace", "move", "copy", "test")
+PATCH_FORMATS = ("json-patch", "merge-patch")
+DEFAULT_PROFILE = "core"
+
+SUITE_YTS = "yaml-test-suite"
+SUITE_OWN = "own"
+
+ROOT = Path(__file__).resolve().parents[2]
+SUITES = ROOT / "suites"
+YTS_RELEASE = "data-2022-01-17"
+YTS_DIR = SUITES / "yaml-test-suite" / YTS_RELEASE
+YTS_CORRECTIONS = SUITES / "yaml-test-suite" / "corrections.json"
+OWN_DIR = SUITES / "own" / "cases"
+
+
+class CaseError(Exception):
+    """A case or suite file is malformed."""
+
+
+@dataclass
+class Case:
+    id: str
+    suite: str
+    category: str
+    title: str
+    origin: str
+    op: str
+    input: bytes
+    expect: dict
+    args: dict = field(default_factory=dict)
+    productions: list = field(default_factory=list)
+    refs: list = field(default_factory=list)
+    tags: list = field(default_factory=list)
+    # Our corrected expectation beside the upstream one: {"expect", "reason", "citation"}.
+    correction: dict | None = None
+    # Where the input came from: optional source, revision, licence, reference strings.
+    provenance: dict = field(default_factory=dict)
+
+    @property
+    def profile(self) -> str:
+        return self.args.get("profile", DEFAULT_PROFILE)
+
+
+# --------------------------------------------------------------------------
+# Expectation parsing
+
+
+def split_lines(text: str) -> list[str]:
+    """Split an event list on newlines only (str.splitlines also splits on U+2028 etc.)."""
+    if text.endswith("\n"):
+        text = text[:-1]
+    if text == "":
+        return []
+    return text.split("\n")
+
+
+ESCAPES = ("$float", "$map", "$tagged")
+
+
+def check_kit_value(v: Any, where: str, depth: int = 0) -> None:
+    """Reject anything that is not a kit value (see docs/case-format.md).
+
+    Object keys starting with `$` are reserved for the three escape forms, so a YAML
+    mapping that has such a key can only be written in the `$map` form and can never
+    be mistaken for an escape.
+    """
+    if depth > 500:
+        raise CaseError(f"{where}: value nested too deeply")
+    if v is None or isinstance(v, (bool, int, str)):
+        return
+    if isinstance(v, float):
+        if v != v or v in (float("inf"), float("-inf")):
+            raise CaseError(f"{where}: non-finite floats are written {{\"$float\": ...}}")
+        return
+    if isinstance(v, list):
+        for x in v:
+            check_kit_value(x, where, depth + 1)
+        return
+    if isinstance(v, dict):
+        dollar = [k for k in v if k.startswith("$")]
+        if not dollar:
+            for x in v.values():
+                check_kit_value(x, where, depth + 1)
+            return
+        if len(v) != 1 or dollar[0] not in ESCAPES:
+            raise CaseError(f"{where}: an object with a $-prefixed key must be exactly one escape "
+                            f"form {ESCAPES}; write other mappings as {{\"$map\": [[key, value], ...]}}")
+        k = dollar[0]
+        if k == "$float":
+            if v[k] not in ("inf", "-inf", "nan"):
+                raise CaseError(f"{where}: $float must be inf, -inf or nan")
+        elif k == "$map":
+            if not isinstance(v[k], list) or not all(isinstance(p, list) and len(p) == 2 for p in v[k]):
+                raise CaseError(f"{where}: $map must be a list of [key, value] pairs")
+            for p in v[k]:
+                check_kit_value(p[0], where, depth + 1)
+                check_kit_value(p[1], where, depth + 1)
+        else:
+            t = v[k]
+            if (not isinstance(t, dict) or set(t) != {"tag", "value"} or not isinstance(t["tag"], str)
+                    or not t["tag"]):
+                raise CaseError(f"{where}: $tagged must be {{\"tag\": \"...\", \"value\": ...}}")
+            check_kit_value(t["value"], where, depth + 1)
+        return
+    raise CaseError(f"{where}: not a kit value: {type(v).__name__}")
+
+
+def _positive(d: dict, key: str, where: str) -> float:
+    v = d.get(key)
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0:
+        raise CaseError(f"{where}: {key} must be a positive number")
+    return v
+
+
+def _expect_from_json(d: Any, base: Path | None, where: str, nested: bool = False) -> dict:
+    if not isinstance(d, dict):
+        raise CaseError(f"{where}: expect must be an object")
+    kind = d.get("kind")
+    if kind not in EXPECT_KINDS or (nested and kind not in ("events", "value", "bytes")):
+        raise CaseError(f"{where}: unknown expect kind {kind!r}")
+
+    def only(*keys: str) -> None:
+        extra = set(d) - {"kind", *keys}
+        if extra:
+            raise CaseError(f"{where}: unknown expect keys {sorted(extra)}")
+
+    def read(name: str) -> bytes:
+        if base is None:
+            raise CaseError(f"{where}: file reference without a case directory")
+        if not isinstance(name, str):
+            raise CaseError(f"{where}: file names are strings")
+        p = base / name
+        if not p.is_file() or p.resolve().parent != base.resolve():
+            raise CaseError(f"{where}: missing or out-of-directory file {name!r}")
+        return p.read_bytes()
+
+    if kind == "events":
+        only("file")
+        return {"kind": "events", "events": split_lines(read(d["file"]).decode("utf-8"))}
+    if kind == "bytes":
+        only("file")
+        return {"kind": "bytes", "bytes": read(d["file"])}
+    if kind == "value":
+        only("file", "value")
+        if ("file" in d) == ("value" in d):
+            raise CaseError(f"{where}: value expectation needs exactly one of file/value")
+        v = json.loads(read(d["file"])) if "file" in d else d["value"]
+        if not isinstance(v, list):
+            raise CaseError(f"{where}: value must be a list of documents")
+        check_kit_value(v, where)
+        return {"kind": "value", "value": v, "tags": "keep"}
+    if kind == "bounded":
+        only("time_seconds", "memory_mb", "accept", "error")
+        ts, mb = _positive(d, "time_seconds", where), _positive(d, "memory_mb", where)
+        acc = _expect_from_json(d["accept"], base, where, nested=True) if "accept" in d else None
+        err = d.get("error")
+        if err is not None and (err not in ERROR_CATEGORIES or err == "any"):
+            raise CaseError(f"{where}: bounded error must name a category other than any")
+        if acc is None and err is None:
+            raise CaseError(f"{where}: bounded needs an accepted result, an error category, or both")
+        return {"kind": "bounded", "time_seconds": ts, "memory_mb": mb, "accept": acc, "category": err}
+    only("category", "line", "column", "events_file", "unchanged")
+    cat = d.get("category", "any")
+    if cat not in ERROR_CATEGORIES:
+        raise CaseError(f"{where}: unknown error category {cat!r}")
+    for k in ("line", "column"):
+        if k in d and (not isinstance(d[k], int) or isinstance(d[k], bool) or d[k] < 1):
+            raise CaseError(f"{where}: {k} must be a positive integer")
+    if "column" in d and "line" not in d:
+        raise CaseError(f"{where}: column needs line")
+    ev = None
+    if "events_file" in d:
+        ev = split_lines(read(d["events_file"]).decode("utf-8"))
+    return {
+        "kind": "error",
+        "category": cat,
+        "line": d.get("line"),
+        "column": d.get("column"),
+        "events": ev,
+        "unchanged": bool(d.get("unchanged", False)),
+    }
+
+
+def _check_operation(op: dict, where: str) -> tuple[str, dict]:
+    if not isinstance(op, dict) or op.get("type") not in OPERATIONS:
+        raise CaseError(f"{where}: operation.type must be one of {OPERATIONS}")
+    typ = op["type"]
+    args = {k: v for k, v in op.items() if k != "type"}
+    allowed = {"profile"}
+    if typ == "patch":
+        allowed |= {"format", "patch", "document"}
+        fmt = args.get("format", "json-patch")
+        if fmt not in PATCH_FORMATS:
+            raise CaseError(f"{where}: unknown patch format {fmt!r}")
+        if "patch" not in args:
+            raise CaseError(f"{where}: patch operation needs a patch")
+        if fmt == "json-patch":
+            if not isinstance(args["patch"], list):
+                raise CaseError(f"{where}: a json-patch is an array of operations")
+            for o in args["patch"]:
+                # An op name outside RFC 6902 is allowed: it is how a patch-invalid case is written.
+                if not isinstance(o, dict) or not isinstance(o.get("op"), str):
+                    raise CaseError(f"{where}: patch entries must be objects with a string op")
+    extra = set(args) - allowed
+    if extra:
+        raise CaseError(f"{where}: unknown operation keys {sorted(extra)}")
+    return typ, args
+
+
+def _check_pairing(op: str, expect: dict, where: str) -> None:
+    k = expect["kind"]
+    result = {"events": "events", "value": "value", "patch": "bytes"}[op]
+    if k not in (result, "error", "bounded"):
+        raise CaseError(f"{where}: a {op} operation cannot expect {k}")
+    if k == "bounded" and expect["accept"] is not None and expect["accept"]["kind"] != result:
+        raise CaseError(f"{where}: a {op} operation can only accept a {result} result")
+    if k == "error" and expect["events"] is not None and op != "events":
+        raise CaseError(f"{where}: events_file only applies to events operations")
+    if k == "error" and expect["unchanged"] and op != "patch":
+        raise CaseError(f"{where}: unchanged only applies to patch operations")
+
+
+CASE_KEYS = {
+    "format", "id", "title", "category", "origin", "productions", "refs",
+    "operation", "input", "expect", "tags", "notes", "provenance",
+}
+PROVENANCE_KEYS = ("source", "revision", "licence", "reference")
+
+
+def load_own_case(case_dir: Path, cases_root: Path = OWN_DIR) -> Case:
+    rel = case_dir.relative_to(cases_root).as_posix()
+    where = f"own:{rel}"
+    try:
+        d = json.loads((case_dir / "case.json").read_bytes())
+    except (OSError, ValueError) as e:
+        raise CaseError(f"{where}: cannot read case.json: {e}") from e
+    if d.get("format") != CASE_FORMAT:
+        raise CaseError(f"{where}: format must be {CASE_FORMAT!r}")
+    extra = set(d) - CASE_KEYS
+    if extra:
+        raise CaseError(f"{where}: unknown keys {sorted(extra)}")
+    if d.get("id") != rel:
+        raise CaseError(f"{where}: id {d.get('id')!r} must equal the directory path {rel!r}")
+    if d.get("category") not in CATEGORIES:
+        raise CaseError(f"{where}: category must be one of {CATEGORIES}")
+    if rel.split("/")[0] != d["category"]:
+        raise CaseError(f"{where}: the directory must sit under its category")
+    if d.get("origin") not in ORIGINS:
+        raise CaseError(f"{where}: origin must be one of {ORIGINS}")
+    if not isinstance(d.get("title"), str) or not d["title"]:
+        raise CaseError(f"{where}: title is required")
+    for key in ("productions", "refs", "tags"):
+        v = d.get(key, [])
+        if not isinstance(v, list) or not all(isinstance(x, str) for x in v):
+            raise CaseError(f"{where}: {key} must be a list of strings")
+    if d["origin"] == "spec" and not d.get("refs"):
+        raise CaseError(f"{where}: a spec case cites the specification in refs")
+    prov = d.get("provenance", {})
+    if (not isinstance(prov, dict) or set(prov) - set(PROVENANCE_KEYS)
+            or not all(isinstance(v, str) and v for v in prov.values())):
+        raise CaseError(f"{where}: provenance holds non-empty strings under {PROVENANCE_KEYS}")
+    need = {"bug": ("reference",), "fuzz": ("reference",), "competitor": ("reference",),
+            "real-world": ("source", "licence")}.get(d["origin"], ())
+    for k in need:
+        if k not in prov:
+            raise CaseError(f"{where}: a {d['origin']} case records provenance.{k}")
+    op, args = _check_operation(d.get("operation"), where)
+    input_name = d.get("input", "input.yaml")
+    ip = case_dir / input_name
+    if not ip.is_file():
+        raise CaseError(f"{where}: missing input file {input_name!r}")
+    expect = _expect_from_json(d.get("expect"), case_dir, where)
+    _check_pairing(op, expect, where)
+    return Case(
+        id=f"own:{rel}", suite=SUITE_OWN, category=d["category"], title=d["title"],
+        origin=d["origin"], op=op, input=ip.read_bytes(), expect=expect, args=args,
+        productions=list(d.get("productions", [])), refs=list(d.get("refs", [])),
+        tags=list(d.get("tags", [])), provenance=dict(prov),
+    )
+
+
+def load_own(cases_root: Path = OWN_DIR) -> list[Case]:
+    out = []
+    if not cases_root.is_dir():
+        return out
+    for cj in sorted(cases_root.rglob("case.json")):
+        out.append(load_own_case(cj.parent, cases_root))
+    return out
+
+
+# --------------------------------------------------------------------------
+# yaml-test-suite
+
+
+def _decode_json_stream(raw: bytes, where: str) -> list:
+    text = raw.decode("utf-8")
+    dec = json.JSONDecoder()
+    i, docs = 0, []
+    while True:
+        while i < len(text) and text[i] in " \t\r\n":
+            i += 1
+        if i >= len(text):
+            return docs
+        try:
+            v, i = dec.raw_decode(text, i)
+        except ValueError as e:
+            raise CaseError(f"{where}: in.json is not a JSON stream: {e}") from e
+        docs.append(v)
+
+
+def load_corrections(path: Path = YTS_CORRECTIONS) -> dict[str, dict]:
+    """Corrected expectations, by case id. An entry corrects either the events before an
+    error (`events`) or a value (`value`)."""
+    if not path.is_file():
+        return {}
+    d = json.loads(path.read_bytes())
+    if d.get("format") != CORRECTIONS_FORMAT:
+        raise CaseError(f"corrections: format must be {CORRECTIONS_FORMAT!r}")
+    out: dict[str, dict] = {}
+    for e in d["entries"]:
+        extra = set(e) - {"case", "events", "value", "reason", "citation"}
+        if extra:
+            raise CaseError(f"corrections {e.get('case')}: unknown keys {sorted(extra)}")
+        for k in ("case", "reason", "citation"):
+            if not e.get(k):
+                raise CaseError(f"corrections {e.get('case')}: missing {k}")
+        if ("events" in e) == ("value" in e):
+            raise CaseError(f"corrections {e['case']}: needs exactly one of events/value")
+        if "value" in e:
+            check_kit_value(e["value"], f"corrections {e['case']}")
+        if e["case"] in out:
+            raise CaseError(f"corrections: {e['case']} is listed twice")
+        out[e["case"]] = e
+    return out
+
+
+def _to_kit_value(v: Any) -> Any:
+    """Rewrite JSON objects that have `$`-prefixed keys into the `$map` form."""
+    if isinstance(v, list):
+        return [_to_kit_value(x) for x in v]
+    if isinstance(v, dict):
+        if any(k.startswith("$") for k in v):
+            return {"$map": [[k, _to_kit_value(x)] for k, x in v.items()]}
+        return {k: _to_kit_value(x) for k, x in v.items()}
+    return v
+
+
+def _apply_correction(case: Case, c: dict) -> None:
+    e = dict(case.expect)
+    if "events" in c:
+        if case.expect["kind"] != "error":
+            raise CaseError(f"corrections: {case.id} is not an error case; events corrections "
+                            "apply to the events before an error")
+        e["events"] = list(c["events"])
+        same = e["events"] == case.expect["events"]
+    else:
+        if case.expect["kind"] != "value":
+            raise CaseError(f"corrections: {case.id} is not a value case")
+        e["value"] = c["value"]
+        # Compare the JSON text: Python says 450 == 450.0, but these are different values.
+        same = json.dumps(e["value"], sort_keys=True) == json.dumps(case.expect["value"], sort_keys=True)
+    if same:
+        raise CaseError(f"corrections: {case.id} equals the upstream expectation")
+    case.correction = {"expect": e, "reason": c["reason"], "citation": c["citation"]}
+
+
+def yts_revision() -> str:
+    """The upstream commit, read from the source record so it has one home."""
+    for line in (SUITES / "yaml-test-suite" / "SOURCE.md").read_text().splitlines():
+        if line.startswith("- **Revision:**"):
+            return line.split("`")[1]
+    raise CaseError("SOURCE.md has no Revision line")
+
+
+def load_yts(root: Path = YTS_DIR, corrections: dict[str, dict] | None = None) -> list[Case]:
+    """Every yaml-test-suite case, as an `events` case and, where in.json exists, a `value` case.
+
+    Upstream value expectations come from `in.json`, which has no tags: those cases compare
+    with `tags: ignore`, a named projection, and keep exact number typing."""
+    if corrections is None:
+        corrections = load_corrections()
+    case_dirs = []
+    for top in sorted(p for p in root.iterdir() if p.is_dir()):
+        if (top / "in.yaml").is_file():
+            case_dirs.append((top.name, top))
+        else:
+            for sub in sorted(p for p in top.iterdir() if p.is_dir()):
+                if (sub / "in.yaml").is_file():
+                    case_dirs.append((f"{top.name}/{sub.name}", sub))
+    cases = []
+    for cid, d in case_dirs:
+        title = (d / "===").read_bytes().decode("utf-8").strip() if (d / "===").is_file() else cid
+        data = (d / "in.yaml").read_bytes()
+        gid = f"yts:{cid}"
+        events = split_lines((d / "test.event").read_bytes().decode("utf-8"))
+        if (d / "error").is_file():
+            expect = {"kind": "error", "category": "any", "line": None, "column": None,
+                      "events": events, "unchanged": False}
+        else:
+            expect = {"kind": "events", "events": events}
+        cases.append(Case(
+            id=gid, suite=SUITE_YTS, category="parse", title=title, origin="upstream",
+            op="events", input=data, expect=expect,
+            tags=["valid" if expect["kind"] == "events" else "error"],
+            provenance={"source": "https://github.com/yaml/yaml-test-suite", "revision": yts_revision(),
+                        "licence": "MIT"},
+        ))
+        if (d / "in.json").is_file() and not (d / "error").is_file():
+            v = _to_kit_value(_decode_json_stream((d / "in.json").read_bytes(), gid))
+            check_kit_value(v, gid)
+            cases.append(Case(
+                id=f"{gid}@value", suite=SUITE_YTS, category="parse", title=title,
+                origin="upstream", op="value", input=data,
+                expect={"kind": "value", "tags": "ignore", "value": v}, tags=["valid"],
+                provenance=dict(cases[-1].provenance),
+            ))
+    by_id = {c.id: c for c in cases}
+    unknown = set(corrections) - set(by_id)
+    if unknown:
+        raise CaseError(f"corrections name unknown cases: {sorted(unknown)}")
+    for cid, c in corrections.items():
+        _apply_correction(by_id[cid], c)
+    return cases
+
+
+def load_all(include_slow: bool = False) -> list[Case]:
+    cases = load_yts() + load_own()
+    ids = [c.id for c in cases]
+    if len(ids) != len(set(ids)):
+        raise CaseError("duplicate case ids")
+    if not include_slow:
+        cases = [c for c in cases if "slow" not in c.tags]
+    return sorted(cases, key=lambda c: c.id)
+
+
+# --------------------------------------------------------------------------
+# Digests (pins)
+
+
+def file_digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def tree_digest(root: Path) -> str:
+    """Digest of every file's relative path and bytes below `root`."""
+    h = hashlib.sha256()
+    for p in sorted(q for q in root.rglob("*") if q.is_file()):
+        h.update(p.relative_to(root).as_posix().encode("utf-8"))
+        h.update(b"\0")
+        h.update(hashlib.sha256(p.read_bytes()).digest())
+    return h.hexdigest()
+
+
+def own_case_digests(cases_root: Path = OWN_DIR) -> dict[str, str]:
+    out = {}
+    if cases_root.is_dir():
+        for cj in sorted(cases_root.rglob("case.json")):
+            out[cj.parent.relative_to(cases_root).as_posix()] = tree_digest(cj.parent)
+    return out
+
+
+def b64(b: bytes) -> str:
+    return base64.b64encode(b).decode("ascii")
+
+
+def current_pins() -> dict:
+    return {
+        "yaml-test-suite": {
+            "release": YTS_RELEASE,
+            "data_digest": tree_digest(YTS_DIR),
+            "corrections_digest": file_digest(YTS_CORRECTIONS) if YTS_CORRECTIONS.is_file() else None,
+            "cases": 402,
+            "error_cases": 94,
+        },
+        "own": {"cases": own_case_digests()},
+    }
+
+
+def corpus_digest(pins: dict | None = None) -> str:
+    pins = pins or current_pins()
+    return hashlib.sha256(json.dumps(pins, sort_keys=True).encode()).hexdigest()
+
+
+def kit_version() -> str:
+    return (SUITES / "VERSION").read_text().strip() if (SUITES / "VERSION").is_file() else "0"
+

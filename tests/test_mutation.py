@@ -1,0 +1,161 @@
+"""The kit bites: altering an expectation, or removing a case, makes it fail."""
+
+import copy
+import unittest
+
+import support
+from oneyaml_kit import cases as C
+from oneyaml_kit import compare as K
+from oneyaml_kit.runner import execute
+
+ALL = C.load_all(include_slow=True)
+
+
+def run(cases, answers_from=None):
+    """Run `cases` against an oracle that answers from `answers_from` (default: themselves)."""
+    oracle = support.OracleAdapter(answers_from or cases)
+    return execute(oracle, set(support.ALL_CAPS), cases), oracle
+
+
+def mutate(expect):
+    """A different expectation of the same kind: what a careless edit would produce."""
+    e = copy.deepcopy(expect)
+    k = e["kind"]
+    if k == "events":
+        e["events"] = e["events"] + ["=VAL :zzz"]
+    elif k == "value":
+        e["value"] = e["value"] + [None]
+    elif k == "bytes":
+        e["bytes"] = e["bytes"] + b" "
+    return e
+
+
+class OracleSanity(unittest.TestCase):
+    def test_every_case_can_be_passed(self):
+        res, _ = run(ALL)
+        bad = [(r["id"], r["loose"], r["strict"], r.get("detail")) for r in res
+               if r["loose"] != "pass" or r["strict"] != "pass"]
+        self.assertEqual(bad, [])
+        self.assertGreater(len(res), 600)
+
+
+class Mutations(unittest.TestCase):
+    def mutated_results(self, cases, fn):
+        out = []
+        for c in cases:
+            m = copy.copy(c)
+            m.expect = fn(c.expect)
+            res, _ = run([m], answers_from=[c])
+            out.append((c.id, res[0]))
+        return out
+
+    def test_changing_a_success_expectation_fails_every_case(self):
+        ok = [c for c in ALL if c.expect["kind"] in ("events", "value", "bytes")]
+        self.assertGreater(len(ok), 500)
+        survivors = [cid for cid, r in self.mutated_results(ok, mutate)
+                     if r["loose"] == "pass" or r["strict"] == "pass"]
+        self.assertEqual(survivors, [])
+
+    def test_turning_a_failure_expectation_into_a_success_fails_every_case(self):
+        errs = [c for c in ALL if c.expect["kind"] == "error"]
+        self.assertGreater(len(errs), 90)
+        survivors = [cid for cid, r in self.mutated_results(
+            errs, lambda e: {"kind": "events", "events": ["+STR", "-STR"]}) if r["loose"] == "pass"]
+        self.assertEqual(survivors, [])
+
+    def test_changing_a_stated_error_detail_fails_strict(self):
+        stated = 0
+        for c in ALL:
+            e = c.expect
+            if e["kind"] != "error":
+                continue
+            variants = []
+            if e["category"] != "any":
+                variants.append({**e, "category": "limit" if e["category"] != "limit" else "syntax"})
+            if e["line"] is not None:
+                variants.append({**e, "line": e["line"] + 1})
+            if e["column"] is not None:
+                variants.append({**e, "column": e["column"] + 1})
+            if e["events"] is not None:
+                variants.append({**e, "events": e["events"] + ["=VAL :zzz"]})
+            for v in variants:
+                stated += 1
+                m = copy.copy(c)
+                m.expect = v
+                res, _ = run([m], answers_from=[c])
+                self.assertEqual(res[0]["strict"], "fail", (c.id, v))
+                self.assertEqual(res[0]["loose"], "pass", (c.id, v))
+        self.assertGreater(stated, 90)
+
+    def test_changing_a_bounded_expectation_fails(self):
+        bounded = [c for c in ALL if c.expect["kind"] == "bounded"]
+        self.assertGreaterEqual(len(bounded), 2)
+        for c in bounded:
+            e = c.expect
+            variants = []
+            if e["accept"] is not None:
+                a = mutate(e["accept"])
+                variants.append(({**e, "accept": a}, ("fail", "fail")))
+            if e["category"] is not None and e["accept"] is None:
+                variants.append(({**e, "category": "syntax"}, ("pass", "fail")))
+                variants.append(({**e, "accept": None, "category": None, "error": None}, None))
+            for v, want in variants:
+                if want is None:
+                    continue
+                m = copy.copy(c)
+                m.expect = v
+                res, _ = run([m], answers_from=[c])
+                self.assertEqual((res[0]["loose"], res[0]["strict"]), want, (c.id, v))
+
+    def test_unchanged_is_enforced(self):
+        refusals = [c for c in ALL if c.expect["kind"] == "error" and c.expect["unchanged"]]
+        self.assertGreaterEqual(len(refusals), 5)
+        for c in refusals:
+            resp = {"status": "error", "error": {"category": c.expect["category"]},
+                    "output": C.b64(c.input + b" ")}
+            r = K.evaluate(c, c.expect, resp, set(support.ALL_CAPS))
+            self.assertEqual((r["loose"], r["strict"]), ("pass", "fail"), c.id)
+
+    def test_corrected_expectation_is_judged_separately(self):
+        c = next(x for x in ALL if x.id == "yts:T833")
+        resp = {"id": c.id, "status": "error", "error": {"category": "syntax"},
+                "events": c.correction["expect"]["events"]}
+
+        class A:
+            def run(self, *a):
+                return resp
+
+        res = execute(A(), set(support.ALL_CAPS), [c])[0]
+        self.assertEqual((res["loose"], res["strict"]), ("pass", "fail"))
+        self.assertEqual((res["corrected"]["loose"], res["corrected"]["strict"]), ("pass", "pass"))
+
+    def test_an_adapter_that_is_wrong_everywhere_fails_everything(self):
+        class Wrong:
+            def run(self, cid, op, data, args, limits=None):
+                return {"id": cid, "status": "ok", "events": ["+STR"], "value": ["nope"], "output": C.b64(b"nope")}
+
+        res = execute(Wrong(), set(support.ALL_CAPS), ALL)
+        self.assertEqual([r["id"] for r in res if r["loose"] == "pass" and r["strict"] == "pass"], [])
+
+
+class Unsupported(unittest.TestCase):
+    def test_cases_needing_undeclared_capabilities_are_not_sent_and_not_failed(self):
+        cases = [c for c in ALL if c.suite == "own" and c.op == "patch"]
+        oracle = support.OracleAdapter(cases)
+        res = execute(oracle, {"events", "value"}, cases)
+        self.assertEqual(oracle.sent, [])
+        self.assertTrue(all(r["loose"] == "unsupported" and r["reason"] == "capability" for r in res))
+
+    def test_partial_capability_runs_only_what_it_declares(self):
+        cases = [c for c in ALL if c.suite == "own" and c.op == "patch"]
+        oracle = support.OracleAdapter(cases)
+        res = execute(oracle, {"patch:replace"}, cases)
+        sent = set(oracle.sent)
+        for r in res:
+            c = next(x for x in cases if x.id == r["id"])
+            needs = K.required_caps(c, c.expect)[0]
+            self.assertEqual(r["id"] in sent, K.satisfied(needs, {"patch:replace"}), r["id"])
+
+
+if __name__ == "__main__":
+    unittest.main()

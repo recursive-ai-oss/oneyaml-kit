@@ -1,0 +1,22 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/position-implicit-key-over-two-lines",
+ "title": "A key that would span two lines is reported at the space after its colon",
+ "category": "diagnostics",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 7.4.2",
+  "YAML 1.2.2 section 8.2.2",
+  "YAML 1.2.2 section 7.3.3"
+ ],
+ "notes": "A plain scalar may continue on a more indented line, so \"a: b\\n c\" is the start of the value \"b c\", and \"c:\" can still become \"c:d\", a valid scalar. The colon at 2:3 therefore belongs to a valid document. The space after it (2:4) is the first character that cannot: a key must stay on one line. Positions are 1-based lines and columns counted in characters of the decoded text; the position of an error is the first character that cannot belong to any valid document (docs/case-format.md).",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 4
+ }
+}

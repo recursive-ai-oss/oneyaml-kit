@@ -1,0 +1,13 @@
++STR
++DOC
++MAP
+=VAL :a
+=VAL :1
+=VAL :b
++SEQ []
+=VAL :x
+=VAL :y
+-SEQ
+-MAP
+-DOC
+-STR

@@ -2,6 +2,14 @@
 # new file stays out of the repository until it is deliberately added here.
 /*
 !/.gitignore
+!/README.md
+!/bin
+!/docs
+!/suites
+!/tools
+!/tests
+!/adapters
+!/.github
 
 # Never commit these anywhere in the tree.
 core
@@ -16,3 +24,7 @@ perf.data*
 *.swp
 *~
 .DS_Store
+__pycache__/
+*.pyc
+target/
+out/

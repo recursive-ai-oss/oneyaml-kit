@@ -1,0 +1,17 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/invalid-utf-8-byte",
+ "title": "A byte that is not valid UTF-8 is an encoding error",
+ "category": "safety",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 5.2"
+ ],
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "encoding"
+ }
+}

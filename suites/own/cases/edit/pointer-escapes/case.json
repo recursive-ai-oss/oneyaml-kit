@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/pointer-escapes",
+ "title": "Pointer tokens use ~1 for / and ~0 for ~, and ~01 is the two characters ~1",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6901 section 3",
+  "RFC 6902 section 4.3"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a~1b",
+    "value": 5
+   },
+   {
+    "op": "replace",
+    "path": "/m~0n",
+    "value": 6
+   },
+   {
+    "op": "replace",
+    "path": "/~01",
+    "value": 7
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

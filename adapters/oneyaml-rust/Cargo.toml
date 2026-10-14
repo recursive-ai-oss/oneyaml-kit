@@ -1,0 +1,23 @@
+[package]
+name = "oneyaml-kit-adapter"
+description = "Kit adapter for oneyaml-rust (conformance protocol over stdin and stdout)."
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "oneyaml-kit-adapter"
+path = "src/main.rs"
+
+[dependencies]
+# The library under test, pinned to an exact release. Moving the pin is a
+# deliberate change that is checked together with the deviation list.
+oneyaml = { version = "=1.1.0", default-features = false }
+oneyaml-syntax = "=0.1.2"
+oneyaml-core = "=1.1.0"
+serde_json = "=1.0.149"
+base64 = "=0.22.1"
+
+[profile.release]
+opt-level = 2
+debug = false

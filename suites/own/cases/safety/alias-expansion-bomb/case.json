@@ -1,0 +1,21 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/alias-expansion-bomb",
+ "title": "Nine levels of nine aliases each must be refused with a limit error, quickly",
+ "category": "safety",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 7.1",
+  "YAML 1.2.2 section 3.2.1"
+ ],
+ "notes": "The value is valid but expands to about 387 million nodes (9 to the ninth power), so no result can be stated and the only acceptable outcome is a limit error within the time and memory bounds. The value is defined by the specification; the bounds are the robustness requirement of the kit, not a rule of the specification.",
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "error": "limit"
+ }
+}

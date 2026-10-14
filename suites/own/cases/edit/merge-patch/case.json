@@ -1,0 +1,22 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/merge-patch",
+ "title": "A merge patch deletes with null and adds new keys",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 7396 section 2"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": {
+   "b": null,
+   "c": 3
+  },
+  "format": "merge-patch"
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

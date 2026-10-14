@@ -1,0 +1,22 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/anchor-and-alias",
+ "title": "An anchored scalar and an alias to it",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "101",
+  "104"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.2",
+  "YAML 1.2.2 section 7.1"
+ ],
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

@@ -1,0 +1,23 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/position-counts-a-bare-cr-as-a-line-break",
+ "title": "A carriage return alone is one line break",
+ "category": "diagnostics",
+ "origin": "spec",
+ "productions": [
+  "28"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.4"
+ ],
+ "notes": "Positions are 1-based lines and columns counted in characters of the decoded text; the position of an error is the first character that cannot belong to any valid document (docs/case-format.md).",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 4
+ }
+}

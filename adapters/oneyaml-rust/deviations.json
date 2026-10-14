@@ -1,0 +1,166 @@
+{
+ "format": "oneyaml-kit-deviations/1",
+ "entries": [
+  {
+   "case": "yts:T833",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
+  },
+  {
+   "case": "yts:MUS6/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
+  },
+  {
+   "case": "yts:Y79Y/007",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
+  },
+  {
+   "case": "yts:4H7K",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Upstream events lack the flow marker and end the document before the error; the corrected expectation passes"
+  },
+  {
+   "case": "own:edit/block-literal-strip-when-no-trailing-newline",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Replacing a literal block scalar with text that has no trailing newline writes a plain scalar and drops the block header instead of switching to the strip form"
+  },
+  {
+   "case": "own:edit/block-literal-strip-when-no-trailing-newline",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: the output bytes differ"
+  },
+  {
+   "case": "own:edit/refuse-write-through-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The write goes through the alias and changes the anchored node, which every other user of the anchor shares"
+  },
+  {
+   "case": "own:edit/refuse-write-through-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: no error is reported"
+  },
+  {
+   "case": "own:edit/refuse-ambiguous-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Two keys match the token 80 and the write is applied to one of them without an error"
+  },
+  {
+   "case": "own:edit/refuse-ambiguous-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: no error is reported"
+  },
+  {
+   "case": "own:diagnostics/position-implicit-key-over-two-lines",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The error is reported at 1:4, the start of the scalar that turns out to be a two-line key, not at 2:4"
+  },
+  {
+   "case": "yts:BS4K",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library ends the document before reporting the error; the corrected expectation keeps it open"
+  },
+  {
+   "case": "yts:EB22",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library ends the document before reporting the error; the corrected expectation keeps it open"
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Upstream in.json writes 450.00 and 2392.00 as integers; the library reads them as floats, which the core schema requires (the corrected expectation passes)"
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Upstream in.json writes 450.00 and 2392.00 as integers; the library reads them as floats, which the core schema requires (the corrected expectation passes)"
+  },
+  {
+   "case": "own:diagnostics/position-ignores-the-byte-order-mark",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Counts the byte order mark as a character: reports 1:8 where the seventh character of the text is the first that cannot belong to a valid document"
+  },
+  {
+   "case": "own:diagnostics/position-counts-a-bare-cr-as-a-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The error is reported at 1:4, the start of the scalar that turns out to be a two-line key, not on line 2"
+  },
+  {
+   "case": "own:diagnostics/position-counts-crlf-as-one-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The error is reported at 1:4, the start of the scalar that turns out to be a two-line key, not on line 2"
+  }
+ ]
+}

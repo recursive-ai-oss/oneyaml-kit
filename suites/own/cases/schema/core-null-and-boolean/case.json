@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/core-null-and-boolean",
+ "title": "Core schema null and boolean spellings",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": null,
+    "b": null,
+    "c": null,
+    "d": true,
+    "e": false,
+    "f": true,
+    "g": null,
+    "h": null
+   }
+  ]
+ }
+}

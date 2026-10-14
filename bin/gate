@@ -1,0 +1,24 @@
+#!/bin/sh
+# The kit's own gate: its tests, the fast set through every adapter, the checks.
+# Set KIT_OUT to move the output directory (default ./out) and CARGO_TARGET_DIR to
+# keep Rust build output out of the checkout.
+set -eu
+cd "$(dirname "$0")/.."
+export PYTHONDONTWRITEBYTECODE=1
+export KIT_ADAPTER_TESTS=1
+
+echo "== corpus pins"
+python3 bin/kit pins
+echo "== kit tests"
+python3 -m unittest discover -s tests -q
+echo "== fast set through every adapter"
+python3 bin/kit fast
+echo "== adapter checks"
+for d in adapters/*/; do
+  if [ -f "$d/Cargo.toml" ]; then
+    (cd "$d" && cargo fmt --check && cargo clippy --release --locked --quiet -- -D warnings)
+  fi
+done
+echo "== public text"
+python3 bin/kit public-text
+echo "gate: ok"

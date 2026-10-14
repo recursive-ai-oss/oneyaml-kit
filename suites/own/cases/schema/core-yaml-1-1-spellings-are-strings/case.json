@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/core-yaml-1-1-spellings-are-strings",
+ "title": "YAML 1.1 booleans, binary and digit separators are plain strings in the core schema",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": "yes",
+    "b": "No",
+    "c": "on",
+    "d": "0b11",
+    "e": "1_000",
+    "f": "1:30",
+    "g": "y"
+   }
+  ]
+ }
+}

@@ -1,0 +1,9 @@
+{
+  "format": "oneyaml-kit-adapter/1",
+  "name": "oneyaml-rust",
+  "language": "rust",
+  "build": ["cargo", "build", "--release", "--locked", "--quiet"],
+  "command": ["./run.sh"],
+  "timeout_seconds": 10,
+  "deviations": "deviations.json"
+}

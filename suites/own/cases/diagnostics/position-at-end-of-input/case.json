@@ -1,0 +1,23 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/position-at-end-of-input",
+ "title": "An error caused by the end of the input is positioned at the end of the input",
+ "category": "diagnostics",
+ "origin": "spec",
+ "productions": [
+  "137"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.1"
+ ],
+ "notes": "Every character is acceptable, but the flow sequence is never closed. No character is at fault, so the position is the point just after the last character: the line after the final line break, column 1. Positions are 1-based lines and columns counted in characters of the decoded text; the position of an error is the first character that cannot belong to any valid document (docs/case-format.md).",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 1
+ }
+}

@@ -1,0 +1,176 @@
+{
+ "format": "oneyaml-kit-corrections/2",
+ "suite": "yaml-test-suite",
+ "release": "data-2022-01-17",
+ "entries": [
+  {
+   "case": "yts:4H7K",
+   "events": [
+    "+STR",
+    "+DOC ---",
+    "+SEQ []",
+    "=VAL :a",
+    "=VAL :b",
+    "=VAL :c",
+    "-SEQ"
+   ],
+   "reason": "test.event prints the flow sequence as +SEQ without the [] marker, and ends the document before the stray bracket. The sequence is complete but the document is not: nothing has closed it when the extra bracket is found. Rule applied to every recorded error tree: a document ends only at its end marker, at the next document start marker, or at the end of the stream. An error found before any of these happens while the document is still open, so no document end is emitted before it. The same rule leaves 9JBA, KS4U, 3HFZ and QLJ7 as recorded.",
+   "citation": "YAML 1.2.2 section 7.4.1 (c-flow-sequence, production 137) for the marker; YAML 1.2.2 section 9.1 (l-yaml-stream, production 211, and l-document-suffix, production 205): a bare document is ended by a document suffix, a further document or the end of the stream"
+  },
+  {
+   "case": "yts:T833",
+   "events": [
+    "+STR",
+    "+DOC ---",
+    "+MAP {}",
+    "=VAL :foo"
+   ],
+   "reason": "test.event prints the flow mapping as +MAP without the {} marker. Only the marker is restored.",
+   "citation": "YAML 1.2.2 section 7.4.2 (c-flow-mapping, production 140); the test.event notation marks flow collections"
+  },
+  {
+   "case": "yts:MUS6/01",
+   "events": [
+    "+STR",
+    "+DOC ---"
+   ],
+   "reason": "The recorded events (+STR only) were copied from the previous case in the source file, which has no tree of its own. The explicit document starts, then the second %YAML line inside it is the error.",
+   "citation": "YAML 1.2.2 section 6.8 (directives appear only before the --- marker, production 82) and section 9.1.3 (explicit documents)"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "events": [
+    "+STR",
+    "+DOC",
+    "+SEQ"
+   ],
+   "reason": "Recorded events were copied from Y79Y/003. Input is a sequence entry, a tab, then a second dash: the compact form after a tab is not allowed.",
+   "citation": "YAML 1.2.2 section 6.1 (indentation uses spaces only) and section 8.2 (compact collections need s-indent, production 185); the tab ends the valid prefix"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "events": [
+    "+STR",
+    "+DOC",
+    "+SEQ"
+   ],
+   "reason": "Recorded events were copied from Y79Y/003. Input is a sequence entry, a space and a tab, then a dash: the compact form after a tab is not allowed.",
+   "citation": "YAML 1.2.2 section 6.1 (indentation uses spaces only) and section 8.2 (compact collections need s-indent, production 185); the tab ends the valid prefix"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "events": [
+    "+STR",
+    "+DOC",
+    "+MAP"
+   ],
+   "reason": "Recorded events were copied from Y79Y/003. Input is an explicit key indicator, a tab, then a dash: a block sequence cannot start after a tab on that line.",
+   "citation": "YAML 1.2.2 section 6.1 (indentation uses spaces only) and section 8.2 (compact collections need s-indent, production 185); the tab ends the valid prefix"
+  },
+  {
+   "case": "yts:Y79Y/007",
+   "events": [
+    "+STR",
+    "+DOC",
+    "+MAP",
+    "+SEQ",
+    "=VAL :",
+    "-SEQ"
+   ],
+   "reason": "Recorded events were copied from Y79Y/003. The key is a compact sequence with an empty entry; the value indicator, a tab and a dash then fail.",
+   "citation": "YAML 1.2.2 section 6.1 (indentation uses spaces only) and section 8.2 (compact collections need s-indent, production 185); the tab ends the valid prefix"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "events": [
+    "+STR",
+    "+DOC",
+    "+MAP"
+   ],
+   "reason": "Recorded events were copied from Y79Y/003. Input is an explicit key indicator, a tab, then an implicit mapping key: not allowed after a tab.",
+   "citation": "YAML 1.2.2 section 6.1 (indentation uses spaces only) and section 8.2 (compact collections need s-indent, production 185); the tab ends the valid prefix"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "events": [
+    "+STR",
+    "+DOC",
+    "+MAP",
+    "+MAP",
+    "=VAL :key",
+    "=VAL :",
+    "-MAP"
+   ],
+   "reason": "Recorded events were copied from Y79Y/003. The key is a compact mapping with an empty value; the value indicator, a tab and a mapping key then fail.",
+   "citation": "YAML 1.2.2 section 6.1 (indentation uses spaces only) and section 8.2 (compact collections need s-indent, production 185); the tab ends the valid prefix"
+  },
+  {
+   "case": "yts:BS4K",
+   "events": [
+    "+STR",
+    "+DOC",
+    "=VAL :word1"
+   ],
+   "reason": "The second line cannot continue the first scalar after its comment, and no document end has been seen. Rule applied to every recorded error tree: a document ends only at its end marker, at the next document start marker, or at the end of the stream. An error found before any of these happens while the document is still open, so no document end is emitted before it. The recorded tree ends the document before the error.",
+   "citation": "YAML 1.2.2 section 9.1 (l-yaml-stream, production 211, and l-document-suffix, production 205): a bare document is ended by a document suffix, a further document or the end of the stream"
+  },
+  {
+   "case": "yts:EB22",
+   "events": [
+    "+STR",
+    "+DOC ---",
+    "=VAL :scalar1"
+   ],
+   "reason": "A directive line follows the scalar with no document end marker between them, so the first document is still open at the error. Rule applied to every recorded error tree: a document ends only at its end marker, at the next document start marker, or at the end of the stream. An error found before any of these happens while the document is still open, so no document end is emitted before it. The recorded tree ends the document before the error.",
+   "citation": "YAML 1.2.2 section 9.1 (l-yaml-stream, production 211, and l-document-suffix, production 205): a bare document is ended by a document suffix, a further document or the end of the stream; section 6.8 (directives need a preceding document end marker)"
+  },
+  {
+   "case": "yts:UGM3@value",
+   "value": [
+    {
+     "invoice": 34843,
+     "date": "2001-01-23",
+     "bill-to": {
+      "given": "Chris",
+      "family": "Dumars",
+      "address": {
+       "lines": "458 Walkman Dr.\nSuite #292\n",
+       "city": "Royal Oak",
+       "state": "MI",
+       "postal": 48046
+      }
+     },
+     "ship-to": {
+      "given": "Chris",
+      "family": "Dumars",
+      "address": {
+       "lines": "458 Walkman Dr.\nSuite #292\n",
+       "city": "Royal Oak",
+       "state": "MI",
+       "postal": 48046
+      }
+     },
+     "product": [
+      {
+       "sku": "BL394D",
+       "quantity": 4,
+       "description": "Basketball",
+       "price": 450.0
+      },
+      {
+       "sku": "BL4438H",
+       "quantity": 1,
+       "description": "Super Hoop",
+       "price": 2392.0
+      }
+     ],
+     "tax": 251.42,
+     "total": 4443.52,
+     "comments": "Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338."
+    }
+   ],
+   "reason": "in.json was produced by a converter that does not keep the difference between integers and floats: 450.00 and 2392.00 are written 450 and 2392. They are floats in the core schema.",
+   "citation": "YAML 1.2.2 section 10.3.2 (core schema tag resolution: the float pattern accepts a decimal point with trailing digits, so 450.00 resolves to a float)"
+  }
+ ]
+}

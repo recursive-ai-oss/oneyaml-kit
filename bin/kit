@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+"""Launcher: bin/kit <command>. Standard library only; Python 3.10 or newer."""
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+sys.dont_write_bytecode = True
+
+from oneyaml_kit.cli import main  # noqa: E402
+
+sys.exit(main())
