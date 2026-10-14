@@ -47,6 +47,8 @@ Per case: `loose` and `strict` are each `pass`, `fail` or `unsupported`.
   audited without re-running.
 - `measured` (bounded cases): `seconds` and `peak_mb`, the peak resident-memory growth
   (null where it cannot be measured).
+- `tags`: the kit case's tags, for kit cases that have any (for example `convention`), so a
+  report can count verdicts that rest on a kit rule apart from the rest.
 - `emulated`: the behaviours the adapter supplied for this answer (see the adapter
   protocol). The adapter record lists what it may emulate in `emulates`.
 

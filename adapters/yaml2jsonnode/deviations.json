@@ -510,14 +510,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+   "reason": "The library refused the patch: While parsing a block mapping, did not find expected key."
   },
   {
    "case": "own:roundtrip/line-separator-characters-in-content",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+   "reason": "The library refused the patch: While parsing a block mapping, did not find expected key."
   },
   {
    "case": "own:roundtrip/long-lines-and-wide-spacing",
@@ -2687,14 +2687,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Rejects valid input: 'Did not find expected <document start>.' at 4:2"
+   "reason": "The library refused the patch: 'Did not find expected <document start>.' at 4:2"
   },
   {
    "case": "own:edit/keep-stream-bom-before-second-document",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Rejects valid input: 'Did not find expected <document start>.' at 4:2"
+   "reason": "The library refused the patch: 'Did not find expected <document start>.' at 4:2"
   },
   {
    "case": "own:edit/keep-stream-document-after-empty-document",
@@ -3898,14 +3898,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Rejects valid input: 'Path `/a` is not equal to the indicated value.'"
+   "reason": "The library refused the patch: 'Path `/a` is not equal to the indicated value.'"
   },
   {
    "case": "own:edit/test-explicit-str-tag",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Rejects valid input: 'Path `/a` is not equal to the indicated value.'"
+   "reason": "The library refused the patch: 'Path `/a` is not equal to the indicated value.'"
   },
   {
    "case": "own:edit/test-follows-alias",
@@ -3926,14 +3926,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Rejects valid input: 'Path `/a` is not equal to the indicated value.'"
+   "reason": "The library refused the patch: 'Path `/a` is not equal to the indicated value.'"
   },
   {
    "case": "own:edit/test-integer-written-in-hex",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Rejects valid input: 'Path `/a` is not equal to the indicated value.'"
+   "reason": "The library refused the patch: 'Path `/a` is not equal to the indicated value.'"
   },
   {
    "case": "own:edit/test-mapping-order-does-not-matter",
@@ -3990,6 +3990,48 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Output differs: first difference at byte 10: expected b'y\\nc: 2\\n', got b'\"y\"\\nc: 2\\n' (lengths 17 and 19)"
+  },
+  {
+   "case": "own:edit/add-string-that-cannot-be-plain-next-to-plain-siblings",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"x\\nb: y\\nc: 'true'\\n\", got b'\"x\"\\nb: \"y\"\\nc: \"true\"\\n' (lengths 20 and 24)"
+  },
+  {
+   "case": "own:edit/add-string-that-cannot-be-plain-next-to-plain-siblings",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"x\\nb: y\\nc: 'true'\\n\", got b'\"x\"\\nb: \"y\"\\nc: \"true\"\\n' (lengths 20 and 24)"
+  },
+  {
+   "case": "own:edit/test-error-float-is-not-integer",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/test-error-float-is-not-integer",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/test-error-integer-is-not-float",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/test-error-integer-is-not-float",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
   }
  ]
 }

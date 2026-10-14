@@ -67,6 +67,22 @@ class Report(unittest.TestCase):
         self.assertIn("Scored baseline: yaml-test-suite `data-2022-01-17`", md)
         self.assertNotIn("differ | with", md)
 
+    def test_convention_cases_are_counted_apart(self):
+        res = sample()
+        res["cases"] = res["cases"] + [
+            dict(case("own:edit/c1", "own", "patch", "bytes", "pass", "pass", category="edit"), tags=["convention"]),
+            dict(case("own:edit/c2", "own", "patch", "bytes", "fail", "fail", category="edit"),
+                 tags=["convention", "comment-ownership"]),
+            dict(case("own:edit/c3", "own", "patch", "bytes", "unsupported", "unsupported", category="edit"),
+                 tags=["convention"]),
+        ]
+        md = report.render([res])
+        self.assertIn("rest on a kit convention", md)
+        self.assertIn("| kit cases · edit · edits by patch | 3 | 1 | 1 | 1 | 1 | 1 |", md)
+        # With none tagged there is no such section.
+        self.assertNotIn("rest on a kit convention (", report.render([sample()]))
+        self.assertNotIn("Cases whose expected bytes rest on a kit convention", report.render([sample()]))
+
     def test_generated_text_passes_the_public_text_check(self):
         t = tmp()
         try:

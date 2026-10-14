@@ -149,7 +149,10 @@ class Run(unittest.TestCase):
         for n in ("go-yaml-v3", "go-yaml-v4", "goccy-go-yaml"):
             self.assertEqual(self.res[n]["adapter"]["emulates"], ["error", "pointer", "unchanged"])
             ok = [r for r in self.res[n]["cases"] if r["op"] == "patch" and r["expect"] == "bytes"
-                  and r["id"].startswith("own:edit/") and r["loose"] == "pass"]
+                  and r["id"].startswith("own:edit/") and r["loose"] != "unsupported"
+                  # An error before any path was resolved (the library rejected the document)
+                  # has no pointer step to mark; every result that wrote bytes does.
+                  and not (r.get("detail") or "").startswith("unexpected error")]
             self.assertTrue(ok)
             self.assertTrue(all("pointer" in r.get("emulated", []) for r in ok), n)
         # The patcher does everything itself; only the reporting of the original bytes is the adapter's.

@@ -35,6 +35,8 @@ def reason(r: dict, src: dict, verdict: str) -> str:
     if verdict == compare.UNSUPPORTED:
         return "Declined by the adapter: " + detail
     if detail.startswith("unexpected error: "):
+        if r["op"] == "patch":
+            return "The library refused the patch: " + detail[len("unexpected error: "):]
         return "Rejects valid input: " + detail[len("unexpected error: "):]
     if detail.startswith("expected an error"):
         if r["op"] == "patch":

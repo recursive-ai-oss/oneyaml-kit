@@ -6,8 +6,7 @@
  "origin": "spec",
  "productions": [
   "120",
-  "131",
-  "18"
+  "131"
  ],
  "refs": [
   "YAML 1.2.2 section 7.3.3",
@@ -15,9 +14,9 @@
   "docs/edit-semantics.md"
  ],
  "tags": [
-  "judgement"
+  "convention"
  ],
- "notes": "This case rests on a convention the specification does not fix: the nearest style when a plain scalar cannot hold the value is taken to be single quotes, the one that needs no escapes. It is tagged so that a library is not failed on taste unnoticed.",
+ "notes": "This case rests on a kit convention, not on the specification: a plain string that cannot stay plain becomes single-quoted, the quoted style that needs no escapes.",
  "operation": {
   "type": "patch",
   "patch": [

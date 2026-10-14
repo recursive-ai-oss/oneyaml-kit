@@ -5,8 +5,7 @@
  "category": "edit",
  "origin": "spec",
  "productions": [
-  "109",
-  "19"
+  "109"
  ],
  "refs": [
   "docs/edit-semantics.md",

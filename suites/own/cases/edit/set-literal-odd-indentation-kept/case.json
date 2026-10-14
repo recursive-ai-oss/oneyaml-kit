@@ -5,17 +5,16 @@
  "category": "edit",
  "origin": "spec",
  "productions": [
-  "170",
-  "16"
+  "170"
  ],
  "refs": [
   "YAML 1.2.2 section 8.1.2",
   "docs/edit-semantics.md"
  ],
  "tags": [
-  "judgement"
+  "convention"
  ],
- "notes": "Any indentation of two or more spaces reads back the same. Reusing the old content's indentation is the reading of 'same style' taken here; a library that re-indents to its own default is not wrong by the specification.",
+ "notes": "This case rests on a kit convention, not on the specification: any indentation of two or more spaces reads back the same, and the kit reuses the old content's indentation. A library that re-indents to its own default is not wrong about YAML.",
  "operation": {
   "type": "patch",
   "patch": [

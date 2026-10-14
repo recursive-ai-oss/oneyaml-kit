@@ -6,9 +6,7 @@
  "origin": "spec",
  "productions": [
   "104",
-  "101",
-  "14",
-  "13"
+  "101"
  ],
  "refs": [
   "docs/edit-semantics.md",

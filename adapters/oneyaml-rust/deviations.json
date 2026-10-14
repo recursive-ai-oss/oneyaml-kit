@@ -503,14 +503,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "A folded block scalar given a value with no final line feed loses its header and becomes plain, which is the case-B gap for folded scalars"
+   "reason": "A folded block scalar given a value with no final line feed loses its header and becomes plain"
   },
   {
    "case": "own:edit/set-folded-clip-to-strip-no-newline",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Same as the loose verdict: a folded block scalar given a value with no final line feed loses its header and becomes plain, which is the case-B gap for folded scalars"
+   "reason": "Same as the loose verdict: a folded block scalar given a value with no final line feed loses its header and becomes plain"
   },
   {
    "case": "own:edit/set-folded-strip-keeps-strip",
@@ -573,14 +573,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "A literal strip scalar given a value with no final line feed loses its header and becomes plain: the case-B gap again"
+   "reason": "A literal strip scalar given a value with no final line feed loses its header and becomes plain"
   },
   {
    "case": "own:edit/set-literal-strip-keeps-strip",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Same as the loose verdict: a literal strip scalar given a value with no final line feed loses its header and becomes plain: the case-B gap again"
+   "reason": "Same as the loose verdict: a literal strip scalar given a value with no final line feed loses its header and becomes plain"
   },
   {
    "case": "own:edit/set-plain-string-yes-stays-plain-in-core",

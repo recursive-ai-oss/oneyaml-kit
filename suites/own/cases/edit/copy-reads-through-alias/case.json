@@ -6,16 +6,13 @@
  "origin": "spec",
  "productions": [
   "104",
-  "187",
-  "14",
-  "6",
-  "63"
+  "187"
  ],
  "refs": [
   "RFC 6902 section 4.5",
   "docs/edit-semantics.md"
  ],
- "notes": "Reads follow aliases; only writes through them are refused.",
+ "notes": "Reads follow aliases; only writes through them are refused. The new member goes at the end of its mapping, which is a kit convention (docs/edit-semantics.md); RFC 6902 does not fix the position.",
  "operation": {
   "type": "patch",
   "patch": [
@@ -29,5 +26,8 @@
  "expect": {
   "kind": "bytes",
   "file": "expected.yaml"
- }
+ },
+ "tags": [
+  "convention"
+ ]
 }

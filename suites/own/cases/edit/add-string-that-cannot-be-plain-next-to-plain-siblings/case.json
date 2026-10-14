@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-string-that-cannot-be-plain-next-to-plain-siblings",
+ "title": "A string that would read back as a boolean is quoted even among plain siblings",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "120"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The value must be quoted to read back as the string true. Which quote is a kit convention (single quotes); where the key goes is another (the end of the mapping). The new member goes at the end of its mapping, which is a kit convention (docs/edit-semantics.md); RFC 6902 does not fix the position.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/c",
+    "value": "true"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

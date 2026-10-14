@@ -6,16 +6,17 @@
  "origin": "spec",
  "productions": [
   "187",
-  "75",
-  "6",
-  "63",
-  "12"
+  "75"
  ],
  "refs": [
   "RFC 6902 section 4.2",
   "docs/edit-semantics.md"
  ],
- "notes": "A same-line comment has no line of its own to stay on.",
+ "tags": [
+  "convention",
+  "comment-ownership"
+ ],
+ "notes": "This case rests on a kit convention, not on the specification, which gives comments no owner: a comment at the end of the removed entry's line goes with it, because it has no line of its own to stay on.",
  "operation": {
   "type": "patch",
   "patch": [

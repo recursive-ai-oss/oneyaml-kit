@@ -1,0 +1,24 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/merge-scalar-patch-replaces-the-document",
+ "title": "A merge patch that is not an object replaces the whole document",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187"
+ ],
+ "refs": [
+  "RFC 7396 section 2",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "RFC 7396 section 2: if the patch is not an object, the result is the patch.",
+ "operation": {
+  "type": "patch",
+  "patch": 5,
+  "format": "merge-patch"
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

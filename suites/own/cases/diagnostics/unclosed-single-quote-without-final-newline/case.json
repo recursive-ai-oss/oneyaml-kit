@@ -5,8 +5,7 @@
  "category": "diagnostics",
  "origin": "spec",
  "productions": [
-  "120",
-  "18"
+  "120"
  ],
  "refs": [
   "YAML 1.2.2 section 7.3.2"

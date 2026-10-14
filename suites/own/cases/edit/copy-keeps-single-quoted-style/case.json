@@ -5,8 +5,7 @@
  "category": "edit",
  "origin": "spec",
  "productions": [
-  "120",
-  "18"
+  "120"
  ],
  "refs": [
   "RFC 6902 section 4.5",
@@ -25,5 +24,9 @@
  "expect": {
   "kind": "bytes",
   "file": "expected.yaml"
- }
+ },
+ "tags": [
+  "convention"
+ ],
+ "notes": "The new member goes at the end of its mapping, which is a kit convention (docs/edit-semantics.md); RFC 6902 does not fix the position."
 }

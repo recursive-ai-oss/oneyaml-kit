@@ -5,9 +5,7 @@
  "category": "edit",
  "origin": "spec",
  "productions": [
-  "137",
-  "8",
-  "9"
+  "137"
  ],
  "refs": [
   "RFC 6902 section 4.3",
