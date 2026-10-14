@@ -3,7 +3,8 @@
 
 Behaviour per case id comes from the file named by FAKE_SCRIPT (JSON): a map from case id to
 one of "ok-events", "crash", "hang", "garbage", "unsupported", "error", "accepted",
-"deep-value", "deep-garbage". FAKE_PROTOCOL says which hello protocol to speak (default 1).
+"deep-value", "deep-garbage", "slow" (answers after one second). FAKE_PROTOCOL says which hello
+protocol to speak (default 1).
 Every request id is appended to FAKE_LOG, one per line, so tests can see what was sent.
 """
 import json
@@ -34,6 +35,8 @@ for line in sys.stdin:
             os._exit(3)
         if how == "hang":
             time.sleep(60)
+        if how == "slow":
+            time.sleep(1.0)
         if how in ("alloc-hold", "alloc-answer"):
             held.append(b"\x01" * (200 * 1024 * 1024))
             if how == "alloc-hold":

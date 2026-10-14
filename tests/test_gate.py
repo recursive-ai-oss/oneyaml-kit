@@ -429,5 +429,45 @@ class Budget(unittest.TestCase):
         self.assertTrue(1 <= gate.default_jobs() <= gate.DEFAULT_JOBS)
 
 
+class Workflow(unittest.TestCase):
+    """CI runs one job per area of the full gate; a job list that has drifted from the areas would
+    leave an area unchecked, or ask for one that no longer exists."""
+
+    def setUp(self):
+        import re
+        self.text = (ROOT / ".github" / "workflows" / "gate.yml").read_text()
+        self.matrix = re.findall(r"^\s+- area: (\S+)\s*$", self.text, re.M)
+
+    def test_every_area_of_the_gate_has_a_job_and_no_other_does(self):
+        known = {"core", *(a["language"] for a in gate.adapter_dirs(ROOT).values()), *gate.AREA_NAMES_BENCH}
+        self.assertEqual(sorted(self.matrix), sorted(known))
+        self.assertEqual(len(set(self.matrix)), len(self.matrix))
+
+    def test_a_job_installs_what_its_area_needs(self):
+        import re
+        blocks = {m.group(1): m.group(2) for m in re.finditer(
+            r"- area: (\S+)\n((?:\s+(?:go|rust|dotnet): true\n)*)", self.text)}
+        needs = {"go": {"go"}, "bench-go": {"go"}, "rust": {"rust"}, "bench-rust": {"rust"},
+                 "csharp": {"dotnet"}, "bench-csharp": {"dotnet"}, "core": set(),
+                 # The quick run of the benchmark driver builds every harness.
+                 "bench": {"go", "rust", "dotnet"}}
+        for area, want in needs.items():
+            got = set(re.findall(r"(go|rust|dotnet): true", blocks[area]))
+            self.assertEqual(got, want, area)
+
+    def test_the_jobs_do_not_repeat_the_core(self):
+        self.assertIn("--without-core", self.text)
+
+    def test_caches_cover_every_lock_file_in_the_repository(self):
+        # A lock file that no cache key reads is a dependency CI downloads on every run.
+        for lock in sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / "adapters").glob("*/go.sum")):
+            self.assertIn("adapters/*/go.sum", self.text, lock)
+        self.assertIn("bench/go/go.sum", self.text)
+        self.assertIn("bench/csharp/packages.lock.json", self.text)
+        self.assertIn("adapters/*/packages.lock.json", self.text)
+        self.assertIn("bench/rust/Cargo.lock", self.text)
+        self.assertIn("adapters/*/Cargo.lock", self.text)
+
+
 if __name__ == "__main__":
     unittest.main()

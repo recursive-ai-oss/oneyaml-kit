@@ -258,7 +258,7 @@ class SubprocessAdapter:
         else:
             out = r
         if limits:
-            out["_measure"] = {"seconds": secs, "peak_mb": peak}
+            out["_measure"] = {"seconds": secs, "peak_mb": peak, "time_bound": timeout}
         return out
 
     def _failed(self, status: str, detail: str) -> dict:

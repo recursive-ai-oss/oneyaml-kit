@@ -184,13 +184,15 @@ class Run(unittest.TestCase):
                 r = self.by[n][cid]
                 self.assertEqual(r["loose"], "pass", (n, cid))
                 self.assertEqual(r["got"]["status"], "error")
-                self.assertLess(r["measured"]["seconds"], 10)
+                self.assertLess(r["measured"]["seconds"], r["measured"]["time_bound"])
                 # Memory is measured for the Go process the kit started, through its session.
                 self.assertIsNotNone(r["measured"]["peak_mb"], (n, cid))
-        # The bomb is expanded when the value is built: the memory bound is what stops it.
+        # The bomb is expanded when the value is built, so a bound stops it. Which bound comes
+        # first depends on how fast the machine allocates, so either one is the expected stop.
         bomb = self.by["goccy-go-yaml"]["own:safety/alias-expansion-bomb"]
-        self.assertEqual(bomb["loose"], "fail")
-        self.assertIn("memory", bomb["detail"])
+        self.assertEqual((bomb["loose"], bomb["strict"]), ("fail", "fail"))
+        self.assertIn(bomb["got"]["status"], ("memory", "timeout"))
+        self.assertRegex(bomb["detail"], r"^(memory growth passed|no answer within)")
 
     def test_a_deviation_list_is_checked_in_both_directions(self):
         for n in ("go-yaml-v3", "goccy-go-yaml", "palantir-yamlpatch-goccy"):

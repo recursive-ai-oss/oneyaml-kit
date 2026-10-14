@@ -217,6 +217,10 @@ class Publishability(unittest.TestCase):
 
 
 def result(cells, mode="quick", publishable=False, reasons=("quick",)):
+    if mode == "full":
+        # A full run takes at least 30 samples in every cell; the quick-sized fixture cells are widened.
+        cells = [dict(c, time=dict(c["time"], samples=max(c["time"]["samples"], 31))) if "time" in c else c
+                 for c in cells]
     return {"format": R.FORMAT, "harnesses": {}, "workloads": [],
             "run": {"date": "d", "mode": mode, "environment": {},
                     "publishability": {"publishable": publishable, "reasons": list(reasons)}},
@@ -257,6 +261,17 @@ class Validation(unittest.TestCase):
         with self.assertRaisesRegex(R.ResultError, "cannot be publishable"):
             R.validate(result([cell("a")], mode="full", publishable=True, reasons=("busy",)))
         R.validate(result([cell("a")], mode="full", publishable=True, reasons=()))
+
+    def test_a_full_run_needs_thirty_samples_in_every_cell_and_a_quick_run_does_not(self):
+        few = cell("a", "own")
+        few["time"]["samples"] = 29
+        res = result([few])
+        R.validate(res)  # quick mode is the smoke tier
+        res["run"]["mode"] = "full"
+        with self.assertRaisesRegex(R.ResultError, "29 samples in a full run"):
+            R.validate(res)
+        few["time"]["samples"] = 30
+        R.validate(res)
 
     def test_an_unjudged_cell_has_no_numbers_and_needs_a_reason(self):
         R.validate(result([cell("a", status="unjudged", detail="the referees disagree")]))

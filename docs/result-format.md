@@ -45,8 +45,9 @@ Per case: `loose` and `strict` are each `pass`, `fail` or `unsupported`.
 - `got` (for error and bounded expectations) is what the library actually returned: its
   status, error category, position and message, the number of events, so a verdict can be
   audited without re-running.
-- `measured` (bounded cases): `seconds` and `peak_mb`, the peak resident-memory growth
-  (null where it cannot be measured).
+- `measured` (bounded cases): `seconds`, `time_bound` (the time bound that was enforced:
+  the case's own bound times the machine's speed factor, see the case format) and `peak_mb`,
+  the peak resident-memory growth (null where it cannot be measured).
 - `tags`: the kit case's tags, for kit cases that have any (for example `convention`), so a
   report can count verdicts that rest on a kit rule apart from the rest.
 - `emulated`: the behaviours the adapter supplied for this answer (see the adapter

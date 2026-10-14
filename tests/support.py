@@ -1,11 +1,17 @@
 """Shared helpers for the kit's own tests."""
 
+import os
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 sys.dont_write_bytecode = True
+# The kit's own tests pin the time-bound factor so that their timings do not depend on the machine.
+# The tests that run real adapters keep the measured factor: they are the ones that must hold on a
+# slow or busy machine.
+if os.environ.get("KIT_ADAPTER_TESTS") != "1":
+    os.environ.setdefault("KIT_TIME_SCALE", "1")
 
 from oneyaml_kit.cases import b64  # noqa: E402
 

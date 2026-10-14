@@ -23,14 +23,17 @@ public sealed record Config(
     int Samples, int MinSamples, int SampleTargetMs, long MaxPreparedBytes, int MaxIters, int MaxCellMs)
 {
     public static Config Quick => new(0, 4_000, 250, 1, 5, 5, 1, 64L << 20, 10_000, 4_000);
-    public static Config Full => new(300, 12_000, 250, 2, 31, 11, 50, 512L << 20, 1_000_000, 20_000);
+    public static Config Full => new(300, 12_000, 250, 2, 31, 30, 50, 512L << 20, 1_000_000, 20_000);
 }
 
 /// <summary>What the warm-up did: how long it ran, whether the compiled-method count settled before the limit,
 /// and how many methods the JIT compiled while it ran.</summary>
 public sealed record WarmupResult(double Ms, bool Settled, long Compiled);
 
-public sealed record Timing(int ItersPerSample, double[] SamplesNs, WarmupResult? Warmup = null)
+/// <param name="CalibratedNs">the time one task took on warmed code when the batch size was chosen; the batch holds
+/// enough tasks that this estimate fills the sample target. The samples themselves can run faster than the estimate,
+/// because code keeps getting optimised, so a sample can be shorter than the target by the same factor.</param>
+public sealed record Timing(int ItersPerSample, double[] SamplesNs, WarmupResult? Warmup = null, double CalibratedNs = 0)
 {
     public double Median => MedianSorted(SamplesNs);
 
@@ -53,8 +56,10 @@ public sealed record Timing(int ItersPerSample, double[] SamplesNs, WarmupResult
     }
 }
 
-/// <summary>What one run used. <see cref="StateBytes"/> is the live bytes of the starting state alone.</summary>
-public sealed record Usage(long PeakBytes, long AllocatedBytes, long StateBytes);
+/// <summary>What one run used. <see cref="StateBytes"/> is the live bytes of the starting state alone.
+/// <see cref="RetainedBytes"/> is what the run left live: the live heap one full collection after the run, less
+/// the live heap just before it, with the starting state held in both readings.</summary>
+public sealed record Usage(long PeakBytes, long AllocatedBytes, long StateBytes, long RetainedBytes);
 
 /// <summary>The benchmark BenchmarkDotNet runs for every cell. The harness fills in the static fields
 /// before each run, so one class serves all libraries, tasks and workloads.
@@ -202,7 +207,7 @@ public static class Measure
             .OrderBy(x => x)
             .ToArray();
         if (taken.Length == 0) throw new InvalidOperationException("BenchmarkDotNet reported no measurements");
-        return new Timing(iters, taken, warm);
+        return new Timing(iters, taken, warm, one);
     }
 
     /// <summary>The bytes the task requests on this thread over one run of a throw-away state.</summary>
@@ -229,7 +234,11 @@ public static class Measure
     /// minus those before it was built.
     ///
     /// Memory a library keeps for reuse between calls (pooled buffers, caches) is part of neither figure: an
-    /// untracked run comes first, so it already exists. <see cref="Retained(Func{Runner})"/> measures it.</summary>
+    /// untracked run comes first, so it already exists. Retained is the part of it that one run adds.
+    ///
+    /// Retained: the live bytes one full collection after the run, less the live bytes just before the run, the
+    /// starting state held in both readings and the result dropped inside the task. It is the same quantity as
+    /// the Go harness reports, and shows what a run leaves in pools and caches that keep growing.</summary>
     public static Usage Memory(Runner r)
     {
         // One untracked run first, so the figures are the steady state of a program that has used the library
@@ -258,23 +267,20 @@ public static class Measure
         }
         if (allocated < 0) throw new InvalidOperationException("the task kept leaving the no-GC region");
         GC.KeepAlive(b);
-        return new Usage(state + allocated, allocated, state);
+        return new Usage(state + allocated, allocated, state, RetainedByOneRun(r));
     }
 
-    /// <summary>What the library keeps after the task: the live bytes after one run, with the state and the result
-    /// dropped, minus the live bytes before the runner was made. It is meant for a process that has not run the
-    /// library before, so that array pools and caches the library fills are not already full; the harness runs it
-    /// in a fresh process for each cell. Making the runner is inside the reading, because a runner may use the
-    /// library (to check that it can express the task) and what that fills is the library's to keep.</summary>
-    public static long Retained(Func<Runner> make)
+    /// <summary>The live bytes one run leaves behind: a full collection with a fresh starting state held, one run
+    /// (the task drops its result), another full collection, and the difference. It is a pass of its own, after
+    /// the peak and allocation figures are taken, because the collections it needs would trim what a library
+    /// keeps in pools and change what the other passes see.</summary>
+    static long RetainedByOneRun(Runner r)
     {
+        var b = r.Prepare(1);
         long before = LiveNow();
-        RunOnce(make());
-        return Math.Max(LiveNow() - before, 0);
+        b.Run();
+        long after = LiveNow();
+        GC.KeepAlive(b);
+        return Math.Max(after - before, 0);
     }
-
-    public static long Retained(Runner r) => Retained(() => r);
-
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    static void RunOnce(Runner r) => r.Prepare(1).Run();
 }

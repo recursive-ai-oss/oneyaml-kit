@@ -15,7 +15,7 @@ def harness():
 
 def ok(lib, wl):
     return {"type": "cell", "library": lib, "task": "generic-load", "workload": wl, "status": "ok", "input_bytes": 1,
-            "time": {"median_ns": 1.0, "mad_ns": 0.0, "samples": 5},
+            "time": {"median_ns": 1.0, "mad_ns": 0.0, "samples": 31},
             "memory": {"method": "m", "peak_bytes": 1, "allocated_bytes": 1, "allocations": 1}}
 
 

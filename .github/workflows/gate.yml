@@ -4,22 +4,86 @@ on:
   push:
   pull_request:
 
+# A newer push to the same branch makes the older run pointless.
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: true
+
+# One job per area of the gate, each on its own runner, so the slowest area sets the wall-clock time
+# instead of the sum of them, and each restores only the caches it uses. Every job runs the full tier
+# of its area with `bin/gate --full --areas <area>`; the areas together are what `bin/gate --full`
+# runs on one machine.
 jobs:
   gate:
+    name: gate (${{ matrix.area }})
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - area: core
+          - area: go
+            go: true
+          - area: rust
+            rust: true
+          - area: csharp
+            dotnet: true
+          - area: bench
+            go: true
+            rust: true
+            dotnet: true
+          - area: bench-rust
+            rust: true
+          - area: bench-go
+            go: true
+          - area: bench-csharp
+            dotnet: true
+    env:
+      # Build output stays under out/, which is not part of the repository; the cargo directories
+      # are cached from there.
+      CARGO_TARGET_DIR: ${{ github.workspace }}/out/cargo
+      CARGO_INCREMENTAL: "0"
+      CARGO_TERM_COLOR: never
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: "3.13"
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff  # v5
+        if: matrix.go
         with:
           go-version: "1.26"
-          cache-dependency-path: adapters/*/go.sum
+          # The module and build caches are restored and saved by this action, keyed by the checksums.
+          cache-dependency-path: |
+            adapters/*/go.sum
+            bench/go/go.sum
       - name: Rust toolchain
+        if: matrix.rust
         run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - name: Cargo registry and build output
+        if: matrix.rust
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            out/cargo*
+          key: cargo-${{ runner.os }}-${{ matrix.area }}-${{ hashFiles('adapters/*/Cargo.lock', 'bench/rust/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ matrix.area }}-
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9  # v4
+        if: matrix.dotnet
         with:
           dotnet-version: "10.0.x"
+          # The NuGet package cache, keyed by the lock files the projects already carry.
+          cache: true
+          cache-dependency-path: |
+            adapters/*/packages.lock.json
+            bench/csharp/packages.lock.json
       - name: Gate
-        run: bin/gate --full --jobs 3
+        # The kit core has a job of its own, so the other jobs leave it out.
+        run: bin/gate --full --areas ${{ matrix.area }} ${{ matrix.area != 'core' && '--without-core' || '' }}

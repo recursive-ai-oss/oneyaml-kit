@@ -112,13 +112,17 @@ pub fn time(r: &dyn Runner, cfg: &Config) -> Timing {
 }
 
 /// One tracked run: peak live heap (including the state the task starts from), bytes
-/// requested and allocation calls made by the task itself.
+/// requested and allocation calls made by the task itself, and the bytes the run left live.
 pub fn memory(r: &dyn Runner) -> alloc::Usage {
     alloc::start();
     let mut b = r.prepare(1);
     alloc::reset_requests();
+    // Both readings are taken with the starting state held; the task drops its result inside `run`.
+    let before = alloc::live();
     b.run();
-    let u = alloc::stop();
+    let after = alloc::live();
+    let mut u = alloc::stop();
+    u.retained_bytes = (after - before).max(0) as u64;
     drop(b);
     u
 }
@@ -144,5 +148,71 @@ mod tests {
         };
         assert_eq!(t.median(), 10.0);
         assert_eq!(t.mad(), 0.0);
+    }
+
+    use crate::model::{runner, Product};
+
+    // The tracker counts every thread, and other tests allocate and free while these run, so one reading can
+    // be off by whatever they did. A run is therefore repeated: a figure that must be large is judged by the
+    // largest reading and one that must be small by the smallest. A quantity that is wrongly counted shows in
+    // every reading, so the repetition costs the test none of its power.
+    const MB: u64 = 1 << 20;
+    const READINGS: usize = 12;
+    static KEPT: std::sync::Mutex<Vec<Vec<u8>>> = std::sync::Mutex::new(Vec::new());
+
+    fn readings(r: &dyn crate::model::Runner) -> Vec<alloc::Usage> {
+        (0..READINGS).map(|_| memory(r)).collect()
+    }
+
+    #[test]
+    fn what_a_run_keeps_is_retained() {
+        let keeper = runner(
+            || 0u8,
+            |_| {
+                KEPT.lock().unwrap().push(vec![1u8; 4 << 20]);
+                Ok(1u8)
+            },
+            |_| Product::Bytes(vec![]),
+        );
+        let most = readings(&*keeper)
+            .iter()
+            .map(|u| u.retained_bytes)
+            .max()
+            .unwrap();
+        KEPT.lock().unwrap().clear();
+        assert!(most >= 3 * MB, "a buffer the task holds on to: {most}");
+    }
+
+    #[test]
+    fn garbage_and_the_starting_state_are_not_retained() {
+        // Eight megabytes of scratch that is dropped inside the task.
+        let tidy = runner(
+            || 0u8,
+            |_| Ok(vec![7u8; 8 << 20].len()),
+            |_| Product::Bytes(vec![]),
+        );
+        let us = readings(&*tidy);
+        let least = us.iter().map(|u| u.retained_bytes).min().unwrap();
+        assert!(least < MB, "garbage: {least}");
+        let asked = us.iter().map(|u| u.allocated_bytes).max().unwrap();
+        assert!(asked >= 8 * MB, "the scratch was requested: {asked}");
+        // A large starting state that the task only reads is live before and after: it is the peak's, not
+        // the run's.
+        let reads = runner(
+            || vec![1u8; 8 << 20],
+            |s| Ok(s[0]),
+            |_| Product::Bytes(vec![]),
+        );
+        let us = readings(&*reads);
+        let least = us.iter().map(|u| u.retained_bytes).min().unwrap();
+        assert!(least < MB, "state: {least}");
+        let peak = us.iter().map(|u| u.peak_bytes).max().unwrap();
+        assert!(peak >= 8 * MB, "the state counts in the peak: {peak}");
+    }
+
+    #[test]
+    fn a_full_run_takes_at_least_thirty_samples() {
+        assert!(Config::full().samples >= 30);
+        assert!(Config::quick().samples < 30);
     }
 }

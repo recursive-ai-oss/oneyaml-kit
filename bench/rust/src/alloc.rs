@@ -27,6 +27,10 @@ pub struct Usage {
     pub allocated_bytes: u64,
     /// Allocation calls made by the task itself.
     pub allocations: u64,
+    /// What the run left live: the live heap after the run, less the live heap just before it, with
+    /// the starting state held in both readings. Memory is freed the moment it is dropped, so there is no
+    /// collection to wait for; this is the same quantity the other harnesses report.
+    pub retained_bytes: u64,
 }
 
 fn grow(by: i64) {
@@ -93,13 +97,15 @@ pub fn reset_requests() {
     COUNT.store(0, Relaxed);
 }
 
-/// Stops tracking and returns what was seen.
+/// Stops tracking and returns what was seen. `retained_bytes` is left for the caller to fill in, because
+/// only it knows where the run began and ended.
 pub fn stop() -> Usage {
     TRACK.store(false, Relaxed);
     Usage {
         peak_bytes: PEAK.load(Relaxed).max(0) as u64,
         allocated_bytes: ALLOCATED.load(Relaxed),
         allocations: COUNT.load(Relaxed),
+        retained_bytes: 0,
     }
 }
 

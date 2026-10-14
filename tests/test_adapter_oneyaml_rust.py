@@ -51,7 +51,7 @@ class OneyamlRust(unittest.TestCase):
             r = self.by_id[cid]
             self.assertEqual(r["strict"], "pass", cid)
             self.assertEqual(r["got"]["category"], "limit", cid)
-            self.assertLess(r["measured"]["seconds"], 10)
+            self.assertLess(r["measured"]["seconds"], r["measured"]["time_bound"])
         self.assertEqual(self.res["run"]["adapter_restarts"], 0)
 
     def test_value_typing_is_exact_and_the_one_upstream_error_is_corrected(self):

@@ -206,8 +206,9 @@ class Pipeline(unittest.TestCase):
             self.assertGreaterEqual(c["memory"]["allocated_bytes"], 0)
             self.assertGreater(c["memory"]["peak_bytes"], 0)
             self.assertIsNone(c["memory"]["allocations"])
-            # What the library keeps after a run is its own figure, taken in a fresh process.
-            self.assertGreater(c["memory"]["retained_bytes"], 0, c["library"])
+            # What a run leaves live (the one definition every harness shares): a count, zero when the run keeps nothing.
+            self.assertIsInstance(c["memory"]["retained_bytes"], int, c["library"])
+            self.assertGreaterEqual(c["memory"]["retained_bytes"], 0, c["library"])
             # The code that was timed was warmed until the JIT stopped compiling.
             self.assertTrue(c["time"]["warmup_settled"], (c["library"], c["task"], c["workload"]))
             self.assertGreater(c["time"]["warmup_ms"], 0)
