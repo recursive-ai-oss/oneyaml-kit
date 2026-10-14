@@ -52,6 +52,8 @@ HASH = re.compile(r"\b[0-9a-f]{40}\b")
 
 # Vendored third-party data is not ours to edit and is checked by its digest instead.
 SKIP_PREFIXES = ("suites/yaml-test-suite/data-",)
+# Standard licence texts are quoted verbatim and contain ordinary legal words the check would flag.
+LICENSE_TEXTS = {"suites/yaml-test-suite/LICENSE", "LICENSE-MIT", "LICENSE-APACHE", "suites/own/LICENSE"}
 # Files that may mention a commit hash (provenance records and lockfiles).
 HASH_OK_NAMES = {"SOURCE.md", "Cargo.lock", "pins.json"}
 
@@ -75,7 +77,7 @@ def scan(paths: list[Path], root: Path = ROOT) -> list[str]:
             rel = p.resolve().relative_to(root.resolve()).as_posix()
         except ValueError:
             rel = p.as_posix()
-        if rel.startswith(SKIP_PREFIXES) or rel == "suites/yaml-test-suite/LICENSE":
+        if rel.startswith(SKIP_PREFIXES) or rel in LICENSE_TEXTS:
             continue
         vendored = p.name in ("input.yaml", "expected.json") or "/LICENSES/" in rel
         if rel.startswith("bench/workloads/real/") and vendored:

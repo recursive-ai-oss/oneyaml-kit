@@ -86,3 +86,14 @@ compared. Renames count as a deletion and an addition, so the area a file left i
 - **Known deviations are listed per library and verified.** A new failure, or an entry
   that no longer holds, fails the run.
 - **Reports are generated** from result files.
+
+## Licence
+
+- The kit's code (`tools/`, `bin/`, `adapters/`, `bench/` harnesses, `tests/` and `docs/`) is
+  dual licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
+- The kit's own cases (`suites/own/`) are dedicated to the public domain under
+  [CC0 1.0](suites/own/LICENSE), so other YAML projects can copy them without attribution.
+- Vendored material keeps its own licence: the yaml-test-suite data in `suites/yaml-test-suite/`
+  (MIT, see its `LICENSE` and `SOURCE.md`) and the real-world benchmark files in
+  `bench/workloads/real/` (each file's repository, revision and licence are in its
+  `workload.json` and in `SOURCES.md`, with the licence texts in `LICENSES/`).

@@ -4,6 +4,7 @@ description = "Kit adapter for oneyaml-rust (conformance protocol over stdin and
 version = "0.1.0"
 edition = "2021"
 publish = false
+license = "MIT OR Apache-2.0"
 
 [[bin]]
 name = "oneyaml-kit-adapter"

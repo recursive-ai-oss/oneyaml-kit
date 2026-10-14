@@ -89,5 +89,24 @@ class PublicText(unittest.TestCase):
         self.assertEqual(scan(public_text.repo_files()), [])
 
 
+class LicenceFiles(unittest.TestCase):
+    """The three licence texts exist and the README points to each of them."""
+
+    FILES = ("LICENSE-MIT", "LICENSE-APACHE", "suites/own/LICENSE")
+    MARKS = ("MIT License", "Apache License", "CC0 1.0 Universal")
+
+    def test_the_licence_texts_exist_and_are_named_in_the_readme(self):
+        root = Path(__file__).resolve().parents[1]
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        for f, mark in zip(self.FILES, self.MARKS):
+            text = (root / f).read_text(encoding="utf-8")
+            self.assertIn(mark, text, f)
+            self.assertGreater(len(text), 500, f)
+            self.assertIn("](" + f + ")", readme, f)
+
+    def test_only_the_licence_texts_are_exempt_from_the_scan(self):
+        self.assertEqual(public_text.LICENSE_TEXTS - set(self.FILES), {"suites/yaml-test-suite/LICENSE"})
+
+
 if __name__ == "__main__":
     unittest.main()
