@@ -162,8 +162,14 @@ def _expect_from_json(d: Any, base: Path | None, where: str, nested: bool = Fals
         ts, mb = _positive(d, "time_seconds", where), _positive(d, "memory_mb", where)
         acc = _expect_from_json(d["accept"], base, where, nested=True) if "accept" in d else None
         err = d.get("error")
-        if err is not None and err not in ERROR_CATEGORIES:
-            raise CaseError(f"{where}: bounded error must be an error category (any allows every kind)")
+        if isinstance(err, str):
+            err = [err]
+        if err is not None:
+            ok = (isinstance(err, list) and err and len(set(err)) == len(err)
+                  and all(isinstance(c, str) and c in ERROR_CATEGORIES and c != "any" for c in err))
+            if not ok:
+                raise CaseError(f"{where}: bounded error is a category or a list of distinct categories "
+                                f"naming kinds of error ('any' is not one)")
         if acc is None and err is None:
             raise CaseError(f"{where}: bounded needs an accepted result, an error category, or both")
         return {"kind": "bounded", "time_seconds": ts, "memory_mb": mb, "accept": acc, "category": err}
@@ -239,7 +245,7 @@ def load_own_case(case_dir: Path, cases_root: Path = OWN_DIR) -> Case:
     rel = case_dir.relative_to(cases_root).as_posix()
     where = f"own:{rel}"
     try:
-        d = json.loads((case_dir / "case.json").read_bytes())
+        d = kitjson.loads((case_dir / "case.json").read_bytes())
     except (OSError, ValueError) as e:
         raise CaseError(f"{where}: cannot read case.json: {e}") from e
     if d.get("format") != CASE_FORMAT:
@@ -302,7 +308,6 @@ def load_own(cases_root: Path = OWN_DIR) -> list[Case]:
 
 def _decode_json_stream(raw: bytes, where: str) -> list:
     text = raw.decode("utf-8")
-    dec = json.JSONDecoder()
     i, docs = 0, []
     while True:
         while i < len(text) and text[i] in " \t\r\n":
@@ -310,7 +315,7 @@ def _decode_json_stream(raw: bytes, where: str) -> list:
         if i >= len(text):
             return docs
         try:
-            v, i = dec.raw_decode(text, i)
+            v, i = kitjson.raw_decode(text, i)
         except ValueError as e:
             raise CaseError(f"{where}: in.json is not a JSON stream: {e}") from e
         docs.append(v)
@@ -321,7 +326,7 @@ def load_corrections(path: Path = YTS_CORRECTIONS) -> dict[str, dict]:
     error (`events`) or a value (`value`)."""
     if not path.is_file():
         return {}
-    d = json.loads(path.read_bytes())
+    d = kitjson.loads(path.read_bytes())
     if d.get("format") != CORRECTIONS_FORMAT:
         raise CaseError(f"corrections: format must be {CORRECTIONS_FORMAT!r}")
     out: dict[str, dict] = {}
@@ -343,14 +348,26 @@ def load_corrections(path: Path = YTS_CORRECTIONS) -> dict[str, dict]:
 
 
 def _to_kit_value(v: Any) -> Any:
-    """Rewrite JSON objects that have `$`-prefixed keys into the `$map` form."""
-    if isinstance(v, list):
-        return [_to_kit_value(x) for x in v]
-    if isinstance(v, dict):
-        if any(k.startswith("$") for k in v):
-            return {"$map": [[k, _to_kit_value(x)] for k, x in v.items()]}
-        return {k: _to_kit_value(x) for k, x in v.items()}
-    return v
+    """Rewrite JSON objects that have `$`-prefixed keys into the `$map` form (iterative)."""
+    done: dict[int, Any] = {}
+    todo: list = [(v, False)]
+    while todo:
+        x, ready = todo.pop()
+        if isinstance(x, list):
+            if not ready:
+                todo.append((x, True))
+                todo.extend((c, False) for c in x)
+            else:
+                done[id(x)] = [done.get(id(c), c) for c in x]
+        elif isinstance(x, dict):
+            if not ready:
+                todo.append((x, True))
+                todo.extend((c, False) for c in x.values())
+            elif any(k.startswith("$") for k in x):
+                done[id(x)] = {"$map": [[k, done.get(id(c), c)] for k, c in x.items()]}
+            else:
+                done[id(x)] = {k: done.get(id(c), c) for k, c in x.items()}
+    return done.get(id(v), v)
 
 
 def _apply_correction(case: Case, c: dict) -> None:

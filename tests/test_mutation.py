@@ -97,7 +97,7 @@ class Mutations(unittest.TestCase):
                 a = mutate(e["accept"])
                 variants.append(({**e, "accept": a}, ("fail", "fail")))
             if e["category"] is not None and e["accept"] is None:
-                variants.append(({**e, "category": "syntax"}, ("pass", "fail")))
+                variants.append(({**e, "category": ["syntax"]}, ("pass", "fail")))
                 variants.append(({**e, "accept": None, "category": None, "error": None}, None))
             for v, want in variants:
                 if want is None:

@@ -15,6 +15,7 @@ and is shown only when the step fails.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shlex
@@ -31,7 +32,10 @@ from .cases import ROOT
 # Shared directories that belong to a language without being an adapter themselves.
 SHARED = {"gokit": "go", "dotnet-common": "csharp", "Directory.Build.props": "csharp"}
 # Paths of the kit itself. A change here can move any adapter's results.
-CORE_CODE = ("tools/", "suites/", "bin/kit", "bin/gate")
+CORE_CODE = ("tools/", "suites/", "bin/kit", "bin/gate", "tests/support.py", "tests/fixtures/")
+# The benchmark harness imports the kit's package (the public-text check), so kit code also
+# selects it.
+BENCH_DEPENDS_ON = ("tools/",)
 # The adapter test module of each language.
 LANG_TESTS = {"rust": "test_adapter_oneyaml_rust.py", "go": "test_adapters_go.py",
               "csharp": "test_adapter_dotnet.py"}
@@ -86,19 +90,57 @@ def classify(path: str, adapters: dict) -> str | tuple[str, str]:
     return "core"
 
 
-def changed_files(root: Path, base: str) -> list[str] | None:
-    """Files that differ from the merge base with `base` (committed, uncommitted and new)."""
-    def git(*a):
-        return subprocess.run(["git", *a], cwd=root, capture_output=True, text=True)
+def _git(root: Path, *a: str):
+    return subprocess.run(["git", *a], cwd=root, capture_output=True, text=True)
 
-    mb = git("merge-base", "HEAD", base)
-    if mb.returncode != 0:
+
+def changed_files(root: Path, base: str) -> list[str] | None:
+    """Files that differ from the merge base with `base` (committed, uncommitted and new).
+    Renames are reported as a deletion and an addition, so the area a file left is selected
+    as well as the one it arrived in. None when git or the base is not available."""
+    try:
+        mb = _git(root, "merge-base", "HEAD", base)
+        if mb.returncode != 0:
+            return None
+        diff = _git(root, "diff", "--name-only", "--no-renames", mb.stdout.strip())
+        new = _git(root, "ls-files", "--others", "--exclude-standard")
+    except OSError:
         return None
-    diff = git("diff", "--name-only", mb.stdout.strip())
-    new = git("ls-files", "--others", "--exclude-standard")
     if diff.returncode != 0 or new.returncode != 0:
         return None
     return sorted({*diff.stdout.split("\n"), *new.stdout.split("\n")} - {""})
+
+
+def revision(root: Path, base: str) -> dict:
+    """What was checked, so a reader can tell whether two runs saw the same tree: HEAD, the
+    base and merge base, a fingerprint of the change against the merge base (the binary diff,
+    plus the path and content hash of every untracked file) and whether the tree is dirty."""
+    try:
+        head = _git(root, "rev-parse", "HEAD")
+        if head.returncode != 0:
+            return {"available": False}
+        mb = _git(root, "merge-base", "HEAD", base)
+        since = mb.stdout.strip() if mb.returncode == 0 else None
+        h = hashlib.sha256()
+        if since:
+            h.update(_git_bytes(root, "diff", "--binary", "--no-renames", since))
+        untracked = sorted(x for x in _git(root, "ls-files", "--others", "--exclude-standard").stdout.split("\n") if x)
+        for name in untracked:
+            try:
+                digest = hashlib.sha256((root / name).read_bytes()).hexdigest()
+            except OSError:
+                digest = "unreadable"
+            h.update(f"untracked {name} {digest}\n".encode())
+        dirty = bool(_git(root, "status", "--porcelain").stdout.strip())
+        return {"available": True, "head": head.stdout.strip(), "base": base, "merge_base": since,
+                "fingerprint": h.hexdigest() if since else None, "untracked_files": len(untracked),
+                "dirty": dirty}
+    except OSError:
+        return {"available": False}
+
+
+def _git_bytes(root: Path, *a: str) -> bytes:
+    return subprocess.run(["git", *a], cwd=root, capture_output=True).stdout
 
 
 def select_areas(files: list[str], root: Path, full: bool) -> tuple[list[str], dict[str, set[str] | None], str]:
@@ -110,6 +152,7 @@ def select_areas(files: list[str], root: Path, full: bool) -> tuple[list[str], d
     areas = {"core"}
     touched: dict[str, set[str] | None] = {}
     core_code = False
+    bench = False
     for f in files:
         c = classify(f, ads)
         if isinstance(c, tuple):
@@ -124,11 +167,16 @@ def select_areas(files: list[str], root: Path, full: bool) -> tuple[list[str], d
         else:
             if f.startswith(CORE_CODE):
                 core_code = True
+            if f.startswith(BENCH_DEPENDS_ON):
+                bench = True
     why = f"{len(files)} changed file(s)"
     if core_code and REFERENCE in langs:
         areas.add(REFERENCE)
         touched[REFERENCE] = None
         why += f"; kit code or cases changed, so the reference adapter ({REFERENCE}) runs too"
+    if bench:
+        areas.add("bench")
+        why += "; kit code changed, and the benchmark harness imports it"
     order = ["core", *langs, "bench"]
     return [a for a in order if a in areas], touched, why
 
@@ -226,8 +274,17 @@ def main(args) -> int:
     (out / "gate").mkdir(parents=True, exist_ok=True)
     files: list[str] = []
     why = ""
+    known = ["core", *sorted({a["language"] for a in adapter_dirs(root).values()}), "bench"]
     if args.areas:
         areas = [a for a in args.areas.split(",") if a]
+        unknown = [a for a in areas if a not in known]
+        if unknown or not areas:
+            print(f"gate: unknown area(s) {unknown or args.areas!r}; the areas are {', '.join(known)}",
+                  file=sys.stderr)
+            return 2
+        if "core" not in areas and not args.without_core:
+            areas.insert(0, "core")
+        areas = [a for a in known if a in areas]
         touched = {a: None for a in areas}
         why = "areas named on the command line"
     else:
@@ -240,6 +297,14 @@ def main(args) -> int:
         if args.full:
             why = "full mode"
     steps = build_steps(areas, touched, root, out)
+    rev = revision(root, args.base)
+    if rev.get("available"):
+        print(f"gate: revision HEAD {rev['head'][:12]}, base {rev['base']} at "
+              f"{(rev['merge_base'] or 'unknown')[:12]}, fingerprint "
+              f"{(rev['fingerprint'] or 'none')[:16]}, {'dirty' if rev['dirty'] else 'clean'}, "
+              f"{rev['untracked_files']} untracked file(s)")
+    else:
+        print("gate: revision unavailable (no git)")
     print(f"gate: {'full' if args.full else 'hand-over'}; {why}")
     print(f"gate: areas {', '.join(areas)}; {len(steps)} steps")
     if args.plan:
@@ -274,7 +339,7 @@ def main(args) -> int:
     failed = [r for r in results if r["rc"] != 0]
     print("gate: " + ", ".join(f"{a} {t:.1f} s" for a, t in by_area.items()) + f"; wall-clock {total:.1f} s")
     (out / "gate" / "summary.json").write_text(json.dumps({
-        "mode": "full" if args.full else "hand-over", "areas": areas, "wall_seconds": round(total, 1),
+        "mode": "full" if args.full else "hand-over", "revision": rev, "areas": areas, "wall_seconds": round(total, 1),
         "areas_seconds": {a: round(t, 1) for a, t in by_area.items()},
         "steps": [{"area": r["area"], "name": r["name"], "ok": r["rc"] == 0, "seconds": round(r["seconds"], 1)}
                   for r in results]}, indent=1) + "\n")

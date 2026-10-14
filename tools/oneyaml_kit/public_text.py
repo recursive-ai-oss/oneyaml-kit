@@ -34,14 +34,20 @@ _WORDS = [
     "/x/" + "al" + "era",
     "/ho" + "me/",
 ]
-# Identifiers are matched in the case they are written in. A data key such as `k1` or a
-# variable `p2` is ordinary text; only the upper case form is an internal identifier.
-_IDS = [
-    r"\bphase [A-Z0-9]",
-    r"\b(R[0-9]a?|P[0-9]|Q[0-9](\.[0-9])?|NN-[0-9]|K[0-9])\b",
+# Short identifiers of the build process (a letter and a digit, or nn and a digit) are caught
+# in any case, in prose and in code: a lower case id is as much a leak as an upper case one.
+# Only the
+# tier and layer ids (a letter T or L and a digit) are upper case only, because the lower
+# case forms are ordinary names in code. "Phase" is matched in any case but needs an upper case or digit id after it.
+_LOOSE_IDS = r"\b(R[0-9]a?|P[0-9]|Q[0-9](\.[0-9])?|NN-[0-9]|K[0-9])\b"
+_UPPER_IDS = [
+    r"(?i:\bphase) [A-Z0-9]",
     r"\b(T[0-3]|L[0-7])\b",
 ]
-PATTERN = re.compile("(?i:" + "|".join(_WORDS) + ")|" + "|".join(_IDS))
+PATTERN = re.compile("(?i:" + "|".join(_WORDS + [_LOOSE_IDS]) + ")|" + "|".join(_UPPER_IDS))
+# Case data (suites/) legitimately has short keys (a letter and a digit); it is checked for everything else.
+DATA_PATTERN = re.compile("(?i:" + "|".join(_WORDS) + ")|" + "|".join(_UPPER_IDS))
+DATA_PREFIXES = ("suites/",)
 HASH = re.compile(r"\b[0-9a-f]{40}\b")
 
 # Vendored third-party data is not ours to edit and is checked by its digest instead.
@@ -78,8 +84,9 @@ def scan(paths: list[Path], root: Path = ROOT) -> list[str]:
         if b"\0" in data[:4096] and not data.startswith((b"\xef\xbb\xbf", b"\xff\xfe", b"\xfe\xff")):
             continue  # binary input data is checked by its digest
         text = data.decode("utf-8", errors="replace")
+        pattern = DATA_PATTERN if rel.startswith(DATA_PREFIXES) else PATTERN
         for n, line in enumerate(text.split("\n"), 1):
-            m = PATTERN.search(line)
+            m = pattern.search(line)
             if m:
                 hits.append(f"{rel}:{n}: {m.group(0)!r}: {line.strip()[:100]}")
             h = HASH.search(line)

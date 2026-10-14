@@ -1,9 +1,14 @@
 """Deep values: loading, validating, comparing and describing never recurse."""
 
 import json
+import os
+import shutil
+import tempfile
 import unittest
+from pathlib import Path
 
 import support  # noqa: F401
+from oneyaml_kit import cases as C
 from oneyaml_kit import kitjson as J
 
 DEEP = 100_000
@@ -21,7 +26,7 @@ class Loading(unittest.TestCase):
         docs = [
             '{"a": [1, 2.5, -0, 1e3, 12345678901234567890123], "b": {"c": null, "d": true, "e": false}}',
             '[]', '{}', '[[], {}, [[]], {"a": {}}]', '"a\\u00e9\\n\\"q\\""', '  [1 ,\n 2\t]  ', '-1.5e-3', '0',
-            '{"k": "v", "k": "w"}', '[true, false, null]',
+            '[true, false, null]',
         ]
         for d in docs:
             self.assertEqual(J._loads_iterative(d), json.loads(d), d)
@@ -101,6 +106,62 @@ class Comparing(unittest.TestCase):
     def test_short_survives_values_too_deep_to_print(self):
         self.assertIn("too deeply", J.short(nested_lists(DEEP)))
         self.assertEqual(J.short([1, 2]), "[1, 2]")
+
+
+class DuplicateKeys(unittest.TestCase):
+    def test_a_repeated_key_is_refused_by_both_parsers(self):
+        for text in ('{"a":1,"a":2}', '[{"x":{"k":1,"k":1}}]', '{"a":1,"b":2,"a":3}'):
+            with self.assertRaises(ValueError, msg=text):
+                J.loads(text)
+            with self.assertRaises(ValueError, msg=text):
+                J._loads_iterative(text)
+        self.assertEqual(J.loads('{"a":{"a":1}}'), {"a": {"a": 1}})
+
+    def test_a_repeated_key_deep_down_is_refused_too(self):
+        text = '{"a":' * 5000 + '{"k":1,"k":2}' + '}' * 5000
+        with self.assertRaises(ValueError):
+            J.loads(text)
+
+
+class DeepInline(unittest.TestCase):
+    """A case, a correction or an upstream file may hold a value nested 100,000 levels deep."""
+
+    def setUp(self):
+        self.t = Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))
+        self.addCleanup(shutil.rmtree, self.t)
+
+    def deep(self):
+        return "[" * DEEP + "null" + "]" * DEEP
+
+    def test_an_own_case_with_an_inline_deep_value_loads(self):
+        d = self.t / "cases" / "schema" / "deep"
+        d.mkdir(parents=True)
+        (d / "input.yaml").write_bytes(b"x\n")
+        (d / "case.json").write_text(
+            '{"format": "%s", "id": "schema/deep", "title": "t", "category": "schema", "origin": "spec", '
+            '"refs": ["x"], "operation": {"type": "value"}, "expect": {"kind": "value", "value": [%s]}}'
+            % (C.CASE_FORMAT, self.deep()))
+        case = C.load_own_case(d, self.t / "cases")
+        v = case.expect["value"]
+        self.assertTrue(J.values_equal(v, [nested_lists(DEEP)]))
+
+    def test_a_deep_correction_loads(self):
+        p = self.t / "corrections.json"
+        p.write_text('{"format": "%s", "entries": [{"case": "yts:X", "reason": "r", "citation": "c", '
+                     '"value": [%s]}]}' % (C.CORRECTIONS_FORMAT, self.deep()))
+        got = C.load_corrections(p)
+        self.assertTrue(J.values_equal(got["yts:X"]["value"], [nested_lists(DEEP)]))
+
+    def test_a_deep_upstream_stream_decodes_and_rewrites_dollar_keys(self):
+        docs = C._decode_json_stream((self.deep() + "\n" + '{"$float": 1}\n').encode(), "t")
+        self.assertEqual(len(docs), 2)
+        self.assertTrue(J.values_equal(docs[0], nested_lists(DEEP)))
+        self.assertEqual(C._to_kit_value(docs[1]), {"$map": [["$float", 1]]})
+        deep_dollar = "[" * 5000 + '{"$map": 1}' + "]" * 5000
+        out = C._to_kit_value(J.loads(deep_dollar))
+        while isinstance(out, list):
+            out = out[0]
+        self.assertEqual(out, {"$map": [["$map", 1]]})
 
 
 if __name__ == "__main__":

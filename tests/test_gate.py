@@ -1,5 +1,8 @@
 """The gate chooses what to run from what changed, and the full mode misses nothing."""
 
+import argparse
+import contextlib
+import io
 import os
 import shutil
 import subprocess
@@ -24,11 +27,18 @@ class Choosing(unittest.TestCase):
         self.assertEqual(got, ["core"])
 
     def test_kit_code_or_cases_also_run_the_reference_adapter(self):
-        for f in ("tools/oneyaml_kit/compare.py", "suites/own/cases/edit/remove-key/case.json", "bin/kit"):
+        for f in ("suites/own/cases/edit/remove-key/case.json", "bin/kit", "tests/support.py",
+                  "tests/fixtures/fake_adapter.py"):
             got, touched, why = areas([f])
             self.assertEqual(got, ["core", "rust"], f)
             self.assertIsNone(touched["rust"])
             self.assertIn("reference adapter", why)
+
+    def test_kit_code_also_runs_the_benchmark_harness_that_imports_it(self):
+        got, touched, why = areas(["tools/oneyaml_kit/compare.py"])
+        self.assertEqual(got, ["core", "rust", "bench"])
+        self.assertIn("benchmark harness imports it", why)
+        self.assertEqual(areas(["suites/own/cases/edit/remove-key/case.json"])[0], ["core", "rust"])
 
     def test_an_adapter_change_runs_its_language_and_only_that_adapter_s_checks(self):
         got, touched, _ = areas(["adapters/go-yaml-v3/main.go"])
@@ -124,6 +134,78 @@ class Running(unittest.TestCase):
         self.assertEqual(r["log"].read_text().strip(), str(t / "target"))
 
 
+def run_main(areas=None, without_core=False):
+    args = argparse.Namespace(full=False, base="main", areas=areas, without_core=without_core, jobs=1, plan=True,
+                              out=str(Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))))
+    buf, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+        rc = gate.main(args)
+    shutil.rmtree(args.out)
+    return rc, buf.getvalue(), err.getvalue()
+
+
+class Areas(unittest.TestCase):
+    def test_an_unknown_area_is_refused(self):
+        rc, out, err = run_main(areas="foo")
+        self.assertEqual(rc, 2)
+        self.assertIn("unknown area", err)
+        self.assertIn("core", err)
+        self.assertEqual(run_main(areas="go,nope")[0], 2)
+        self.assertEqual(run_main(areas=",")[0], 2)
+
+    def test_the_core_is_always_included_unless_told_otherwise(self):
+        rc, out, _ = run_main(areas="go")
+        self.assertEqual(rc, 0)
+        self.assertIn("areas core, go;", out)
+        self.assertIn("areas go;", run_main(areas="go", without_core=True)[1])
+
+    def test_the_revision_is_printed_before_the_steps(self):
+        rc, out, _ = run_main(areas="core")
+        lines = out.splitlines()
+        self.assertTrue(lines[0].startswith("gate: revision HEAD "), lines[0])
+        self.assertIn("fingerprint", lines[0])
+
+
+class Revision(unittest.TestCase):
+    def setUp(self):
+        self.t = Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))
+        self.addCleanup(shutil.rmtree, self.t)
+        self.git("init", "-q", "-b", "main")
+        (self.t / "a.txt").write_text("1")
+        self.git("add", ".")
+        self.git("commit", "-q", "-m", "base")
+
+    def git(self, *a):
+        subprocess.run(["git", "-c", "user.email=a@b.c", "-c", "user.name=n", *a], cwd=self.t, check=True,
+                       capture_output=True)
+
+    def test_the_fingerprint_follows_the_content_of_changes_and_new_files(self):
+        clean = gate.revision(self.t, "main")
+        self.assertTrue(clean["available"])
+        self.assertFalse(clean["dirty"])
+        self.assertEqual(clean["head"], clean["merge_base"])
+        (self.t / "a.txt").write_text("2")
+        edited = gate.revision(self.t, "main")
+        self.assertTrue(edited["dirty"])
+        self.assertNotEqual(clean["fingerprint"], edited["fingerprint"])
+        (self.t / "new.txt").write_text("x")
+        with_x = gate.revision(self.t, "main")
+        (self.t / "new.txt").write_text("y")
+        with_y = gate.revision(self.t, "main")
+        self.assertEqual((with_x["untracked_files"], with_y["untracked_files"]), (1, 1))
+        self.assertNotEqual(with_x["fingerprint"], with_y["fingerprint"])
+        (self.t / "new.txt").write_text("x")
+        self.assertEqual(gate.revision(self.t, "main")["fingerprint"], with_x["fingerprint"])
+
+    def test_binary_changes_count(self):
+        (self.t / "b.bin").write_bytes(b"\0\1")
+        self.git("add", ".")
+        self.git("commit", "-q", "-m", "bin")
+        a = gate.revision(self.t, "main")
+        (self.t / "b.bin").write_bytes(b"\0\2")
+        self.assertNotEqual(gate.revision(self.t, "main")["fingerprint"], a["fingerprint"])
+
+
 class Changes(unittest.TestCase):
     def setUp(self):
         self.t = Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))
@@ -145,6 +227,31 @@ class Changes(unittest.TestCase):
         (self.t / "b.txt").write_text("2")
         (self.t / "c.txt").write_text("new")
         self.assertEqual(gate.changed_files(self.t, "main"), ["a.txt", "b.txt", "c.txt"])
+
+    def test_a_rename_selects_the_area_it_left_as_well_as_the_one_it_entered(self):
+        self.git("init", "-q", "-b", "main")
+        (self.t / "adapters" / "go-yaml-v3").mkdir(parents=True)
+        (self.t / "adapters" / "go-yaml-v3" / "go.mod").write_text("module x\n" * 20)
+        self.git("add", ".")
+        self.git("commit", "-q", "-m", "base")
+        self.git("checkout", "-q", "-b", "work")
+        (self.t / "tools").mkdir()
+        self.git("mv", "adapters/go-yaml-v3/go.mod", "tools/go.mod.moved")
+        self.git("commit", "-qam", "move")
+        files = gate.changed_files(self.t, "main")
+        self.assertEqual(files, ["adapters/go-yaml-v3/go.mod", "tools/go.mod.moved"])
+        got, touched, _ = gate.select_areas(files, ROOT, False)
+        self.assertIn("go", got)
+        self.assertEqual(touched["go"], {"go-yaml-v3"})
+
+    def test_a_missing_git_falls_back_instead_of_raising(self):
+        old = os.environ["PATH"]
+        os.environ["PATH"] = "/nonexistent"
+        try:
+            self.assertIsNone(gate.changed_files(self.t, "main"))
+            self.assertEqual(gate.revision(self.t, "main"), {"available": False})
+        finally:
+            os.environ["PATH"] = old
 
     def test_an_unknown_base_is_reported_so_the_caller_can_run_everything(self):
         self.git("init", "-q", "-b", "main")

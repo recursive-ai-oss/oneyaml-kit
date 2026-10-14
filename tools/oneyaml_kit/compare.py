@@ -59,7 +59,7 @@ def required_caps(case, expect: dict) -> tuple[set, set]:
             strict.add(CAP_POSITION)
         if expect["events"] is not None:
             strict.add(CAP_ERROR_EVENTS)
-    if expect["kind"] == "bounded" and expect["category"] not in (None, "any"):
+    if expect["kind"] == "bounded" and expect["category"] is not None:
         strict.add(CAP_CATEGORY)
     return base, strict
 
@@ -150,7 +150,7 @@ def _bounded(case, expect: dict, resp: dict, caps: set) -> dict:
     want = expect["category"]
     if status in ("ok", "accepted"):
         if expect["accept"] is None:
-            what = f"a {want} error" if want != "any" else "an error"
+            what = "a " + " or ".join(want) + " error"
             return {"loose": FAIL, "strict": FAIL, "detail": f"accepted; only {what} is allowed"}
         if status == "accepted":
             # Within the bounds, but nothing was described that could be compared.
@@ -166,13 +166,11 @@ def _bounded(case, expect: dict, resp: dict, caps: set) -> dict:
         if want is None:
             return {"loose": FAIL, "strict": FAIL, "detail": "refused; the exact result is required"}
         verdict, detail = PASS, ""
-        if want == "any":
-            pass
-        elif CAP_CATEGORY not in caps:
+        if CAP_CATEGORY not in caps:
             verdict = UNSUPPORTED
-        elif err.get("category") != want:
+        elif err.get("category") not in want:
             verdict = FAIL
-            detail = f"category: expected {want}, got {err.get('category')}"
+            detail = f"category: expected one of {', '.join(want)}, got {err.get('category')}"
     if verdict == PASS and peak is None:
         verdict, detail = UNSUPPORTED, "memory use could not be measured on this platform"
     return {"loose": PASS, "strict": verdict, "detail": detail}
@@ -205,6 +203,9 @@ def evaluate(case, expect: dict, resp: dict, caps: set) -> dict:
 
     kind = expect["kind"]
     err = resp.get("error") or {}
+
+    if status == "accepted" and case.op == "patch":
+        return {"loose": FAIL, "strict": FAIL, "detail": "protocol: accepted is not an answer to a patch"}
 
     if kind == "bounded":
         return _bounded(case, expect, resp, caps)
