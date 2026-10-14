@@ -6,6 +6,8 @@
   {"case": "own:diagnostics/directive-then-document-end-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/extra-closing-brace", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/extra-closing-brace", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/position-counts-characters-outside-the-basic-plane", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/position-counts-characters-outside-the-basic-plane", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/yaml-directive-after-document-end-needs-a-start-marker", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/yaml-directive-after-document-end-needs-a-start-marker", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:parse/encoding-utf-16be-first-character-not-ascii", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: control characters are not allowed'"},
