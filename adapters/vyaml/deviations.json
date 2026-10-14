@@ -2,6 +2,90 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
+   "case": "own:parse/cr-blank-line-in-a-double-quoted-scalar-reads-as-line-feed",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 'x\\ny', got 'x\\ry'"
+  },
+  {
+   "case": "own:parse/cr-blank-line-in-a-double-quoted-scalar-reads-as-line-feed",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 'x\\ny', got 'x\\ry'"
+  },
+  {
+   "case": "own:parse/cr-in-a-folded-plain-scalar-reads-as-space",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Mapping values are not allowed in this context"
+  },
+  {
+   "case": "own:parse/cr-in-a-folded-plain-scalar-reads-as-space",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Mapping values are not allowed in this context"
+  },
+  {
+   "case": "own:parse/cr-in-a-literal-block-scalar-reads-as-line-feed",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a block mapping, did not find expected key"
+  },
+  {
+   "case": "own:parse/cr-in-a-literal-block-scalar-reads-as-line-feed",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a block mapping, did not find expected key"
+  },
+  {
+   "case": "own:parse/crlf-blank-line-in-a-double-quoted-scalar-reads-as-line-feed",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 'x\\ny', got 'x\\r\\ny'"
+  },
+  {
+   "case": "own:parse/crlf-blank-line-in-a-double-quoted-scalar-reads-as-line-feed",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 'x\\ny', got 'x\\r\\ny'"
+  },
+  {
+   "case": "own:parse/crlf-in-a-literal-block-scalar-reads-as-line-feed",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 'x\\ny\\n', got 'x\\r\\ny\\r\\n'"
+  },
+  {
+   "case": "own:parse/crlf-in-a-literal-block-scalar-reads-as-line-feed",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 'x\\ny\\n', got 'x\\r\\ny\\r\\n'"
+  },
+  {
+   "case": "own:parse/encoding-utf-16be-undetectable-first-character-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:parse/encoding-utf-16be-undetectable-first-character-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
    "case": "own:parse/tag-handle-directive",
    "expectation": "primary",
    "mode": "loose",
@@ -16,18 +100,74 @@
    "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
   },
   {
-   "case": "own:safety/alias-expansion-bomb",
+   "case": "own:parse/tag-handle-redefined-per-document",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "unsupported",
-   "reason": "The adapter declines this case: the result expands to more than 4000000 nodes; the adapter does not render it"
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "own:parse/tag-handle-redefined-per-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "own:parse/tag-suffix-percent-escape-decodes-as-utf-8",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "own:parse/tag-suffix-percent-escape-decodes-as-utf-8",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "own:safety/alias-byte-expansion-bomb",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+  },
+  {
+   "case": "own:safety/alias-byte-expansion-bomb",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Takes the input without a limit error: accepted; only a limit error is allowed"
   },
   {
    "case": "own:safety/alias-expansion-bomb",
    "expectation": "primary",
    "mode": "strict",
-   "verdict": "unsupported",
-   "reason": "The adapter declines this case: the result expands to more than 4000000 nodes; the adapter does not render it"
+   "verdict": "fail",
+   "reason": "Takes the input without a limit error: accepted; only a limit error is allowed"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb-ten-by-ten",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Takes the input without a limit error: accepted; only a limit error is allowed"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb-ten-by-ten",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Takes the input without a limit error: accepted; only a limit error is allowed"
   },
   {
    "case": "own:safety/invalid-utf-8-byte",
@@ -44,6 +184,244 @@
    "reason": "Accepts input that is not valid YAML"
   },
   {
+   "case": "own:safety/malformed-utf-8-above-the-last-code-point",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-above-the-last-code-point",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-encoded-surrogate",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-encoded-surrogate",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-in-a-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-in-a-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-in-a-quoted-scalar",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-in-a-quoted-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-lone-continuation-byte",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-lone-continuation-byte",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-overlong-form",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-overlong-form",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-truncated-sequence-at-the-end",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/malformed-utf-8-truncated-sequence-at-the-end",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:schema/code-constructing-tags-are-plain-data",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"
+  },
+  {
+   "case": "own:schema/code-constructing-tags-are-plain-data",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"
+  },
+  {
+   "case": "own:schema/core-infinity-and-nan-spellings",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].h: expected 'nan', got {'$float': 'nan'}"
+  },
+  {
+   "case": "own:schema/core-infinity-and-nan-spellings",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].h: expected 'nan', got {'$float': 'nan'}"
+  },
+  {
+   "case": "own:schema/core-integers-beyond-64-bits",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 18446744073709551616, got 1.8446744073709552e+19"
+  },
+  {
+   "case": "own:schema/core-integers-beyond-64-bits",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 18446744073709551616, got 1.8446744073709552e+19"
+  },
+  {
+   "case": "own:schema/core-non-decimal-integers-take-no-sign",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected '-0x1F', got -31"
+  },
+  {
+   "case": "own:schema/core-non-decimal-integers-take-no-sign",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected '-0x1F', got -31"
+  },
+  {
+   "case": "own:schema/double-quoted-escapes",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "own:schema/double-quoted-escapes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "own:schema/duplicate-keys-differing-in-style-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: a)"
+  },
+  {
+   "case": "own:schema/duplicate-keys-differing-in-style-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: a)"
+  },
+  {
+   "case": "own:schema/duplicate-keys-equal-after-resolution-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: 1)"
+  },
+  {
+   "case": "own:schema/duplicate-keys-equal-after-resolution-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: 1)"
+  },
+  {
+   "case": "own:schema/duplicate-keys-in-a-flow-mapping-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: b)"
+  },
+  {
+   "case": "own:schema/duplicate-keys-in-a-flow-mapping-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: b)"
+  },
+  {
+   "case": "own:schema/duplicate-plain-keys-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: a)"
+  },
+  {
+   "case": "own:schema/duplicate-plain-keys-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: a)"
+  },
+  {
+   "case": "own:schema/empty-key-is-null",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentNullException outside its own exception types, so the process ended (Value cannot be null. (Parameter 'key'))"
+  },
+  {
+   "case": "own:schema/empty-key-is-null",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentNullException outside its own exception types, so the process ended (Value cannot be null. (Parameter 'key'))"
+  },
+  {
    "case": "own:schema/explicit-str-tag",
    "expectation": "primary",
    "mode": "loose",
@@ -58,6 +436,48 @@
    "reason": "Reads the value differently: $[0][0]: expected '12', got 12"
   },
   {
+   "case": "own:schema/explicit-tags-force-the-type",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected 1.0, got 1"
+  },
+  {
+   "case": "own:schema/explicit-tags-force-the-type",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected 1.0, got 1"
+  },
+  {
+   "case": "own:schema/global-tag-uri-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': 'tag:example.com,2000:shape', 'value'..., got [1, 2]"
+  },
+  {
+   "case": "own:schema/global-tag-uri-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': 'tag:example.com,2000:shape', 'value'..., got [1, 2]"
+  },
+  {
+   "case": "own:schema/local-tag-on-a-collection-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': '!shape', 'value': {'kind': 'circle',..., got {'kind': 'circle', 'r': 2}"
+  },
+  {
+   "case": "own:schema/local-tag-on-a-collection-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': '!shape', 'value': {'kind': 'circle',..., got {'kind': 'circle', 'r': 2}"
+  },
+  {
    "case": "own:schema/unresolved-tag-is-kept",
    "expectation": "primary",
    "mode": "loose",
@@ -70,13 +490,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"
-  },
-  {
-   "case": "yts:2CMS",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
   },
   {
    "case": "yts:2G84/00",
@@ -443,13 +856,6 @@
    "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
   },
   {
-   "case": "yts:5U3A",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
-  },
-  {
    "case": "yts:5WE3",
    "expectation": "primary",
    "mode": "loose",
@@ -462,13 +868,6 @@
    "mode": "strict",
    "verdict": "unsupported",
    "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
-  },
-  {
-   "case": "yts:62EZ",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
   },
   {
    "case": "yts:6BCT",
@@ -597,13 +996,6 @@
    "reason": "Reads the value differently: $[0]: expected {'a': 'b', 'c': 42, 'e': 'f', 'g': 'h', '23': False}, got {'$map': [['a', 'b'], ['c', 42], ['e', 'f'], ['g', 'h'], ..."
   },
   {
-   "case": "yts:7LBH",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
-  },
-  {
    "case": "yts:7Z25",
    "expectation": "primary",
    "mode": "loose",
@@ -716,13 +1108,6 @@
    "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
   },
   {
-   "case": "yts:9C9N",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
-  },
-  {
    "case": "yts:9HCY",
    "expectation": "primary",
    "mode": "loose",
@@ -749,13 +1134,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Accepts input that is not valid YAML"
-  },
-  {
-   "case": "yts:9KBC",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
   },
   {
    "case": "yts:9MMW",
@@ -863,13 +1241,6 @@
    "reason": "Against the corrected expectation: events before the error differ from the specified ones (got more lines after line 3: '-DOC')"
   },
   {
-   "case": "yts:C2SP",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
-  },
-  {
    "case": "yts:C4HZ",
    "expectation": "primary",
    "mode": "loose",
@@ -926,13 +1297,6 @@
    "reason": "Event stream differs: line 4: expected '+MAP {}', got '+MAP {} &flowseq'"
   },
   {
-   "case": "yts:CQ3W",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
-  },
-  {
    "case": "yts:CVW2",
    "expectation": "primary",
    "mode": "loose",
@@ -945,20 +1309,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Accepts input that is not valid YAML"
-  },
-  {
-   "case": "yts:CXX2",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
-  },
-  {
-   "case": "yts:D49Q",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
   },
   {
    "case": "yts:DE56/02",
@@ -1147,7 +1497,7 @@
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 6: '=VAL :1')"
   },
   {
    "case": "yts:EB22",
@@ -1176,13 +1526,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Accepts input that is not valid YAML"
-  },
-  {
-   "case": "yts:EW3V",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
   },
   {
    "case": "yts:FP8R",
@@ -1225,13 +1568,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Accepts input that is not valid YAML"
-  },
-  {
-   "case": "yts:G7JE",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
   },
   {
    "case": "yts:G9HC",
@@ -1283,13 +1619,6 @@
    "reason": "Accepts input that is not valid YAML"
   },
   {
-   "case": "yts:HU3P",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
-  },
-  {
    "case": "yts:HWV9",
    "expectation": "primary",
    "mode": "loose",
@@ -1316,20 +1645,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Rejects valid input: while parsing a node, did not find expected node content"
-  },
-  {
-   "case": "yts:JKF3",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
-  },
-  {
-   "case": "yts:JY7Z",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
   },
   {
    "case": "yts:K3WX",
@@ -1546,7 +1861,7 @@
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 3: '+MAP {}')"
   },
   {
    "case": "yts:P76L",
@@ -1729,13 +2044,6 @@
    "mode": "strict",
    "verdict": "unsupported",
    "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
-  },
-  {
-   "case": "yts:S4GJ",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
   },
   {
    "case": "yts:S4JQ@value",
@@ -1892,13 +2200,6 @@
    "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
   },
   {
-   "case": "yts:VJP3/00",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
-  },
-  {
    "case": "yts:VJP3/01",
    "expectation": "primary",
    "mode": "loose",
@@ -2001,14 +2302,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Rejects valid input: Value cannot be null. (Parameter 'key')"
+   "reason": "The library raises System.ArgumentNullException outside its own exception types, so the process ended (Value cannot be null. (Parameter 'key'))"
   },
   {
    "case": "yts:WZ62@value",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Rejects valid input: Value cannot be null. (Parameter 'key')"
+   "reason": "The library raises System.ArgumentNullException outside its own exception types, so the process ended (Value cannot be null. (Parameter 'key'))"
   },
   {
    "case": "yts:X4QW",
@@ -2051,13 +2352,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reads the value differently: $[0].key: expected 'value', got ':chor value'"
-  },
-  {
-   "case": "yts:Y79Y/000",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
   },
   {
    "case": "yts:Y79Y/001",
@@ -2324,20 +2618,13 @@
    "mode": "strict",
    "verdict": "unsupported",
    "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
-  },
-  {
-   "case": "yts:ZCZ6",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
   },
   {
    "case": "yts:ZL4Z",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 4: \"=VAL 'b\")"
   }
  ]
 }

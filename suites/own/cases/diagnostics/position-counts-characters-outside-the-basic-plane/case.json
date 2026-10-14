@@ -1,0 +1,22 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/position-counts-characters-outside-the-basic-plane",
+ "title": "A character outside the Basic Multilingual Plane counts as one column",
+ "category": "diagnostics",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 5.1",
+  "YAML 1.2.2 section 7.4.1",
+  "docs/case-format.md"
+ ],
+ "notes": "A flow sequence holding one character outside the Basic Multilingual Plane (two UTF-16 code units, four UTF-8 bytes) is closed, and a second closing bracket follows. That bracket is the first character that cannot belong to any valid document. It is the fourth character of the line, so the error is at column 4; a reader that counts UTF-16 code units reports 5 and one that counts bytes reports 7. Columns count characters of the decoded text (docs/case-format.md).",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 4
+ }
+}

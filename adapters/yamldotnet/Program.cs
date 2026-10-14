@@ -15,7 +15,11 @@ sealed class YamlDotNetKitAdapter : IAdapter
 
     public string Version { get; } = PackageVersions.Of("YamlDotNet");
 
-    public string[] Capabilities => ["events", "value", "error-category", "error-position"];
+    public string[] Capabilities => ["events", "value", "error-category", "error-position", "error-events"];
+
+    // Only YamlDotNet's own exception hierarchy is a rejection. Anything else escaping the library (it throws
+    // InvalidOperationException from its scanner on some inputs) is a defect, and the process ends.
+    public bool IsLibraryException(Exception e) => e is YamlException;
 
     // `decode`: YamlDotNet reads a string or a text reader, so byte order marks, UTF-16/32 and malformed
     // UTF-8 are handled by the adapter before the library sees the text.
@@ -43,7 +47,7 @@ sealed class YamlDotNetKitAdapter : IAdapter
         return d.Transformed ? o.Emulating("decode") : o;
     }
 
-    static Failure Describe(Exception e)
+    static Failure Describe(Exception e, string text)
     {
         // The category comes from the exception type the library chose; its message is never read.
         var category = e switch
@@ -52,7 +56,7 @@ sealed class YamlDotNetKitAdapter : IAdapter
             _ => "other",
         };
         if (e is YamlException y && !(y.Start.Line == 0 && y.Start.Column == 0))
-            return new Failure(category, e.Message, (int)y.Start.Line, (int)y.Start.Column);
+            return new Failure(category, e.Message, (int)y.Start.Line, Positions.CharColumn(text, y.Start.Index, y.Start.Column));
         return new Failure(category, e.Message);
     }
 
@@ -67,11 +71,11 @@ sealed class YamlDotNetKitAdapter : IAdapter
             while (true)
             {
                 try { if (!parser.MoveNext()) return null; }
-                catch (Exception e) { return e; }
+                catch (Exception e) { return Host.Own(e); }
                 Line(parser.Current!, lines);
             }
         });
-        return failure == null ? Outcome.EventsOk(lines) : Outcome.Error(Describe(failure), lines);
+        return failure == null ? Outcome.EventsOk(lines) : Outcome.Error(Describe(failure, text), lines);
     }
 
     static void Line(ParsingEvent e, List<string> lines)
@@ -129,9 +133,9 @@ sealed class YamlDotNetKitAdapter : IAdapter
                     list.Add(Deserializer.Deserialize<object>(parser));
                 return (list, (Exception?)null);
             }
-            catch (Exception e) { return (list, e); }
+            catch (Exception e) { return (list, Host.Own(e)); }
         });
-        if (read.Item2 != null) return Outcome.Error(Describe(read.Item2));
+        if (read.Item2 != null) return Outcome.Error(Describe(read.Item2, text));
         var docs = read.Item1;
 
         try
@@ -149,7 +153,8 @@ sealed class YamlDotNetKitAdapter : IAdapter
             });
             return Outcome.ValueOk(json);
         }
-        catch (TooLargeException e) { return Outcome.Unsupported(e.Message); }
+        // A shared alias graph has no finite value to write down; the kit grades the cost it measured.
+        catch (TooLargeException) { return Outcome.Accepted(); }
     }
 
     static KV Convert(object? v, Budget b)

@@ -14,7 +14,12 @@ sealed class VYamlKitAdapter : IAdapter
 
     public string Version { get; } = PackageVersions.Of("VYaml");
 
-    public string[] Capabilities => ["events", "value", "error-category"];
+    public string[] Capabilities => ["events", "value", "error-category", "error-events"];
+
+    // Only VYaml's own exception hierarchy is a rejection. Anything else escaping the library (it lets a
+    // duplicate mapping key surface as the runtime's ArgumentException, for instance) is a defect, and the
+    // process ends so the kit records a crash.
+    public bool IsLibraryException(Exception e) => e is VYaml.YamlException;
 
     // decode: VYaml reads UTF-8 bytes (a byte order mark is passed through as it is), so UTF-16 and
     //   UTF-32 input is converted to UTF-8 by the adapter first.
@@ -84,11 +89,11 @@ sealed class VYamlKitAdapter : IAdapter
         int scalar = 0, collection = 0, docStart = 0, docEnd = 0;
         YamlParser parser;
         try { parser = YamlParser.FromBytes(utf8); }
-        catch (Exception e) { return e; }
+        catch (Exception e) { return Host.Own(e); }
         while (true)
         {
             try { if (!parser.Read()) return null; }
-            catch (Exception e) { return e; }
+            catch (Exception e) { return Host.Own(e); }
             if (lost.Count > 0) continue;
             try
             {
@@ -177,7 +182,7 @@ sealed class VYamlKitAdapter : IAdapter
                     list.Add(doc);
                 return (list, (Exception?)null);
             }
-            catch (Exception e) { return (list, e); }
+            catch (Exception e) { return (list, Host.Own(e)); }
         });
         if (read.Item2 != null) return Outcome.Error(Describe(read.Item2));
 
@@ -196,7 +201,8 @@ sealed class VYamlKitAdapter : IAdapter
             });
             return Outcome.ValueOk(json);
         }
-        catch (TooLargeException e) { return Outcome.Unsupported(e.Message); }
+        // A shared alias graph has no finite value to write down; the kit grades the cost it measured.
+        catch (TooLargeException) { return Outcome.Accepted(); }
     }
 
     static KV Convert(object? v, Budget b)

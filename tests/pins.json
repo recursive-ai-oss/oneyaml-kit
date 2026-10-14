@@ -18,6 +18,7 @@
    "diagnostics/percent-cannot-start-a-plain-scalar": "e5afcf711a8c84fc452a8eb6bb21893f9bcf50413d7c0f42ea821e1dfbcfd1df",
    "diagnostics/position-at-end-of-input": "d662ed36bdf501594d753196f36b86ad1403e665c5352772e351cfbca7abebb6",
    "diagnostics/position-counts-a-bare-cr-as-a-line-break": "55b74aa01253f110361eaecb31038a3252c8123d0eda9262503e1cd4b27b000f",
+   "diagnostics/position-counts-characters-outside-the-basic-plane": "970efc68640b71efe919550b752cf7bd17e2da7063275d1d13543cffdc8b6d98",
    "diagnostics/position-counts-crlf-as-one-line-break": "49492464d1fca334c9f8fdec2fd983db1a6f67729d19e05ecd29cb24c1179f2a",
    "diagnostics/position-ignores-the-byte-order-mark": "919c227ae295c93e4df0ab4adaf188ad9ba3643feebc3bd2213468bc77228f5d",
    "diagnostics/position-implicit-key-over-two-lines": "88753c795f67e113743812c0df2e243513c91a67405f4550671811ec7d907076",

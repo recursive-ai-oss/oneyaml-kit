@@ -119,7 +119,13 @@ sealed class TokenFacts
                 }
             }
         }
-        catch (Exception e) { facts.Failure = e; }
+        catch (Exception e)
+        {
+            facts.Failure = e;
+            // The parser may already have reported the open document's start before the tokenizer gave up, so
+            // what was read of it still counts.
+            Close(false);
+        }
         return facts;
     }
 }

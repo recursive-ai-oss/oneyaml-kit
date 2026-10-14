@@ -14,6 +14,11 @@ public interface IAdapter
     string[] Emulates { get; }
     IReadOnlyDictionary<string, string> Info { get; }
     Outcome Run(Request request);
+
+    /// <summary>True for the exceptions the library itself raises to report a problem with the input or
+    /// the request (its own exception hierarchy). Anything else escaping a library call is a defect in
+    /// the library, and the adapter ends the process so the kit records a crash for that case.</summary>
+    bool IsLibraryException(Exception e);
 }
 
 /// <summary>The JSON Lines loop, and the threads library code runs on.</summary>
@@ -27,6 +32,19 @@ public static class Host
     /// <summary>Stack size for the adapter's own conversions, large enough that the adapter is never
     /// what runs out of stack before the library does.</summary>
     public const int ConversionStackBytes = 512 * 1024 * 1024;
+
+    static IAdapter? _adapter;
+
+    /// <summary>Returns <paramref name="e"/> when the library raised it on purpose; ends the process when it is
+    /// anything else (a null dereference, an invalid-operation error, a failed cast inside the library). A
+    /// library that dies on an input has not rejected it, and must not be credited with a rejection.</summary>
+    public static Exception Own(Exception e)
+    {
+        if (_adapter == null || _adapter.IsLibraryException(e)) return e;
+        Console.Error.WriteLine("library crash: " + e.GetType().FullName + ": " + Trim(e.Message));
+        Environment.Exit(70);
+        return e;
+    }
 
     public static T OnStack<T>(int stackBytes, Func<T> work)
     {
@@ -44,13 +62,18 @@ public static class Host
     }
 
     /// <summary>Runs library code on a thread with <see cref="LibraryStackBytes"/>.</summary>
-    public static T Library<T>(Func<T> work) => OnStack(LibraryStackBytes, work);
+    public static T Library<T>(Func<T> work) => OnStack(LibraryStackBytes, () =>
+    {
+        try { return work(); }
+        catch (Exception e) { throw Own(e); }
+    });
 
     /// <summary>Runs the adapter's own conversion code on a thread with a very large stack.</summary>
     public static T Convert<T>(Func<T> work) => OnStack(ConversionStackBytes, work);
 
     public static int Serve(IAdapter adapter)
     {
+        _adapter = adapter;
         var input = new StreamReader(Console.OpenStandardInput(), new UTF8Encoding(false), false, 1 << 20);
         using var output = Console.OpenStandardOutput();
         string? line;
@@ -90,7 +113,7 @@ public static class Host
         {
             w.WriteStartObject();
             w.WriteString("type", "hello");
-            w.WriteNumber("protocol", 1);
+            w.WriteNumber("protocol", 2);
             w.WriteString("name", a.Name);
             w.WriteString("version", a.Version);
             w.WriteString("language", "csharp");
@@ -162,6 +185,9 @@ public static class Host
                     w.WriteEndObject();
                     if (o.Events != null) WriteLines(w, "events", o.Events);
                     if (o.Output != null) w.WriteString("output", System.Convert.ToBase64String(o.Output));
+                    break;
+                case Outcome.Kinds.Accepted:
+                    w.WriteString("status", "accepted");
                     break;
                 default:
                     w.WriteString("status", "unsupported");

@@ -16,11 +16,15 @@ sealed class SharpYamlKitAdapter : IAdapter
 
     public string Version { get; } = PackageVersions.Of("SharpYaml");
 
-    public string[] Capabilities => ["events", "value", "patch:replace", "error-category", "error-position"];
+    public string[] Capabilities => ["events", "value", "patch:replace", "error-category", "error-position", "error-events"];
+
+    // Only SharpYaml's own exception hierarchy is a rejection; anything else escaping the library is a
+    // defect, and the process ends so the kit records a crash.
+    public bool IsLibraryException(Exception e) => e is YamlException;
 
     // decode: SharpYaml reads a string, so byte order marks, UTF-16/32 and malformed UTF-8 are the adapter's.
-    // error: errors for a missing path, a malformed pointer, an unknown operation or a write through an
-    //   alias come from the adapter; the library has no patch or pointer concept.
+    // error: errors for a missing path, a malformed pointer or an unknown operation come from the
+    //   adapter; the library has no patch or pointer concept.
     // unchanged: the adapter reports the original bytes when any step of a patch fails.
     // pointer: the adapter resolves the JSON Pointer to a source span from the library's parse events.
     // source-text: the adapter writes the YAML text that replaces the span (style, quoting, block header).
@@ -48,7 +52,7 @@ sealed class SharpYamlKitAdapter : IAdapter
     }
 
     /// <summary>SharpYaml positions are 0-based; the kit's are 1-based.</summary>
-    internal static Failure Describe(Exception e)
+    internal static Failure Describe(Exception e, string text)
     {
         // The category comes from the exception type the library chose; its message is never read.
         var category = e switch
@@ -58,7 +62,7 @@ sealed class SharpYamlKitAdapter : IAdapter
         };
         // An exception with an empty mark has no position to report; a syntax error at the very start does.
         if (e is YamlException y && (category == "syntax" || y.Start.Index > 0 || y.Start.Line > 0 || y.Start.Column > 0))
-            return new Failure(category, e.Message, y.Start.Line + 1, y.Start.Column + 1);
+            return new Failure(category, e.Message, y.Start.Line + 1, Positions.CharColumn(text, y.Start.Index, y.Start.Column + 1));
         return new Failure(category, e.Message);
     }
 
@@ -73,11 +77,11 @@ sealed class SharpYamlKitAdapter : IAdapter
             while (true)
             {
                 try { if (!parser.MoveNext()) return null; }
-                catch (Exception e) { return e; }
+                catch (Exception e) { return Host.Own(e); }
                 Line(parser.Current!, lines);
             }
         });
-        return failure == null ? Outcome.EventsOk(lines) : Outcome.Error(Describe(failure), lines);
+        return failure == null ? Outcome.EventsOk(lines) : Outcome.Error(Describe(failure, text), lines);
     }
 
     static void Line(ParsingEvent e, List<string> lines)
@@ -133,9 +137,9 @@ sealed class SharpYamlKitAdapter : IAdapter
                     list.Add(doc.Contents?.ToObject<object>());
                 return (list, (Exception?)null);
             }
-            catch (Exception e) { return (list, e); }
+            catch (Exception e) { return (list, Host.Own(e)); }
         });
-        if (read.Item2 != null) return Outcome.Error(Describe(read.Item2));
+        if (read.Item2 != null) return Outcome.Error(Describe(read.Item2, text));
 
         try
         {
@@ -152,7 +156,8 @@ sealed class SharpYamlKitAdapter : IAdapter
             });
             return Outcome.ValueOk(json);
         }
-        catch (TooLargeException e) { return Outcome.Unsupported(e.Message); }
+        // A shared alias graph has no finite value to write down; the kit grades the cost it measured.
+        catch (TooLargeException) { return Outcome.Accepted(); }
     }
 
     static KV Convert(object? v, Budget b)
