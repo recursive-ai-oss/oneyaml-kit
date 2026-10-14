@@ -1,0 +1,18 @@
+# Allowlist: everything at the top level is ignored unless listed below, so a
+# new file stays out of the repository until it is deliberately added here.
+/*
+!/.gitignore
+
+# Never commit these anywhere in the tree.
+core
+core.[0-9]*
+vgcore.*
+*.core
+perf.data*
+.env
+.env.*
+*.pem
+*.key
+*.swp
+*~
+.DS_Store
