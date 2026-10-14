@@ -125,7 +125,7 @@ adapter answers `{"id": ..., "status": "accepted"}`. The kit grades it like this
 | an error (`error`) | a failure in both modes: the input was accepted |
 | a result (`events`, `value`) | unsupported: the result cannot be compared. It needs no deviation entry when the adapter does not declare the full capability (`events`, `value`); if it does declare it and still answers `accepted`, the adapter declined the case and it must be listed |
 | a `bounded` outcome | graded on the cost the kit measured. Over the time or memory bound: failure. Within the bounds, when the case allows only an error: failure. Within the bounds, when a result was also allowed: unsupported (the result was not described) |
-| a patch result | a protocol violation and a failure |
+| a patch result, or a `bounded` patch case | a protocol violation and a failure |
 
 The kit measures time and memory itself for `bounded` cases, so an `accepted` answer is
 enough for the cost to be recorded in the results.
@@ -215,6 +215,9 @@ container that hides the processes). On Linux this uses `/proc`; where the tree 
 measured the peak is reported as unmeasured and strict reports unsupported. Everything
 in the session is killed when a case fails or the run ends. Adapters do nothing special. A killed or timed-out adapter fails that case
 and a fresh process serves the next one.
+
+A JSON object with a repeated key in an answer is refused (that case fails), because no
+single meaning can be chosen for it; the same holds for case files.
 
 Responses are read without recursion, so an answer nested a hundred thousand levels deep
 is graded like any other (and an unterminated or malformed one fails only its own case).

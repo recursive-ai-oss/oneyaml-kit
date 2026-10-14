@@ -45,7 +45,11 @@ differ from `main` touch it: an adapter language, the benchmark harness, or, for
 the kit's code or cases, the reference adapter. Areas are the adapter languages (`rust`,
 `go`, `csharp`, ...), `bench` and `core`. The full gate (`bin/gate --full`) runs every area
 and every adapter; it is what CI runs, with `--jobs` to run areas side by side. Each step
-logs under `out/gate/` and shows its output only when it fails.
+logs under `out/gate/` and shows its output only when it fails. Before any step the gate
+prints, and `out/gate/summary.json` records, the revision it checked: HEAD, the base and merge
+base, a fingerprint of the change against the merge base (the binary diff plus the path and
+content hash of every untracked file) and whether the tree is dirty, so two runs can be
+compared. Renames count as a deletion and an addition, so the area a file left is checked too.
 
 ## Principles
 

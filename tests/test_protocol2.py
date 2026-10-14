@@ -33,7 +33,7 @@ def err(**kw):
 
 
 def bounded(**kw):
-    e = {"kind": "bounded", "time_seconds": 5, "memory_mb": 100, "accept": None, "category": "limit"}
+    e = {"kind": "bounded", "time_seconds": 5, "memory_mb": 100, "accept": None, "category": ["limit"]}
     e.update(kw)
     return e
 
@@ -173,16 +173,30 @@ class Hello(unittest.TestCase):
         self.assertEqual(sorted(used - set(vocabulary.EMULATES)), [])
 
 
-class AnyError(unittest.TestCase):
-    def test_a_bounded_case_can_allow_an_error_of_any_kind(self):
-        c = mk(expect=bounded(category="any"))
-        self.assertEqual(K.required_caps(c, c.expect)[1], set())
-        for cat in ("syntax", "limit", "other"):
-            r = one(c, {"status": "error", "error": {"category": cat}, "_measure": MEASURE}, {"events"})
+class SeveralCategories(unittest.TestCase):
+    def test_a_bounded_case_can_allow_a_list_of_error_categories(self):
+        c = mk(expect=bounded(category=["syntax", "limit"]))
+        self.assertEqual(K.required_caps(c, c.expect)[1], {"error-category"})
+        caps = {"events", "error-category"}
+        for cat in ("syntax", "limit"):
+            r = one(c, {"status": "error", "error": {"category": cat}, "_measure": MEASURE}, caps)
             self.assertEqual((r["loose"], r["strict"]), ("pass", "pass"), cat)
-        r = one(c, {"status": "ok", "events": PAIR, "_measure": MEASURE}, {"events"})
+        # Any error passes loose; strict wants one of the named kinds, not "other".
+        r = one(c, {"status": "error", "error": {"category": "other"}, "_measure": MEASURE}, caps)
+        self.assertEqual((r["loose"], r["strict"]), ("pass", "fail"))
+        self.assertIn("syntax, limit", r["detail"])
+        r = one(c, {"status": "error", "error": {"category": "other"}, "_measure": MEASURE}, {"events"})
+        self.assertEqual((r["loose"], r["strict"]), ("pass", "unsupported"))
+        r = one(c, {"status": "ok", "events": PAIR, "_measure": MEASURE}, caps)
         self.assertEqual((r["loose"], r["strict"]), ("fail", "fail"))
-        self.assertIn("only an error is allowed", r["detail"])
+        self.assertIn("a syntax or limit error", r["detail"])
+
+    def test_accepted_to_a_bounded_patch_is_a_failure_not_a_silent_unsupported(self):
+        patch = {"patch": [{"op": "add", "path": "/a", "value": 1}]}
+        c = mk(op="patch", expect=bounded(accept={"kind": "bytes", "bytes": b""}), args=patch)
+        r = one(c, {"status": "accepted", "_measure": MEASURE}, {"patch:add", "error-category"})
+        self.assertEqual((r["loose"], r["strict"]), ("fail", "fail"))
+        self.assertIn("not an answer to a patch", r["detail"])
 
 
 class Subprocess(unittest.TestCase):

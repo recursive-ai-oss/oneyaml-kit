@@ -38,7 +38,7 @@ class OracleAdapter:
         if k == "bounded":
             a = e["accept"]
             if a is None:
-                return {"id": case_id, "status": "error", "error": {"category": e["category"]}}
+                return {"id": case_id, "status": "error", "error": {"category": e["category"][0]}}
             if a["kind"] == "events":
                 return {"id": case_id, "status": "ok", "events": a["events"]}
             if a["kind"] == "value":

@@ -24,20 +24,42 @@ _LITERALS = {"true": True, "false": False, "null": None}
 _NO_KEY = object()
 
 
+def _no_duplicates(pairs: list) -> dict:
+    """An object with a repeated key has no single meaning, so it is refused, not collapsed."""
+    d: dict = {}
+    for k, v in pairs:
+        if k in d:
+            raise ValueError(f"duplicate key {k!r} in a JSON object")
+        d[k] = v
+    return d
+
+
+_DECODER = json.JSONDecoder(object_pairs_hook=_no_duplicates)
+
+
 def loads(data: bytes | str) -> Any:
-    """json.loads, falling back to an iterative parser when the input is too deep for it."""
+    """json.loads that refuses duplicate keys, falling back to an iterative parser when the
+    input is too deep for the standard one."""
     if isinstance(data, (bytes, bytearray)):
         data = bytes(data).decode("utf-8")
     try:
-        return json.loads(data)
+        return _DECODER.decode(data)
     except RecursionError:
         return _loads_iterative(data)
 
 
-def _loads_iterative(text: str) -> Any:
+def raw_decode(text: str, idx: int = 0) -> tuple[Any, int]:
+    """One JSON value starting at `idx` and the offset after it (for streams of values)."""
+    try:
+        return _DECODER.raw_decode(text, idx)
+    except RecursionError:
+        return _loads_iterative(text, idx, partial=True)
+
+
+def _loads_iterative(text: str, pos: int = 0, partial: bool = False) -> Any:
     stack: list = []
     keys: list = []  # pending key of each open object, _NO_KEY for lists
-    pos, n = 0, len(text)
+    n = len(text)
     state = "value"
     result: Any = None
 
@@ -50,6 +72,8 @@ def _loads_iterative(text: str) -> Any:
             result = v
         elif keys[-1] is _NO_KEY:
             stack[-1].append(v)
+        elif keys[-1] in stack[-1]:
+            fail(f"duplicate key {keys[-1]!r}")
         else:
             stack[-1][keys[-1]] = v
 
@@ -57,6 +81,8 @@ def _loads_iterative(text: str) -> Any:
         pos = _WS.match(text, pos).end()
         ch = text[pos:pos + 1]
         if state == "done":
+            if partial:
+                return result, pos
             if pos != n:
                 fail("extra data")
             return result

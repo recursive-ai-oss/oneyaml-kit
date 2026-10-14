@@ -2015,7 +2015,7 @@
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Events before the error differ from the specified ones (got more lines after line 4: '=VAL :v1 k2')"
+   "reason": "Events before the error differ from the specified ones (got more lines after line 4: a scalar value that runs on into the next key)"
   },
   {
    "case": "yts:F6MC@value",

@@ -181,9 +181,11 @@ A `bounded` case names the acceptable outcomes and the resources it may use:
 
 - `accept` (optional) is an exact result of the operation's own kind. If the library
   answers, the whole result must equal it. A wrong or truncated result is a failure.
-- `error` (optional) is a refusal that is acceptable: a category, or `any` when every kind
-  of error is correct (for example unclosed deep input, which is a syntax error or a limit
-  error depending on where the reader stops). With `any`, strict does not check the category.
+- `error` (optional) is a refusal that is acceptable: a category, or a list of distinct
+  categories when more than one kind of error is correct (for example unclosed deep input,
+  which is a syntax error or a limit error depending on where the reader stops):
+  `"error": ["syntax", "limit"]`. `any` is not allowed here. Loose accepts any error; strict
+  needs the adapter's `error-category` and checks that the category is one of the list.
 - At least one of the two is required. A case with only `error` allows no result; a
   case with only `accept` allows no refusal.
 - `time_seconds` and `memory_mb` are part of the case. The runner enforces them
