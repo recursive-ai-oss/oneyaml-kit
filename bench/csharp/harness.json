@@ -2,5 +2,6 @@
  "format": "oneyaml-kit-bench-harness/1",
  "language": "csharp",
  "build": ["./build.sh", "{build}"],
- "command": ["./run.sh", "{build}"]
+ "command": ["./run.sh", "{build}"],
+ "optional_libraries": {"KIT_ONEYAML_CSHARP_SRC": ["oneyaml-csharp", "oneyaml-csharp-gen"]}
 }

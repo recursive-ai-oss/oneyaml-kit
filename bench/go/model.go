@@ -4,6 +4,7 @@ package main
 // interfaces a library implements (see docs/benchmark-adapters.md).
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -254,15 +255,29 @@ type Runner interface {
 	Prepare(n int) Batch
 }
 
+// SharedState is implemented by a runner that can run a batch over one starting state. Only a
+// task that leaves its state unchanged may do that, and the harness does not take the library's
+// word for it: VerifyShared runs the task twice over one state and fails when the answers differ.
+// ShareState then switches the runner over; from then on Prepare(n) builds one state, not n.
+type SharedState interface {
+	VerifyShared() error
+	ShareState()
+	// SharesState reports whether ShareState was called.
+	SharesState() bool
+}
+
 type fnRunner[S, O any] struct {
 	setup   func() S
 	run     func(*S) (O, error)
 	product func(O) Product
 	failing func() FailedPatch
+	shared  bool
 }
 
 type fnBatch[S, O any] struct {
 	states []S
+	// reps is how many runs the batch makes: one per state, or all of them over the one shared state.
+	reps   int
 	run    func(*S) (O, error)
 	panicV any
 }
@@ -273,10 +288,15 @@ func (b *fnBatch[S, O]) Run() {
 			b.panicV = r
 		}
 	}()
-	for i := range b.states {
+	shared := len(b.states) == 1
+	for i := 0; i < b.reps; i++ {
 		// The result is dropped inside the clock, as a caller's would be. The starting state is
 		// not: it stays in the batch and is released after the clock stops.
-		out, _ := b.run(&b.states[i])
+		st := &b.states[0]
+		if !shared {
+			st = &b.states[i]
+		}
+		out, _ := b.run(st)
 		runtime.KeepAlive(out)
 	}
 }
@@ -300,8 +320,43 @@ func (r *fnRunner[S, O]) CheckFailing() *FailedPatch {
 	return &f
 }
 
+func (r *fnRunner[S, O]) ShareState()       { r.shared = true }
+func (r *fnRunner[S, O]) SharesState() bool { return r.shared }
+
+// VerifyShared runs the task twice over one state and compares the two answers.
+func (r *fnRunner[S, O]) VerifyShared() (err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			err = fmt.Errorf("panic while checking the shared state: %v", p)
+		}
+	}()
+	st := r.setup()
+	first, err := r.run(&st)
+	if err != nil {
+		return err
+	}
+	a := r.product(first)
+	second, err := r.run(&st)
+	if err != nil {
+		return fmt.Errorf("the second run over the same state failed: %v", err)
+	}
+	b := r.product(second)
+	if a.Kind != b.Kind || !bytes.Equal(a.Bytes, b.Bytes) || a.HasValue != b.HasValue {
+		return fmt.Errorf("the second run over the same state gave different bytes")
+	}
+	if a.HasValue {
+		if d := firstDiff(b.Value, a.Value, ""); d != "" {
+			return fmt.Errorf("the second run over the same state gave a different value: %s", d)
+		}
+	}
+	return nil
+}
+
 func (r *fnRunner[S, O]) Prepare(n int) Batch {
-	b := &fnBatch[S, O]{states: make([]S, n), run: r.run}
+	if r.shared {
+		return &fnBatch[S, O]{states: []S{r.setup()}, reps: n, run: r.run}
+	}
+	b := &fnBatch[S, O]{states: make([]S, n), reps: n, run: r.run}
 	for i := range b.states {
 		b.states[i] = r.setup()
 	}

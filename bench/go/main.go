@@ -177,6 +177,11 @@ func oneCell(lib Library, task Task, w *Workload, cfg Config) map[string]any {
 		return rec
 	}
 	rec["variant"] = v.Variant
+	if d := shareState(task, runner); d != "" {
+		put("error", d)
+		delete(rec, "variant")
+		return rec
+	}
 
 	t := timeRunner(runner, cfg)
 	if t.Panic != nil {

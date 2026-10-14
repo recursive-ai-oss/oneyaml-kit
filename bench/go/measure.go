@@ -100,6 +100,10 @@ func stateBytes(r Runner) int64 {
 }
 
 func chunkSize(r Runner, cfg Config) int {
+	if sh, ok := r.(SharedState); ok && sh.SharesState() {
+		// A batch over one shared state holds one state however long it is.
+		return cfg.MaxIters
+	}
 	sz := stateBytes(r)
 	if sz <= 0 {
 		return cfg.MaxIters
@@ -129,6 +133,7 @@ func timeRunner(r Runner, cfg Config) Timing {
 			n := min(left, chunk)
 			batch := r.Prepare(n)
 			runtime.GC() // collect what the previous chunk left, with the clock stopped
+			warmUp(r)
 			b.StartTimer()
 			batch.Run()
 			b.StopTimer()
@@ -172,6 +177,16 @@ func timeRunner(r Runner, cfg Config) Timing {
 	return t
 }
 
+// warmUp runs the task once, unmeasured, right after a collection. A collection empties what a
+// library keeps in a sync.Pool or a cache, and the first run after it fills them again with extra
+// allocations. A user's program pays that once per collection, spread over thousands of runs; a
+// sample of a few runs would pay it on every collection it follows and report an allocation count
+// several times the steady state, one that moves with the sample size. So the clock starts with
+// the pools full, and the figures are what a run costs in steady state.
+func warmUp(r Runner) {
+	r.Prepare(1).Run()
+}
+
 // Memory is the result of the memory pass.
 type Memory struct {
 	// RetainedBytes is what one run leaves behind: the live heap one collection after the run,
@@ -204,15 +219,11 @@ func avgRunsFor(t Timing, cfg Config) int {
 // sampler, so the reading right after the run counts too. `HeapAlloc` includes garbage not yet
 // collected, so the peak is an upper bound on the live bytes at the moment of the reading.
 //
-// Allocation: the bytes and calls are the average of a batch of runs, because a library that
-// keeps buffers in a pool allocates more in one cold run than in the steady state the timed
-// runs measure. For a library without pools the average is the single run.
-//
-// The batch is split into groups of `group` runs, each with its own starting states and a
-// collection before it, as the timed samples are. A library whose pools and caches are emptied by
-// a collection allocates a few extra times in the first run after one. testing.B spreads that
-// cost over the few runs of a sample, so a pass that spread it over all of its runs would read
-// lower on a cell with few allocations and the two would disagree for no real reason.
+// Allocation: the bytes and calls are the average of a batch of runs, taken in the steady state:
+// after a collection and one unmeasured run, so what a library keeps in pools and caches is filled,
+// as it is for the timed samples (see warmUp). For a library without pools the average is the
+// single run. The runs are split into groups of `group`, each with its own starting states, so the
+// heap the states hold stays bounded as it does in the timed samples.
 func memoryPass(r Runner, runs, group int) Memory {
 	group = max(1, min(group, runs))
 	// One unmeasured run first, so that what a library keeps in pools and caches is in the
@@ -275,6 +286,7 @@ func memoryPass(r Runner, runs, group int) Memory {
 		k := min(left, group)
 		avg := r.Prepare(k)
 		runtime.GC()
+		warmUp(r)
 		runtime.ReadMemStats(&before)
 		avg.Run()
 		runtime.ReadMemStats(&after)
@@ -305,5 +317,25 @@ func agree(t Timing, m Memory) string {
 		return fmt.Sprintf("the memory pass (%d allocations, %d bytes) and testing.B (%.1f allocations, %.0f bytes per op) disagree",
 			m.Allocations, m.AllocatedBytes, t.AllocsPerOp, t.BytesPerOp)
 	}
+	return ""
+}
+
+// mayShareState is true for the tasks that only read their starting state: a load reads the text,
+// a dump reads the value tree, and an unchanged emit or a document parse reads the document. An edit
+// or a patch changes its document, so it always gets a state of its own.
+func mayShareState(t Task) bool { return t != EditScript && t != PatchTask }
+
+// shareState lets a runner run a batch over one starting state when the task may, after checking
+// that two runs over one state give the same answer. It returns the reason to refuse the cell, or
+// "" when the runner is fine (shared or not).
+func shareState(t Task, r Runner) string {
+	sh, ok := r.(SharedState)
+	if !ok || !mayShareState(t) {
+		return ""
+	}
+	if err := sh.VerifyShared(); err != nil {
+		return "the task changes its starting state, so a batch cannot share one: " + err.Error()
+	}
+	sh.ShareState()
 	return ""
 }
