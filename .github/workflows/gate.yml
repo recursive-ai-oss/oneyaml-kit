@@ -87,3 +87,30 @@ jobs:
       - name: Gate
         # The kit core has a job of its own, so the other jobs leave it out.
         run: bin/gate --full --areas ${{ matrix.area }} ${{ matrix.area != 'core' && '--without-core' || '' }}
+
+  # Nothing executable, no core dump and no blob over 1 MiB may be tracked, and none may sit anywhere in the
+  # commits being pushed either: a large file added and deleted in the next commit still ships in history.
+  # The whole history is fetched (it is small) so the pushed range, or a pull request's range, can be walked.
+  blobs:
+    name: no executables, dumps or large blobs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          fetch-depth: 0
+      - name: Tracked files
+        run: python3 bin/kit blobs
+      - name: Commits pushed
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        # A new branch or a forced push has no usable previous tip; the check then walks the whole history.
+        run: python3 bin/kit blobs --push "$BEFORE" "$AFTER"
+      - name: Commits of the pull request
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: python3 bin/kit blobs --range "$BASE..$HEAD"

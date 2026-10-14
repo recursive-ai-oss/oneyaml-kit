@@ -9,6 +9,7 @@ import sys
 import time
 from pathlib import Path
 
+from . import blobs as blobs_mod
 from . import report as report_mod
 from .cases import (CaseError, ROOT, current_pins, load_all)
 from .public_text import repo_files, scan
@@ -114,6 +115,30 @@ def cmd_pins(args) -> int:
     return 1
 
 
+def cmd_blobs(args) -> int:
+    """Executables, core dumps and blobs over 1 MiB, in the index and, when asked, in history."""
+    root = Path(args.root) if args.root else ROOT
+    scopes = ["the index"]
+    try:
+        problems = blobs_mod.check_index(root)
+        if args.push:
+            scopes.append("pushed commits " + args.push[0][:12] + ".." + args.push[1][:12])
+            problems += blobs_mod.check_push(root, *args.push)
+        if args.range:
+            scopes.append("commits " + args.range)
+            problems += blobs_mod.check_history(root, args.range)
+        if args.history:
+            scopes.append("the history of " + args.history)
+            problems += blobs_mod.check_history(root, args.history)
+    except blobs_mod.GitError as e:
+        print(f"blobs: {e}", file=sys.stderr)
+        return 2
+    for line in dict.fromkeys(problems):
+        print(line)
+    print(f"blobs: checked {', '.join(scopes)}; {len(set(problems))} problems")
+    return 1 if problems else 0
+
+
 def cmd_public_text(args) -> int:
     paths = [Path(p) for p in args.paths] if args.paths else repo_files()
     hits = scan(paths)
@@ -178,6 +203,14 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("public-text", help="scan files for internal process text")
     p.add_argument("paths", nargs="*")
     p.set_defaults(fn=cmd_public_text)
+    p = sub.add_parser("blobs", help="refuse executables, core dumps and blobs over 1 MiB "
+                                     "(the index, and history on request)")
+    p.add_argument("--root", help="repository to check (default: this one)")
+    p.add_argument("--range", help="also check every commit in this git range, such as base..head")
+    p.add_argument("--push", nargs=2, metavar=("BEFORE", "AFTER"),
+                   help="also check the commits a push added; falls back to all history when BEFORE is unusable")
+    p.add_argument("--history", metavar="REV", help="also check the whole history reachable from REV")
+    p.set_defaults(fn=cmd_blobs)
     p = sub.add_parser("list", help="count cases by suite, category and operation")
     p.set_defaults(fn=cmd_list)
     p = sub.add_parser("coverage", help="which YAML 1.2.2 productions the own cases name (names, not coverage) "
