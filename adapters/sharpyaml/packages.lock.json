@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "SharpYaml": {
+        "type": "Direct",
+        "requested": "[3.14.0, 3.14.0]",
+        "resolved": "3.14.0",
+        "contentHash": "eN001LFxNI1nLHZTVhoLyA5iWDYkxSln56ACGvCWT9yBbPaWBo/YuKxTVkHqogbs15xiQb+AF8ICIrDvWEpWuA=="
+      },
+      "OneYamlKit.Adapter.Common": {
+        "type": "Project"
+      }
+    }
+  }
+}

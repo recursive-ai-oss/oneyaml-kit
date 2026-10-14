@@ -1,0 +1,404 @@
+{
+ "format": "oneyaml-kit-deviations/1",
+ "entries": [
+  {
+   "case": "own:edit/add-sequence-item-in-the-middle",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 2: expected b'a\\n- b\\n- c\\n', got b'\"a\"\\n- \"b\"\\n- \"c\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/add-sequence-item-in-the-middle",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 2: expected b'a\\n- b\\n- c\\n', got b'\"a\"\\n- \"b\"\\n- \"c\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/block-literal-keeps-style-with-newline",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'#hello\\na: 10\\n\\n#abc 123\\nb: |\\n  this is a ', got b'a: 10\\nb: \"this is a test2\\\\n\"\\nc: 13\\n' (lengt"
+  },
+  {
+   "case": "own:edit/block-literal-keeps-style-with-newline",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'#hello\\na: 10\\n\\n#abc 123\\nb: |\\n  this is a ', got b'a: 10\\nb: \"this is a test2\\\\n\"\\nc: 13\\n' (lengt"
+  },
+  {
+   "case": "own:edit/block-literal-strip-when-no-trailing-newline",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'#hello\\na: 10\\n\\n#abc 123\\nb: |-\\n  this is a', got b'a: 10\\nb: \"this is a test2\"\\nc: 13\\n' (lengths "
+  },
+  {
+   "case": "own:edit/block-literal-strip-when-no-trailing-newline",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'#hello\\na: 10\\n\\n#abc 123\\nb: |-\\n  this is a', got b'a: 10\\nb: \"this is a test2\"\\nc: 13\\n' (lengths "
+  },
+  {
+   "case": "own:edit/bom-and-crlf-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'\\xef\\xbb\\xbfa: 3\\r\\nb: 2\\r\\n', got b'a: 3\\nb: 2\\n' (lengths 15 and 10)"
+  },
+  {
+   "case": "own:edit/bom-and-crlf-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'\\xef\\xbb\\xbfa: 3\\r\\nb: 2\\r\\n', got b'a: 3\\nb: 2\\n' (lengths 15 and 10)"
+  },
+  {
+   "case": "own:edit/double-quoted-style-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 12: expected b\"'x'\\n\", got b'\"x\"\\n' (lengths 16 and 16)"
+  },
+  {
+   "case": "own:edit/double-quoted-style-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 12: expected b\"'x'\\n\", got b'\"x\"\\n' (lengths 16 and 16)"
+  },
+  {
+   "case": "own:edit/flow-collection-item",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'{a: [1, 9], b: 3}\\n', got b'a:\\n- 1\\n- 9\\nb: 3\\n' (lengths 18 and 16)"
+  },
+  {
+   "case": "own:edit/flow-collection-item",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'{a: [1, 9], b: 3}\\n', got b'a:\\n- 1\\n- 9\\nb: 3\\n' (lengths 18 and 16)"
+  },
+  {
+   "case": "own:edit/pointer-escapes",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 5: expected b'5\\nm~n: 6\\n~1: 7\\n', got b'1\\nm~n: 2\\n~1: 3\\na~1b: 5\\nm~0n: 6\\n~01: 7\\n' (lengths 20 and 43)"
+  },
+  {
+   "case": "own:edit/pointer-escapes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 5: expected b'5\\nm~n: 6\\n~1: 7\\n', got b'1\\nm~n: 2\\n~1: 3\\na~1b: 5\\nm~0n: 6\\n~01: 7\\n' (lengths 20 and 43)"
+  },
+  {
+   "case": "own:edit/refuse-ambiguous-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The error carries no distinct type for this class, so it is reported as other instead of refused-ambiguous"
+  },
+  {
+   "case": "own:edit/refuse-write-through-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:edit/refuse-write-through-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:edit/second-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 5: expected b'---\\na: 3\\n', got b'a: 3\\n' (lengths 14 and 10)"
+  },
+  {
+   "case": "own:edit/second-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 5: expected b'---\\na: 3\\n', got b'a: 3\\n' (lengths 14 and 10)"
+  },
+  {
+   "case": "own:edit/sequence-item",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 2: expected b'a\\n- x # keep\\n- c\\n', got b'\"a\"\\n- \"x\"\\n- \"c\"\\n' (lengths 19 and 18)"
+  },
+  {
+   "case": "own:edit/sequence-item",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 2: expected b'a\\n- x # keep\\n- c\\n', got b'\"a\"\\n- \"x\"\\n- \"c\"\\n' (lengths 19 and 18)"
+  },
+  {
+   "case": "own:edit/trailing-comment-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 10: expected b'  # dev\\nname: web\\n', got b'\\nname: \"web\"\\n' (lengths 28 and 23)"
+  },
+  {
+   "case": "own:edit/trailing-comment-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 10: expected b'  # dev\\nname: web\\n', got b'\\nname: \"web\"\\n' (lengths 28 and 23)"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Allocates past the memory bound of the case (memory growth passed the 1024 MB bound)"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Allocates past the memory bound of the case (memory growth passed the 1024 MB bound)"
+  },
+  {
+   "case": "own:schema/core-floats",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].c: expected 1000.0, got 1000"
+  },
+  {
+   "case": "own:schema/core-floats",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].c: expected 1000.0, got 1000"
+  },
+  {
+   "case": "own:schema/core-integers",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].d: expected 12, got '0o14'"
+  },
+  {
+   "case": "own:schema/core-integers",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].d: expected 12, got '0o14'"
+  },
+  {
+   "case": "own:schema/explicit-str-tag",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected '12', got 12"
+  },
+  {
+   "case": "own:schema/explicit-str-tag",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected '12', got 12"
+  },
+  {
+   "case": "own:schema/non-string-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$map': [[1, 'a'], [True, 'b'], ['x', 'c']]}, got {'1': 'a', 'true': 'b', 'x': 'c'}"
+  },
+  {
+   "case": "own:schema/non-string-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$map': [[1, 'a'], [True, 'b'], ['x', 'c']]}, got {'1': 'a', 'true': 'b', 'x': 'c'}"
+  },
+  {
+   "case": "own:schema/unresolved-tag-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"
+  },
+  {
+   "case": "own:schema/unresolved-tag-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"
+  },
+  {
+   "case": "yts:4MUZ/02@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:4MUZ/02@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:C4HZ@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][2].color: expected 16772795, got '0xFFEEBB'"
+  },
+  {
+   "case": "yts:C4HZ@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][2].color: expected 16772795, got '0xFFEEBB'"
+  },
+  {
+   "case": "yts:DK95/04@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a plain scalar, found a tab character that violate indentation."
+  },
+  {
+   "case": "yts:DK95/04@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a plain scalar, found a tab character that violate indentation."
+  },
+  {
+   "case": "yts:JEF9/01@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a literal block scalar, found extra spaces in first line."
+  },
+  {
+   "case": "yts:JEF9/01@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a literal block scalar, found extra spaces in first line."
+  },
+  {
+   "case": "yts:JEF9/02@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected '\\n', got ''"
+  },
+  {
+   "case": "yts:JEF9/02@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected '\\n', got ''"
+  },
+  {
+   "case": "yts:L24T/01@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].foo: expected 'x\\n \\n', got 'x\\n '"
+  },
+  {
+   "case": "yts:L24T/01@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].foo: expected 'x\\n \\n', got 'x\\n '"
+  },
+  {
+   "case": "yts:LE5A@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][4]: expected '', got None"
+  },
+  {
+   "case": "yts:LE5A@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][4]: expected '', got None"
+  },
+  {
+   "case": "yts:S4JQ@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][2]: expected '12', got 12"
+  },
+  {
+   "case": "yts:S4JQ@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][2]: expected '12', got 12"
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].product[0].price: expected 450, got 450.0"
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].product[0].price: expected 450, got 450.0"
+  },
+  {
+   "case": "yts:VJP3/01@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:VJP3/01@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:WZ62@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].foo: expected '', got None"
+  },
+  {
+   "case": "yts:WZ62@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].foo: expected '', got None"
+  }
+ ]
+}

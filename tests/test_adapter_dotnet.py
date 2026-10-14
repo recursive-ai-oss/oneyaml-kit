@@ -1,0 +1,192 @@
+"""End to end: the four .NET adapters through the whole pipeline.
+
+Needs the .NET SDK (and network access for the first package restore), so it only runs when
+KIT_ADAPTER_TESTS=1 (the gate sets it) and a `dotnet` executable is found (`DOTNET` names it when
+it is not on PATH).
+"""
+
+import os
+import shutil
+import unittest
+
+import support  # noqa: F401
+from oneyaml_kit import cases as C
+from oneyaml_kit import report
+from oneyaml_kit.protocol import SubprocessAdapter
+from oneyaml_kit.runner import (ADAPTERS, load_deviations, load_manifest, run_adapter, validate_result,
+                                verify_deviations)
+
+NAMES = ("yamldotnet", "sharpyaml", "vyaml", "yaml2jsonnode")
+PINS = {"yamldotnet": "18.1.0", "sharpyaml": "3.14.0", "vyaml": "1.4.0", "yaml2jsonnode": "3.0.1"}
+HAVE_DOTNET = shutil.which(os.environ.get("DOTNET", "dotnet")) is not None
+
+
+def count(res, suite, op, expect, verdict, mode="loose"):
+    return sum(1 for r in res["cases"]
+               if (r["suite"], r["op"], r["expect"], r[mode]) == (suite, op, expect, verdict))
+
+
+@unittest.skipUnless(os.environ.get("KIT_ADAPTER_TESTS") == "1" and HAVE_DOTNET,
+                     "set KIT_ADAPTER_TESTS=1 and provide dotnet to build and run the .NET adapters")
+class DotnetAdapters(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cases = C.load_all()
+        cls.res = {n: run_adapter(n, cases, complete=True) for n in NAMES}
+        cls.by_id = {n: {r["id"]: r for r in cls.res[n]["cases"]} for n in NAMES}
+
+    def test_results_are_well_formed_and_every_deviation_list_holds(self):
+        for n, res in self.res.items():
+            self.assertEqual(validate_result(res), [], n)
+            d = res["deviations"]
+            self.assertEqual((d["unlisted"], d["stale"], d["unknown"]), ([], [], []), n)
+            self.assertEqual(len(res["cases"]), 728, n)
+
+    def test_each_library_is_pinned_to_its_exact_release(self):
+        for n, res in self.res.items():
+            self.assertEqual(res["adapter"]["version"], PINS[n], n)
+            self.assertEqual(res["adapter"]["language"], "csharp")
+        info = self.res["yaml2jsonnode"]["adapter"]["info"]
+        self.assertIn("JsonPatch.Net 5.0.3", info["json patch"])
+        self.assertIn("YamlDotNet 18.1.0", info["yaml parser"])
+
+    def test_capabilities_say_what_each_library_can_do(self):
+        caps = {n: set(self.res[n]["adapter"]["capabilities"]) for n in NAMES}
+        patch = {n: sorted(c for c in caps[n] if c.startswith("patch:")) for n in NAMES}
+        self.assertEqual(patch["yamldotnet"], [])
+        self.assertEqual(patch["vyaml"], [])
+        self.assertEqual(patch["sharpyaml"], ["patch:replace"])
+        self.assertEqual(patch["yaml2jsonnode"], sorted("patch:" + o for o in
+                                                        ("add", "remove", "replace", "move", "copy", "test")))
+        self.assertNotIn("events", caps["yaml2jsonnode"])
+        # VYaml's exceptions carry no position the adapter can read without parsing the message.
+        self.assertNotIn("error-position", caps["vyaml"])
+        for n in ("yamldotnet", "sharpyaml"):
+            self.assertIn("error-position", caps[n])
+
+    def test_event_scores_match_what_the_survey_measured_with_its_own_probe(self):
+        # The survey's probe compared the same upstream release with a differently written formatter:
+        # YamlDotNet 300 of 308 valid inputs and 86 of 94 invalid ones rejected, SharpYaml 246 and 76.
+        y = self.res["yamldotnet"]
+        self.assertEqual(count(y, "yaml-test-suite", "events", "events", "pass"), 300)
+        self.assertEqual(count(y, "yaml-test-suite", "events", "error", "pass"), 86)
+        s = self.res["sharpyaml"]
+        self.assertEqual(count(s, "yaml-test-suite", "events", "events", "pass"), 246)
+        self.assertEqual(count(s, "yaml-test-suite", "events", "error", "pass"), 76)
+        # VYaml: invalid inputs rejected, as the survey counted them (its valid count ignored style).
+        v = self.res["vyaml"]
+        self.assertEqual(count(v, "yaml-test-suite", "events", "error", "pass"), 64)
+
+    def test_style_the_library_does_not_report_is_declared_not_hidden(self):
+        v = self.res["vyaml"]
+        self.assertEqual(v["adapter"]["emulates"], ["decode", "style", "tag"])
+        r = self.by_id["vyaml"]["own:parse/anchor-and-alias"]
+        self.assertEqual((r["loose"], r["strict"], r["emulated"]), ("pass", "pass", ["style"]))
+        # A tag handle that a %TAG directive defines cannot be resolved, so the adapter declines.
+        t = self.by_id["vyaml"]["own:parse/tag-handle-directive"]
+        self.assertEqual((t["loose"], t["reason"]), ("unsupported", "adapter"))
+
+    def test_reference_cases_through_each_edit_path(self):
+        a, b = ("own:edit/block-literal-keeps-style-with-newline",
+                "own:edit/block-literal-strip-when-no-trailing-newline")
+        s = self.by_id["sharpyaml"]
+        for cid in (a, b):
+            self.assertEqual((s[cid]["loose"], s[cid]["strict"]), ("pass", "pass"), cid)
+            # The span and the replacement text are the adapter's work, and the report says so.
+            self.assertEqual(s[cid]["emulated"], ["pointer", "source-text"], cid)
+        j = self.by_id["yaml2jsonnode"]
+        for cid in (a, b):
+            self.assertEqual(j[cid]["loose"], "fail", cid)
+        self.assertIn("first difference at byte 0", j[b]["detail"])
+        self.assertEqual(j[a].get("emulated"), None)
+
+    def test_sharpyaml_refusals_are_the_adapters_and_marked_as_such(self):
+        s = self.by_id["sharpyaml"]
+        for cid in ("own:edit/refuse-write-through-alias", "own:edit/refuse-ambiguous-key",
+                    "own:edit/replace-missing-path", "own:edit/atomic-failure"):
+            self.assertEqual(s[cid]["strict"], "pass", cid)
+            self.assertEqual(s[cid]["emulated"], ["error", "unchanged"], cid)
+        # Reading the byte order mark and the line endings back is the one place decoding mattered.
+        self.assertIn("decode", s["own:edit/bom-and-crlf-kept"]["emulated"])
+
+    def test_yaml2jsonnode_patch_failures_come_from_the_library(self):
+        j = self.by_id["yaml2jsonnode"]
+        # A failing `test` and a missing path are the library's results; only their category is the adapter's.
+        t = j["own:edit/failed-test-changes-nothing"]
+        self.assertEqual(t["loose"], "pass")
+        self.assertEqual(t["emulated"], ["classification"])
+        # Refusals do not exist in this library: it edits an expanded copy of the data.
+        self.assertEqual(j["own:edit/refuse-write-through-alias"]["loose"], "fail")
+        # The ambiguous-key document does not even load (two keys become one name), so the error is
+        # reported, but not as a refusal.
+        a = j["own:edit/refuse-ambiguous-key"]
+        self.assertEqual((a["loose"], a["strict"]), ("pass", "fail"))
+        self.assertIn("category", a["detail"])
+
+    def test_memory_bombs_are_measured_and_the_run_survives_them(self):
+        for n in ("sharpyaml", "yaml2jsonnode"):
+            r = self.by_id[n]["own:safety/alias-expansion-bomb"]
+            self.assertEqual((r["loose"], r["got"]["status"]), ("fail", "memory"), n)
+            self.assertEqual(self.res[n]["run"]["adapter_restarts"], 1, n)
+        # The other two keep the aliases shared, so there is no value the adapter can describe.
+        for n in ("yamldotnet", "vyaml"):
+            r = self.by_id[n]["own:safety/alias-expansion-bomb"]
+            self.assertEqual((r["loose"], r["reason"]), ("unsupported", "adapter"), n)
+
+    def test_deep_nesting_is_answered_inside_the_bounds(self):
+        for n in ("yamldotnet", "vyaml"):
+            r = self.by_id[n]["own:safety/deeply-nested-flow-sequences"]
+            self.assertEqual((r["loose"], r["strict"]), ("pass", "pass"), n)
+            self.assertLess(r["measured"]["seconds"], 10)
+            self.assertIsNotNone(r["measured"]["peak_mb"])
+        r = self.by_id["sharpyaml"]["own:safety/deeply-nested-flow-sequences"]
+        self.assertEqual((r["loose"], r["strict"]), ("pass", "fail"))
+        self.assertIn("limit", r["detail"])
+
+    def test_a_stack_overflow_is_a_crash_of_that_case_only(self):
+        m = load_manifest("yaml2jsonnode")
+        ad = SubprocessAdapter(m["command"], cwd=m["_dir"], timeout=30)
+        ad.start()
+        try:
+            deep = b"[" * 100000 + b"]" * 100000
+            r = ad.run("deep", "value", deep, {})
+            self.assertEqual(r["status"], "crash")
+            ok = ad.run("after", "value", b"a: 1\n", {})
+            self.assertEqual((ok["status"], ok["value"]), ("ok", [{"a": 1}]))
+            self.assertEqual(ad.restarts, 1)
+        finally:
+            ad.close()
+
+    def test_unlisting_a_failure_or_keeping_a_stale_entry_fails_the_check(self):
+        for n in NAMES:
+            entries = load_deviations(load_manifest(n))
+            cases = self.res[n]["cases"]
+            self.assertTrue(verify_deviations(cases, entries, True)["ok"], n)
+            self.assertFalse(verify_deviations(cases, entries[1:], True)["ok"], n)
+            stale = entries + [{"case": "own:edit/add-key", "expectation": "primary", "mode": "loose",
+                                "verdict": "fail", "reason": "x"}]
+            if not any(e["case"] == "own:edit/add-key" for e in entries):
+                self.assertFalse(verify_deviations(cases, stale, True)["ok"], n)
+
+    def test_every_deviation_has_a_reason_and_names_a_real_case(self):
+        ids = {c.id for c in C.load_all()}
+        for n in NAMES:
+            for e in load_deviations(load_manifest(n)):
+                self.assertIn(e["case"], ids, n)
+                self.assertGreater(len(e["reason"]), 10, e)
+
+    def test_the_report_shows_the_emulated_column_and_every_library(self):
+        md = report.render(list(self.res.values()))
+        for n in NAMES:
+            self.assertIn(n, md)
+
+    def test_manifests_use_only_the_documented_keys(self):
+        for n in NAMES:
+            m = load_manifest(n)
+            self.assertEqual(m["language"], "csharp")
+            self.assertNotIn("memory_limit_mb", m)  # the runtime reserves address space far beyond its use
+            self.assertTrue((ADAPTERS / n / "packages.lock.json").is_file(), n)
+
+
+if __name__ == "__main__":
+    unittest.main()

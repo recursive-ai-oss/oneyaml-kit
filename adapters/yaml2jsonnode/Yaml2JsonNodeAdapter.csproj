@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>OneYamlKit.Adapter.Yaml2JsonNode</AssemblyName>
+    <RootNamespace>OneYamlKit.Adapter.Yaml2JsonNodeAdapter</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Plain workstation GC, no background threads: a quiet process whose memory is easy to read. -->
+    <ServerGarbageCollector>false</ServerGarbageCollector>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- Once a lock file exists the restore must match it exactly, so a version only moves on purpose. -->
+    <RestoreLockedMode Condition="Exists('$(MSBuildProjectDirectory)/packages.lock.json')">true</RestoreLockedMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The library under test, pinned to one exact release. -->
+    <!-- Yaml2JsonNode only requires YamlDotNet 16.3.0 or newer; this is the release the YamlDotNet adapter
+         measures, so both rows rest on the same parser. -->
+    <PackageReference Include="YamlDotNet" Version="[18.1.0]" />
+    <PackageReference Include="Yaml2JsonNode" Version="[3.0.1]" />
+    <PackageReference Include="JsonPatch.Net" Version="[5.0.3]" />
+    <ProjectReference Include="../dotnet-common/Common.csproj" />
+  </ItemGroup>
+
+</Project>

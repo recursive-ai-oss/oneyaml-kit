@@ -2,6 +2,8 @@
 # The kit's own gate: its tests, the fast set through every adapter, the checks.
 # Set KIT_OUT to move the output directory (default ./out), CARGO_TARGET_DIR to keep Rust
 # build output out of the checkout and KIT_GO_BIN to do the same for Go adapter binaries.
+# The .NET adapters need the .NET SDK (DOTNET names it when it is not on PATH);
+# KIT_DOTNET_ARTIFACTS moves their build output.
 set -eu
 cd "$(dirname "$0")/.."
 export PYTHONDONTWRITEBYTECODE=1
@@ -23,6 +25,9 @@ for d in adapters/*/; do
   if [ -f "$d/go.mod" ]; then
     (cd "$d" && test -z "$(gofmt -l .)" && go vet ./... && go test -short ./...)
   fi
+done
+for p in adapters/*/*.csproj; do
+  [ -f "$p" ] && "${DOTNET:-dotnet}" format whitespace "$p" --verify-no-changes
 done
 echo "== public text"
 python3 bin/kit public-text

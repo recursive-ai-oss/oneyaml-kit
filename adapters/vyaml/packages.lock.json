@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "VYaml": {
+        "type": "Direct",
+        "requested": "[1.4.0, 1.4.0]",
+        "resolved": "1.4.0",
+        "contentHash": "v4ctHU8cBZ8ypZae9TsFvcpoB4+ZE99aNmrcZjQDYGXO0POv8GlRPv9LQjYd5X4/8dBcvVKoQpipKNyoGL6qbg==",
+        "dependencies": {
+          "VYaml.Annotations": "1.4.0"
+        }
+      },
+      "VYaml.Annotations": {
+        "type": "Transitive",
+        "resolved": "1.4.0",
+        "contentHash": "WZVmlXih0wYPGIb8HS+01nQLlkFZw9syPzTfKYFUQj6/63AZ1IvHAie/myDO7MHVtALBh135j3u/B2j8izOv4Q=="
+      },
+      "OneYamlKit.Adapter.Common": {
+        "type": "Project"
+      }
+    }
+  }
+}
