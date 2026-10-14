@@ -252,7 +252,7 @@ class Validation(unittest.TestCase):
         good = {"kind": "bounded", "time_seconds": 5, "memory_mb": 100, "error": "limit"}
         d["expect"] = good
         self.assertEqual(self.load(d).expect["category"], "limit")
-        for change in ({"time_seconds": 0}, {"memory_mb": -1}, {"error": "any"}, {"error": None, "accept": None},
+        for change in ({"time_seconds": 0}, {"memory_mb": -1}, {"error": "nope"}, {"error": None, "accept": None},
                        {"stray": 1}, {"accept": {"kind": "bytes", "file": "input.yaml"}},
                        {"accept": {"kind": "error"}}):
             e = {**good, **change}
@@ -263,6 +263,12 @@ class Validation(unittest.TestCase):
         d["expect"] = {k: v for k, v in good.items() if k != "time_seconds"}
         with self.assertRaises(C.CaseError):
             self.load(d)
+
+    def test_bounded_may_allow_an_error_of_any_kind(self):
+        d = copy.deepcopy(self.GOOD)
+        d.update(origin="spec", refs=["x"])
+        d["expect"] = {"kind": "bounded", "time_seconds": 5, "memory_mb": 100, "error": "any"}
+        self.assertEqual(self.load(d).expect["category"], "any")
 
     def test_provenance(self):
         d = copy.deepcopy(self.GOOD)

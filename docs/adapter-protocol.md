@@ -41,7 +41,7 @@ and lockfile. The adapter reports that version in its hello.
 Kit to adapter:
 
 ```json
-{"type": "hello", "protocol": 1}
+{"type": "hello", "protocol": 2}
 {"type": "run", "id": "own:edit/sequence-item", "op": "patch", "input": "<base64>", "args": {...}}
 {"type": "bye"}
 ```
@@ -49,10 +49,11 @@ Kit to adapter:
 `input` is the exact input bytes, base64. `args` is the operation object of the case
 without `type`: for `patch`, `patch`, `format`, `document`; and `profile` when set.
 
-Adapter to kit, first line:
+Adapter to kit, first line. `protocol` is the version the adapter speaks: 2, or 1 for an
+adapter that has not moved yet (see *Protocol versions*):
 
 ```json
-{"type": "hello", "protocol": 1, "name": "oneyaml-rust", "version": "1.1.0",
+{"type": "hello", "protocol": 2, "name": "oneyaml-rust", "version": "1.1.0",
  "language": "rust", "capabilities": ["events", "value", "patch:replace", "error-category"],
  "emulates": ["unchanged", "error"],
  "info": {"anything": "free-form, recorded in the results"}}
@@ -64,6 +65,7 @@ then one response per `run`, with the same `id`:
 |---|---|
 | `ok` | `events` (array of lines) for `events`; `value` (list of documents) for `value`; `output` (base64 bytes of the whole stream after the patch) for `patch` |
 | `error` | `error`: `{"category", "message", "line", "column"}` (`line` and `column` optional; the conventions are in the case format's *Positions*). For `events`, also `events`: the lines produced before the error. For `patch`, also `output`: the bytes of the document as the library would now write it, so that "unchanged" can be checked |
+| `accepted` | (protocol 2) The library took the input and the adapter cannot or need not describe the result. No other field is needed. Only for `events` and `value` cases. See *Accepted without a result* |
 | `unsupported` | `reason`: a short sentence. The adapter declines this case |
 
 A response may also carry `emulated`: a list of the behaviours (declared in the hello's
@@ -73,6 +75,10 @@ An error `category` is one of the kit's names (`syntax`, `encoding`, `limit`,
 `patch-path`, `patch-test`, `patch-invalid`, `refused-alias`, `refused-ambiguous`)
 or `other` for anything the adapter cannot map. `message` is for people and is never
 compared.
+
+An `error` answer to an `events` case may leave `events` out when the library cannot say
+what it had read before the error; the adapter then does not declare `error-events`
+(below).
 
 An adapter must answer every request, never exit on its own, and treat any input as
 hostile: a crash, a hang or an unparseable line fails that case only.
@@ -89,7 +95,15 @@ The hello lists what the adapter can do:
 | `patch:merge` | RFC 7396 merge patches |
 | `error-category` | errors carry a category that follows the kit's names |
 | `error-position` | errors carry `line` and `column` that follow the kit's definition |
+| `error-events` | (protocol 2) an `error` answer to an `events` case carries the events produced before the error, as the specification's notation has them |
+| `outcome:events`, `outcome:value` | (protocol 2) the adapter can say whether an input is accepted or rejected for that operation, without describing the result. It is enough to be asked the cases that need only that |
 | `profile:<name>` | a behaviour profile other than `core` |
+
+An adapter declares `events` only when it can describe the event stream of an accepted
+input, and `value` only when it can describe values. A library without an event stream
+declares `outcome:events` instead: it is then asked the `events` cases and answers
+`accepted` or `error`, so an invalid input it accepts is a failure and a valid input it
+rejects is a failure, while the events themselves are not claimed.
 
 A case needing something not declared is not sent. It is reported as unsupported,
 which is not a pass and is counted separately from failures. A strict check that needs `error-category` or
@@ -100,6 +114,40 @@ An adapter may also answer `unsupported` for one case it cannot translate (for
 example a patch shape its library has no equivalent for). That answer must be
 listed as a known deviation, so declining cannot go unnoticed.
 
+## Accepted without a result
+
+Some libraries cannot describe what they read: they have no event stream, or the result is
+a shared graph the adapter cannot turn into a value without expanding it. For those the
+adapter answers `{"id": ..., "status": "accepted"}`. The kit grades it like this:
+
+| The case expects | An `accepted` answer is |
+|---|---|
+| an error (`error`) | a failure in both modes: the input was accepted |
+| a result (`events`, `value`) | unsupported: the result cannot be compared. It needs no deviation entry when the adapter does not declare the full capability (`events`, `value`); if it does declare it and still answers `accepted`, the adapter declined the case and it must be listed |
+| a `bounded` outcome | graded on the cost the kit measured. Over the time or memory bound: failure. Within the bounds, when the case allows only an error: failure. Within the bounds, when a result was also allowed: unsupported (the result was not described) |
+| a patch result | a protocol violation and a failure |
+
+The kit measures time and memory itself for `bounded` cases, so an `accepted` answer is
+enough for the cost to be recorded in the results.
+
+## Protocol versions
+
+The runner speaks version 2 and accepts adapters that say hello with 1 or 2.
+
+- **Version 1 adapters** keep working unchanged. One that declares `events` is credited
+  with `error-events` (it has always sent the events before an error), may not declare
+  `outcome:*`, and may not answer `accepted`.
+- **Moving to version 2** changes only the hello: `"protocol": 2`, plus the capabilities
+  below as they apply. Nothing else about the messages changes.
+  - A library with no event stream: remove `events`, declare `outcome:events`, and answer
+    `accepted` instead of `unsupported` for any `events` case whose input the library
+    took; remove the deviation entries that said "no event stream".
+  - A library that reports errors without the events read before them: do not declare
+    `error-events` and leave `events` out of `error` answers.
+  - A library whose result for some accepted input cannot be described (a shared alias
+    graph): answer `accepted` for that case instead of `unsupported`.
+  - Every adapter: keep `emulates` within the vocabulary below.
+
 ## Behaviour the adapter supplies
 
 A library without a patch engine may be driven through an adapter that translates the
@@ -108,13 +156,28 @@ cannot be translated and has to be supplied by the adapter: discarding a half-ap
 patch, or raising an error the library does not raise (a missing path, a malformed
 pointer). The kit must never credit that to the library, so it is declared and marked:
 
-- the hello lists every kind of behaviour the adapter may supply in `emulates` (the
-  rust adapter uses `unchanged`, for reporting the original bytes after a failure, and
-  `error`, for an error the adapter raised itself);
+- the hello lists every kind of behaviour the adapter may supply in `emulates`, using
+  only the names of the vocabulary below. The runner refuses a hello with any other name;
 - every response that depended on one names it in `emulated`. A response naming
   something the hello did not declare fails that case;
 - results keep the names per case, and reports count the passes that depended on them
   in their own *Emulated* column, in addition to Loose and Strict.
+
+### Vocabulary
+
+| Name | Meaning |
+|---|---|
+| `unchanged` | The original bytes are reported after a failed patch, because the library applies one edit at a time or returns nothing when it fails. |
+| `error` | An error was raised by the adapter, not the library: a missing path, a malformed pointer, an unknown operation, a write through an alias, a missing document. |
+| `pointer` | A JSON Pointer was resolved to a node (or its source span) by the adapter, because the library has no addressing of its own. |
+| `decode` | Text encoding was handled by the adapter (detecting UTF-8, UTF-16 or UTF-32, removing a byte order mark, rejecting malformed input) because the library reads strings. |
+| `style` | Scalar style, flow or block form or explicit document markers were recovered by the adapter from another view of the input (for example a tokenizer), because the library's own events do not carry them. |
+| `tag` | A full tag was written out by the adapter from the handle and suffix the library gives. |
+| `source-text` | The YAML text of a new value (style, block header, indentation, quoting) was written by the adapter, because the library only swaps raw text. |
+| `classification` | The adapter mapped a failure the library reports only as a message to a kit error category. |
+
+Adding a name is a change to the kit (`tools/oneyaml_kit/vocabulary.py` and this table), so
+the same word means the same thing for every library.
 
 An adapter reports the library's own state wherever it can. Emulating is for what the
 library has no way to express, and the more an adapter emulates, the less its row says
@@ -134,6 +197,12 @@ container that hides the processes). On Linux this uses `/proc`; where the tree 
 measured the peak is reported as unmeasured and strict reports unsupported. Everything
 in the session is killed when a case fails or the run ends. Adapters do nothing special. A killed or timed-out adapter fails that case
 and a fresh process serves the next one.
+
+Responses are read without recursion, so an answer nested a hundred thousand levels deep
+is graded like any other (and an unterminated or malformed one fails only its own case).
+Build output goes under the output directory by default (`target`, `gobin` and `artifacts`
+inside it) unless `CARGO_TARGET_DIR`, `KIT_GO_BIN` or `KIT_DOTNET_ARTIFACTS` say
+otherwise.
 
 ## Known deviations
 

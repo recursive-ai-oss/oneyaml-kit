@@ -1,48 +1,13 @@
 #!/bin/sh
-# The kit's own gate: its tests, the fast set through every adapter, the checks.
-# Set KIT_OUT to move the output directory (default ./out), CARGO_TARGET_DIR to keep Rust
-# build output out of the checkout and KIT_GO_BIN to do the same for Go adapter binaries.
-# The .NET adapters need the .NET SDK (DOTNET names it when it is not on PATH);
-# KIT_DOTNET_ARTIFACTS moves their build output.
+# The gate. With no arguments it is the hand-over gate: the kit core plus the areas the
+# change touched (files that differ from `main`), a few seconds to a couple of minutes.
+#   bin/gate --full        every area and adapter; what CI runs
+#   bin/gate --plan        show the steps without running them
+#   bin/gate --areas go    named areas instead of choosing by changes
+#   bin/gate --jobs 3      run areas side by side (use with --full)
+# KIT_OUT moves the output directory (default ./out); CARGO_TARGET_DIR, KIT_GO_BIN and
+# KIT_DOTNET_ARTIFACTS move build output, which otherwise goes under it. DOTNET names the
+# dotnet executable when it is not on PATH.
 set -eu
 cd "$(dirname "$0")/.."
-export PYTHONDONTWRITEBYTECODE=1
-export KIT_ADAPTER_TESTS=1
-
-echo "== corpus pins"
-python3 bin/kit pins
-echo "== kit tests"
-python3 -m unittest discover -s tests -q
-echo "== fast set through every adapter"
-python3 bin/kit fast
-echo "== adapter checks"
-for d in adapters/*/; do
-  if [ -f "$d/Cargo.toml" ]; then
-    (cd "$d" && cargo fmt --check && cargo clippy --release --locked --quiet -- -D warnings)
-  fi
-done
-for d in adapters/*/; do
-  if [ -f "$d/go.mod" ]; then
-    (cd "$d" && test -z "$(gofmt -l .)" && go vet ./... && go test -short ./...)
-  fi
-done
-for p in adapters/*/*.csproj; do
-  [ -f "$p" ] && "${DOTNET:-dotnet}" format whitespace "$p" --verify-no-changes
-done
-echo "== benchmark harness: tests and checks"
-python3 -m unittest discover -s bench/tests -q
-(
-  cd bench/rust
-  cargo fmt --check
-  cargo clippy --release --locked --quiet --all-targets -- -D warnings
-  # The self-test build has fake libraries in it, so it gets its own build directory.
-  SELFTEST_TARGET="${CARGO_TARGET_DIR:-$PWD/../../out/target}-selftest"
-  CARGO_TARGET_DIR="$SELFTEST_TARGET" cargo clippy --release --locked --quiet --all-targets --features selftest -- -D warnings
-  CARGO_TARGET_DIR="$SELFTEST_TARGET" cargo test --release --locked --quiet --features selftest
-)
-echo "== benchmark smoke (quick mode, end to end)"
-python3 bin/bench run
-python3 bin/bench check "${KIT_OUT:-out}/bench/results.json" --baseline bench/rust/counters.json
-echo "== public text"
-python3 bin/kit public-text
-echo "gate: ok"
+exec python3 bin/kit gate "$@"

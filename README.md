@@ -28,7 +28,9 @@ bin/kit fast                      # every adapter, whole fast set, writes out/
 bin/kit fast --adapter oneyaml-rust --suite own
 bin/kit report out/results/*.json # render a report from result files
 bin/kit list                      # case counts
-bin/gate                          # the kit's own tests, the fast set, the checks (CI runs this)
+bin/gate                          # hand-over gate: the kit core and the areas your change touched
+bin/gate --full                   # everything, every adapter (CI runs this)
+bin/gate --plan                   # show what would run
 bin/bench run                     # benchmarks, quick mode: results.json, report.md and charts in out/bench/
 bin/bench run --mode full         # full mode; labelled publishable only on a quiet host
 ```
@@ -36,6 +38,14 @@ bin/bench run --mode full         # full mode; labelled publishable only on a qu
 `bin/kit fast` writes `out/results/<adapter>.json` and `out/conformance.md`
 (`$KIT_OUT` moves the directory) and exits non-zero when a library fails a case that
 its deviation list does not name, or when a list entry has gone stale.
+
+The gate has two tiers. The hand-over gate (`bin/gate`) always runs the kit core (corpus
+pins, the kit's own tests, the public-text check) and adds an area only when the files that
+differ from `main` touch it: an adapter language, the benchmark harness, or, for a change to
+the kit's code or cases, the reference adapter. Areas are the adapter languages (`rust`,
+`go`, `csharp`, ...), `bench` and `core`. The full gate (`bin/gate --full`) runs every area
+and every adapter; it is what CI runs, with `--jobs` to run areas side by side. Each step
+logs under `out/gate/` and shows its output only when it fails.
 
 ## Principles
 

@@ -20,6 +20,7 @@ const CAPABILITIES: &[&str] = &[
     "patch:remove",
     "error-category",
     "error-position",
+    "error-events",
 ];
 
 /// A failure the kit understands: its category and, where known, a 1-based
@@ -546,7 +547,7 @@ fn handle(req: &Json) -> Option<String> {
             let caps: Vec<String> = CAPABILITIES.iter().map(|c| js(c)).collect();
             let emu: Vec<String> = EMULATES.iter().map(|c| js(c)).collect();
             Some(format!(
-                "{{\"type\":\"hello\",\"protocol\":1,\"name\":\"oneyaml-rust\",\"version\":\"1.1.0\",\"language\":\"rust\",\"capabilities\":[{}],\"emulates\":[{}],\"info\":{{\"crates\":\"oneyaml 1.1.0, oneyaml-syntax 0.1.2, oneyaml-core 1.1.0\"}}}}",
+                "{{\"type\":\"hello\",\"protocol\":2,\"name\":\"oneyaml-rust\",\"version\":\"1.1.0\",\"language\":\"rust\",\"capabilities\":[{}],\"emulates\":[{}],\"info\":{{\"crates\":\"oneyaml 1.1.0, oneyaml-syntax 0.1.2, oneyaml-core 1.1.0\"}}}}",
                 caps.join(","),
                 emu.join(",")
             ))

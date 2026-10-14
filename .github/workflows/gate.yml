@@ -22,4 +22,4 @@ jobs:
         with:
           dotnet-version: "10.0.x"
       - name: Gate
-        run: bin/gate
+        run: bin/gate --full --jobs 3

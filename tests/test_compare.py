@@ -203,7 +203,7 @@ class Patches(unittest.TestCase):
         self.assertEqual(K.required_caps(m, m.expect)[0], {"patch:merge"})
         p = case("events", err(category="syntax", line=1, column=1), args={"profile": "yaml-1.1"})
         self.assertEqual(K.required_caps(p, p.expect),
-                         ({"events", "profile:yaml-1.1"}, {"error-category", "error-position"}))
+                         ({"events|outcome:events", "profile:yaml-1.1"}, {"error-category", "error-position"}))
 
 
 if __name__ == "__main__":

@@ -122,6 +122,10 @@ unwraps `$tagged` on both sides and nothing else. Number typing stays exact, so 
 library that reads `450.00` as an integer fails; where upstream is wrong about a
 number, the correction is recorded (see below). Own cases cannot use `tags: ignore`.
 
+Values have no depth limit: loading, validating and comparing walk with an explicit stack,
+so a case can hold a value nested a hundred thousand levels deep, and an adapter can answer
+with one.
+
 ### Positions
 
 A position is a 1-based `line` and `column`.
@@ -177,7 +181,9 @@ A `bounded` case names the acceptable outcomes and the resources it may use:
 
 - `accept` (optional) is an exact result of the operation's own kind. If the library
   answers, the whole result must equal it. A wrong or truncated result is a failure.
-- `error` (optional, a category other than `any`) is a refusal that is acceptable.
+- `error` (optional) is a refusal that is acceptable: a category, or `any` when every kind
+  of error is correct (for example unclosed deep input, which is a syntax error or a limit
+  error depending on where the reader stops). With `any`, strict does not check the category.
 - At least one of the two is required. A case with only `error` allows no result; a
   case with only `accept` allows no refusal.
 - `time_seconds` and `memory_mb` are part of the case. The runner enforces them
@@ -191,6 +197,10 @@ A `bounded` case names the acceptable outcomes and the resources it may use:
   checked in loose mode, and strict is unsupported rather than a silent pass. The time
   bound is always checked.
 - Results record what came back (`got`) and the measured time and memory.
+- A library that took the input but cannot describe the result answers `accepted` (adapter
+  protocol). The kit grades that from the measured cost: over a bound is a failure; within
+  the bounds it is a failure when only an error is allowed, and unsupported when a result
+  was also allowed, because the result was not described.
 
 ## Upstream cases and corrections
 

@@ -57,5 +57,5 @@ class OracleAdapter:
 
 ALL_CAPS = {
     "events", "value", "patch:add", "patch:remove", "patch:replace", "patch:move",
-    "patch:copy", "patch:test", "patch:merge", "error-category", "error-position",
+    "patch:copy", "patch:test", "patch:merge", "error-category", "error-position", "error-events",
 }
