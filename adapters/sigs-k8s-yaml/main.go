@@ -17,7 +17,7 @@ func events(in []byte) gokit.Result {
 	if _, err := yaml.YAMLToJSON(in); err != nil {
 		return gokit.Err("other", err.Error(), 0, 0)
 	}
-	return gokit.Unsupported("the library has no event stream")
+	return gokit.Accepted()
 }
 
 func value(in []byte) gokit.Result {
@@ -40,10 +40,10 @@ func main() {
 	a := gokit.Adapter{
 		Hello: gokit.Hello{
 			Name: "sigs-k8s-yaml", Version: version,
-			Capabilities: []string{"events", "value"},
+			Capabilities: []string{"outcome:events", "value"},
 			Info: map[string]string{
 				"module": "sigs.k8s.io/yaml " + version,
-				"events": "no event stream: valid input is declined; accept or reject is YAMLToJSON of the first document",
+				"events": "no event stream: accept or reject is YAMLToJSON of the first document",
 				"value":  "YAMLToJSON, first document only; the JSON text is read back with integers and floats kept apart",
 				"errors": "plain error strings: no category and no position are reported",
 			},

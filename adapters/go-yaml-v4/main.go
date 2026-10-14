@@ -1,7 +1,7 @@
 // Kit adapter for go.yaml.in/yaml/v4 (release candidate; the classic Decoder API).
 //
-// The library has no event stream, so valid input is answered "unsupported" for the
-// events operation, while rejection of invalid input is the library's own. Values come from
+// The library has no event stream, so the events operation is answered "accepted" or with
+// the library's own error. Values come from
 // decoding into any. Edits go through the library's yaml.Node: the adapter finds the node a
 // JSON Pointer names and the library encodes the value and writes the tree.
 package main
@@ -55,7 +55,7 @@ func events(in []byte) gokit.Result {
 	if _, err := decodeAll(in); err != nil {
 		return failure(err)
 	}
-	return gokit.Unsupported("the library has no event stream")
+	return gokit.Accepted()
 }
 
 func value(in []byte) gokit.Result {
@@ -82,22 +82,34 @@ func kind(n *yaml.Node) gokit.Kind {
 	return gokit.Scalar
 }
 
-const quoted = yaml.LiteralStyle | yaml.FoldedStyle | yaml.DoubleQuotedStyle | yaml.SingleQuotedStyle
-
-// set puts a value into an existing node. A string replacing a scalar that is quoted or a
-// block scalar keeps that style, which is how the library is used to edit a value in place;
-// anything else is encoded afresh by the library and keeps only the comments.
-func set(dst *yaml.Node, v any) error {
-	if s, ok := v.(string); ok && dst.Kind == yaml.ScalarNode && dst.Style&quoted != 0 {
-		dst.Value, dst.Tag = s, "!!str"
-		return nil
-	}
+func scalarNode(v any) (*yaml.Node, error) {
 	var n yaml.Node
-	if err := n.Encode(v); err != nil {
+	err := n.Encode(v)
+	return &n, err
+}
+
+// build makes a node for a patch value: the library encodes scalars and the adapter strings
+// the children together in the patch's key order.
+func build(v any) (*yaml.Node, error) {
+	return gokit.Build(v, scalarNode,
+		func(c []*yaml.Node) *yaml.Node { return &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map", Content: c} },
+		func(c []*yaml.Node) *yaml.Node { return &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq", Content: c} })
+}
+
+// set puts a value into an existing node the way a user editing the tree would. A scalar
+// that becomes a scalar keeps its own style and comments and takes the text and tag the
+// library's encoder gives the new value, so the encoder then picks the block header or
+// quoting the text needs. Anything else is replaced by the freshly built node.
+func set(dst *yaml.Node, v any) error {
+	n, err := build(v)
+	if err != nil {
 		return err
 	}
-	n.HeadComment, n.LineComment, n.FootComment = dst.HeadComment, dst.LineComment, dst.FootComment
-	*dst = n
+	if dst.Kind == yaml.ScalarNode && n.Kind == yaml.ScalarNode {
+		dst.Value, dst.Tag = n.Value, n.Tag
+		return nil
+	}
+	*dst = *n
 	return nil
 }
 
@@ -108,11 +120,7 @@ var tree = gokit.Tree[*yaml.Node]{
 	Text:       func(n *yaml.Node) string { return n.Value },
 	Target:     func(n *yaml.Node) *yaml.Node { return n.Alias },
 	Set:        set,
-	New: func(v any) (*yaml.Node, error) {
-		var n yaml.Node
-		err := n.Encode(v)
-		return &n, err
-	},
+	New:        build,
 }
 
 func patch(in []byte, args gokit.PatchArgs) gokit.Result {
@@ -140,7 +148,7 @@ func patch(in []byte, args gokit.PatchArgs) gokit.Result {
 		return gokit.Err("patch-path", "no such document", 0, 0).WithOutput(in).WithEmulated("unchanged", "error")
 	}
 	f, un := tree.Apply(docs[args.Document].Content[0], ops)
-	return gokit.Finish(in, f, un, func() ([]byte, error) {
+	return gokit.Finish(in, f, un, len(ops) > 0, func() ([]byte, error) {
 		var buf bytes.Buffer
 		enc := yaml.NewEncoder(&buf)
 		enc.SetIndent(2)
@@ -158,14 +166,14 @@ func main() {
 	a := gokit.Adapter{
 		Hello: gokit.Hello{
 			Name: "go-yaml-v4", Version: version,
-			Capabilities: []string{"events", "value", "error-category", "error-position", "patch:add", "patch:remove", "patch:replace"},
+			Capabilities: []string{"outcome:events", "value", "error-category", "error-position", "patch:add", "patch:remove", "patch:replace"},
 			Emulates:     []string{"error", "pointer", "unchanged"},
 			Info: map[string]string{
 				"module":  "go.yaml.in/yaml/v4 " + version,
-				"events":  "no event stream: valid input is declined; accept or reject is a generic load of every document",
+				"events":  "no event stream: accept or reject is a generic load of every document",
 				"value":   "Decoder.Decode into any, every document",
 				"errors":  "LoadError stage and mark; the stage names the category where it can",
-				"patch":   "yaml.Node tree edit; the adapter resolves JSON Pointers",
+				"patch":   "yaml.Node tree edit; the adapter resolves JSON Pointers (first match, aliases followed)",
 				"encoder": "indent 2",
 			},
 		},

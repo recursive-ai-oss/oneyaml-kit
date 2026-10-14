@@ -3,6 +3,7 @@ package gokit
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math"
 	"strings"
 	"testing"
@@ -115,7 +116,7 @@ func TestPatchValueTypesNumbersByTheirText(t *testing.T) {
 	if _, ok := l[2].(float64); !ok {
 		t.Errorf("2.0 is %T", l[2])
 	}
-	if _, ok := l[3].(map[string]any)["k"].(int64); !ok {
+	if _, ok := l[3].(OMap)[0].Value.(int64); !ok {
 		t.Errorf("nested 3 is %T", l[3])
 	}
 }
@@ -191,7 +192,6 @@ func TestApplyFailures(t *testing.T) {
 		op   Op
 		want string
 	}{
-		{op("replace", "/80", "9"), "refused-ambiguous"},
 		{op("replace", "/nope", "9"), "patch-path"},
 		{op("remove", "/l/5", nil), "patch-path"},
 		{op("remove", "/l/01", nil), "patch-path"},
@@ -205,6 +205,43 @@ func TestApplyFailures(t *testing.T) {
 		if u != "" || f == nil || f.Category != c.want {
 			t.Errorf("%v: got %v %q, want %s", c.op, f, u, c.want)
 		}
+	}
+}
+
+func TestApplyTakesTheFirstMatchingKeyAndNeverRefuses(t *testing.T) {
+	root := mapping(scalar("80"), scalar("1"), scalar("80"), scalar("2"))
+	if f, _ := apply(root, op("replace", "/80", "9")); f != nil {
+		t.Fatal(f)
+	}
+	if got := show(root); got != "{80 9 80 2}" {
+		t.Errorf("got %s", got)
+	}
+}
+
+func TestPatchObjectsKeepTheirKeyOrder(t *testing.T) {
+	v, err := PatchValue(json.RawMessage(`{"z":1,"a":{"y":[{"k":true},2.5],"b":null}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys := func(m OMap) string {
+		var s []string
+		for _, p := range m {
+			s = append(s, p.Key)
+		}
+		return strings.Join(s, ",")
+	}
+	m := v.(OMap)
+	if keys(m) != "z,a" || keys(m[1].Value.(OMap)) != "y,b" {
+		t.Errorf("order lost: %v", v)
+	}
+	n, _ := Build(v, func(x any) (*node, error) { return scalar(fmt.Sprint(x)), nil },
+		func(c []*node) *node { return &node{kind: Mapping, children: c} },
+		func(c []*node) *node { return &node{kind: Sequence, children: c} })
+	if got := show(n); got != "{z 1 a {y [{k true} 2.5] b <nil>}}" {
+		t.Errorf("built %s", got)
+	}
+	if _, ok := Plain(v).(map[string]any); !ok {
+		t.Error("Plain left an OMap")
 	}
 }
 
@@ -226,6 +263,12 @@ func TestApplyFollowsAnAliasToTheAnchoredNode(t *testing.T) {
 	// write is a judgement for the case to make, not for this code.
 	if show(anchored) != "{k new}" {
 		t.Errorf("anchored node is %s", show(anchored))
+	}
+}
+
+func TestAcceptedHasNoOtherFields(t *testing.T) {
+	if got := string(Accepted().encode("x")); got != "{\"id\":\"x\",\"status\":\"accepted\"}\n" {
+		t.Errorf("got %s", got)
 	}
 }
 

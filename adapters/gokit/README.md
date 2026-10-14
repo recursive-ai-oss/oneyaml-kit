@@ -30,14 +30,12 @@ directory here.
 
 ## What an adapter declares, and why
 
-- **No library here has an event stream.** For the events operation an adapter loads
-  every document into generic values: input the library rejects is answered with an error, and
-  accepted input is answered `unsupported` ("the library has no event stream"). So the
-  94 invalid yaml-test-suite inputs are judged on what the library does, and the
-  valid event cases are listed as unsupported rather than as failures. One consequence
-  to keep in mind when reading a list: an invalid input that the library *accepts* is also
-  answered `unsupported`, because the adapter has nothing to return for it, and it is
-  listed with a reason that says so.
+- **No library here has an event stream.** The parsers declare `outcome:events` and not
+  `events`. For the events operation an adapter loads every document into generic values:
+  input the library rejects is answered with an error, and input it takes is answered
+  `accepted`. So the 94 invalid yaml-test-suite inputs are judged on what the library does
+  (one it accepts is a failure), and a valid input is a failure only if the library rejects
+  it. No event is compared.
 - **Values** are what the library returns when decoding every document into `any`
   (`sigs-k8s-yaml`: the JSON text the library produces for the first document). The
   adapter converts Go types to the kit's value notation and nothing else; a Go type it does
@@ -49,13 +47,21 @@ directory here.
   libraries return plain strings, so they declare neither, and strict checks that need them are
   unsupported. The adapters do not read positions out of message text.
 - **Edits.** The Node and AST libraries have no pointer or patch language. The adapter
-  walks the tree to the node a JSON Pointer names (following aliases, like a user of the
-  tree would) and the library does the rest: encoding the value and writing the document.
-  That is declared as emulated behaviour: `pointer` (the adapter found the node), `error`
-  (the adapter raised the error: a missing path, an unknown operation) and `unchanged`
-  (the adapter reports the original bytes after a failed patch). Passes that depend on
-  them are marked in the *Emulated* column. `palantir-yamlpatch-*` is a real patcher: only
-  `unchanged` is the adapter's, because the library returns no bytes when it fails.
+  walks the tree to the node a JSON Pointer names, the way a user of the tree would:
+  aliases are followed to the anchored node, and the first key that matches in document order
+  is taken. It refuses neither a write through an alias nor an ambiguous key, so those cases
+  show what the library itself does. The adapter then edits as a user would. `go-yaml-v3`
+  and `go-yaml-v4` set the existing scalar node's text and tag from the library's own encoding
+  of the new value (the node keeps its style and comments, and the library's encoder chooses
+  the block header or quoting the text needs), and replace a collection with a freshly built
+  node, in the key order the patch wrote. `goccy-go-yaml` writes the library's YAML Path and
+  lets its replace do the work.
+  What the adapter itself supplies is declared as emulated behaviour: `pointer` (the adapter
+  found the node), `error` (the adapter raised the error: a missing path, an unknown
+  operation) and `unchanged` (the adapter reports the original bytes after a failed patch).
+  Passes that depend on them are marked in the *Emulated* column. `palantir-yamlpatch-*` is a
+  real patcher: only `unchanged` is the adapter's, because the library returns no bytes when
+  it fails. Its values reach the library as Go maps, as a Go caller would write them.
 - **Panics end the process.** A panic inside a library is never turned into an error answer,
   which would let a crash pass as a rejection. The kit restarts the adapter and counts the
   case as failed.

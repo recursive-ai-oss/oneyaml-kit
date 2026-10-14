@@ -15,7 +15,7 @@ const version = "v1.5.0"
 
 // operations builds the library's Patch from the case. Pointers go through the library's own
 // ParsePath, so a malformed pointer is rejected by the library. Numbers are given as Go
-// integers or floats by their JSON form, as a Go caller writing the patch would.
+// integers or floats by their JSON form and objects as Go maps, as a Go caller writing the patch would.
 func operations(args gokit.PatchArgs) (yamlpatch.Patch, error) {
 	ops, err := gokit.ParsePatch(args.Patch)
 	if err != nil {
@@ -34,7 +34,7 @@ func operations(args gokit.PatchArgs) (yamlpatch.Patch, error) {
 				return nil, err
 			}
 		}
-		op.Value = o.Value
+		op.Value = gokit.Plain(o.Value)
 		p = append(p, op)
 	}
 	return p, nil
@@ -67,7 +67,7 @@ func main() {
 			Emulates:     []string{"unchanged"},
 			Info: map[string]string{
 				"module":  "github.com/palantir/pkg/yamlpatch " + version,
-				"backend": "goccy AST (goccyyamlpatcher.New)",
+				"backend": "github.com/goccy/go-yaml v1.15.22, AST (goccyyamlpatcher.New)",
 				"patch":   "RFC 6902 only; first document only; errors are plain strings",
 			},
 		},

@@ -1,6 +1,6 @@
 // Kit adapter for github.com/goccy/go-yaml.
 //
-// The library has no event stream, so valid input is declined for the events operation.
+// The library has no event stream, so the events operation is answered "accepted" or with the library's error.
 // Values come from decoding into any. Replacing a value goes through the library's AST:
 // the adapter writes the YAML Path that names the node and the library marshals the new
 // value and replaces the node's text.
@@ -66,7 +66,7 @@ func events(in []byte) gokit.Result {
 	if _, err := decodeAll(in); err != nil {
 		return failure(err)
 	}
-	return gokit.Unsupported("the library has no event stream")
+	return gokit.Accepted()
 }
 
 func value(in []byte) gokit.Result {
@@ -117,13 +117,26 @@ func isPlainKey(s string) bool {
 	return true
 }
 
+func mustAtoi(s string) int { i, _ := strconv.Atoi(s); return i }
+
+// keyStep is the YAML Path text for a mapping key.
+func keyStep(tok string) (string, string) {
+	switch {
+	case strings.Contains(tok, "'") || strings.Contains(tok, "\\"):
+		return "", "a mapping key with a quote or backslash"
+	case isPlainKey(tok):
+		return "." + tok, ""
+	}
+	return ".'" + tok + "'", ""
+}
+
 // yamlPath turns a JSON Pointer into the library's YAML Path by looking at what each step
 // lands on: a key of a mapping or an index of a sequence. A step the adapter cannot
-// express in that syntax, or that goes through an alias, is declined.
+// express in that syntax is declined. The first key that matches in document order is taken.
 func yamlPath(root ast.Node, toks []string) (string, string) {
 	path := "$"
 	cur := root
-	for _, tok := range toks {
+	for i, tok := range toks {
 		cur = unwrap(cur)
 		switch n := cur.(type) {
 		case *ast.MappingNode, *ast.MappingValueNode:
@@ -140,14 +153,11 @@ func yamlPath(root ast.Node, toks []string) (string, string) {
 					break
 				}
 			}
-			switch {
-			case strings.Contains(tok, "'") || strings.Contains(tok, "\\"):
-				return "", "a mapping key with a quote or backslash"
-			case isPlainKey(tok):
-				path += "." + tok
-			default:
-				path += ".'" + tok + "'"
+			p, why := keyStep(tok)
+			if why != "" {
+				return "", why
 			}
+			path += p
 			if next == nil {
 				return path, ""
 			}
@@ -163,12 +173,45 @@ func yamlPath(root ast.Node, toks []string) (string, string) {
 			}
 			cur = n.Values[i]
 		case *ast.AliasNode:
-			return "", "a path through an alias"
+			// The adapter cannot see through the alias, so the rest of the path is written by
+			// the look of each token and the library's own lookup resolves it.
+			for _, t := range toks[i:] {
+				if _, err := strconv.Atoi(t); err == nil && fmt.Sprint(mustAtoi(t)) == t {
+					path += "[" + t + "]"
+					continue
+				}
+				p, why := keyStep(t)
+				if why != "" {
+					return "", why
+				}
+				path += p
+			}
+			return path, ""
 		default:
 			return "", "a path through a scalar"
 		}
 	}
 	return path, ""
+}
+
+// ordered gives the library's own ordered mapping type for the patch's objects, so the
+// keys come out in the order the patch wrote them.
+func ordered(v any) any {
+	switch x := v.(type) {
+	case gokit.OMap:
+		m := make(yaml.MapSlice, 0, len(x))
+		for _, p := range x {
+			m = append(m, yaml.MapItem{Key: p.Key, Value: ordered(p.Value)})
+		}
+		return m
+	case []any:
+		out := make([]any, len(x))
+		for i, e := range x {
+			out[i] = ordered(e)
+		}
+		return out
+	}
+	return v
 }
 
 func patch(in []byte, args gokit.PatchArgs) gokit.Result {
@@ -215,7 +258,7 @@ func patch(in []byte, args gokit.PatchArgs) gokit.Result {
 		if err != nil {
 			return gokit.Err("other", err.Error(), 0, 0).WithOutput(in).WithEmulated("unchanged")
 		}
-		text, err := yaml.Marshal(op.Value)
+		text, err := yaml.Marshal(ordered(op.Value))
 		if err != nil {
 			return gokit.Err("other", err.Error(), 0, 0).WithOutput(in).WithEmulated("unchanged")
 		}
@@ -223,18 +266,22 @@ func patch(in []byte, args gokit.PatchArgs) gokit.Result {
 			return gokit.Err("other", err.Error(), 0, 0).WithOutput(in).WithEmulated("unchanged")
 		}
 	}
-	return gokit.OKOutput([]byte(file.String())).WithEmulated("pointer")
+	r := gokit.OKOutput([]byte(file.String()))
+	if len(ops) > 0 {
+		r = r.WithEmulated("pointer")
+	}
+	return r
 }
 
 func main() {
 	a := gokit.Adapter{
 		Hello: gokit.Hello{
 			Name: "goccy-go-yaml", Version: version,
-			Capabilities: []string{"events", "value", "error-category", "error-position", "patch:replace"},
+			Capabilities: []string{"outcome:events", "value", "error-category", "error-position", "patch:replace"},
 			Emulates:     []string{"error", "pointer", "unchanged"},
 			Info: map[string]string{
 				"module": "github.com/goccy/go-yaml " + version,
-				"events": "no event stream: valid input is declined; accept or reject is a generic load of every document",
+				"events": "no event stream: accept or reject is a generic load of every document",
 				"value":  "Decoder.Decode into any, every document",
 				"errors": "syntax errors carry a token position; the depth limit is named; other errors are 'other'",
 				"patch":  "AST edit: Path.ReplaceWithReader; the adapter writes the YAML Path from the JSON Pointer; replace only",

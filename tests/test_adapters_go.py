@@ -20,21 +20,22 @@ GO = sorted(p.name for p in ADAPTERS.iterdir() if (p / "go.mod").is_file() and (
 # What each library can do, from the library's own API. Declaring more would be a claim
 # the kit then judges; declaring less hides results.
 CAPS = {
-    "go-yaml-v2": {"events", "value"},
-    "go-yaml-v3": {"events", "value", "patch:add", "patch:remove", "patch:replace"},
-    "go-yaml-v4": {"events", "value", "error-category", "error-position",
+    "go-yaml-v2": {"outcome:events", "value"},
+    "go-yaml-v3": {"outcome:events", "value", "patch:add", "patch:remove", "patch:replace"},
+    "go-yaml-v4": {"outcome:events", "value", "error-category", "error-position",
                    "patch:add", "patch:remove", "patch:replace"},
-    "goccy-go-yaml": {"events", "value", "error-category", "error-position", "patch:replace"},
-    "sigs-k8s-yaml": {"events", "value"},
+    "goccy-go-yaml": {"outcome:events", "value", "error-category", "error-position", "patch:replace"},
+    "sigs-k8s-yaml": {"outcome:events", "value"},
     "palantir-yamlpatch-v3": {"patch:add", "patch:remove", "patch:replace", "patch:move",
                               "patch:copy", "patch:test"},
     "palantir-yamlpatch-goccy": {"patch:add", "patch:remove", "patch:replace", "patch:move",
                                  "patch:copy", "patch:test"},
 }
 
-# yaml-test-suite results for the parsers, to be read next to the survey's own probe of
-# the same libraries (valid inputs matching their JSON, invalid inputs rejected).
-# Pinned so that a change in an adapter or a library shows up here.
+# yaml-test-suite results for the parsers: how many valid inputs load to a value equal to
+# the suite's JSON, and how many invalid inputs are rejected (the number to compare with
+# any plain "does it load this file" probe of the same library). Pinned so that a change in
+# an adapter or a library shows up here.
 VALUE_PASSES = {"go-yaml-v2": 223, "go-yaml-v3": 223, "go-yaml-v4": 232, "goccy-go-yaml": 260,
                 "sigs-k8s-yaml": 209}
 REJECTED = {"go-yaml-v2": 79, "go-yaml-v3": 79, "go-yaml-v4": 80, "goccy-go-yaml": 84,
@@ -104,16 +105,33 @@ class Run(unittest.TestCase):
             self.assertEqual(len(e), 94)
             self.assertEqual(sum(r["loose"] == "pass" for r in e), want, n)
 
-    def test_no_event_stream_means_valid_input_is_declined_not_failed(self):
+    def test_without_an_event_stream_acceptance_is_judged_and_events_are_not_claimed(self):
         for n in VALUE_PASSES:
+            self.assertIn("outcome:events", self.res[n]["adapter"]["capabilities"])
+            self.assertNotIn("events", self.res[n]["adapter"]["capabilities"])
+            self.assertEqual(self.res[n]["adapter"]["protocol"], 2)
             ev = [r for r in self.res[n]["cases"] if r["suite"] == "yaml-test-suite"
                   and r["op"] == "events" and r["expect"] == "events"]
             self.assertEqual(len(ev), 308)
+            # No event is compared, so none passes; a valid input the library rejects fails.
             self.assertEqual(sum(r["loose"] == "pass" for r in ev), 0, n)
-            # Declined, and a few failed because the library rejected valid input.
             self.assertTrue(all(r["loose"] in ("unsupported", "fail") for r in ev), n)
-            declined = [r for r in ev if r["loose"] == "unsupported"]
-            self.assertTrue(all(r["reason"] == "adapter" for r in declined), n)
+        # An invalid input the library accepts is a failure, not a declined case.
+        bad = self.by["go-yaml-v3"]["own:safety/invalid-utf-8-byte"]
+        self.assertEqual(bad["loose"], "pass")
+        accepted = [r for r in self.res["goccy-go-yaml"]["cases"] if r["op"] == "events"
+                    and r["expect"] == "error" and r["loose"] == "fail"]
+        self.assertTrue(accepted)
+        self.assertTrue(all(r["got"]["status"] == "accepted" for r in accepted))
+
+    def test_backend_versions_in_hello_are_the_ones_the_module_pins(self):
+        gomod = {n: (ADAPTERS / n / "go.mod").read_text() for n in GO}
+        v3 = self.res["palantir-yamlpatch-v3"]["adapter"]["info"]["backend"]
+        self.assertIn("gopkg.in/yaml.v3 v3.0.1", v3)
+        self.assertRegex(gomod["palantir-yamlpatch-v3"], r"(?m)^\s*gopkg.in/yaml.v3 v3.0.1")
+        g = self.res["palantir-yamlpatch-goccy"]["adapter"]["info"]["backend"]
+        self.assertIn("github.com/goccy/go-yaml v1.15.22", g)
+        self.assertRegex(gomod["palantir-yamlpatch-goccy"], r"(?m)^\s*github.com/goccy/go-yaml v1.15.22")
 
     def test_reference_cases_a_and_b(self):
         got = {n: (self.by[n][CASE_A]["loose"], self.by[n][CASE_B]["loose"]) for n in self.by}
@@ -131,7 +149,7 @@ class Run(unittest.TestCase):
         for n in ("go-yaml-v3", "go-yaml-v4", "goccy-go-yaml"):
             self.assertEqual(self.res[n]["adapter"]["emulates"], ["error", "pointer", "unchanged"])
             ok = [r for r in self.res[n]["cases"] if r["op"] == "patch" and r["expect"] == "bytes"
-                  and r["loose"] != "unsupported"]
+                  and r["id"].startswith("own:edit/") and r["loose"] != "unsupported"]
             self.assertTrue(ok)
             self.assertTrue(all("pointer" in r.get("emulated", []) for r in ok), n)
         # The patcher does everything itself; only the reporting of the original bytes is the adapter's.
@@ -141,10 +159,19 @@ class Run(unittest.TestCase):
             self.assertEqual(marked, {"unchanged"}, n)
             self.assertNotIn("emulated", self.by[n][CASE_A])
 
-    def test_libraries_that_write_through_aliases_or_guess_keys_fail_those_cases(self):
-        for n in ("go-yaml-v3", "go-yaml-v4", "palantir-yamlpatch-v3"):
-            self.assertEqual(self.by[n]["own:edit/refuse-write-through-alias"]["loose"], "fail", n)
-        self.assertEqual(self.by["palantir-yamlpatch-v3"]["own:edit/refuse-ambiguous-key"]["loose"], "fail")
+    def test_the_adapters_resolver_follows_aliases_and_takes_the_first_key(self):
+        # The adapters whose library has no pointer resolution give no protection the library
+        # does not give: they follow an alias to the anchored node and take the first key that
+        # matches, so the refusal cases show the library's own lack of one.
+        for n in ("go-yaml-v3", "go-yaml-v4"):
+            for cid in ("own:edit/refuse-write-through-alias", "own:edit/refuse-ambiguous-key"):
+                r = self.by[n][cid]
+                self.assertEqual(r["loose"], "fail", (n, cid))
+                self.assertNotIn("error", r.get("emulated", []), (n, cid))
+                self.assertEqual(r.get("emulated"), ["pointer"], (n, cid))
+        # The patcher's own result, not the adapter's.
+        for cid in ("own:edit/refuse-write-through-alias", "own:edit/refuse-ambiguous-key"):
+            self.assertEqual(self.by["palantir-yamlpatch-v3"][cid]["loose"], "fail", cid)
         # A missing path is silently ignored by the library's replace.
         self.assertEqual(self.by["goccy-go-yaml"]["own:edit/atomic-failure"]["loose"], "fail")
 

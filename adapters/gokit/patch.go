@@ -51,39 +51,120 @@ func ParsePatch(raw json.RawMessage) ([]Op, error) {
 	return ops, nil
 }
 
-// PatchValue reads a JSON value into Go values a YAML library can encode: integers
-// stay integers and numbers with a point or exponent are floats.
+// Pair is one entry of an ordered mapping.
+type Pair struct {
+	Key   string
+	Value any
+}
+
+// OMap is a JSON object with its keys in the order the patch wrote them, so a value added
+// to a document keeps that order.
+type OMap []Pair
+
+// PatchValue reads a JSON value into Go values a YAML library can encode: integers stay
+// integers, numbers with a point or exponent are floats, and objects are OMap.
 func PatchValue(raw json.RawMessage) (any, error) {
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.UseNumber()
-	var v any
-	if err := dec.Decode(&v); err != nil {
-		return nil, err
-	}
-	return convertNumbers(v), nil
+	return readValue(dec)
 }
 
-func convertNumbers(v any) any {
-	switch x := v.(type) {
+func readValue(dec *json.Decoder) (any, error) {
+	tok, err := dec.Token()
+	if err != nil {
+		return nil, err
+	}
+	switch t := tok.(type) {
+	case json.Delim:
+		if t == '[' {
+			l := []any{}
+			for dec.More() {
+				v, err := readValue(dec)
+				if err != nil {
+					return nil, err
+				}
+				l = append(l, v)
+			}
+			_, err := dec.Token()
+			return l, err
+		}
+		m := OMap{}
+		for dec.More() {
+			k, err := dec.Token()
+			if err != nil {
+				return nil, err
+			}
+			v, err := readValue(dec)
+			if err != nil {
+				return nil, err
+			}
+			m = append(m, Pair{k.(string), v})
+		}
+		_, err := dec.Token()
+		return m, err
 	case json.Number:
-		s := string(x)
+		s := string(t)
 		if !strings.ContainsAny(s, ".eE") {
 			if i, err := strconv.ParseInt(s, 10, 64); err == nil {
-				return i
+				return i, nil
 			}
 		}
 		f, _ := strconv.ParseFloat(s, 64)
-		return f
+		return f, nil
+	}
+	return tok, nil
+}
+
+// Plain turns OMap values into Go maps, for libraries whose API takes a Go value: the
+// order of keys is then whatever the library does with a map.
+func Plain(v any) any {
+	switch x := v.(type) {
+	case OMap:
+		m := make(map[string]any, len(x))
+		for _, p := range x {
+			m[p.Key] = Plain(p.Value)
+		}
+		return m
 	case []any:
-		for i := range x {
-			x[i] = convertNumbers(x[i])
+		out := make([]any, len(x))
+		for i, e := range x {
+			out[i] = Plain(e)
 		}
-	case map[string]any:
-		for k := range x {
-			x[k] = convertNumbers(x[k])
-		}
+		return out
 	}
 	return v
+}
+
+// Build makes a node from a patch value, with the mapping and sequence constructors of the
+// library's tree and its own encoding for scalars, so keys keep the patch's order.
+func Build[N any](v any, scalar func(any) (N, error), mapping, sequence func([]N) N) (N, error) {
+	switch x := v.(type) {
+	case OMap:
+		var kids []N
+		for _, p := range x {
+			k, err := scalar(p.Key)
+			if err != nil {
+				return k, err
+			}
+			c, err := Build(p.Value, scalar, mapping, sequence)
+			if err != nil {
+				return c, err
+			}
+			kids = append(kids, k, c)
+		}
+		return mapping(kids), nil
+	case []any:
+		var kids []N
+		for _, e := range x {
+			c, err := Build(e, scalar, mapping, sequence)
+			if err != nil {
+				return c, err
+			}
+			kids = append(kids, c)
+		}
+		return sequence(kids), nil
+	}
+	return scalar(v)
 }
 
 // Pointer splits an RFC 6901 JSON Pointer into its decoded tokens.
@@ -153,8 +234,9 @@ func libFail(err error) *Failure {
 // with the library. The names it attaches are the ones every edit adapter declares in
 // its hello: "pointer" (the adapter, not the library, found the node), "error" (the
 // adapter raised the error) and "unchanged" (the adapter reports the original bytes after
-// a failure, because the library keeps no record of an abandoned edit).
-func Finish(original []byte, f *Failure, unsupported string, encode func() ([]byte, error)) Result {
+// a failure, because the library keeps no record of an abandoned edit). resolved says
+// whether any pointer was resolved, so an empty patch is not marked.
+func Finish(original []byte, f *Failure, unsupported string, resolved bool, encode func() ([]byte, error)) Result {
 	if unsupported != "" {
 		return Unsupported(unsupported)
 	}
@@ -169,7 +251,11 @@ func Finish(original []byte, f *Failure, unsupported string, encode func() ([]by
 	if err != nil {
 		return Err("other", err.Error(), 0, 0).WithOutput(original).WithEmulated("unchanged")
 	}
-	return OKOutput(out).WithEmulated("pointer")
+	r := OKOutput(out)
+	if resolved {
+		r = r.WithEmulated("pointer")
+	}
+	return r
 }
 
 func isIndex(t string) bool {
@@ -193,20 +279,15 @@ func (t Tree[N]) child(n N, tok string) (idx int, f *Failure) {
 	c := t.Content(n)
 	switch t.Kind(n) {
 	case Mapping:
-		found := -1
+		// The first match in document order, as a user scanning the node's children would
+		// take it. A second key with the same text is not looked for.
 		for i := 0; i+1 < len(c); i += 2 {
 			k := c[i]
 			if t.Kind(k) == Scalar && t.Text(k) == tok {
-				if found >= 0 {
-					return 0, fail("refused-ambiguous", "key %q matches more than one mapping key", tok)
-				}
-				found = i + 1
+				return i + 1, nil
 			}
 		}
-		if found < 0 {
-			return 0, fail("patch-path", "no key %q", tok)
-		}
-		return found, nil
+		return 0, fail("patch-path", "no key %q", tok)
 	case Sequence:
 		if !isIndex(tok) {
 			return 0, fail("patch-path", "%q is not a sequence index", tok)

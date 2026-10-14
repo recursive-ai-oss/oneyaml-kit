@@ -69,6 +69,10 @@ func OKValue(json []byte) Result { return Result{status: "ok", value: json} }
 // OKOutput answers a patch case with the whole stream after the patch.
 func OKOutput(b []byte) Result { return Result{status: "ok", output: b, hasOut: true} }
 
+// Accepted says the library took the input and the adapter has no result to describe,
+// which is all a library without an event stream can say.
+func Accepted() Result { return Result{status: "accepted"} }
+
 // Unsupported declines one case, with a short reason.
 func Unsupported(reason string) Result { return Result{status: "unsupported", reason: reason} }
 
@@ -152,7 +156,7 @@ func (r Result) encode(id string) []byte {
 
 func (a *Adapter) hello() []byte {
 	m := map[string]any{
-		"type": "hello", "protocol": 1, "name": a.Hello.Name, "version": a.Hello.Version,
+		"type": "hello", "protocol": 2, "name": a.Hello.Name, "version": a.Hello.Version,
 		"language": "go", "capabilities": nonNil(a.Hello.Capabilities),
 		"emulates": nonNil(a.Hello.Emulates), "info": a.Hello.Info,
 	}
