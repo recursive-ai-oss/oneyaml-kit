@@ -149,15 +149,20 @@ class GoPipeline(unittest.TestCase):
             # A load leaves nothing behind but what the library keeps; it is far below the peak.
             self.assertLess(kept, c["memory"]["peak_bytes"])
 
-    def test_the_text_api_libraries_are_marked_and_never_the_best(self):
+    def test_the_text_api_libraries_are_marked_wherever_they_are_the_strongest(self):
         rec, cells, _ = self.harness(self.wl, ["reference-a"], ["palantir-yamlpatch", "json-patch"], ["patch"], name="text")
         for lib in rec["libraries"]:
             self.assertEqual(lib["settings"]["state"], "the text")
         res = self.result_of(rec, cells, [m for m in self.metas if m["id"] == "reference-a"])
         for c in res["cells"]:
             self.assertEqual(c["state"], "text")
-        for row in results.compare_rows(res["cells"]):
-            self.assertIsNone(row["best_time"])
+        # Every competitor here did different work (text in, text out), so the strongest of them
+        # is still the row's reference, but always with its mark, never as an unmarked best.
+        rows = results.compare_rows(res["cells"])
+        self.assertTrue(rows)
+        for row in rows:
+            if row["best_time"] is not None:
+                self.assertNotEqual(row["best_time_mark"], "")
 
     def test_the_non_lossless_patch_baseline_is_marked_value_only(self):
         rec, cells, _ = self.harness(self.wl, ["reference-a"], ["json-patch", "palantir-yamlpatch"], ["patch"],
