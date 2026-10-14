@@ -363,5 +363,15 @@
   {"case": "own:diagnostics/second-bare-document-after-a-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted a second bare document after a byte order mark with no end marker before it; the case expects it to be rejected"},
   {"case": "own:diagnostics/second-bare-document-after-a-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted a second bare document after a byte order mark with no end marker before it; the case expects it to be rejected"},
   {"case": "own:schema/code-constructing-tags-are-kept-or-refused", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Loads the python/object tag as a plain value and drops the tag: it neither keeps the tag nor refuses the document"},
-  {"case": "own:schema/code-constructing-tags-are-kept-or-refused", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Loads the python/object tag as a plain value and drops the tag: it neither keeps the tag nor refuses the document"}
- ]}
+  {"case": "own:schema/code-constructing-tags-are-kept-or-refused", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Loads the python/object tag as a plain value and drops the tag: it neither keeps the tag nor refuses the document"},
+  {"case": "own:diagnostics/bom-inside-a-plain-scalar-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/bom-inside-a-plain-scalar-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:parse/bom-after-bare-document-before-directives-end", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: \"yaml: line 3: could not find expected ':'\""},
+  {"case": "own:parse/bom-after-bare-document-before-directives-end", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"yaml: line 3: could not find expected ':'\""},
+  {"case": "own:parse/local-tag-with-hash", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: did not find expected whitespace or line break'"},
+  {"case": "own:parse/local-tag-with-hash", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: did not find expected whitespace or line break'"},
+  {"case": "own:parse/tab-only-line-after-block-scalar-at-end", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: found a tab character where an indentation space is expected'"},
+  {"case": "own:parse/tab-only-line-after-block-scalar-at-end", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: found a tab character where an indentation space is expected'"},
+  {"case": "own:parse/verbatim-tag-with-fragment", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: \"yaml: did not find the expected '>'\""},
+  {"case": "own:parse/verbatim-tag-with-fragment", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"yaml: did not find the expected '>'\""}
+]}

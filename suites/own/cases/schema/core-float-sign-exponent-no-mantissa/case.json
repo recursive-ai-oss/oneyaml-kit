@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/core-float-sign-exponent-no-mantissa",
+ "title": "An exponent with no mantissa is a string, whatever the sign",
+ "category": "schema",
+ "origin": "bug",
+ "productions": [
+  "137",
+  "131"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "notes": "The core schema float pattern needs at least one digit before the exponent: `[-+]? ( \\. [0-9]+ | [0-9]+ ( \\. [0-9]* )? ) ( [eE] [-+]? [0-9]+ )?`. A sign and an exponent alone match nothing, so every item is a string.",
+ "provenance": {
+  "reference": "A resolver that read a sign and an exponent without a mantissa as a float: `+e5` became 0 and `-E1` became negative zero."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   [
+    "+e5",
+    "-e5",
+    "+E1",
+    "-e+3",
+    "-E-07"
+   ]
+  ]
+ }
+}

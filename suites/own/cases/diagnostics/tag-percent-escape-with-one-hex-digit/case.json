@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/tag-percent-escape-with-one-hex-digit",
+ "title": "A percent escape in a tag needs two hexadecimal digits",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "39",
+  "40",
+  "99"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.6",
+  "YAML 1.2.2 section 6.9.1"
+ ],
+ "notes": "A URI character is `%` followed by two hexadecimal digits (production 39). After `%2` the space cannot belong.",
+ "provenance": {
+  "reference": "A reader that accepted a percent sign followed by one hexadecimal digit in a tag."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 5
+ }
+}

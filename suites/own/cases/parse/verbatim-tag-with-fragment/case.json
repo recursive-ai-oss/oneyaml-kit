@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/verbatim-tag-with-fragment",
+ "title": "A verbatim tag may contain a hash sign",
+ "category": "parse",
+ "origin": "bug",
+ "productions": [
+  "39",
+  "98",
+  "97"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.1"
+ ],
+ "notes": "A verbatim tag is `!<` followed by one or more URI characters (production 39), and the URI characters include `#`. The tag is not shortened or altered.",
+ "provenance": {
+  "reference": "A reader that refused a verbatim tag with a hash sign in it as malformed."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

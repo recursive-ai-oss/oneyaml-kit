@@ -1,0 +1,40 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/read-nonspecific-tag-is-string",
+ "title": "The test operation reads a scalar under the non-specific tag as a string",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "100",
+  "97"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.1",
+  "YAML 1.2.2 section 3.3.2",
+  "RFC 6902 section 4.6",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "`! 12` is the string \"12\" (Example 6.28), so testing it against the string succeeds and the patch goes on to the replace. The tagged scalar's own bytes do not change.",
+ "provenance": {
+  "reference": "A reader that resolved a scalar under the non-specific tag by its text, so `! 12` was read as an integer."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "test",
+    "path": "/0",
+    "value": "12"
+   },
+   {
+    "op": "replace",
+    "path": "/1",
+    "value": 2
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

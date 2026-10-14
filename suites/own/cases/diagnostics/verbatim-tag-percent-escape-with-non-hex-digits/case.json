@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/verbatim-tag-percent-escape-with-non-hex-digits",
+ "title": "A percent escape in a verbatim tag needs hexadecimal digits",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "39",
+  "98"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.6",
+  "YAML 1.2.2 section 6.9.1"
+ ],
+ "notes": "A URI character is `%` followed by two hexadecimal digits (production 39). After `%` the `z` cannot belong.",
+ "provenance": {
+  "reference": "A reader that accepted a percent sign followed by characters that are not hexadecimal digits in a verbatim tag."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 5
+ }
+}

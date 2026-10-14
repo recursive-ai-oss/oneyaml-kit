@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/tab-only-line-after-block-scalar-at-end",
+ "title": "A line with only a tab after the content of a block scalar is not content",
+ "category": "parse",
+ "origin": "bug",
+ "productions": [
+  "170",
+  "166",
+  "78",
+  "202",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1.1",
+  "YAML 1.2.2 section 6.5",
+  "YAML 1.2.2 section 9.2"
+ ],
+ "notes": "The content indentation is set by the first non-empty line, here ` a` (one space). The next line has no leading space, so it is less indented than the content, it ends the scalar, and a line of only white space after the end of the node is a comment line (production 78) with nothing to say. Compare yaml-test-suite Y79Y/000, where the tab-only line is the first non-empty line of the scalar: it has no leading spaces, so no content indentation of at least one can be detected, and the input is an error. The kit reads both the same way: a tab never counts as indentation, and a line that holds only a tab is content only where indentation is already set and the line is indented at least that far (Y79Y/001 has the tab after one space). DK95/04 shows the tab-only line is white space between entries.",
+ "provenance": {
+  "reference": "A reader that rejected a final line of only a tab after a block scalar, at the end of the input."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

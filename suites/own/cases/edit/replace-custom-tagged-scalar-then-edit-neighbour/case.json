@@ -1,0 +1,41 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-custom-tagged-scalar-then-edit-neighbour",
+ "title": "A custom tag stays while the value stays a scalar, over two edits in one patch",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "97"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.1",
+  "RFC 6902 section 5",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The tag is a local tag on a scalar, and the new value is still a scalar, so the tag stays (a kit convention). The second edit of the same node must change only that node's text: the neighbouring entries are untouched.",
+ "provenance": {
+  "reference": "A writer whose second edit of a shortened tagged scalar used stale offsets, deleted the next line and produced invalid YAML."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "hi"
+   },
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "z"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

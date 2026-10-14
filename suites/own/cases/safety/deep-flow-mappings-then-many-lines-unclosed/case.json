@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/deep-flow-mappings-then-many-lines-unclosed",
+ "title": "Nine thousand open flow mappings followed by 140,608 lines of distinct keys",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "140",
+  "141",
+  "142"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2",
+  "YAML 1.2.2 section 7.4.1",
+  "YAML 1.2.2 section 3.2.1.1"
+ ],
+ "notes": "The input is never closed, so it is an error: a syntax error at the end of the input, or a limit error if the reader refuses the nesting first. No result is allowed. The keys of the innermost mapping are 140,608 different names (`xaaa` to `xZZZ`, none of them a number, boolean or null), so a reader that rejects duplicate keys still reads every line. A reader that looks at every open flow mapping for each line does about 1.3 billion steps here and goes over the bound. The bound is on total time, so a reader that is only slow per line can miss it too; it does not by itself show that the cost grows with depth (see safety/shallow-flow-mappings-then-many-lines-unclosed, the same lines at depth 100). The time bound is the robustness requirement of the kit, not a rule of the specification. Input: nine thousand `{`, then each name followed by a comma and a line break.",
+ "provenance": {
+  "reference": "A reader whose time was quadratic here: each line was checked against the pending implicit-key slot of every open flow mapping, taking nine seconds for a five megabyte input of this shape."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 0.5,
+  "memory_mb": 1024,
+  "error": [
+   "limit",
+   "syntax"
+  ]
+ }
+}

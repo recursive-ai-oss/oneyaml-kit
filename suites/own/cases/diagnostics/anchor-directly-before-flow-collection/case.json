@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/anchor-directly-before-flow-collection",
+ "title": "An anchor must be separated from the flow collection it marks",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "96",
+  "101",
+  "102",
+  "103"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.2",
+  "YAML 1.2.2 section 7.4"
+ ],
+ "notes": "An anchor name is made of non-space characters that are not flow indicators, so the name ends at `[`. Properties are followed by white space before the content (production 96 and the node productions that use it), and an empty node cannot be followed by a collection. `[` is the first character that cannot belong.",
+ "provenance": {
+  "reference": "A reader that accepted an anchor written directly against the opening bracket."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 3
+ }
+}

@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/tag-handle-with-two-exclamation-suffix",
+ "title": "A shorthand tag suffix cannot contain an exclamation mark",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "40",
+  "97",
+  "99"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.1"
+ ],
+ "notes": "Tag characters exclude `!` (production 40), so `!a!b!c` is neither a handle followed by a suffix nor a primary tag with a suffix: the second `!` after the handle `!a!` cannot belong. The handle is also not declared. Either reason makes it an error, so no position is stated.",
+ "provenance": {
+  "reference": "A reader that accepted `!a!b!c` as a tag with the suffix `b!c`."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax"
+ }
+}
