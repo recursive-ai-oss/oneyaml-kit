@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+"""Launcher: bin/bench <command>. Standard library only; Python 3.10 or newer."""
+import sys
+from pathlib import Path
+
+root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(root / "bench"))
+sys.dont_write_bytecode = True
+
+from oneyaml_bench.cli import main  # noqa: E402
+
+sys.exit(main())

@@ -67,6 +67,9 @@ def scan(paths: list[Path], root: Path = ROOT) -> list[str]:
             rel = p.as_posix()
         if rel.startswith(SKIP_PREFIXES) or rel == "suites/yaml-test-suite/LICENSE":
             continue
+        vendored = p.name in ("input.yaml", "expected.json") or "/LICENSES/" in rel
+        if rel.startswith("bench/workloads/real/") and vendored:
+            continue  # third-party files, and values read from them, are checked by their digests
         data = p.read_bytes()
         if b"\0" in data[:4096] and not data.startswith((b"\xef\xbb\xbf", b"\xff\xfe", b"\xfe\xff")):
             continue  # binary input data is checked by its digest

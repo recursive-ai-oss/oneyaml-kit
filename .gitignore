@@ -9,6 +9,7 @@
 !/tools
 !/tests
 !/adapters
+!/bench
 !/.github
 
 # Never commit these anywhere in the tree.

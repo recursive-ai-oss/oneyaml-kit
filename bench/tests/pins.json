@@ -1,0 +1,47 @@
+{
+ "real": {
+  "compose-wordpress": {
+   "input": "1a7d44cefdb903ae9dbaa785342fbe99a7f08e5b31be99cb9145695defe3938d",
+   "expected": "24e7eaca58fff72125a09ff30cdd19cbc7e828bc43e33864851229584af00af2"
+  },
+  "gha-workflow": {
+   "input": "cc1cbdd36bae909c4f30f529505c860365156c3a9606b179729549631fc7d593",
+   "expected": "76bc52254fcd1df106d6b9f432aa7a4e0a932071303571bd380d32c6752f5089"
+  },
+  "helm-ingress-nginx": {
+   "input": "0d8eac2d4e5cc2ffa225debea7b1feb1fb372520c5b046e21f6177919d54e622",
+   "expected": "84def0cd62b8c250a9d0f8c63efeab016f3fe61c024f2cc7da758edb62ba076d"
+  },
+  "k8s-ingress-nginx-multi": {
+   "input": "502fddca66b09c20dd48b6d0a792a9671cd663a3a0d2a8bda5ae990d13b6c5b2",
+   "expected": "75f4c61d6f3f9e962f40a456615ba345ff032b28ac082739d443bce1e8ac31e8"
+  },
+  "openapi-api-with-examples": {
+   "input": "2b8d39097f8d0800b3d9b94f784348ea6d046a82c2b78e83b737874c938e63b9",
+   "expected": "525c2b21da8dc38ed356d021ff21996e74e0c3903fe3f08faf4096f8c6c1c897"
+  },
+  "openapi-petstore": {
+   "input": "abc68d08c674c8f0415aaeeb87c4203d5dd7257cdb79ac7ccb0446d1c5b9a7c2",
+   "expected": "653f79289d33a5af0dff70e0ea5f0e050b4364462376a1727fc8bd2e5959de9b"
+  },
+  "prometheus-config": {
+   "input": "aafcee2a237ad599327d07ed79e57ba1e57bdcf5a4bba6e3ba22eb09e25af479",
+   "expected": "dcf978af904072d392a377baffda8dc8b66e388d300a88b21a504b251f485492"
+  }
+ },
+ "generated_4096": {
+  "anchors": "89277c52211ce3977a30cc1ca101fc2a822e01582145516e394d40eb0d287c74",
+  "compose-merge": "1903ef53b5374700f4848b2c28ea6953154f65f6a4829982f9b5280ab2f00505",
+  "deep-block": "1acef57140b8e1b1f073597263158f51823ecce3bc0748e0e73560bc595ab803",
+  "deep-flow": "0c20c63c93a5e5d616f49f56f765d948e273f73432273446dd06563e5c4249ea",
+  "flow-heavy": "81d398772383c81629e93fb2e8b1d0012e3a4103e0cc7550d5306af58df075c6",
+  "helm-values": "79f68bcf0dbc12c21f6de6fa859291cca323452ed24130738394072229d531b8",
+  "k8s-multi": "62921da432e6a783604464be4a443d29c488d1fd7adb2b9a4d7510bd5c6cbbdb",
+  "long-scalars": "d8fb5bee67e28443dcecfea9d507358d85abff5e97f51ba11be8ed00f6ef1b60",
+  "openapi": "38e5761f04aabf1fac58dc3667a339044c3f5cb56c561b1ec036d16860d89116",
+  "records": "7fb26eb031f7626c233e3571c745cfd6391f2491d7fd90ec31c5cf7b193a4953",
+  "scalar-styles": "c258ae09aaca2b8f012a4bacc39178ccba5fe0cd048265e2bc22db58f493d1a0",
+  "unicode": "4f3c83e5c7085113e310c7bd10bc63ba7431546d10a298dfed6e1a85132c74b5",
+  "wide-map": "20795f227dade93bfdd2e39b389dcd276aef9cf05ce0d35126cac9a33280db32"
+ }
+}

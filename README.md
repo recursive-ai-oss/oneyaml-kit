@@ -13,8 +13,9 @@ from the results.
 | `suites/own/cases/` | The kit's own cases: parse, schema, edits by patch, diagnostics, safety. |
 | `adapters/` | One directory per library under test: manifest, adapter program, known deviations. |
 | `tools/oneyaml_kit/` | Loader, runner, comparison, report generator (Python standard library only). |
+| `bench/` | The benchmark harness: workloads, the Rust harness, the driver and the report generator. See [docs/benchmarks.md](docs/benchmarks.md). |
 | `tests/` | The kit's own tests. |
-| `docs/` | [Case format](docs/case-format.md), [adapter protocol](docs/adapter-protocol.md), [result format](docs/result-format.md), [edit semantics](docs/edit-semantics.md). |
+| `docs/` | [Case format](docs/case-format.md), [adapter protocol](docs/adapter-protocol.md), [result format](docs/result-format.md), [edit semantics](docs/edit-semantics.md), [benchmarks](docs/benchmarks.md), [benchmark adapters](docs/benchmark-adapters.md). |
 
 ## Running it
 
@@ -28,6 +29,8 @@ bin/kit fast --adapter oneyaml-rust --suite own
 bin/kit report out/results/*.json # render a report from result files
 bin/kit list                      # case counts
 bin/gate                          # the kit's own tests, the fast set, the checks (CI runs this)
+bin/bench run                     # benchmarks, quick mode: results.json, report.md and charts in out/bench/
+bin/bench run --mode full         # full mode; labelled publishable only on a quiet host
 ```
 
 `bin/kit fast` writes `out/results/<adapter>.json` and `out/conformance.md`

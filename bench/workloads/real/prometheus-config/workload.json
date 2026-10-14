@@ -1,0 +1,13 @@
+{
+ "id": "prometheus-config",
+ "description": "A small commented Prometheus configuration with an oddly indented comment.",
+ "documents": 1,
+ "tier": "quick",
+ "source": {
+  "origin": "upstream",
+  "repository": "https://github.com/prometheus/prometheus",
+  "revision": "6036882468febf589e31134b3fab9889d4146603",
+  "path": "documentation/examples/prometheus.yml",
+  "licence": "Apache-2.0"
+ }
+}

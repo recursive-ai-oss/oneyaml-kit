@@ -1,0 +1,13 @@
+{
+ "id": "openapi-petstore",
+ "description": "The OpenAPI petstore example: paths, schemas, `$ref`, long literal blocks.",
+ "documents": 1,
+ "tier": "quick",
+ "source": {
+  "origin": "upstream",
+  "repository": "https://github.com/OAI/learn.openapis.org",
+  "revision": "82b82f372aa185a07ea11bc158619895ab21f741",
+  "path": "examples/v3.0/petstore-expanded.yaml",
+  "licence": "CC-BY-4.0"
+ }
+}

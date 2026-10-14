@@ -1,0 +1,13 @@
+{
+ "id": "helm-ingress-nginx",
+ "description": "Helm chart values: long comment runs, commented-out blocks, empty `{}` and `[]`.",
+ "documents": 1,
+ "tier": "quick",
+ "source": {
+  "origin": "upstream",
+  "repository": "https://github.com/kubernetes/ingress-nginx",
+  "revision": "dbb11b92ddb77bee9c35e462479129354c84f939",
+  "path": "charts/ingress-nginx/values.yaml",
+  "licence": "Apache-2.0"
+ }
+}

@@ -29,6 +29,20 @@ done
 for p in adapters/*/*.csproj; do
   [ -f "$p" ] && "${DOTNET:-dotnet}" format whitespace "$p" --verify-no-changes
 done
+echo "== benchmark harness: tests and checks"
+python3 -m unittest discover -s bench/tests -q
+(
+  cd bench/rust
+  cargo fmt --check
+  cargo clippy --release --locked --quiet --all-targets -- -D warnings
+  # The self-test build has fake libraries in it, so it gets its own build directory.
+  SELFTEST_TARGET="${CARGO_TARGET_DIR:-$PWD/../../out/target}-selftest"
+  CARGO_TARGET_DIR="$SELFTEST_TARGET" cargo clippy --release --locked --quiet --all-targets --features selftest -- -D warnings
+  CARGO_TARGET_DIR="$SELFTEST_TARGET" cargo test --release --locked --quiet --features selftest
+)
+echo "== benchmark smoke (quick mode, end to end)"
+python3 bin/bench run
+python3 bin/bench check "${KIT_OUT:-out}/bench/results.json" --baseline bench/rust/counters.json
 echo "== public text"
 python3 bin/kit public-text
 echo "gate: ok"
