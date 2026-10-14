@@ -1,0 +1,10 @@
+[
+ {
+  "$tagged": {
+   "tag": "tag:yaml.org,2002:python/object/apply:os.system",
+   "value": [
+    "echo hi"
+   ]
+  }
+ }
+]

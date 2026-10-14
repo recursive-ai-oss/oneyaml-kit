@@ -1,11 +1,11 @@
 """Properties of the seeded cases that the generic mutation tests do not check."""
 
-import json
 import unittest
 
 import support
 from oneyaml_kit import cases as C
 from oneyaml_kit import compare as K
+from oneyaml_kit import kitjson
 
 ALL = [c for c in C.load_all(include_slow=True) if c.suite == "own"]
 
@@ -75,7 +75,63 @@ class Values(unittest.TestCase):
 
     def test_expected_json_files_are_plain_json(self):
         for p in C.OWN_DIR.rglob("expected.json"):
-            json.loads(p.read_bytes())
+            kitjson.loads(p.read_bytes())
+
+
+class DeepShapes(unittest.TestCase):
+    """The accepted results of the deep cases are rebuilt from their inputs by the grammar,
+    so a typo in a stored file cannot hide until a second library answers."""
+
+    def stored(self, case, name):
+        d = support.ROOT / "suites" / "own" / "cases" / "safety" / case
+        return (d / "input.yaml").read_bytes(), (d / name).read_bytes()
+
+    @staticmethod
+    def lines(items):
+        return ("\n".join(items) + "\n").encode()
+
+    def test_compact_block_sequences(self):
+        for case in ("deep-block-sequences-3000", "deep-block-sequences-50000"):
+            text, got = self.stored(case, "expected.events")
+            n = text.count(b"- ")
+            self.assertEqual(text, b"- " * n + b"a\n")
+            want = ["+STR", "+DOC"] + ["+SEQ"] * n + ["=VAL :a"] + ["-SEQ"] * n + ["-DOC", "-STR"]
+            self.assertEqual(got, self.lines(want), case)
+
+    def test_explicit_keys(self):
+        text, got = self.stored("deep-explicit-keys-2000", "expected.events")
+        n = text.count(b"? ")
+        self.assertEqual(text, b"? " * n + b"a\n")
+        want = (["+STR", "+DOC"] + ["+MAP"] * n + ["=VAL :a"] + ["=VAL :", "-MAP"] * n
+                + ["-DOC", "-STR"])
+        self.assertEqual(got, self.lines(want))
+
+    def test_flow_mappings(self):
+        text, got = self.stored("deep-flow-mappings-3000", "expected.events")
+        n = text.count(b"{")
+        self.assertEqual(text, b"{a: " * n + b"x" + b"}" * n + b"\n")
+        want = (["+STR", "+DOC"] + ["+MAP {}", "=VAL :a"] * n + ["=VAL :x"] + ["-MAP"] * n
+                + ["-DOC", "-STR"])
+        self.assertEqual(got, self.lines(want))
+
+    def test_indented_mappings(self):
+        text, got = self.stored("deep-indented-mappings-600", "expected.events")
+        rows = text.decode().split("\n")[:-1]
+        d = len(rows) - 1
+        self.assertEqual(rows, [" " * i + "k:" for i in range(d)] + [" " * d + "end: 1"])
+        want = (["+STR", "+DOC"] + ["+MAP", "=VAL :k"] * d
+                + ["+MAP", "=VAL :end", "=VAL :1", "-MAP"] + ["-MAP"] * d + ["-DOC", "-STR"])
+        self.assertEqual(got, self.lines(want))
+
+    def test_hundred_thousand_deep_values(self):
+        text, got = self.stored("deep-block-sequences-100000-value", "expected.json")
+        n = text.count(b"- ")
+        self.assertEqual(text, b"- " * n + b"a\n")
+        self.assertEqual(got, b"[" + b"[" * n + b'"a"' + b"]" * n + b"]\n")
+        text, got = self.stored("deep-flow-sequences-100000-value", "expected.json")
+        n = text.count(b"[")
+        self.assertEqual(text, b"[" * n + b"]" * n + b"\n")
+        self.assertEqual(got, b"[" + b"[" * n + b"]" * n + b"]\n")
 
 
 if __name__ == "__main__":

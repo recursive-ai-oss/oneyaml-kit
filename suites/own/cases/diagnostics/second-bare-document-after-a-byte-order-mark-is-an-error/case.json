@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/second-bare-document-after-a-byte-order-mark-is-an-error",
+ "title": "A byte order mark and a second bare document with no end marker before it",
+ "category": "diagnostics",
+ "origin": "spec",
+ "productions": [
+  "3",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 9.1.1",
+  "YAML 1.2.2 section 9.2"
+ ],
+ "notes": "A byte order mark is allowed in the prefix of a document (production 211), but a bare document ends only at an end marker or a start marker, so the content after the mark cannot start another document. The mark is not content and is not counted; `b` is the first character that cannot belong, at column 1 of line 2.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml/tests/bom_prefix.rs (the_location_counts_no_invisible_mark)"
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 1
+ }
+}
