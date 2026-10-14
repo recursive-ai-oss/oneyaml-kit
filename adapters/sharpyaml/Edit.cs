@@ -11,8 +11,10 @@ using SharpYaml.Syntax;
 /// The edit path SharpYaml really has: <c>YamlSyntaxTree.WithTextChange(start, length, rawYaml)</c>
 /// replaces a span of the source and keeps every other byte. It has no notion of a path or a value,
 /// so this class does what a caller has to do: resolve the pointer to the span of a scalar (from the
-/// library's own parse events), write the YAML text for the new value in a style that can hold it,
-/// and undo everything when a step fails. All of that is declared as emulated behaviour.
+/// library's own parse events, following an alias to the node it names and taking the first of two equal
+/// keys), write the YAML text for the new value in a style that can hold it, and undo everything when a
+/// step fails. It supplies no refusal of its own: a write through an alias or an ambiguous key goes ahead,
+/// as it would for anyone using the library this way. All of that is declared as emulated behaviour.
 /// </summary>
 static class Edit
 {
@@ -62,12 +64,17 @@ static class Edit
             var o = Outcome.OutputOk(d.Encode(tree.ToFullString())).Emulating("pointer", "source-text");
             return d.Transformed ? o.Emulating("decode") : o;
         }
-        catch (Refusal e) { return Fail(e.Category, e.Message, r.Input, ownError: true); }
+        catch (Refusal e)
+        {
+            // A path that does not resolve is an answer that depended on the adapter's pointer resolution.
+            var o = Fail(e.Category, e.Message, r.Input, ownError: true);
+            return e.Category == "patch-path" ? o.Emulating("pointer") : o;
+        }
         catch (Decline e) { return Outcome.Unsupported(e.Message); }
         catch (YamlException e)
         {
             // The library's own answer: it rejected the text (the input, or a replacement that made it invalid).
-            return Outcome.Error(SharpYamlKitAdapter.Describe(e), output: r.Input).Emulating("unchanged");
+            return Outcome.Error(SharpYamlKitAdapter.Describe(e, d.Text!), output: r.Input).Emulating("unchanged");
         }
     }
 
@@ -91,14 +98,14 @@ static class Edit
         if (root == null) throw new Refusal("patch-path", "the document does not exist");
 
         var node = root;
-        bool viaAlias = false;
         foreach (var t in tokens)
         {
             if (node.Kind == "alias")
             {
                 if (!anchors.TryGetValue(node.Text, out var target)) throw new Refusal("patch-path", "unknown alias");
+                // An alias is followed to the node it names, as a reader of the library's events would: a
+                // write then lands in the anchored text, and nothing refuses it.
                 node = target;
-                viaAlias = true;
             }
             switch (node.Kind)
             {
@@ -108,18 +115,16 @@ static class Edit
                     node = node.Items[idx];
                     break;
                 case "mapping":
-                    var hits = new List<Node>();
-                    for (int i = 0; i + 1 < node.Items.Count; i += 2)
-                        if (node.Items[i].Kind == "scalar" && node.Items[i].Text == t) hits.Add(node.Items[i + 1]);
-                    if (hits.Count > 1) throw new Refusal("refused-ambiguous", $"more than one key matches {t}");
-                    if (hits.Count == 0) throw new Refusal("patch-path", $"no key {t}");
-                    node = hits[0];
+                    // The event layer has no key lookup, so the first key with that text, in document order.
+                    Node? hit = null;
+                    for (int i = 0; i + 1 < node.Items.Count && hit == null; i += 2)
+                        if (node.Items[i].Kind == "scalar" && node.Items[i].Text == t) hit = node.Items[i + 1];
+                    node = hit ?? throw new Refusal("patch-path", $"no key {t}");
                     break;
                 default:
                     throw new Refusal("patch-path", "the path goes through a scalar");
             }
         }
-        if (viaAlias) throw new Refusal("refused-alias", "a write through an alias would change every user of the anchor");
         if (node.Kind is "sequence" or "mapping") throw new Decline("replacing a collection needs the adapter to write block or flow YAML");
         if (value.ValueKind is JsonValueKind.Object or JsonValueKind.Array) throw new Decline("a collection value needs the adapter to write block or flow YAML");
 

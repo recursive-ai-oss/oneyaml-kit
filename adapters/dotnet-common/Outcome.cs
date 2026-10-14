@@ -22,7 +22,7 @@ public sealed class Request
 /// <see cref="Emulated"/>, so the kit never credits it to the library.</summary>
 public sealed class Outcome
 {
-    public enum Kinds { Events, Value, Output, Error, Unsupported }
+    public enum Kinds { Events, Value, Output, Error, Unsupported, Accepted }
 
     public Kinds Kind { get; private init; }
     public List<string>? Events { get; private init; }
@@ -40,6 +40,9 @@ public sealed class Outcome
     /// operations); <paramref name="output"/> is the document as it would now be written (patches).</summary>
     public static Outcome Error(Failure f, List<string>? events = null, byte[]? output = null) =>
         new() { Kind = Kinds.Error, Failure = f, Events = events, Output = output };
+
+    /// <summary>The library took the input and the adapter does not describe the result.</summary>
+    public static Outcome Accepted() => new() { Kind = Kinds.Accepted };
 
     public static Outcome Unsupported(string reason) => new() { Kind = Kinds.Unsupported, Reason = reason };
 

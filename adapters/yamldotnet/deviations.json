@@ -2,6 +2,55 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
+   "case": "own:diagnostics/bom-inside-a-document-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:diagnostics/bom-inside-a-document-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:diagnostics/directive-then-document-end-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 3:1; the first character that cannot belong to any document is at 4:1"
+  },
+  {
+   "case": "own:diagnostics/hex-escape-with-a-non-hex-digit",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:7"
+  },
+  {
+   "case": "own:diagnostics/implicit-key-of-1025-characters-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:1026; the first character that cannot belong to any document is at 1:1027"
+  },
+  {
+   "case": "own:diagnostics/invalid-escape-in-double-quotes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:7"
+  },
+  {
+   "case": "own:diagnostics/mapping-key-without-a-colon",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 2:1; the first character that cannot belong to any document is at 2:2"
+  },
+  {
    "case": "own:diagnostics/position-counts-a-bare-cr-as-a-line-break",
    "expectation": "primary",
    "mode": "strict",
@@ -23,18 +72,305 @@
    "reason": "Reports the error at 2:3; the first character that cannot belong to any document is at 2:4"
   },
   {
+   "case": "own:diagnostics/second-colon-in-a-plain-scalar-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:5; the first character that cannot belong to any document is at 1:6"
+  },
+  {
+   "case": "own:diagnostics/sequence-entry-after-a-block-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 2:1; the first character that cannot belong to any document is at 2:2"
+  },
+  {
+   "case": "own:diagnostics/short-unicode-escape",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:9"
+  },
+  {
+   "case": "own:diagnostics/unclosed-double-quote",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 2:1"
+  },
+  {
+   "case": "own:diagnostics/unclosed-flow-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 2:1; the first character that cannot belong to any document is at 1:6"
+  },
+  {
+   "case": "own:diagnostics/unclosed-single-quote-without-final-newline",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:8"
+  },
+  {
+   "case": "own:diagnostics/zero-block-scalar-indentation-indicator",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:5"
+  },
+  {
+   "case": "own:parse/encoding-utf-16be-with-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-16be-with-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-16be-without-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-16be-without-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-16le-with-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-16le-with-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-16le-without-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-16le-without-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-32be-with-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-32be-with-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-32be-without-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-32be-without-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-32le-with-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-32le-with-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-32le-without-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-32le-without-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-8-with-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-8-with-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-8-without-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/encoding-utf-8-without-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 13: expected '+DOC ---', got '+DOC'"
+  },
+  {
+   "case": "own:parse/line-separator-is-not-a-line-break",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:parse/line-separator-is-not-a-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:parse/next-line-is-not-a-line-break",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:parse/next-line-is-not-a-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:parse/paragraph-separator-is-not-a-line-break",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:parse/paragraph-separator-is-not-a-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:safety/alias-byte-expansion-bomb",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+  },
+  {
+   "case": "own:safety/alias-byte-expansion-bomb",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+  },
+  {
    "case": "own:safety/alias-expansion-bomb",
    "expectation": "primary",
    "mode": "loose",
-   "verdict": "unsupported",
-   "reason": "The adapter declines this case: the result expands to more than 4000000 nodes; the adapter does not render it"
+   "verdict": "fail",
+   "reason": "Takes the input without a limit error: accepted; only a limit error is allowed"
   },
   {
    "case": "own:safety/alias-expansion-bomb",
    "expectation": "primary",
    "mode": "strict",
-   "verdict": "unsupported",
-   "reason": "The adapter declines this case: the result expands to more than 4000000 nodes; the adapter does not render it"
+   "verdict": "fail",
+   "reason": "Takes the input without a limit error: accepted; only a limit error is allowed"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb-ten-by-ten",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Takes the input without a limit error: accepted; only a limit error is allowed"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb-ten-by-ten",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Takes the input without a limit error: accepted; only a limit error is allowed"
+  },
+  {
+   "case": "own:schema/code-constructing-tags-are-plain-data",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:python/object/apply:os.system"
+  },
+  {
+   "case": "own:schema/code-constructing-tags-are-plain-data",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:python/object/apply:os.system"
+  },
+  {
+   "case": "own:schema/core-float-forms",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].g: expected 0.001, got 0.0010000000474974513"
+  },
+  {
+   "case": "own:schema/core-float-forms",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].g: expected 0.001, got 0.0010000000474974513"
   },
   {
    "case": "own:schema/core-floats",
@@ -65,6 +401,90 @@
    "reason": "Reads the value differently: $[0].d: expected 12, got '0o14'"
   },
   {
+   "case": "own:schema/core-integers-beyond-64-bits",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 18446744073709551616, got 1.8446744073709552e+19"
+  },
+  {
+   "case": "own:schema/core-integers-beyond-64-bits",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 18446744073709551616, got 1.8446744073709552e+19"
+  },
+  {
+   "case": "own:schema/duplicate-keys-differing-in-style-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:schema/duplicate-keys-differing-in-style-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:schema/duplicate-keys-equal-after-resolution-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:schema/duplicate-keys-equal-after-resolution-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:schema/duplicate-keys-in-a-flow-mapping-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:schema/duplicate-keys-in-a-flow-mapping-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:schema/duplicate-plain-keys-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:schema/duplicate-plain-keys-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:schema/empty-key-is-null",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Exception during deserialization"
+  },
+  {
+   "case": "own:schema/empty-key-is-null",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Exception during deserialization"
+  },
+  {
    "case": "own:schema/explicit-str-tag",
    "expectation": "primary",
    "mode": "loose",
@@ -79,6 +499,62 @@
    "reason": "Reads the value differently: $[0][2]: expected 'null', got None"
   },
   {
+   "case": "own:schema/explicit-tags-force-the-type",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:null"
+  },
+  {
+   "case": "own:schema/explicit-tags-force-the-type",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:null"
+  },
+  {
+   "case": "own:schema/global-tag-uri-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:example.com,2000:shape"
+  },
+  {
+   "case": "own:schema/global-tag-uri-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:example.com,2000:shape"
+  },
+  {
+   "case": "own:schema/local-tag-on-a-collection-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!shape"
+  },
+  {
+   "case": "own:schema/local-tag-on-a-collection-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!shape"
+  },
+  {
+   "case": "own:schema/mapping-and-sequence-tags-are-transparent",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:seq"
+  },
+  {
+   "case": "own:schema/mapping-and-sequence-tags-are-transparent",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:seq"
+  },
+  {
    "case": "own:schema/non-string-key",
    "expectation": "primary",
    "mode": "loose",
@@ -91,6 +567,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reads the value differently: $[0]: expected {'$map': [[1, 'a'], [True, 'b'], ['x', 'c']]}, got {'1': 'a', 'true': 'b', 'x': 'c'}"
+  },
+  {
+   "case": "own:schema/quoted-and-plain-keys-differ-by-type",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$map': [['1', 'a'], [1, 'b']]}, got {'1': 'b'}"
+  },
+  {
+   "case": "own:schema/quoted-and-plain-keys-differ-by-type",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$map': [['1', 'a'], [1, 'b']]}, got {'1': 'b'}"
   },
   {
    "case": "own:schema/unresolved-tag-is-kept",
@@ -343,6 +833,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Rejects valid input: Encountered an unresolved tag '!"
+  },
+  {
+   "case": "yts:9C9N",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+  },
+  {
+   "case": "yts:9C9N",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
   },
   {
    "case": "yts:9WXW@value",
@@ -763,6 +1267,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Rejects valid input: While parsing a block collection, did not find expected '-' indicator."
+  },
+  {
+   "case": "yts:VJP3/00",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+  },
+  {
+   "case": "yts:VJP3/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
   },
   {
    "case": "yts:VJP3/01",

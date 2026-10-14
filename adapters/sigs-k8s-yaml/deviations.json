@@ -1,5 +1,7 @@
 {"format": "oneyaml-kit-deviations/1",
  "entries": [
+  {"case": "own:diagnostics/position-counts-characters-outside-the-basic-plane", "expectation": "primary", "mode": "loose", "verdict": "unsupported", "reason": "The library has no event stream."},
+  {"case": "own:diagnostics/position-counts-characters-outside-the-basic-plane", "expectation": "primary", "mode": "strict", "verdict": "unsupported", "reason": "The library has no event stream."},
   {"case": "own:parse/anchor-and-alias", "expectation": "primary", "mode": "loose", "verdict": "unsupported", "reason": "The library has no event stream."},
   {"case": "own:parse/anchor-and-alias", "expectation": "primary", "mode": "strict", "verdict": "unsupported", "reason": "The library has no event stream."},
   {"case": "own:parse/block-mapping-flow-sequence", "expectation": "primary", "mode": "loose", "verdict": "unsupported", "reason": "The library has no event stream."},

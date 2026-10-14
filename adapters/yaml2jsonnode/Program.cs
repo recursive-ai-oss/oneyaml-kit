@@ -20,9 +20,15 @@ sealed class Yaml2JsonNodeKitAdapter : IAdapter
 
     public string[] Capabilities =>
     [
-        "value", "patch:add", "patch:remove", "patch:replace", "patch:move", "patch:copy", "patch:test",
-        "error-category",
+        "outcome:events", "value", "patch:add", "patch:remove", "patch:replace", "patch:move", "patch:copy", "patch:test",
+        "error-category", "error-position",
     ];
+
+    // The library's own rejections: YamlDotNet's exceptions (the parser underneath), the pointer parser, and
+    // the JSON exception JsonPatch.Net's converter raises for a malformed patch. Anything else escaping the
+    // library (a failed cast on a mapping key that is not a scalar, for instance) is a defect, and the
+    // process ends so the kit records a crash.
+    public bool IsLibraryException(Exception e) => e is YamlException or PointerParseException or JsonException;
 
     // decode: Yaml2JsonNode reads a string, so byte order marks, UTF-16/32 and malformed UTF-8 are the adapter's.
     // classification: JsonPatch.Net reports a failed operation as a message and an operation number; the
@@ -44,18 +50,23 @@ sealed class Yaml2JsonNodeKitAdapter : IAdapter
     public Outcome Run(Request r)
     {
         if (r.Profile != "core") return Outcome.Unsupported("profile " + r.Profile);
-        if (r.Op != "value" && r.Op != "patch") return Outcome.Unsupported("operation " + r.Op);
+        if (r.Op != "events" && r.Op != "value" && r.Op != "patch") return Outcome.Unsupported("operation " + r.Op);
         if (r.Op == "patch" && r.Args.TryGetProperty("format", out var f) && f.GetString() != "json-patch")
             return Outcome.Unsupported("merge patch");
 
         var d = InputDecoder.Decode(r.Input);
         if (d.Failure != null)
             return (r.Op == "patch" ? Outcome.Error(d.Failure, output: r.Input) : Outcome.Error(d.Failure)).Emulating("decode");
-        var o = r.Op == "value" ? Value(d.Text!) : Patch(d.Text!, r, d);
+        var o = r.Op switch
+        {
+            "events" => Accepts(d.Text!),
+            "value" => Value(d.Text!),
+            _ => Patch(d.Text!, r, d),
+        };
         return d.Transformed ? o.Emulating("decode") : o;
     }
 
-    static Failure Describe(Exception e)
+    static Failure Describe(Exception e, string text)
     {
         // The category comes from the exception type the library chose; its message is never read.
         var category = e switch
@@ -64,7 +75,7 @@ sealed class Yaml2JsonNodeKitAdapter : IAdapter
             PointerParseException or JsonException => "patch-invalid",
             _ => "other",
         };
-        if (e is YamlException y && y.Start.Line > 0) return new Failure(category, e.Message, (int)y.Start.Line, (int)y.Start.Column);
+        if (e is YamlException y && y.Start.Line > 0) return new Failure(category, e.Message, (int)y.Start.Line, Positions.CharColumn(text, y.Start.Index, y.Start.Column));
         return new Failure(category, e.Message);
     }
 
@@ -72,13 +83,25 @@ sealed class Yaml2JsonNodeKitAdapter : IAdapter
         Host.Library(() =>
         {
             try { return (YamlSerializer.Parse(text).ToJsonNode().ToList<JsonNode?>(), (Exception?)null); }
-            catch (Exception e) { return ([], e); }
+            catch (Exception e) { return ([], Host.Own(e)); }
         });
+
+    // The library has no event stream, so whether it takes the input is all there is to say. Only its YAML
+    // parse is asked for here; turning the nodes into JSON is part of reading a value, not of accepting input.
+    static Outcome Accepts(string text)
+    {
+        var failure = Host.Library(() =>
+        {
+            try { YamlSerializer.Parse(text); return (Exception?)null; }
+            catch (Exception e) { return Host.Own(e); }
+        });
+        return failure != null ? Outcome.Error(Describe(failure, text)) : Outcome.Accepted();
+    }
 
     static Outcome Value(string text)
     {
         var (docs, failure) = Load(text);
-        if (failure != null) return Outcome.Error(Describe(failure));
+        if (failure != null) return Outcome.Error(Describe(failure, text));
         try
         {
             var json = Host.Convert(() =>
@@ -94,7 +117,8 @@ sealed class Yaml2JsonNodeKitAdapter : IAdapter
             });
             return Outcome.ValueOk(json);
         }
-        catch (TooLargeException e) { return Outcome.Unsupported(e.Message); }
+        // A shared alias graph has no finite value to write down; the kit grades the cost it measured.
+        catch (TooLargeException) { return Outcome.Accepted(); }
     }
 
     static KV Convert(JsonNode? n, Budget b)
@@ -151,7 +175,7 @@ sealed class Yaml2JsonNodeKitAdapter : IAdapter
     static Outcome Patch(string text, Request r, Decoded decoded)
     {
         var (docs, failure) = Load(text);
-        if (failure != null) return Outcome.Error(Describe(failure), output: r.Input);
+        if (failure != null) return Outcome.Error(Describe(failure, text), output: r.Input);
 
         // The bytes of the unchanged document as this library would write them: it has no way to hand back
         // the original text, only a fresh serialisation of the tree.
@@ -159,11 +183,11 @@ sealed class Yaml2JsonNodeKitAdapter : IAdapter
 
         int index = r.Args.TryGetProperty("document", out var di) ? di.GetInt32() : 0;
         if (index < 0 || index >= docs.Count)
-            return Outcome.Error(new Failure("patch-path", "the document does not exist"), output: r.Input).Emulating("error");
+            return Outcome.Error(new Failure("patch-path", "the document does not exist"), output: Original()).Emulating("error");
 
         JsonPatch patch;
         try { patch = Host.Library(() => JsonSerializer.Deserialize<JsonPatch>(r.Args.GetProperty("patch").GetRawText())!); }
-        catch (Exception e) { return Outcome.Error(Describe(e), output: Original()); }
+        catch (Exception e) { return Outcome.Error(Describe(Host.Own(e), text), output: Original()); }
 
         // JsonPatch.Apply works on a copy of the node it is given and returns the new tree.
         var result = Host.Library(() => patch.Apply(docs[index]));

@@ -2,6 +2,139 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
+   "case": "own:diagnostics/alias-before-its-anchor",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:diagnostics/alias-before-its-anchor",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:diagnostics/bom-inside-a-document-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:diagnostics/bom-inside-a-document-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:diagnostics/directive-then-document-end-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 3:1; the first character that cannot belong to any document is at 4:1"
+  },
+  {
+   "case": "own:diagnostics/hex-escape-with-a-non-hex-digit",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:7"
+  },
+  {
+   "case": "own:diagnostics/implicit-key-of-1025-characters-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:1026; the first character that cannot belong to any document is at 1:1027"
+  },
+  {
+   "case": "own:diagnostics/invalid-escape-in-double-quotes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:7"
+  },
+  {
+   "case": "own:diagnostics/mapping-key-without-a-colon",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 2:1; the first character that cannot belong to any document is at 2:2"
+  },
+  {
+   "case": "own:diagnostics/position-counts-a-bare-cr-as-a-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 2:3; the first character that cannot belong to any document is at 2:4"
+  },
+  {
+   "case": "own:diagnostics/position-counts-crlf-as-one-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 2:3; the first character that cannot belong to any document is at 2:4"
+  },
+  {
+   "case": "own:diagnostics/position-implicit-key-over-two-lines",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 2:3; the first character that cannot belong to any document is at 2:4"
+  },
+  {
+   "case": "own:diagnostics/second-colon-in-a-plain-scalar-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:5; the first character that cannot belong to any document is at 1:6"
+  },
+  {
+   "case": "own:diagnostics/sequence-entry-after-a-block-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 2:1; the first character that cannot belong to any document is at 2:2"
+  },
+  {
+   "case": "own:diagnostics/short-unicode-escape",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:9"
+  },
+  {
+   "case": "own:diagnostics/unclosed-double-quote",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 2:1"
+  },
+  {
+   "case": "own:diagnostics/unclosed-flow-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 2:1; the first character that cannot belong to any document is at 1:6"
+  },
+  {
+   "case": "own:diagnostics/unclosed-single-quote-without-final-newline",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:8"
+  },
+  {
+   "case": "own:diagnostics/zero-block-scalar-indentation-indicator",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:5"
+  },
+  {
    "case": "own:edit/add-sequence-item-in-the-middle",
    "expectation": "primary",
    "mode": "loose",
@@ -163,18 +296,550 @@
    "reason": "Writes the document again from data instead of changing only the value: first difference at byte 10: expected b'  # dev\\nname: web\\n', got b'\\nname: \"web\"\\n' (lengths 28 and 23)"
   },
   {
+   "case": "own:parse/line-separator-is-not-a-line-break",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:parse/line-separator-is-not-a-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:parse/next-line-is-not-a-line-break",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:parse/next-line-is-not-a-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:parse/paragraph-separator-is-not-a-line-break",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:parse/paragraph-separator-is-not-a-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:roundtrip/anchors-aliases-and-tags",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 5: expected b' &b {x: 1}\\nuse: *b\\ntagged: !!str 12\\nloca', got b'\\n  x: 1\\nuse:\\n  x: 1\\ntagged: 12\\nlocal:\\n  ' ("
+  },
+  {
+   "case": "own:roundtrip/anchors-aliases-and-tags",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 5: expected b' &b {x: 1}\\nuse: *b\\ntagged: !!str 12\\nloca', got b'\\n  x: 1\\nuse:\\n  x: 1\\ntagged: 12\\nlocal:\\n  ' ("
+  },
+  {
+   "case": "own:roundtrip/bare-document-end-marker-with-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 5: expected b'... # done\\n', got b'' (lengths 16 and 5)"
+  },
+  {
+   "case": "own:roundtrip/bare-document-end-marker-with-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 5: expected b'... # done\\n', got b'' (lengths 16 and 5)"
+  },
+  {
+   "case": "own:roundtrip/block-mapping-and-sequence",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 6: expected b'demo\\nitems:\\n  - a\\n  - b\\nnested:\\n  k: v\\n', got b'\"demo\"\\nitems:\\n- \"a\"\\n- \"b\"\\nnested:\\n  k: \"' "
+  },
+  {
+   "case": "own:roundtrip/block-mapping-and-sequence",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 6: expected b'demo\\nitems:\\n  - a\\n  - b\\nnested:\\n  k: v\\n', got b'\"demo\"\\nitems:\\n- \"a\"\\n- \"b\"\\nnested:\\n  k: \"' "
+  },
+  {
+   "case": "own:roundtrip/block-scalar-chomping-and-indent-indicators",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 3: expected b'|-\\n  strip\\nb: |+\\n  keep\\n\\nc: |2\\n    two e', got b'\"strip\"\\nb: \"keep\\\\n\\\\n\"\\nc: \"  two extra\\\\n\"'"
+  },
+  {
+   "case": "own:roundtrip/block-scalar-chomping-and-indent-indicators",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 3: expected b'|-\\n  strip\\nb: |+\\n  keep\\n\\nc: |2\\n    two e', got b'\"strip\"\\nb: \"keep\\\\n\\\\n\"\\nc: \"  two extra\\\\n\"'"
+  },
+  {
+   "case": "own:roundtrip/comments-everywhere",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'# header\\n\\n# second header\\na: 1 # trailin', got b'a: 1\\nb:\\n- \"x\"\\n- \"y\"\\n' (lengths 111 and 20)"
+  },
+  {
+   "case": "own:roundtrip/comments-everywhere",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'# header\\n\\n# second header\\na: 1 # trailin', got b'a: 1\\nb:\\n- \"x\"\\n- \"y\"\\n' (lengths 111 and 20)"
+  },
+  {
+   "case": "own:roundtrip/cr-only-line-breaks",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 4: expected b'\\rb:\\r  - x\\r  - y\\r', got b'\\nb:\\n- \"x\"\\n- \"y\"\\n' (lengths 20 and 20)"
+  },
+  {
+   "case": "own:roundtrip/cr-only-line-breaks",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 4: expected b'\\rb:\\r  - x\\r  - y\\r', got b'\\nb:\\n- \"x\"\\n- \"y\"\\n' (lengths 20 and 20)"
+  },
+  {
+   "case": "own:roundtrip/crlf-line-breaks",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 4: expected b'\\r\\nb:\\r\\n  - x\\r\\n  - y\\r\\nc: |\\r\\n  text\\r\\n', got b'\\nb:\\n- \"x\"\\n- \"y\"\\nc: \"text\\\\n\"\\n' (lengths 3"
+  },
+  {
+   "case": "own:roundtrip/crlf-line-breaks",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 4: expected b'\\r\\nb:\\r\\n  - x\\r\\n  - y\\r\\nc: |\\r\\n  text\\r\\n', got b'\\nb:\\n- \"x\"\\n- \"y\"\\nc: \"text\\\\n\"\\n' (lengths 3"
+  },
+  {
+   "case": "own:roundtrip/directives",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'%YAML 1.2\\n%TAG !e! tag:example.com,2000:', got b'\"a\"\\n' (lengths 56 and 4)"
+  },
+  {
+   "case": "own:roundtrip/directives",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'%YAML 1.2\\n%TAG !e! tag:example.com,2000:', got b'\"a\"\\n' (lengths 56 and 4)"
+  },
+  {
+   "case": "own:roundtrip/document-start-with-block-scalar-root",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'--- |\\n  root\\n  literal\\n--- >-\\n  folded\\n ', got b'\"root\\\\nliteral\\\\n\"\\n\"folded root\"\\n' (lengths "
+  },
+  {
+   "case": "own:roundtrip/document-start-with-block-scalar-root",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'--- |\\n  root\\n  literal\\n--- >-\\n  folded\\n ', got b'\"root\\\\nliteral\\\\n\"\\n\"folded root\"\\n' (lengths "
+  },
+  {
+   "case": "own:roundtrip/empty-values-and-null-forms",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 2: expected b\"\\nb: ~\\nc: null\\nd: Null\\ne: ''\\nf: !!null\\n\", got b' null\\nb: null\\nc: null\\nd: null\\ne: \"\"\\nf: n' ("
+  },
+  {
+   "case": "own:roundtrip/empty-values-and-null-forms",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 2: expected b\"\\nb: ~\\nc: null\\nd: Null\\ne: ''\\nf: !!null\\n\", got b' null\\nb: null\\nc: null\\nd: null\\ne: \"\"\\nf: n' ("
+  },
+  {
+   "case": "own:roundtrip/every-scalar-style",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 3: expected b'plain text\\ns: \\'single \\'\\'quoted\\'\\'\\'\\nd: \"do', got b'\"plain text\"\\ns: \"single \\'quoted\\'\"\\nd: \\'d"
+  },
+  {
+   "case": "own:roundtrip/every-scalar-style",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 3: expected b'plain text\\ns: \\'single \\'\\'quoted\\'\\'\\'\\nd: \"do', got b'\"plain text\"\\ns: \"single \\'quoted\\'\"\\nd: \\'d"
+  },
+  {
+   "case": "own:roundtrip/explicit-and-complex-keys",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidCastException outside its own exception types, so the process ended (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlSequenceNode' to type 'YamlDotNet.Representa)"
+  },
+  {
+   "case": "own:roundtrip/explicit-and-complex-keys",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidCastException outside its own exception types, so the process ended (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlSequenceNode' to type 'YamlDotNet.Representa)"
+  },
+  {
+   "case": "own:roundtrip/flow-collections-with-odd-spacing",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 2: expected b' { x : 1 ,y:2,   z: [ 1 ,2,3 ] }\\nb: [  ]', got b'\\n  x: 1\\n  y:2: null\\n  z:\\n  - 1\\n  - 2\\n  -' (le"
+  },
+  {
+   "case": "own:roundtrip/flow-collections-with-odd-spacing",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 2: expected b' { x : 1 ,y:2,   z: [ 1 ,2,3 ] }\\nb: [  ]', got b'\\n  x: 1\\n  y:2: null\\n  z:\\n  - 1\\n  - 2\\n  -' (le"
+  },
+  {
+   "case": "own:roundtrip/line-separator-characters-in-content",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:roundtrip/line-separator-characters-in-content",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
+  },
+  {
+   "case": "own:roundtrip/long-lines-and-wide-spacing",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 5: expected b'                                       v', got b'\"value\"\\nlong: \"word word word word word ' (lengths "
+  },
+  {
+   "case": "own:roundtrip/long-lines-and-wide-spacing",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 5: expected b'                                       v', got b'\"value\"\\nlong: \"word word word word word ' (lengths "
+  },
+  {
+   "case": "own:roundtrip/mixed-line-breaks",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 9: expected b'\\r\\nc: 3\\rd: 4\\n', got b'\\nc: 3\\nd: 4\\n' (lengths 21 and 20)"
+  },
+  {
+   "case": "own:roundtrip/mixed-line-breaks",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 9: expected b'\\r\\nc: 3\\rd: 4\\n', got b'\\nc: 3\\nd: 4\\n' (lengths 21 and 20)"
+  },
+  {
+   "case": "own:roundtrip/multi-line-plain-and-quoted-scalars",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 3: expected b'one\\n  two\\n\\n  three\\nb: \"x\\n  y \\\\\\n  z\"\\nc: \\'', got b'\"one two\\\\nthree\"\\nb: \"x y z\"\\nc: \"p\\\\nq\"\\n"
+  },
+  {
+   "case": "own:roundtrip/multi-line-plain-and-quoted-scalars",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 3: expected b'one\\n  two\\n\\n  three\\nb: \"x\\n  y \\\\\\n  z\"\\nc: \\'', got b'\"one two\\\\nthree\"\\nb: \"x y z\"\\nc: \"p\\\\nq\"\\n"
+  },
+  {
+   "case": "own:roundtrip/multiple-documents-with-markers",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'# before\\n--- # first\\na: 1\\n...\\n# between\\n', got b'a: 1\\n\"second\"\\n- \"x\"\\n' (lengths 63 and 20)"
+  },
+  {
+   "case": "own:roundtrip/multiple-documents-with-markers",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'# before\\n--- # first\\na: 1\\n...\\n# between\\n', got b'a: 1\\n\"second\"\\n- \"x\"\\n' (lengths 63 and 20)"
+  },
+  {
+   "case": "own:roundtrip/no-final-line-break",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 9: expected b'', got b'\\n' (lengths 9 and 10)"
+  },
+  {
+   "case": "own:roundtrip/no-final-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 9: expected b'', got b'\\n' (lengths 9 and 10)"
+  },
+  {
+   "case": "own:roundtrip/odd-indentation",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 5: expected b' b:\\n        - x\\n        - y\\n   c: 1\\nd:\\n ', got b'b:\\n  - \"x\"\\n  - \"y\"\\n  c: 1\\nd:\\n- \"p\"\\n- \"q\"'"
+  },
+  {
+   "case": "own:roundtrip/odd-indentation",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 5: expected b' b:\\n        - x\\n        - y\\n   c: 1\\nd:\\n ', got b'b:\\n  - \"x\"\\n  - \"y\"\\n  c: 1\\nd:\\n- \"p\"\\n- \"q\"'"
+  },
+  {
+   "case": "own:roundtrip/realistic-compose-with-merge-keys",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 9: expected b' &common\\n  restart: always\\n  logging:\\n  ', got b'\\n  restart: \"always\"\\n  logging:\\n    driv' (len"
+  },
+  {
+   "case": "own:roundtrip/realistic-compose-with-merge-keys",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 9: expected b' &common\\n  restart: always\\n  logging:\\n  ', got b'\\n  restart: \"always\"\\n  logging:\\n    driv' (len"
+  },
+  {
+   "case": "own:roundtrip/realistic-workflow",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'# CI\\nname: build\\n\\non:\\n  push:\\n    branch', got b'name: \"build\"\\non:\\n  push:\\n    branches:\\n' ("
+  },
+  {
+   "case": "own:roundtrip/realistic-workflow",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'# CI\\nname: build\\n\\non:\\n  push:\\n    branch', got b'name: \"build\"\\non:\\n  push:\\n    branches:\\n' ("
+  },
+  {
+   "case": "own:roundtrip/tabs-as-separation",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 2: expected b'\\t1\\nb: \\t2\\nc:\\t[x,\\ty]\\n', got b' 1\\nb: 2\\nc:\\n- \"x\"\\n- \"y\"\\n' (lengths 21 and 25)"
+  },
+  {
+   "case": "own:roundtrip/tabs-as-separation",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 2: expected b'\\t1\\nb: \\t2\\nc:\\t[x,\\ty]\\n', got b' 1\\nb: 2\\nc:\\n- \"x\"\\n- \"y\"\\n' (lengths 21 and 25)"
+  },
+  {
+   "case": "own:roundtrip/trailing-spaces-and-blank-lines",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 4: expected b'   \\n\\n\\nb:  2\\t\\n  \\n\\n', got b'\\nb: 2\\n' (lengths 21 and 10)"
+  },
+  {
+   "case": "own:roundtrip/trailing-spaces-and-blank-lines",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 4: expected b'   \\n\\n\\nb:  2\\t\\n  \\n\\n', got b'\\nb: 2\\n' (lengths 21 and 10)"
+  },
+  {
+   "case": "own:roundtrip/unicode-and-escapes",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 4: expected b'\\\\x41\\\\u00e9\\\\U0001F600\\\\N\\\\_\"\\nb: \\xc3\\xa9\\xe6\\x97\\xa5\\xe6\\x9c\\xac\\xe8\\xaa\\x9e', got b'A\\xc3\\xa9\\\\U0"
+  },
+  {
+   "case": "own:roundtrip/unicode-and-escapes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 4: expected b'\\\\x41\\\\u00e9\\\\U0001F600\\\\N\\\\_\"\\nb: \\xc3\\xa9\\xe6\\x97\\xa5\\xe6\\x9c\\xac\\xe8\\xaa\\x9e', got b'A\\xc3\\xa9\\\\U0"
+  },
+  {
+   "case": "own:roundtrip/utf-16be-without-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'\\x00a\\x00:\\x00 \\x00\\xe9\\x00\\n\\x00b\\x00:\\x00 \\x002\\x00\\n', got b'a: \"\\xc3\\xa9\"\\nb: 2\\n' (lengths 20 an"
+  },
+  {
+   "case": "own:roundtrip/utf-16be-without-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'\\x00a\\x00:\\x00 \\x00\\xe9\\x00\\n\\x00b\\x00:\\x00 \\x002\\x00\\n', got b'a: \"\\xc3\\xa9\"\\nb: 2\\n' (lengths 20 an"
+  },
+  {
+   "case": "own:roundtrip/utf-16le-with-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'\\xff\\xfea\\x00:\\x00 \\x00\\xe9\\x00\\n\\x00b\\x00:\\x00 \\x00[\\x001\\x00,\\x00 \\x002\\x00]\\x00\\n\\x00', got b'a: \""
+  },
+  {
+   "case": "own:roundtrip/utf-16le-with-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'\\xff\\xfea\\x00:\\x00 \\x00\\xe9\\x00\\n\\x00b\\x00:\\x00 \\x00[\\x001\\x00,\\x00 \\x002\\x00]\\x00\\n\\x00', got b'a: \""
+  },
+  {
+   "case": "own:roundtrip/utf-32be-without-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'\\x00\\x00\\x00a\\x00\\x00\\x00:\\x00\\x00\\x00 \\x00\\x00\\x001\\x00\\x00\\x00\\n\\x00\\x00\\x00b\\x00\\x00\\x00:\\x00\\x00\\"
+  },
+  {
+   "case": "own:roundtrip/utf-32be-without-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'\\x00\\x00\\x00a\\x00\\x00\\x00:\\x00\\x00\\x00 \\x00\\x00\\x001\\x00\\x00\\x00\\n\\x00\\x00\\x00b\\x00\\x00\\x00:\\x00\\x00\\"
+  },
+  {
+   "case": "own:roundtrip/utf-32le-with-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'\\xff\\xfe\\x00\\x00a\\x00\\x00\\x00:\\x00\\x00\\x00 \\x00\\x00\\x00\\x00\\xf6\\x01\\x00\\n\\x00\\x00\\x00b\\x00\\x00\\x00:\\x"
+  },
+  {
+   "case": "own:roundtrip/utf-32le-with-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'\\xff\\xfe\\x00\\x00a\\x00\\x00\\x00:\\x00\\x00\\x00 \\x00\\x00\\x00\\x00\\xf6\\x01\\x00\\n\\x00\\x00\\x00b\\x00\\x00\\x00:\\x"
+  },
+  {
+   "case": "own:roundtrip/utf-8-byte-order-mark",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'\\xef\\xbb\\xbfa: 1\\nb: 2\\n', got b'a: 1\\nb: 2\\n' (lengths 13 and 10)"
+  },
+  {
+   "case": "own:roundtrip/utf-8-byte-order-mark",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the document again from data instead of changing only the value: first difference at byte 0: expected b'\\xef\\xbb\\xbfa: 1\\nb: 2\\n', got b'a: 1\\nb: 2\\n' (lengths 13 and 10)"
+  },
+  {
+   "case": "own:safety/alias-byte-expansion-bomb",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+  },
+  {
+   "case": "own:safety/alias-byte-expansion-bomb",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+  },
+  {
    "case": "own:safety/alias-expansion-bomb",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Allocates past the memory bound of the case (memory growth passed the 1024 MB bound)"
+   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
   },
   {
    "case": "own:safety/alias-expansion-bomb",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Allocates past the memory bound of the case (memory growth passed the 1024 MB bound)"
+   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb-ten-by-ten",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb-ten-by-ten",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+  },
+  {
+   "case": "own:safety/deep-block-sequences-50000",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The process died with a stack overflow"
+  },
+  {
+   "case": "own:safety/deep-block-sequences-50000",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The process died with a stack overflow"
+  },
+  {
+   "case": "own:schema/code-constructing-tags-are-plain-data",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"
+  },
+  {
+   "case": "own:schema/code-constructing-tags-are-plain-data",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"
+  },
+  {
+   "case": "own:schema/core-float-forms",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 1.0, got 1"
+  },
+  {
+   "case": "own:schema/core-float-forms",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 1.0, got 1"
   },
   {
    "case": "own:schema/core-floats",
@@ -191,6 +856,20 @@
    "reason": "Reads the value differently: $[0].c: expected 1000.0, got 1000"
   },
   {
+   "case": "own:schema/core-infinity-and-nan-spellings",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected {'$float': 'inf'}, got '+.inf'"
+  },
+  {
+   "case": "own:schema/core-infinity-and-nan-spellings",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected {'$float': 'inf'}, got '+.inf'"
+  },
+  {
    "case": "own:schema/core-integers",
    "expectation": "primary",
    "mode": "loose",
@@ -203,6 +882,76 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reads the value differently: $[0].d: expected 12, got '0o14'"
+  },
+  {
+   "case": "own:schema/core-integers-beyond-64-bits",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].c: expected 4722366482869645213695, got '0xFFFFFFFFFFFFFFFFFF'"
+  },
+  {
+   "case": "own:schema/core-integers-beyond-64-bits",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].c: expected 4722366482869645213695, got '0xFFFFFFFFFFFFFFFFFF'"
+  },
+  {
+   "case": "own:schema/core-non-numbers-are-strings",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].h: expected '1,000', got 1000"
+  },
+  {
+   "case": "own:schema/core-non-numbers-are-strings",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].h: expected '1,000', got 1000"
+  },
+  {
+   "case": "own:schema/core-null-and-boolean-near-misses-are-strings",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].d: expected 'tRUE', got True"
+  },
+  {
+   "case": "own:schema/core-null-and-boolean-near-misses-are-strings",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].d: expected 'tRUE', got True"
+  },
+  {
+   "case": "own:schema/duplicate-keys-equal-after-resolution-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:schema/duplicate-keys-equal-after-resolution-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:schema/empty-key-is-null",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Duplicate key "
+  },
+  {
+   "case": "own:schema/empty-key-is-null",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Duplicate key "
   },
   {
    "case": "own:schema/explicit-str-tag",
@@ -219,6 +968,62 @@
    "reason": "Reads the value differently: $[0][0]: expected '12', got 12"
   },
   {
+   "case": "own:schema/explicit-tags-force-the-type",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected 1.0, got 1"
+  },
+  {
+   "case": "own:schema/explicit-tags-force-the-type",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected 1.0, got 1"
+  },
+  {
+   "case": "own:schema/global-tag-uri-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': 'tag:example.com,2000:shape', 'value'..., got [1, 2]"
+  },
+  {
+   "case": "own:schema/global-tag-uri-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': 'tag:example.com,2000:shape', 'value'..., got [1, 2]"
+  },
+  {
+   "case": "own:schema/local-tag-on-a-collection-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': '!shape', 'value': {'kind': 'circle',..., got {'kind': 'circle', 'r': 2}"
+  },
+  {
+   "case": "own:schema/local-tag-on-a-collection-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': '!shape', 'value': {'kind': 'circle',..., got {'kind': 'circle', 'r': 2}"
+  },
+  {
+   "case": "own:schema/mapping-as-a-mapping-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidCastException outside its own exception types, so the process ended (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlMappingNode' to type 'YamlDotNet.Representat)"
+  },
+  {
+   "case": "own:schema/mapping-as-a-mapping-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidCastException outside its own exception types, so the process ended (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlMappingNode' to type 'YamlDotNet.Representat)"
+  },
+  {
    "case": "own:schema/non-string-key",
    "expectation": "primary",
    "mode": "loose",
@@ -231,6 +1036,34 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reads the value differently: $[0]: expected {'$map': [[1, 'a'], [True, 'b'], ['x', 'c']]}, got {'1': 'a', 'true': 'b', 'x': 'c'}"
+  },
+  {
+   "case": "own:schema/quoted-and-plain-keys-differ-by-type",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Duplicate key 1"
+  },
+  {
+   "case": "own:schema/quoted-and-plain-keys-differ-by-type",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Duplicate key 1"
+  },
+  {
+   "case": "own:schema/sequence-as-a-mapping-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidCastException outside its own exception types, so the process ended (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlSequenceNode' to type 'YamlDotNet.Representa)"
+  },
+  {
+   "case": "own:schema/sequence-as-a-mapping-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidCastException outside its own exception types, so the process ended (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlSequenceNode' to type 'YamlDotNet.Representa)"
   },
   {
    "case": "own:schema/unresolved-tag-is-kept",
@@ -247,6 +1080,34 @@
    "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"
   },
   {
+   "case": "yts:2JQS",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Duplicate key "
+  },
+  {
+   "case": "yts:2JQS",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Duplicate key "
+  },
+  {
+   "case": "yts:4MUZ/02",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:4MUZ/02",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
    "case": "yts:4MUZ/02@value",
    "expectation": "primary",
    "mode": "loose",
@@ -259,6 +1120,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:9C9N",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+  },
+  {
+   "case": "yts:9C9N",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
   },
   {
    "case": "yts:C4HZ@value",
@@ -275,6 +1150,34 @@
    "reason": "Reads the value differently: $[0][2].color: expected 16772795, got '0xFFEEBB'"
   },
   {
+   "case": "yts:DK95/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:DK95/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:DK95/04",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a plain scalar, found a tab character that violate indentation."
+  },
+  {
+   "case": "yts:DK95/04",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a plain scalar, found a tab character that violate indentation."
+  },
+  {
    "case": "yts:DK95/04@value",
    "expectation": "primary",
    "mode": "loose",
@@ -287,6 +1190,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Rejects valid input: While scanning a plain scalar, found a tab character that violate indentation."
+  },
+  {
+   "case": "yts:JEF9/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a literal block scalar, found extra spaces in first line."
+  },
+  {
+   "case": "yts:JEF9/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a literal block scalar, found extra spaces in first line."
   },
   {
    "case": "yts:JEF9/01@value",
@@ -345,6 +1262,34 @@
    "reason": "Reads the value differently: $[0][4]: expected '', got None"
   },
   {
+   "case": "yts:M2N8/00",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (The current event is of an unsupported type. (Parameter 'parser'))"
+  },
+  {
+   "case": "yts:M2N8/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (The current event is of an unsupported type. (Parameter 'parser'))"
+  },
+  {
+   "case": "yts:MUS6/00",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:MUS6/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
    "case": "yts:S4JQ@value",
    "expectation": "primary",
    "mode": "loose",
@@ -373,6 +1318,48 @@
    "reason": "Reads the value differently: $[0].product[0].price: expected 450, got 450.0"
   },
   {
+   "case": "yts:UKK6/00",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (The current event is of an unsupported type. (Parameter 'parser'))"
+  },
+  {
+   "case": "yts:UKK6/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (The current event is of an unsupported type. (Parameter 'parser'))"
+  },
+  {
+   "case": "yts:VJP3/00",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+  },
+  {
+   "case": "yts:VJP3/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+  },
+  {
+   "case": "yts:VJP3/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:VJP3/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
    "case": "yts:VJP3/01@value",
    "expectation": "primary",
    "mode": "loose",
@@ -399,6 +1386,174 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reads the value differently: $[0].foo: expected '', got None"
+  },
+  {
+   "case": "yts:X38W",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Duplicate key [ a, b ]"
+  },
+  {
+   "case": "yts:X38W",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Duplicate key [ a, b ]"
+  },
+  {
+   "case": "yts:Y79Y/003",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/003",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
   }
  ]
 }
