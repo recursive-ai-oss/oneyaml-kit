@@ -12,7 +12,9 @@ are redistributed under the licences below.
 | `prometheus-config` | prometheus/prometheus | Apache-2.0 |
 | `openapi-petstore`, `openapi-api-with-examples` | OAI/learn.openapis.org | CC-BY-4.0 (attribution: OpenAPI Initiative) |
 
-The exact revision and path of each file are in its `workload.json`.
+The exact revision and path of each file are in its `workload.json`. `LICENSES/` holds the
+licence text of each repository at that revision, and the NOTICE file of the Apache-2.0
+project that ships one (Prometheus); `bench/tests/pins.json` pins their digests.
 
 `expected.json` beside each input is the value of the document. It is not taken from any
 one library: it was frozen from two independent YAML 1.2 parsers that agree on every

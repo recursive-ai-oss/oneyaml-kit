@@ -82,6 +82,27 @@ class Pipeline(unittest.TestCase):
                   and c["status"] == "ok"}
         self.assertTrue(all(v in ("spec", "merged") for v in merged.values()), merged)
 
+    def test_a_restyled_edit_is_a_wrong_answer_and_yaml_edit_can_edit_sequences(self):
+        only = ["compose-wordpress", "gha-workflow", "records-4k"]
+        _, cells, _ = self.harness(self.wl, only, ["oneyaml", "yaml-edit"], ["edit-script"], name="edits")
+        by = {(c["library"], c["workload"]): c for c in cells}
+        # Quoting a value that plain style holds is not the edit that was asked for.
+        self.assertEqual(by[("oneyaml", "compose-wordpress")]["status"], "differs")
+        self.assertIn("8080:80", by[("oneyaml", "compose-wordpress")]["detail"])
+        # Removing a sequence item and editing a document whose root is a sequence are things the
+        # path API does not do and the node API does; neither is a refusal of valid input.
+        self.assertEqual(by[("yaml-edit", "gha-workflow")]["status"], "ok")
+        self.assertEqual(by[("yaml-edit", "records-4k")]["status"], "ok")
+        self.assertEqual(by[("oneyaml", "gha-workflow")]["status"], "ok")
+
+    def test_merge_keys_do_not_hide_the_dump_row(self):
+        _, cells, _ = self.harness(self.wl, ["compose-merge-2k"], [], ["dump"], name="dump")
+        by = {c["library"]: c for c in cells if c["status"] != "unsupported"}
+        self.assertEqual(set(by), {"oneyaml", "serde_yaml_ng", "saphyr"})
+        for lib, c in by.items():
+            self.assertEqual(c["status"], "ok", f"{lib}: {c}")
+            self.assertEqual(c["memory"]["method"], "counting global allocator")
+
     def test_the_library_of_ours_fails_reference_case_b_and_the_kit_says_so(self):
         _, cells, _ = self.harness(self.wl, ["reference-a", "reference-b"], ["oneyaml"], ["edit-script"], name="refs")
         by = {c["workload"]: c for c in cells}

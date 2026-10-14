@@ -37,14 +37,21 @@ the same code twice: once for the correctness guard, and then many times under t
 |---|---|---|---|
 | `typed-load` | the input text | parse into the language's typed model (structs) | the model, serialised to JSON, equals the expected value |
 | `generic-load` | the input text | parse into the library's generic value tree; every document of a stream | the tree, converted to JSON, equals the expected value |
-| `dump` | the library's own value tree, parsed from the input | write the tree as YAML text | two independent reference parsers both read the text back to the expected value |
+| `dump` | the library's own value tree, parsed from the input | write the tree as YAML text | two independent reference parsers both read the text back to the expected value (or, when the library merges `<<` keys while loading, to the merged value) |
 | `document-parse` | the input text | parse into a lossless document (comments, spacing, styles kept) | the document holds the expected value and writes the input back byte for byte |
 | `unchanged-emit` | a parsed lossless document | write it back | the bytes equal the input |
-| `edit-script` | a parsed lossless document | apply a fixed list of `replace` and `remove` edits through the library's own edit API, write the bytes | the bytes equal the expected bytes exactly |
+| `edit-script` | a parsed lossless document | apply a fixed list of `replace` and `remove` edits through the library's own edit API, write the bytes | the bytes equal the expected bytes exactly: only the edited value changes, and it keeps its own style |
 | `patch` | a parsed lossless document | apply an RFC 6902 patch atomically, write the bytes | the bytes equal the expected bytes, and a second patch with a failing step leaves the document unchanged and reports an error |
 
-The state each task starts from is built fresh for every iteration, outside the clock. The
-result of every iteration is dropped inside the clock, as a caller's would be.
+The state each task starts from is built fresh for every iteration, outside the clock, and
+is released after the clock stops. The result of every iteration (a value tree, an output
+buffer) is dropped inside the clock, as a caller's would be. Edit paths are resolved from the
+workload's pointers once, before the clock, into the library's own path syntax.
+
+Each library is driven through the API its documentation shows for the task. Where one API
+stops short of an edit the workload needs, the harness uses the same library's next API, never
+a reduced edit: yaml-edit's path API handles mapping keys, and its node API (`Sequence::set`,
+`Sequence::remove`, `Document::as_sequence`) handles sequence items and sequence roots.
 
 A library without a capability gets an `unsupported` cell and the reason. A parser that
 discards comments cannot take `document-parse`; that is not a loss, it is a different
@@ -80,11 +87,14 @@ places and are written to `out/bench/workloads/` before a run:
 - The bytes expected after an edit or a patch are written as exact text substitutions on
   the input (`edits` in `workloads.py` and `gen.py`). Each substitution must match
   exactly once, so a stale one fails loudly. No library produces an expected byte.
-- Where two outcomes are acceptable the workload carries both and the result names which
-  one the library produced: `merged` (a library that applies `<<` merge keys, a YAML 1.1
-  extension; YAML 1.2 reads `<<` as a plain key) and `restyled` (an edited value written
-  in quotes although the original plain style could hold it). Only the plain outcome is
-  `spec`. Restyled and merged results are listed as deviations.
+- An edit has one acceptable outcome. A library that rewrites the text of the edited value
+  in another style (quoting `1.1.0`, say) or changes anything else is `differs`.
+- Two outcomes are accepted where the specification leaves a choice, and the result names
+  which one the library produced: `merged` (a library that applies `<<` merge keys while
+  loading, a YAML 1.1 extension; YAML 1.2 reads `<<` as a plain key) for `generic-load`,
+  `dump` and `document-parse`. Only the plain outcome is `spec`. A `merged` result, and a
+  `bytes-only` one (a document judged on its bytes because the library gives no value to
+  compare), are listed as known deviations.
 
 ### Metrics
 
@@ -100,10 +110,11 @@ places and are written to `out/bench/workloads/` before a run:
 - **Instructions** (`--counters`): instructions executed by one iteration, counted by
   callgrind restricted to the measured region.
 
-Allocation counts and heap figures repeat to within a fraction of a percent for a given
-input and library version, so they gate CI: `bench/rust/counters.json` holds the figures
+Allocation counts and heap figures repeat to within a few percent for a given
+input and library version (one oneyaml edit path varies by up to 2% with the hash seed), so they gate CI: `bench/rust/counters.json` holds the figures
 of our library for every quick-mode cell, and `bin/bench check` fails when one grows by
-more than 1% (2% for instructions) or when an entry no longer matches a measured cell.
+more than 3% (allocation calls), 1% (bytes) or 2% (instructions), or when an entry no
+longer matches a measured cell.
 Refresh it with `bin/bench baseline` when a change is meant to alter them. Wall-clock time
 is the number that goes into a README.
 
@@ -122,13 +133,22 @@ A library gets a number only if its answer was right.
 - `differs`: it produced an answer that is not the expected one. The cell shows the
   first difference.
 - `rejects`: it refused an input the specification accepts, or panicked.
-- `unsupported`: it has no such capability, with the reason.
+- `unsupported`: it has no such capability, with the reason. A refusal of an edit that the
+  library's other API can make is not a capability gap, so the harness drives that API.
+- `unjudged`: the harness cannot tell. For `dump` the output is read back by two reference
+  parsers, and when they disagree with each other (or only one accepts it) the cell is
+  `unjudged` with both readings, not `differs`. It is the harness's problem, not a verdict
+  on the library under test, and it is listed as a known deviation until resolved.
 - `error`: the harness could not measure it (the process died or stalled). The driver
   restarts the harness past that cell.
 
 Cells that are not `ok` never carry a time or a memory figure; the result validator and
 the harness's own tests enforce that. `bench/<language>/known.json` lists every cell that
-is a deviation. A new deviation, or an entry that no longer holds, fails the run.
+is a deviation. A new deviation, or an entry that no longer holds, fails the run, and so
+does an entry that names a library, task or workload that does not exist (only a real cell
+that this run did not measure, in another tier or outside a filter, is left alone). The list
+is checked before results and report are written; if it does not match, the report is
+headed as a smoke result with that reason.
 
 ## Publishable runs
 
@@ -137,7 +157,12 @@ or runtime, build flags, the CPU, the operating system, the governor, and the ho
 While a run is in progress the driver samples how many cores are busy with work other than
 the harness. A run is labelled **publishable** only if:
 
-- it is a full run that finished every cell it set out to measure;
+- it is a full run that finished every cell it set out to measure, with no cell that crashed
+  or stalled (`error`);
+- the harness was pinned to one CPU (`--pin`);
+- the CPU frequency governor is `performance` (anything else, `powersave` included, lets the
+  clock change during the run, and an unreadable governor counts the same);
+- the list of known deviations matched the run;
 - other work kept at most 1.0 cores busy for 95% of the samples and at most 4.0 at the
   worst sample;
 - the one-minute load average was at most 3.0 at the start and at the end (the harness's
@@ -146,8 +171,10 @@ the harness. A run is labelled **publishable** only if:
 
 Otherwise the report is headed **SMOKE RESULT, NOT PUBLISHABLE** and lists the reasons.
 The thresholds are in `PUBLISH_RULE` in `bench/oneyaml_bench/results.py` and are recorded
-in each result. They say nothing about CPU frequency scaling or isolated cores; those are
-recorded (governor, boost, `--pin`) but not checked.
+in each result, together with the governor and the CPU the harness was pinned to. Isolated
+cores and boost are recorded (`boost`) but not checked. A host that cannot be pinned or set
+to `performance` cannot produce a publishable run, and the report says which of the reasons
+applies.
 
 ## Result format
 
@@ -169,7 +196,8 @@ recorded (governor, boost, `--pin`) but not checked.
    "status": "ok", "variant": "spec", "input_bytes": 9656,
    "time": {"median_ns": 149000.0, "mad_ns": 800.0, "min_ns": 148000.0, "max_ns": 152000.0,
             "samples": 5, "iters_per_sample": 7, "samples_ns": []},
-   "memory": {"peak_bytes": 51000, "allocated_bytes": 134000, "allocations": 1200},
+   "memory": {"method": "counting global allocator", "peak_bytes": 51000,
+              "allocated_bytes": 134000, "allocations": 1200},
    "instructions": null},
   {"language": "rust", "library": "yaml-edit", "role": "competitor", "task": "edit-script",
    "workload": "reference-b", "status": "differs", "detail": "byte 26: got ..., expected ..."}
@@ -183,9 +211,13 @@ recorded (governor, boost, `--pin`) but not checked.
 comes from the result file: the environment, the libraries and versions, one table per
 task for time and one for memory with every library and "ours against the best competitor"
 with its verdict, a bar chart for each, the cells without a number with their reasons, and
-the workloads with their sources and licences. Charts are zero-based and linear, drawn in a
-light and a dark variant, and their alt text carries every number. A bar longer than the
-axis is clipped and marked. The report passes the same public-text check as hand-written
+the workloads with their sources and licences. The ratio is the same everywhere: our value
+divided by the best competitor's, so below 1.0× is better for us, in the tables, the charts and
+the alt text. Charts are bars that grow from the 1.0× (equal) line on a log scale from 1/8× to
+8×, so twice as fast and twice as slow are drawn equally long on opposite sides, left better
+and right a loss; a linear axis would squeeze one of them. A bar beyond the axis is clipped and
+marked ▸ or ◂. The charts come in a light and a dark variant and their alt text carries every
+number. The report passes the same public-text check as hand-written
 text.
 
 ## Adding a library or a language

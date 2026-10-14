@@ -87,7 +87,7 @@ impl Library for Saphyr {
                 runner(
                     move || load_all(src),
                     |t| {
-                        let docs = t?;
+                        let docs = t.as_ref().map_err(|e| e.clone())?;
                         let doc = docs.first().ok_or("no document")?;
                         let mut out = String::new();
                         YamlEmitter::new(&mut out)

@@ -82,13 +82,24 @@ fn load_workloads(dir: &Path, only: &[String]) -> Result<Vec<&'static Workload>,
     Ok(out)
 }
 
-/// Reads bytes with two independent parsers; they must agree.
-fn referee(bytes: &[u8]) -> Result<Value, String> {
-    let a = libs::oneyaml::generic_json(bytes).map_err(|e| format!("oneyaml: {e}"))?;
-    let b = libs::saphyr::generic_json(bytes).map_err(|e| format!("saphyr: {e}"))?;
-    match guard::first_diff(&a, &b, "") {
-        None => Ok(a),
-        Some(d) => Err(format!("the two reference parsers disagree {d}")),
+/// Reads bytes with two independent parsers. They must agree; when they do not, the
+/// output cannot be judged, and that is said as such instead of blaming the library.
+fn referee(bytes: &[u8]) -> Result<Value, guard::RefereeError> {
+    use guard::RefereeError::{Disagree, Rejected};
+    let a = libs::oneyaml::generic_json(bytes);
+    let b = libs::saphyr::generic_json(bytes);
+    match (a, b) {
+        (Ok(a), Ok(b)) => match guard::first_diff(&a, &b, "") {
+            None => Ok(a),
+            Some(d) => Err(Disagree(format!("the two reference parsers disagree {d}"))),
+        },
+        (Err(a), Err(b)) => Err(Rejected(format!("oneyaml: {a}; saphyr: {b}"))),
+        (Err(e), Ok(_)) => Err(Disagree(format!(
+            "oneyaml rejects it, saphyr reads it: {e}"
+        ))),
+        (Ok(_), Err(e)) => Err(Disagree(format!(
+            "saphyr rejects it, oneyaml reads it: {e}"
+        ))),
     }
 }
 
@@ -163,7 +174,9 @@ fn one_cell(lib: &dyn Library, task: Task, w: &'static Workload, cfg: &measure::
         verdict.status(),
         match &verdict {
             guard::Verdict::Ok { .. } => "",
-            guard::Verdict::Differs(d) | guard::Verdict::Rejects(d) => d,
+            guard::Verdict::Differs(d)
+            | guard::Verdict::Rejects(d)
+            | guard::Verdict::Unjudged(d) => d,
         },
     );
     if let guard::Verdict::Ok { variant } = &verdict {
@@ -188,7 +201,8 @@ fn one_cell(lib: &dyn Library, task: Task, w: &'static Workload, cfg: &measure::
                 rec.insert(
                     "memory".into(),
                     json!({
-                        "peak_bytes": m.peak_bytes,
+                        "method": "counting global allocator",
+                    "peak_bytes": m.peak_bytes,
                         "allocated_bytes": m.allocated_bytes,
                         "allocations": m.allocations,
                     }),

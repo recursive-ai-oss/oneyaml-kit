@@ -51,8 +51,7 @@ the driver restarts `run` with `--skip` for the cells already begun.
 
 `DIR/index.json` lists the workloads; `DIR/<id>/` holds `input.yaml`, `workload.json`,
 `expected.json` and, where they exist, `expected.merged.json`, `edit.json`,
-`edit.expected.yaml`, `edit.expected.restyled.yaml`, `patch.json`, `patch.expected.yaml`,
-`patch.expected.restyled.yaml`. The layout is documented at the top of
+`edit.expected.yaml`, `patch.json` and `patch.expected.yaml`. The layout is documented at the top of
 `bench/oneyaml_bench/workloads.py`; the harness only reads it.
 
 - `input.yaml` is the exact input bytes.
@@ -76,16 +75,20 @@ the driver restarts `run` with `--skip` for the cells already begun.
 {"type": "cell", "library": "oneyaml", "task": "generic-load", "workload": "gha-workflow",
  "input_bytes": 9656, "status": "ok", "detail": "", "variant": "spec",
  "time": {"iters_per_sample": 7, "samples": 5, "median_ns": 0, "mad_ns": 0, "min_ns": 0, "max_ns": 0, "samples_ns": []},
- "memory": {"peak_bytes": 0, "allocated_bytes": 0, "allocations": 0}}
+ "memory": {"method": "counting global allocator", "peak_bytes": 0, "allocated_bytes": 0, "allocations": 0}}
 ```
 
 - `role` is `own` for the family's library, `competitor` for the others. Libraries versions
   come from the lock file, not from the source.
 - `begin` comes before the cell starts. It is how the driver names a cell that killed the
   process.
-- `status` is `ok`, `differs`, `rejects`, `unsupported` or `error`. Only `ok` has `time`
-  and `memory`. Every other status has a `detail`.
-- `variant` names which accepted expectation matched (`spec`, `merged`, `restyled`).
+- `status` is `ok`, `differs`, `rejects`, `unsupported`, `unjudged` or `error`. Only `ok`
+  has `time` and `memory`. Every other status has a `detail`. `unjudged` is for a dump whose
+  output the harness's reference parsers read differently; it is not a verdict on the library.
+- `variant` names which accepted expectation matched: `spec`, `merged` (`<<` applied while
+  loading) or `bytes-only` (a document with no value to compare, judged on its bytes).
+- `memory.method` says how the figures were taken, so numbers from different methods are
+  not mixed in one table (see [Memory](#memory)).
 
 ## What the harness must do
 
@@ -94,15 +97,17 @@ the driver restarts `run` with `--skip` for the cells already begun.
    only if it passed. The code judged and the code timed must be the same code.
 2. **Convert outside the clock.** Conversion to the common JSON form is for the guard and
    never timed.
-3. **Build the starting state outside the clock** and fresh for every iteration; drop each
-   result inside the clock.
+3. **Build the starting state outside the clock** and fresh for every iteration, and release
+   it after the clock stops; drop each result inside the clock.
 4. **Judge the whole answer.**
    - `typed-load` and `generic-load`: value equality, where an integer is not the float with
      the same digits and `"1"` is not `1`. For a stream, an array of documents.
    - `dump`: parse the output with two independent reference parsers; both must read the
-     expected value.
+     expected value (or the merged value, as variant `merged`). If the two disagree with each
+     other, or only one accepts the text, report `unjudged`; if neither accepts it, `differs`.
    - `document-parse`: the value (if the library can give one) and the unchanged bytes.
-   - `unchanged-emit`, `edit-script`, `patch`: exact bytes, against every accepted variant.
+   - `unchanged-emit`, `edit-script`, `patch`: exact bytes. There is one accepted outcome; a
+     library that restyles the edited value or anything around it is `differs`.
    - `patch`: also apply `failing_ops` and require an error and an unchanged document.
 5. **Report, never hide.** A refusal is `rejects`, a missing capability is `unsupported`
    with its reason, a panic or exception is `rejects`. Catch what the language can catch.
@@ -119,6 +124,26 @@ the driver restarts `run` with `--skip` for the cells already begun.
     deliberately wrong and refusing fake libraries (Rust: the `selftest` feature). They must
     not be compiled into a build that produces numbers; `selftest_build` says which it is.
 
+## Memory
+
+Every `ok` cell carries `memory.method`, and the report prints it. Figures from different
+methods are different quantities, and a table must not mix them. All three figures are
+for one run of the task, taken in a separate pass from the timed ones:
+
+- `peak_bytes`: the high-water mark of **live managed heap** during the run, counting the
+  starting state the task is given (a parsed document, say), not the process's resident set;
+- `allocated_bytes`: bytes the task itself requested, cumulative;
+- `allocations`: the number of allocation calls the task made.
+
+| Language | `method` | How |
+|---|---|---|
+| Rust | `counting global allocator` | a `GlobalAlloc` wrapper counts, switched on for the one pass; exact |
+| Go | `runtime.MemStats` | `runtime.GC()` twice, read `MemStats` (`HeapAlloc`, `TotalAlloc`, `Mallocs`), run the task once with a sampler goroutine reading `HeapAlloc` every millisecond for the peak, read again; `allocated_bytes = ΔTotalAlloc`, `allocations = ΔMallocs`, `peak_bytes` = the highest `HeapAlloc` seen (a lower bound for tasks shorter than the sampling interval, so name the method `runtime.MemStats, sampled`). The timed runs use `testing.B` with `-benchmem`; its `B/op` and `allocs/op` must agree with the pass, and the harness fails the cell if they differ by more than 5% |
+| .NET | `GC.GetAllocatedBytesForCurrentThread` | `GC.Collect()` then read `GC.GetTotalMemory(true)` for the base; `allocated_bytes` from `GC.GetAllocatedBytesForCurrentThread()` before and after the task; `peak_bytes` from `GC.GetTotalMemory(false)` sampled by a timer on a second thread, or from GC events (`System.Diagnostics.Tracing` `GCHeapStats`); `allocations` from the `GCAllocationTick` event count or `null` if unavailable |
+
+A field a runtime cannot measure is `null` and the report shows `n/a`; the method string
+says what was used. Never fill a gap with a different quantity under the same name.
+
 ## The native harness in each language
 
 The reference harness times with its own loop, because it must run a guard per cell, a
@@ -126,13 +151,45 @@ memory pass, batches of prepared state and a machine-readable record, which a ge
 benchmark framework does not offer. Go and .NET harnesses can use the native tools
 for the timing loop and still meet this contract:
 
-| Language | Timing | Memory | Counters |
-|---|---|---|---|
-| Rust | own loop on `std::time::Instant` | counting global allocator | callgrind (`once`) |
-| Go | `testing.B` with `-benchmem`, results through `testing.Benchmark` so the harness controls output; `benchstat` over repeated runs | `AllocsPerOp`, `AllocedBytesPerOp`; peak from `runtime.MemStats` sampled in the memory pass | allocation counts |
-| .NET | BenchmarkDotNet with a custom exporter writing these records | `MemoryDiagnoser` allocations; peak from `GC.GetTotalMemory` or an event listener | allocated bytes |
+| Language | Timing | Counters |
+|---|---|---|
+| Rust | own loop on `std::time::Instant` | callgrind (`once`) |
+| Go | `testing.B` driven through `testing.Benchmark`, so the harness controls the output; `benchstat` over repeated runs for the spread | allocation counts |
+| .NET | BenchmarkDotNet with a custom exporter that writes these records | allocated bytes |
 
 Whatever the tool, the cell record above is what leaves the harness.
+
+### Go: set-up outside the clock
+
+`testing.B` calls the benchmark function with a growing `b.N`. Inside it, build `b.N`
+starting states, call `b.ResetTimer()`, run the `b.N` tasks over the states, and call
+`b.StopTimer()` before returning, so building and releasing the states stay outside the
+clock. Call `b.ReportAllocs()`. Do not wrap each iteration in `StopTimer`/`StartTimer`: the
+pair costs about a microsecond and swamps short tasks. Cap the batch by the heap the states
+hold (as the Rust harness does), running several functions of a smaller `b.N` when needed,
+and take the spread across repeated runs with `benchstat`.
+
+### .NET: set-up outside the clock
+
+Use `[IterationSetup]` to build the starting states and give the benchmark a fixed
+`InvocationCount` (and `UnrollFactor = 1`) so that the setup produces exactly as many states
+as the iteration consumes; BenchmarkDotNet warns that `IterationSetup` is only reliable for
+benchmarks of at least about 100 ms per iteration, so for shorter tasks run a loop of `n`
+tasks inside one invocation over a batch built in `IterationSetup`, and report the time per
+task. `[IterationCleanup]` releases the states after the clock stops. Set
+`Job.WithGcServer(false).WithGcConcurrent(false)` so a background GC does not land in the
+sample, and record the job in `flags`.
+
+### Announcing a cell: the `begin` record
+
+The driver finds the cell that killed a process from the last `begin` line, so the harness
+must write and flush it before any work for the cell. In Go print it from the harness's
+main loop before calling `testing.Benchmark`. In .NET BenchmarkDotNet runs each benchmark
+in a child process by default and reports a crash itself; implement `IEventProcessor` (or an
+`IConfig` with a custom `IColumnProvider` plus a `BenchmarkRunInfo` hook) to write `begin`
+from `OnStartBuildStage`/`OnStartRunBenchmark` to the output file, flushing, or run each cell
+with `--inProcess` and write it from the benchmark's `[GlobalSetup]`. Either way `begin`
+must name `library/task/workload` exactly.
 
 ## Rust: adding a library
 
@@ -154,9 +211,9 @@ return it with `env!("LOCKED_<NAME>")`.
 ```json
 {"format": "oneyaml-kit-bench-known/1", "language": "rust", "entries": [
   {"cell": "oneyaml/edit-script/reference-b", "status": "differs", "reason": "why"},
-  {"cell": "oneyaml/edit-script/openapi-petstore", "status": "ok", "variant": "restyled", "reason": "why"}]}
+  {"cell": "yaml-edit/document-parse/gha-workflow", "status": "ok", "variant": "bytes-only", "reason": "why"}]}
 ```
 
-Every cell that is `differs`, `rejects` or `error`, or that matched a variant other than
-`spec`, must be listed with a reason. `unsupported` cells are capabilities and need no
+Every cell that is `differs`, `rejects`, `unjudged` or `error`, or that matched a variant other
+than `spec`, must be listed with a reason. `unsupported` cells are capabilities and need no
 entry. A run fails when a deviation is unlisted or a listed one no longer happens.

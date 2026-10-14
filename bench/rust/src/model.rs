@@ -74,7 +74,7 @@ pub struct Workload {
     /// Expected values by variant name: "spec" first, then e.g. "merged".
     pub expected: Vec<(String, Value)>,
     pub edit_ops: Vec<Op>,
-    /// Accepted outputs of the edit script by variant name; "spec" first.
+    /// The expected output of the edit script, as ("spec", bytes), or empty when there is none.
     pub edit_expected: Vec<(String, &'static [u8])>,
     // Read by libraries that gain a patch engine; none has one yet.
     #[allow(dead_code)]
@@ -128,18 +128,14 @@ impl Workload {
                 .map(Op::from_json)
                 .collect())
         };
+        // Only the plain outcome counts: an edit changes the value and nothing else, so a
+        // library that restyles the rest of the text is wrong, not "also acceptable".
         let variants = |stem: &str| -> Vec<(String, &'static [u8])> {
-            [
-                ("spec", format!("{stem}.expected.yaml")),
-                ("restyled", format!("{stem}.expected.restyled.yaml")),
-            ]
-            .into_iter()
-            .filter_map(|(n, f)| {
-                std::fs::read(dir.join(f))
-                    .ok()
-                    .map(|b| (n.to_string(), leak(b)))
-            })
-            .collect()
+            std::fs::read(dir.join(format!("{stem}.expected.yaml")))
+                .ok()
+                .map(|b| ("spec".to_string(), leak(b)))
+                .into_iter()
+                .collect()
         };
         Ok(Workload {
             id: meta["id"].as_str().unwrap_or_default().to_string(),
@@ -240,22 +236,26 @@ pub trait Library {
 
 // ---- building runners from closures ------------------------------------------------------
 
+/// The timed task: it borrows its starting state, which is released after the clock stops.
+type RunFn<S, O> = std::rc::Rc<dyn Fn(&mut S) -> Result<O, String>>;
+
 struct FnRunner<S, O> {
     setup: Box<dyn Fn() -> S>,
-    run: std::rc::Rc<dyn Fn(S) -> Result<O, String>>,
+    run: RunFn<S, O>,
     product: Box<dyn Fn(O) -> Product>,
     failing: Option<Box<dyn Fn() -> FailedPatch>>,
 }
 
 struct FnBatch<S, O> {
     states: Vec<S>,
-    run: std::rc::Rc<dyn Fn(S) -> Result<O, String>>,
+    run: RunFn<S, O>,
 }
 
 impl<S, O> Batch for FnBatch<S, O> {
     fn run(&mut self) {
-        for s in self.states.drain(..) {
-            // The result is dropped inside the timed region, as a caller's would be.
+        for s in self.states.iter_mut() {
+            // The result is dropped inside the timed region, as a caller's would be. The
+            // starting state is not: it stays in the batch and is released after the clock stops.
             std::hint::black_box((self.run)(std::hint::black_box(s)).ok());
         }
     }
@@ -263,7 +263,8 @@ impl<S, O> Batch for FnBatch<S, O> {
 
 impl<S: 'static, O: 'static> Runner for FnRunner<S, O> {
     fn check(&self) -> Result<Product, String> {
-        let out = (self.run)((self.setup)())?;
+        let mut state = (self.setup)();
+        let out = (self.run)(&mut state)?;
         Ok((self.product)(out))
     }
     fn prepare(&self, n: usize) -> Box<dyn Batch> {
@@ -277,11 +278,12 @@ impl<S: 'static, O: 'static> Runner for FnRunner<S, O> {
     }
 }
 
-/// Builds a runner. `setup` makes one starting state (not timed), `run` is the timed task,
-/// and `product` converts its output for the guard (not timed).
+/// Builds a runner. `setup` makes one starting state (not timed), `run` is the timed task
+/// and borrows that state, so its release happens after the clock stops, and `product`
+/// converts the output for the guard (not timed).
 pub fn runner<S: 'static, O: 'static>(
     setup: impl Fn() -> S + 'static,
-    run: impl Fn(S) -> Result<O, String> + 'static,
+    run: impl Fn(&mut S) -> Result<O, String> + 'static,
     product: impl Fn(O) -> Product + 'static,
 ) -> Box<dyn Runner> {
     Box::new(FnRunner {
@@ -296,7 +298,7 @@ pub fn runner<S: 'static, O: 'static>(
 /// As [`runner`], for a patch task that also checks the failing patch.
 pub fn patch_runner<S: 'static, O: 'static>(
     setup: impl Fn() -> S + 'static,
-    run: impl Fn(S) -> Result<O, String> + 'static,
+    run: impl Fn(&mut S) -> Result<O, String> + 'static,
     product: impl Fn(O) -> Product + 'static,
     failing: impl Fn() -> FailedPatch + 'static,
 ) -> Box<dyn Runner> {

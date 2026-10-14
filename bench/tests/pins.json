@@ -43,5 +43,13 @@
   "scalar-styles": "c258ae09aaca2b8f012a4bacc39178ccba5fe0cd048265e2bc22db58f493d1a0",
   "unicode": "4f3c83e5c7085113e310c7bd10bc63ba7431546d10a298dfed6e1a85132c74b5",
   "wide-map": "20795f227dade93bfdd2e39b389dcd276aef9cf05ce0d35126cac9a33280db32"
+ },
+ "licences": {
+  "OAI-learn.openapis.org.txt": "8ae9438818c26e4873b91d8c6ad620526c011e27e125677f13031eda903f007c",
+  "actions-checkout.txt": "3e855ffa704114a51628ef8f0bf3aeb41728adf9d9070e263bf58aa5640b0eb5",
+  "docker-awesome-compose.txt": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+  "kubernetes-ingress-nginx.txt": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+  "prometheus-prometheus.NOTICE.txt": "ac9e304462a58a4d71b6488423d4447e614c8b31d517fe24345016522c102a78",
+  "prometheus-prometheus.txt": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
  }
 }

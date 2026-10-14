@@ -31,6 +31,9 @@ def synthetic() -> dict:
               cell("other", workload="w3", status="differs", detail="at /a/b: got 1, expected 2")]
     cells += [cell("ours", "own", workload="w4", status="differs", detail="byte 3: got x, expected y"),
               cell("rival", workload="w4", t=100.0), cell("other", workload="w4", status="unsupported")]
+    cells += [cell("ours", "own", workload="w1", task="dump", t=90.0),
+              cell("rival", workload="w1", task="dump", status="unjudged", detail="the two reference parsers disagree at /a"),
+              cell("other", workload="w1", task="dump", t=100.0)]
     cells += [cell("ours", "own", workload="w1", task="patch", status="unsupported"),
               cell("rival", workload="w1", task="patch", status="rejects", detail="boom | pipe")]
     wl = [{"id": f"w{i}", "kind": "generated", "tier": "quick", "description": "d", "documents": 1,
@@ -102,7 +105,8 @@ class ReportTests(unittest.TestCase):
         alts = [l for l in self.md.splitlines() if "<img alt=" in l]
         self.assertTrue(alts)
         time_alt = next(a for a in alts if "generic-load (rust): time" in a)
-        for needle in ("w1 2.00×", "w2 0.50×", "w3 1.25×", "loss", "ours 200 ns vs rival 100 ns"):
+        for needle in ("w1 0.50×", "w2 2.00×", "w3 0.80×", "loss", "ours 200 ns vs rival 100 ns",
+                       "Ours ÷ best competitor"):
             self.assertIn(needle, time_alt)
 
     def test_charts_are_well_formed_light_and_dark(self):
@@ -122,15 +126,37 @@ class ReportTests(unittest.TestCase):
         self.assertIn("#0d1117", dark)
         self.assertNotEqual(light, dark)
 
-    def test_a_loss_bar_is_in_the_loss_colour_and_labelled(self):
-        # Rows are w1 (win), w2 (loss), w3 (win). The colours are written out here on purpose:
-        # a chart that painted a loss like a win would defeat the point of showing losses.
+    def test_a_loss_bar_is_in_the_loss_colour_and_a_win_and_a_loss_are_equally_long(self):
+        # Rows are w1 (0.5x, a win), w2 (2x, a loss), w3 (0.8x, a win). The colours are written
+        # out on purpose: a chart that painted a loss like a win would defeat showing losses.
+        # Twice as fast and twice as slow are the same length on the log axis, on opposite sides
+        # of the 1.0x line, so a loss is not squeezed.
         for theme, win, loss in (("light", "#1a7f37", "#cf222e"), ("dark", "#3fb950", "#ff7b72")):
             text = (self.out / "charts" / f"rust-generic-load-time-{theme}.svg").read_text(encoding="utf-8")
             root = ET.fromstring(text)
-            bars = [r.get("fill") for r in root.iter("{http://www.w3.org/2000/svg}rect") if r.get("x") == "230"]
-            self.assertEqual(bars, [win, loss, win], theme)
-            self.assertIn("0.50×  ▼ loss", text)
+            bars = [r for r in root.iter("{http://www.w3.org/2000/svg}rect") if r.get("height") == "16"]
+            self.assertEqual([r.get("fill") for r in bars], [win, loss, win], theme)
+            centre = 450.0
+            w1, w2 = bars[0], bars[1]
+            self.assertAlmostEqual(float(w1.get("x")) + float(w1.get("width")), centre, places=0)
+            self.assertAlmostEqual(float(w2.get("x")), centre, places=0)
+            self.assertAlmostEqual(float(w1.get("width")), float(w2.get("width")), places=1)
+            self.assertIn("2.00×  ▼ loss", text)
+
+    def test_every_chart_and_table_uses_the_same_ratio(self):
+        # The ratio is ours / best competitor everywhere: 0.50x for the win, 2.00x for the loss.
+        self.assertIn("0.50× of `rival` ▲ win", self.md)
+        self.assertIn("2.00× of `rival` ▼ loss", self.md)
+        alt = next(l for l in self.md.splitlines() if "generic-load (rust): time" in l)
+        self.assertIn("w1 0.50×", alt)
+        self.assertIn("w2 2.00×", alt)
+        self.assertNotIn("faster", alt.split("workloads:")[0] + "")
+
+    def test_an_unjudged_cell_is_shown_as_such_and_not_as_a_wrong_answer(self):
+        row = next(l for l in self.md.splitlines() if l.startswith("| `w1`") and "unjudged" in l)
+        self.assertIn("unjudged", row)
+        self.assertIn("parsers disagree", self.md)
+        self.assertIn("not a verdict on the library", self.md)
 
     def test_the_report_passes_the_public_text_check(self):
         for line in self.md.splitlines():

@@ -1,6 +1,6 @@
 //! oneyaml-rust: serde binding, `Value`, and the lossless `Document`.
 
-use super::{dotted_path, key_text};
+use super::{failing_runner, key_text, resolve_steps, Step};
 use crate::model::*;
 use crate::typed::{typed_runner, TypedParser};
 use oneyaml::{Document, Stream, Value as YValue};
@@ -88,16 +88,18 @@ fn parse_doc(w: &Workload) -> Result<Document, String> {
     Document::parse(w.input_str).map_err(|e| e.to_string())
 }
 
-fn apply(doc: &mut Document, w: &Workload, ops: &[Op]) -> Result<(), String> {
-    for op in ops {
-        let path = dotted_path(w, op, path_escape, |i| format!("[{i}]"))?;
-        match op.op.as_str() {
+fn apply(doc: &mut Document, steps: &[Step]) -> Result<(), String> {
+    for step in steps {
+        match step.op.as_str() {
             "replace" => {
-                let v = op.value.clone().ok_or("replace without a value")?;
-                doc.set_path(path.as_str(), &v).map_err(|e| e.to_string())?;
+                let v = step.value.as_ref().ok_or("replace without a value")?;
+                doc.set_path(step.dotted.as_str(), v)
+                    .map_err(|e| e.to_string())?;
             }
             "remove" => {
-                let _removed = doc.remove_path(path.as_str()).map_err(|e| e.to_string())?;
+                let _removed = doc
+                    .remove_path(step.dotted.as_str())
+                    .map_err(|e| e.to_string())?;
             }
             other => return Err(format!("unsupported edit {other}")),
         }
@@ -150,12 +152,12 @@ impl Library for OneYaml {
                 }
                 runner(
                     move || load_all(src, single),
-                    |t| {
-                        t.and_then(|docs| {
-                            docs.first()
-                                .map(|v| oneyaml::to_string(v).map_err(|e| e.to_string()))
-                                .unwrap_or(Err("no document".into()))
-                        })
+                    |t| match t {
+                        Ok(docs) => docs
+                            .first()
+                            .map(|v| oneyaml::to_string(v).map_err(|e| e.to_string()))
+                            .unwrap_or(Err("no document".into())),
+                        Err(e) => Err(e.clone()),
                     },
                     |s| Product::Bytes(s.into_bytes()),
                 )
@@ -211,13 +213,13 @@ impl Library for OneYaml {
                 if multi {
                     runner(
                         move || Stream::parse(src).map_err(|e| e.to_string()),
-                        |s| s.map(|s| s.to_bytes()),
+                        |s| s.as_ref().map(|s| s.to_bytes()).map_err(|e| e.clone()),
                         Product::Bytes,
                     )
                 } else {
                     runner(
                         move || parse_doc(w),
-                        |d| d.map(|d| d.to_bytes()),
+                        |d| d.as_ref().map(|d| d.to_bytes()).map_err(|e| e.clone()),
                         Product::Bytes,
                     )
                 }
@@ -226,11 +228,15 @@ impl Library for OneYaml {
                 if multi || w.edit_ops.is_empty() {
                     return Err(Unsupported("no edit script for this workload"));
                 }
+                let steps = match resolve_steps(w, &w.edit_ops, path_escape, |i| format!("[{i}]")) {
+                    Ok(s) => s,
+                    Err(e) => return Ok(failing_runner(e)),
+                };
                 runner(
                     move || parse_doc(w),
                     move |d| {
-                        let mut d = d?;
-                        apply(&mut d, w, &w.edit_ops)?;
+                        let d = d.as_mut().map_err(|e| e.clone())?;
+                        apply(d, &steps)?;
                         Ok::<_, String>(d.to_bytes())
                     },
                     Product::Bytes,

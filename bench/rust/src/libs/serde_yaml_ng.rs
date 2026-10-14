@@ -93,12 +93,12 @@ impl Library for SerdeYamlNg {
                 }
                 runner(
                     move || load_all(src, single),
-                    |t| {
-                        t.and_then(|docs| {
-                            docs.first()
-                                .map(|v| serde_yaml_ng::to_string(v).map_err(|e| e.to_string()))
-                                .unwrap_or(Err("no document".into()))
-                        })
+                    |t| match t {
+                        Ok(docs) => docs
+                            .first()
+                            .map(|v| serde_yaml_ng::to_string(v).map_err(|e| e.to_string()))
+                            .unwrap_or(Err("no document".into())),
+                        Err(e) => Err(e.clone()),
                     },
                     |s| Product::Bytes(s.into_bytes()),
                 )

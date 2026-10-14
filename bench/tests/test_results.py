@@ -18,7 +18,7 @@ def cell(lib, role="competitor", task="generic-load", workload="w", status="ok",
     if status == "ok":
         c["variant"] = variant
         c["time"] = {"median_ns": t, "mad_ns": mad, "samples": 5, "min_ns": t, "max_ns": t}
-        c["memory"] = {"peak_bytes": peak, "allocated_bytes": peak * 2, "allocations": 3}
+        c["memory"] = {"method": "test", "peak_bytes": peak, "allocated_bytes": peak * 2, "allocations": 3}
     else:
         c["detail"] = detail or ("unsupported" if status == "unsupported" else "why")
     return c
@@ -111,7 +111,8 @@ class Publishability(unittest.TestCase):
     QUIET = [0.1] * 20
 
     def assess(self, **kw):
-        args = dict(mode="full", samples=self.QUIET, load1_start=1.0, load1_end=1.2, complete=True)
+        args = dict(mode="full", samples=self.QUIET, load1_start=1.0, load1_end=1.2, complete=True,
+                    pinned_cpu=3, governor="performance")
         args.update(kw)
         return R.assess_publishability(**args)
 
@@ -130,6 +131,9 @@ class Publishability(unittest.TestCase):
             "worst sample": dict(samples=[0.1] * 99 + [5.0]),
             "load at start": dict(load1_start=3.5),
             "load at end": dict(load1_end=3.5),
+            "not pinned": dict(pinned_cpu=None),
+            "powersave governor": dict(governor="powersave"),
+            "unknown governor": dict(governor="unknown"),
         }
         for name, kw in cases.items():
             a = self.assess(**kw)
@@ -146,6 +150,23 @@ class Publishability(unittest.TestCase):
         a = self.assess(samples=[0.5] * 10)
         self.assertEqual(a["measured"]["foreign_busy_cores_max"], 0.5)
         self.assertEqual(a["rule"], R.PUBLISH_RULE)
+
+    def test_pinning_and_governor_are_stated_in_the_reasons_and_recorded(self):
+        a = self.assess(pinned_cpu=None, governor="powersave")
+        self.assertEqual(len(a["reasons"]), 2)
+        self.assertTrue(any("not pinned" in r for r in a["reasons"]))
+        self.assertTrue(any("'powersave'" in r for r in a["reasons"]))
+        self.assertEqual((a["measured"]["pinned_cpu"], a["measured"]["governor"]), (None, "powersave"))
+
+    def test_reasons_found_after_the_run_make_it_a_smoke_result(self):
+        r = result([cell("a")], mode="full", publishable=True, reasons=())
+        R.add_reasons(r, [])
+        self.assertTrue(r["run"]["publishability"]["publishable"])
+        R.add_reasons(r, ["the list of known deviations does not match"])
+        pub = r["run"]["publishability"]
+        self.assertEqual((pub["publishable"], pub["label"]), (False, "smoke"))
+        self.assertEqual(pub["reasons"], ["the list of known deviations does not match"])
+        R.validate(r)
 
     def test_percentile(self):
         self.assertEqual(R.percentile([1, 2, 3, 4, 5], 0.5), 3)
@@ -195,6 +216,23 @@ class Validation(unittest.TestCase):
             R.validate(result([cell("a")], mode="full", publishable=True, reasons=("busy",)))
         R.validate(result([cell("a")], mode="full", publishable=True, reasons=()))
 
+    def test_an_unjudged_cell_has_no_numbers_and_needs_a_reason(self):
+        R.validate(result([cell("a", status="unjudged", detail="the referees disagree")]))
+        bad = cell("a", status="unjudged", detail="x")
+        bad["time"] = {"median_ns": 1.0, "mad_ns": 0, "samples": 1}
+        with self.assertRaisesRegex(R.ResultError, "carries numbers"):
+            R.validate(result([bad]))
+        silent = cell("a", status="unjudged")
+        silent["detail"] = ""
+        with self.assertRaisesRegex(R.ResultError, "without a reason"):
+            R.validate(result([silent]))
+
+    def test_the_memory_method_is_required(self):
+        bad = cell("a", "own")
+        del bad["memory"]["method"]
+        with self.assertRaisesRegex(R.ResultError, "lacks memory"):
+            R.validate(result([bad]))
+
     def test_wrong_format_is_refused(self):
         r = result([])
         r["format"] = "other/1"
@@ -229,9 +267,9 @@ class KnownDeviations(unittest.TestCase):
         self.assertIn("listed as differs", p)
 
     def test_variants_are_deviations(self):
-        cells = [cell("ours", "own", workload="x", variant="restyled")]
+        cells = [cell("ours", "own", workload="x", variant="merged")]
         self.assertEqual(len(R.verify_known(cells, self.known(), "rust")), 1)
-        k = self.known({"cell": "ours/generic-load/x", "status": "ok", "variant": "restyled"})
+        k = self.known({"cell": "ours/generic-load/x", "status": "ok", "variant": "merged"})
         self.assertEqual(R.verify_known(cells, k, "rust"), [])
 
     def test_unsupported_and_unmeasured_cells_are_not_deviations(self):
@@ -239,9 +277,38 @@ class KnownDeviations(unittest.TestCase):
         k = self.known({"cell": "ours/generic-load/not-run", "status": "differs"})
         self.assertEqual(R.verify_known(cells, k, "rust"), [])
 
-    def test_a_document_judged_on_bytes_alone_is_not_a_deviation(self):
+    def test_a_document_judged_on_bytes_alone_is_a_listed_deviation(self):
         cells = [cell("edit", workload="x", variant="bytes-only")]
-        self.assertEqual(R.verify_known(cells, self.known(), "rust"), [])
+        self.assertEqual(len(R.verify_known(cells, self.known(), "rust")), 1)
+        k = self.known({"cell": "edit/generic-load/x", "status": "ok", "variant": "bytes-only"})
+        self.assertEqual(R.verify_known(cells, k, "rust"), [])
+
+    UNIVERSE = {"x": ["generic-load", "dump"], "y": ["generic-load"]}
+    LIBS = {"ours", "rival"}
+
+    def check(self, *entries, cells=()):
+        return R.verify_known(list(cells), self.known(*entries), "rust", self.UNIVERSE, self.LIBS)
+
+    def test_entries_for_unknown_libraries_tasks_and_workloads_are_stale_even_if_unmeasured(self):
+        [p] = self.check({"cell": "ghost/generic-load/x", "status": "differs"})
+        self.assertIn("no library 'ghost'", p)
+        [p] = self.check({"cell": "ours/generic-load/nowhere", "status": "differs"})
+        self.assertIn("no workload 'nowhere'", p)
+        [p] = self.check({"cell": "ours/edit-script/x", "status": "differs"})
+        self.assertIn("has no task 'edit-script'", p)
+        [p] = self.check({"cell": "ours/dump/y", "status": "differs"})
+        self.assertIn("has no task 'dump'", p)
+        [p] = self.check({"cell": "ours-generic-load-x", "status": "differs"})
+        self.assertIn("not library/task/workload", p)
+
+    def test_a_real_cell_that_was_not_measured_is_left_alone(self):
+        self.assertEqual(self.check({"cell": "ours/dump/x", "status": "differs"}), [])
+        measured = [cell("ours", "own", workload="y")]
+        self.assertEqual(self.check({"cell": "ours/dump/x", "status": "differs"}, cells=measured), [])
+
+    def test_a_duplicate_entry_is_refused(self):
+        e = {"cell": "ours/dump/x", "status": "differs"}
+        self.assertEqual(len(self.check(e, e)), 1)
 
     def test_an_entry_needs_a_reason(self):
         k = {"entries": [{"cell": "a/b/c", "status": "differs", "reason": ""}]}

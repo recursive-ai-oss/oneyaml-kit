@@ -120,43 +120,53 @@
   "peak_bytes": 1559461
  },
  "rust/oneyaml/dump/anchors-32k": {
-  "allocated_bytes": 4296515,
-  "allocations": 28045,
+  "allocated_bytes": 3969155,
+  "allocations": 28035,
   "peak_bytes": 8642523
  },
+ "rust/oneyaml/dump/compose-merge-2k": {
+  "allocated_bytes": 74270,
+  "allocations": 504,
+  "peak_bytes": 143865
+ },
+ "rust/oneyaml/dump/compose-merge-64k": {
+  "allocated_bytes": 1916542,
+  "allocations": 14334,
+  "peak_bytes": 4194745
+ },
  "rust/oneyaml/dump/compose-wordpress": {
-  "allocated_bytes": 9429,
-  "allocations": 62,
+  "allocated_bytes": 9109,
+  "allocations": 61,
   "peak_bytes": 14508
  },
  "rust/oneyaml/dump/deep-block": {
-  "allocated_bytes": 120668,
-  "allocations": 336,
+  "allocated_bytes": 120348,
+  "allocations": 335,
   "peak_bytes": 145050
  },
  "rust/oneyaml/dump/deep-flow": {
-  "allocated_bytes": 59619,
-  "allocations": 122,
+  "allocated_bytes": 59299,
+  "allocations": 121,
   "peak_bytes": 92688
  },
  "rust/oneyaml/dump/flow-heavy-64k": {
-  "allocated_bytes": 2495361,
-  "allocations": 10912,
+  "allocated_bytes": 2168001,
+  "allocations": 10902,
   "peak_bytes": 3805700
  },
  "rust/oneyaml/dump/gha-workflow": {
-  "allocated_bytes": 117324,
-  "allocations": 714,
+  "allocated_bytes": 107404,
+  "allocations": 709,
   "peak_bytes": 193778
  },
  "rust/oneyaml/dump/helm-ingress-nginx": {
-  "allocated_bytes": 156818,
-  "allocations": 652,
+  "allocated_bytes": 152018,
+  "allocations": 648,
   "peak_bytes": 269541
  },
  "rust/oneyaml/dump/helm-values-64k": {
-  "allocated_bytes": 772181,
-  "allocations": 4016,
+  "allocated_bytes": 731541,
+  "allocations": 4009,
   "peak_bytes": 1357620
  },
  "rust/oneyaml/dump/long-scalars-256k": {
@@ -165,33 +175,33 @@
   "peak_bytes": 1055918
  },
  "rust/oneyaml/dump/openapi-100k": {
-  "allocated_bytes": 1620598,
-  "allocations": 11621,
+  "allocated_bytes": 1579958,
+  "allocations": 11614,
   "peak_bytes": 3481169
  },
  "rust/oneyaml/dump/openapi-api-with-examples": {
-  "allocated_bytes": 57121,
-  "allocations": 317,
+  "allocated_bytes": 56161,
+  "allocations": 315,
   "peak_bytes": 95140
  },
  "rust/oneyaml/dump/openapi-petstore": {
-  "allocated_bytes": 67755,
-  "allocations": 403,
+  "allocated_bytes": 66795,
+  "allocations": 401,
   "peak_bytes": 127892
  },
  "rust/oneyaml/dump/prometheus-config": {
-  "allocated_bytes": 9079,
-  "allocations": 58,
+  "allocated_bytes": 8759,
+  "allocations": 57,
   "peak_bytes": 17384
  },
  "rust/oneyaml/dump/records-4k": {
-  "allocated_bytes": 92284,
-  "allocations": 506,
+  "allocated_bytes": 87484,
+  "allocations": 502,
   "peak_bytes": 151706
  },
  "rust/oneyaml/dump/records-64k": {
-  "allocated_bytes": 1412577,
-  "allocations": 7385,
+  "allocated_bytes": 1330977,
+  "allocations": 7377,
   "peak_bytes": 2337044
  },
  "rust/oneyaml/dump/reference-a": {
@@ -205,8 +215,8 @@
   "peak_bytes": 3619
  },
  "rust/oneyaml/dump/scalar-styles-32k": {
-  "allocated_bytes": 440787,
-  "allocations": 2690,
+  "allocated_bytes": 400147,
+  "allocations": 2683,
   "peak_bytes": 667284
  },
  "rust/oneyaml/dump/unicode-32k": {
@@ -220,73 +230,53 @@
   "peak_bytes": 2262766
  },
  "rust/oneyaml/edit-script/compose-merge-2k": {
-  "allocated_bytes": 47006,
-  "allocations": 351,
+  "allocated_bytes": 45925,
+  "allocations": 295,
   "peak_bytes": 24028
  },
  "rust/oneyaml/edit-script/compose-merge-64k": {
-  "allocated_bytes": 519072,
-  "allocations": 724,
+  "allocated_bytes": 517991,
+  "allocations": 668,
   "peak_bytes": 585876
  },
- "rust/oneyaml/edit-script/compose-wordpress": {
-  "allocated_bytes": 52348,
-  "allocations": 475,
-  "peak_bytes": 11412
- },
  "rust/oneyaml/edit-script/gha-workflow": {
-  "allocated_bytes": 105048,
-  "allocations": 481,
+  "allocated_bytes": 103248,
+  "allocations": 403,
   "peak_bytes": 72063
  },
  "rust/oneyaml/edit-script/helm-ingress-nginx": {
-  "allocated_bytes": 332291,
-  "allocations": 695,
+  "allocated_bytes": 330688,
+  "allocations": 640,
   "peak_bytes": 295461
  },
  "rust/oneyaml/edit-script/helm-values-64k": {
-  "allocated_bytes": 373656,
-  "allocations": 589,
+  "allocated_bytes": 372803,
+  "allocations": 552,
   "peak_bytes": 475560
  },
- "rust/oneyaml/edit-script/openapi-100k": {
-  "allocated_bytes": 535402,
-  "allocations": 523,
-  "peak_bytes": 758158
- },
- "rust/oneyaml/edit-script/openapi-api-with-examples": {
-  "allocated_bytes": 55157,
-  "allocations": 235,
-  "peak_bytes": 43705
- },
- "rust/oneyaml/edit-script/openapi-petstore": {
-  "allocated_bytes": 71158,
-  "allocations": 518,
-  "peak_bytes": 33355
- },
  "rust/oneyaml/edit-script/prometheus-config": {
-  "allocated_bytes": 41389,
-  "allocations": 266,
-  "peak_bytes": 12883
+  "allocated_bytes": 40730,
+  "allocations": 237,
+  "peak_bytes": 12851
  },
  "rust/oneyaml/edit-script/records-4k": {
-  "allocated_bytes": 70427,
-  "allocations": 407,
+  "allocated_bytes": 69355,
+  "allocations": 359,
   "peak_bytes": 46103
  },
  "rust/oneyaml/edit-script/records-64k": {
-  "allocated_bytes": 450351,
-  "allocations": 424,
+  "allocated_bytes": 449279,
+  "allocations": 376,
   "peak_bytes": 623403
  },
  "rust/oneyaml/edit-script/reference-a": {
-  "allocated_bytes": 18399,
-  "allocations": 163,
-  "peak_bytes": 8329
+  "allocated_bytes": 18165,
+  "allocations": 155,
+  "peak_bytes": 8305
  },
  "rust/oneyaml/edit-script/wide-map-64k": {
-  "allocated_bytes": 1183558,
-  "allocations": 3964,
+  "allocated_bytes": 1182854,
+  "allocations": 3946,
   "peak_bytes": 1559645
  },
  "rust/oneyaml/generic-load/anchors-32k": {

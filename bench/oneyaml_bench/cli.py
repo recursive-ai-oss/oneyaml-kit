@@ -43,14 +43,17 @@ def write_report(result: dict, out: Path) -> list[Path]:
 
 
 def known_problems(result: dict) -> list[str]:
-    """Checks every language's deviation list against the cells measured."""
+    """Checks every language's deviation list against the cells measured and against the
+    full set of libraries, tasks and workloads."""
     problems = []
+    universe = workloads.universe()
     for lang, h in run.discover().items():
         if lang not in result["harnesses"]:
             continue
         path = h["_dir"] / "known.json"
         known = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"entries": []}
-        problems += [f"{lang}: {p}" for p in results.verify_known(result["cells"], known, lang)]
+        libs = {x["id"] for x in result["harnesses"][lang]["libraries"] if x["role"] != "control"}
+        problems += [f"{lang}: {p}" for p in results.verify_known(result["cells"], known, lang, universe, libs)]
     return problems
 
 
@@ -63,6 +66,10 @@ def cmd_run(a: argparse.Namespace) -> int:
     except run.HarnessError as e:
         print(f"bench: {e}", file=sys.stderr)
         return 2
+    # Check the list of known deviations first: a wrong list must never reach a publishable report.
+    problems = known_problems(result)
+    results.add_reasons(result, [f"the list of known deviations does not match this run "
+                                 f"({len(problems)} problems, the first: {problems[0]})"] if problems else [])
     run.write(result, out / "results.json")
     files = write_report(result, out)
     hits = public_text_hits(files)
@@ -70,7 +77,6 @@ def cmd_run(a: argparse.Namespace) -> int:
     by = {}
     for c in cells:
         by[c["status"]] = by.get(c["status"], 0) + 1
-    problems = known_problems(result)
     pub = result["run"]["publishability"]
     print(f"{len(cells)} cells ({', '.join(f'{v} {k}' for k, v in sorted(by.items()))}) "
           f"in {time.monotonic() - t0:.1f} s; label: {pub['label']}")
@@ -130,9 +136,9 @@ def counter_view(result: dict) -> dict:
 
 
 # Allowed growth of a deterministic figure before the gate fails. Allocation counts repeat
-# to within a fraction of a percent (one edit path varies by a few calls with the hash
-# seed); instruction counts move a little with the toolchain.
-COUNTER_TOLERANCE = {"allocations": 0.01, "allocated_bytes": 0.01, "peak_bytes": 0.01, "instructions": 0.02}
+# to within a few percent (the edit path of the larger Helm file varies by up to 2% with the
+# hash seed); instruction counts move a little with the toolchain.
+COUNTER_TOLERANCE = {"allocations": 0.03, "allocated_bytes": 0.01, "peak_bytes": 0.01, "instructions": 0.02}
 
 
 def compare_counters(current: dict, baseline: dict) -> list[str]:

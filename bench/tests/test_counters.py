@@ -31,7 +31,7 @@ class Counters(unittest.TestCase):
         base = view(1000)
         self.assertEqual(cli.compare_counters(view(1000), base), [])
         self.assertEqual(cli.compare_counters(view(900), base), [])
-        self.assertEqual(cli.compare_counters(view(1005), base), [])  # inside the 1% allowance
+        self.assertEqual(cli.compare_counters(view(1020), base), [])  # inside the 3% allowance
         [p] = cli.compare_counters(view(1200), base)
         self.assertIn("allocations rose from 1000 to 1200", p)
 

@@ -13,7 +13,6 @@ Materialised layout, one directory per workload under `<out>/workloads/`:
     expected.merged.json  the value with `<<` merge keys applied (when it differs)
     edit.json             the ops of the edit-script task
     edit.expected.yaml    the exact bytes after those edits
-    edit.expected.restyled.yaml  (some workloads) the same with a value quoted that plain style could hold
     patch.json            an RFC 6902 patch (ops), and the same patch with a failing step
     patch.expected.yaml   the exact bytes after the patch
 
@@ -42,16 +41,13 @@ class WorkloadError(Exception):
     pass
 
 
-def apply_subst(text: str, substs: list[dict], what: str = "workload", alt: bool = False) -> str:
+def apply_subst(text: str, substs: list[dict], what: str = "workload") -> str:
     """Applies the textual substitutions that spell out the exact expected bytes.
 
     The expected bytes of an edit are written as plain text edits of the input, never
     by running a YAML library, so a library cannot define its own expectation. Each
     substitution must match exactly once (or `count` times), so a stale one fails loudly.
 
-    A substitution may carry `alt_replace`, the text of a second acceptable outcome: a value
-    that a library writes in quotes although the original style could hold it. With
-    `alt=True` that text is used, which yields the "restyled" variant of the expected bytes.
     """
     for s in substs:
         want = s.get("count", 1)
@@ -59,9 +55,9 @@ def apply_subst(text: str, substs: list[dict], what: str = "workload", alt: bool
             n = text.count(s["find"])
             if n != want:
                 raise WorkloadError(f"{what}: {s['find']!r} matches {n} times, expected {want}")
-            text = text.replace(s["find"], s.get("alt_replace", s["replace"]) if alt else s["replace"])
+            text = text.replace(s["find"], s["replace"])
         else:
-            text, n = re.subn(s["regex"], s.get("alt_replace", s["replace"]) if alt else s["replace"], text)
+            text, n = re.subn(s["regex"], s["replace"], text)
             if n != want:
                 raise WorkloadError(f"{what}: {s['regex']!r} matches {n} times, expected {want}")
     return text
@@ -118,7 +114,7 @@ REAL_EDITS = {
                  "replace": "    command: '--skip-networking'\n"},
                 {"find": "    volumes:\n      - db_data:/var/lib/mysql\n    restart: always\n",
                  "replace": "    volumes:\n      - db_data:/var/lib/mysql\n"},
-                {"find": "      - 80:80\n", "replace": "      - 8080:80\n", "alt_replace": "      - '8080:80'\n"},
+                {"find": "      - 80:80\n", "replace": "      - 8080:80\n"},
             ],
         },
         "patch": {
@@ -164,7 +160,7 @@ REAL_EDITS = {
                  "value": "Returns all pets\nfrom the system\n"},
             ],
             "subst": [
-                {"find": "  version: 1.0.0\n", "replace": "  version: 1.1.0\n", "alt_replace": "  version: '1.1.0'\n"},
+                {"find": "  version: 1.0.0\n", "replace": "  version: 1.1.0\n"},
                 {"find": "  - url: https://petstore.swagger.io/v2\n", "replace": "  - url: https://petstore.example.com/v3\n"},
                 {"find": "  contact:\n    name: Swagger API Team\n    email: apiteam@swagger.io\n    url: http://swagger.io\n",
                  "replace": ""},
@@ -177,7 +173,7 @@ REAL_EDITS = {
         "edits": {
             "ops": [{"op": "replace", "path": "/info/version", "value": "2.1.0"},
                     {"op": "replace", "path": "/info/title", "value": "Simple API"}],
-            "subst": [{"find": "  version: 2.0.0\n", "replace": "  version: 2.1.0\n", "alt_replace": "  version: '2.1.0'\n"},
+            "subst": [{"find": "  version: 2.0.0\n", "replace": "  version: 2.1.0\n"},
                       {"find": "  title: Simple API overview\n", "replace": "  title: Simple API\n"}],
         },
     },
@@ -271,10 +267,6 @@ SHAPE_ABOUT = {
     "unicode": "Non-ASCII text, escapes in double quotes, characters outside the BMP.",
     "scalar-styles": "Every scalar style: plain, single, double, literal, folded, keep and strip chomping.",
 }
-# Shapes where a dump round trip is not meaningful (the tree is not the document).
-NO_DUMP = {"compose-merge"}
-
-
 def size_label(n: int) -> str:
     return f"{n // MB}m" if n >= MB and n % MB == 0 else f"{n // KB}k"
 
@@ -324,17 +316,11 @@ def _emit(dest: Path, wid: str, kind: str, description: str, source: dict, text:
         _write(dest / "edit.json", _dump_json({"ops": _norm_ops(g.edits["ops"])}))
         _write(dest / "edit.expected.yaml",
                apply_subst(textstr, g.edits["subst"], f"{wid} edits").encode("utf-8"))
-        if any("alt_replace" in x for x in g.edits["subst"]):
-            _write(dest / "edit.expected.restyled.yaml",
-                   apply_subst(textstr, g.edits["subst"], f"{wid} edits", alt=True).encode("utf-8"))
     if g.patch:
         failing = _norm_ops(g.patch["ops"]) + [g.patch["failing"]]
         _write(dest / "patch.json", _dump_json({"ops": _norm_ops(g.patch["ops"]), "failing_ops": failing}))
         _write(dest / "patch.expected.yaml",
                apply_subst(textstr, g.patch["subst"], f"{wid} patch").encode("utf-8"))
-        if any("alt_replace" in x for x in g.patch["subst"]):
-            _write(dest / "patch.expected.restyled.yaml",
-                   apply_subst(textstr, g.patch["subst"], f"{wid} patch", alt=True).encode("utf-8"))
     meta = {
         "id": wid, "kind": kind, "tier": tier, "description": description, "source": source,
         "documents": g.documents, "input_bytes": len(text),
@@ -345,6 +331,28 @@ def _emit(dest: Path, wid: str, kind: str, description: str, source: dict, text:
     }
     _write(dest / "workload.json", (json.dumps(meta, indent=1) + "\n").encode("utf-8"))
     return meta
+
+
+def universe(tiers: tuple[str, ...] = ("quick", "full")) -> dict[str, list[str]]:
+    """Every workload id of the tiers with the tasks it defines, without writing anything.
+
+    The known-deviation lists are checked against this, so an entry that names a workload
+    or task that no longer exists is found even when the run was filtered or in quick mode.
+    Small instances stand in for the large ones: which tasks exist does not depend on size.
+    """
+    out: dict[str, list[str]] = {}
+    for m in load_real():
+        if m.get("tier", "quick") not in tiers:
+            continue
+        extra = REAL_EDITS.get(m["id"], {})
+        g = gen.Generated("", None, documents=m["documents"], edits=extra.get("edits"), patch=extra.get("patch"))
+        out[m["id"]] = _tasks_for(g, typed=REAL_EXTRA.get(m["id"], {}).get("typed"), dump=m["documents"] == 1)
+    for ref_id, fn in (("reference-a", reference_a), ("reference-b", reference_b)):
+        out[ref_id] = _tasks_for(fn(), typed=None, dump=True)
+    for w in generated_workloads(tiers):
+        g = gen.SHAPES[w["shape"]](4096)
+        out[w["id"]] = _tasks_for(g, typed="records" if w["shape"] == "records" else None, dump=g.documents == 1)
+    return out
 
 
 def prepare(out_dir: Path, tiers: tuple[str, ...] = ("quick",)) -> list[dict]:
@@ -380,7 +388,7 @@ def prepare(out_dir: Path, tiers: tuple[str, ...] = ("quick",)) -> list[dict]:
                            {"origin": "generated", "generator": f"bench/oneyaml_bench/gen.py:{w['shape']}",
                             "target_bytes": w["size"], "licence": "CC0-1.0"},
                            g.text.encode("utf-8"), g, typed, w["tier"],
-                           dump=w["shape"] not in NO_DUMP))
+                           dump=g.documents == 1))
     index = {"format": "oneyaml-kit-workloads/1",
              "workloads": [{"id": m["id"], "kind": m["kind"], "tier": m["tier"],
                             "input_bytes": m["input_bytes"], "tasks": m["tasks"]} for m in metas]}
