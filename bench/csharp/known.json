@@ -1,0 +1,446 @@
+{
+ "format": "oneyaml-kit-bench-known/1",
+ "language": "csharp",
+ "entries": [
+  {
+   "cell": "sharpyaml-model/dump/deep-block",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml-model/dump/deep-flow",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml-model/dump/gha-workflow",
+   "status": "unjudged",
+   "reason": "The output ends a block scalar at the end of the file with no line break. YamlDotNet's parser reads the value without a final line break, as the specification says, and SharpYaml's parser appends a NUL character, so the harness cannot tell and lists the cell as unjudged. The line break the value had is missing from the output either way."
+  },
+  {
+   "cell": "sharpyaml-model/dump/long-scalars-256k",
+   "status": "unjudged",
+   "reason": "The output ends a block scalar at the end of the file with no line break. YamlDotNet's parser reads the value without a final line break, as the specification says, and SharpYaml's parser appends a NUL character, so the harness cannot tell and lists the cell as unjudged. The line break the value had is missing from the output either way."
+  },
+  {
+   "cell": "sharpyaml-model/dump/unicode-32k",
+   "status": "differs",
+   "reason": "Writes a character outside the Basic Multilingual Plane as two escaped UTF-16 surrogates (`\\xD83D\\xDE00`), which YAML reads as other characters."
+  },
+  {
+   "cell": "sharpyaml-model/generic-load/deep-block",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml-model/generic-load/deep-flow",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/anchors-32k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/compose-merge-1m",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/compose-merge-2k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/compose-merge-64k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/compose-wordpress",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/deep-block",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/deep-flow",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/flow-heavy-64k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/gha-workflow",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/helm-ingress-nginx",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/helm-values-1m",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/helm-values-64k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/k8s-ingress-nginx-multi",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/k8s-multi-16k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/k8s-multi-1m",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/long-scalars-256k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/openapi-100k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/openapi-8m",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/openapi-api-with-examples",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/openapi-petstore",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/prometheus-config",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/records-1m",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/records-4k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/records-64k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/records-8m",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/reference-a",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/reference-b",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/scalar-styles-32k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/unicode-32k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/wide-map-1m",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/document-parse/wide-map-64k",
+   "status": "ok",
+   "variant": "bytes-only",
+   "reason": "The syntax tree keeps the text and gives no value to compare, so the document is judged on the bytes it writes back, which are the input."
+  },
+  {
+   "cell": "sharpyaml-syntax/unchanged-emit/deep-block",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml-syntax/unchanged-emit/deep-flow",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml/dump/compose-merge-1m",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
+  },
+  {
+   "cell": "sharpyaml/dump/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
+  },
+  {
+   "cell": "sharpyaml/dump/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
+  },
+  {
+   "cell": "sharpyaml/dump/deep-block",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml/dump/deep-flow",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml/dump/records-1m",
+   "status": "differs",
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "sharpyaml/dump/records-4k",
+   "status": "differs",
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "sharpyaml/dump/records-64k",
+   "status": "differs",
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "sharpyaml/dump/records-8m",
+   "status": "differs",
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "sharpyaml/generic-load/compose-merge-1m",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
+  },
+  {
+   "cell": "sharpyaml/generic-load/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
+  },
+  {
+   "cell": "sharpyaml/generic-load/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "Applies `<<` merge keys while reading, a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key. What it writes back has the keys merged."
+  },
+  {
+   "cell": "sharpyaml/generic-load/deep-block",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "sharpyaml/generic-load/deep-flow",
+   "status": "rejects",
+   "reason": "Refuses nesting deeper than its default maximum depth of 64; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "vyaml/dump/helm-ingress-nginx",
+   "status": "differs",
+   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+  },
+  {
+   "cell": "vyaml/dump/long-scalars-256k",
+   "status": "differs",
+   "reason": "Writes a string that ends in a line break as a plain scalar, which drops the line break, so it reads back without it."
+  },
+  {
+   "cell": "vyaml/dump/records-1m",
+   "status": "differs",
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "vyaml/dump/records-4k",
+   "status": "differs",
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "vyaml/dump/records-64k",
+   "status": "differs",
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "vyaml/dump/records-8m",
+   "status": "differs",
+   "reason": "Writes a float with no fractional part (`812.0`) without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "vyaml/dump/reference-a",
+   "status": "differs",
+   "reason": "Writes a string that ends in a line break as a plain scalar, which drops the line break, so it reads back without it."
+  },
+  {
+   "cell": "vyaml/dump/reference-b",
+   "status": "differs",
+   "reason": "Writes a string that ends in a line break as a plain scalar, which drops the line break, so it reads back without it."
+  },
+  {
+   "cell": "vyaml/dump/scalar-styles-32k",
+   "status": "differs",
+   "reason": "Writes a string that ends in a line break as a plain scalar, which drops the line break, so it reads back without it."
+  },
+  {
+   "cell": "yaml2jsonnode/patch/compose-wordpress",
+   "status": "differs",
+   "reason": "Works on data, not on text: the document is parsed into a JSON tree, the patch is applied there, and a new document is written, so comments, blank lines, quoting and layout are lost. It is the patch baseline that does not keep the document, not a lossless editor."
+  },
+  {
+   "cell": "yaml2jsonnode/patch/gha-workflow",
+   "status": "differs",
+   "reason": "Works on data, not on text: the document is parsed into a JSON tree, the patch is applied there, and a new document is written, so comments, blank lines, quoting and layout are lost. It is the patch baseline that does not keep the document, not a lossless editor."
+  },
+  {
+   "cell": "yaml2jsonnode/patch/records-1m",
+   "status": "differs",
+   "reason": "Works on data, not on text: the document is parsed into a JSON tree, the patch is applied there, and a new document is written, so comments, blank lines, quoting and layout are lost. It is the patch baseline that does not keep the document, not a lossless editor."
+  },
+  {
+   "cell": "yaml2jsonnode/patch/records-4k",
+   "status": "differs",
+   "reason": "Works on data, not on text: the document is parsed into a JSON tree, the patch is applied there, and a new document is written, so comments, blank lines, quoting and layout are lost. It is the patch baseline that does not keep the document, not a lossless editor."
+  },
+  {
+   "cell": "yaml2jsonnode/patch/records-64k",
+   "status": "differs",
+   "reason": "Works on data, not on text: the document is parsed into a JSON tree, the patch is applied there, and a new document is written, so comments, blank lines, quoting and layout are lost. It is the patch baseline that does not keep the document, not a lossless editor."
+  },
+  {
+   "cell": "yaml2jsonnode/patch/records-8m",
+   "status": "differs",
+   "reason": "Works on data, not on text: the document is parsed into a JSON tree, the patch is applied there, and a new document is written, so comments, blank lines, quoting and layout are lost. It is the patch baseline that does not keep the document, not a lossless editor."
+  },
+  {
+   "cell": "yaml2jsonnode/patch/reference-a",
+   "status": "differs",
+   "reason": "Works on data, not on text: the document is parsed into a JSON tree, the patch is applied there, and a new document is written, so comments, blank lines, quoting and layout are lost. It is the patch baseline that does not keep the document, not a lossless editor."
+  },
+  {
+   "cell": "yaml2jsonnode/patch/reference-b",
+   "status": "differs",
+   "reason": "Works on data, not on text: the document is parsed into a JSON tree, the patch is applied there, and a new document is written, so comments, blank lines, quoting and layout are lost. It is the patch baseline that does not keep the document, not a lossless editor."
+  },
+  {
+   "cell": "yamldotnet/dump/compose-merge-1m",
+   "status": "differs",
+   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+  },
+  {
+   "cell": "yamldotnet/dump/compose-merge-2k",
+   "status": "differs",
+   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+  },
+  {
+   "cell": "yamldotnet/dump/compose-merge-64k",
+   "status": "differs",
+   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+  },
+  {
+   "cell": "yamldotnet/dump/deep-block",
+   "status": "rejects",
+   "reason": "The serializer refuses to write nesting deeper than its default recursion limit of 50; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "yamldotnet/dump/deep-flow",
+   "status": "rejects",
+   "reason": "The serializer refuses to write nesting deeper than its default recursion limit of 50; the workload nests 100 levels. The limit is the library's default and is not raised."
+  },
+  {
+   "cell": "yamldotnet/dump/helm-ingress-nginx",
+   "status": "differs",
+   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+  },
+  {
+   "cell": "yamldotnet/dump/records-1m",
+   "status": "differs",
+   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+  },
+  {
+   "cell": "yamldotnet/dump/records-4k",
+   "status": "differs",
+   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+  },
+  {
+   "cell": "yamldotnet/dump/records-64k",
+   "status": "differs",
+   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+  },
+  {
+   "cell": "yamldotnet/dump/records-8m",
+   "status": "differs",
+   "reason": "The emitter writes a string that reads as a number (such as `1.5`, `46746` or `3`) in plain style, so it reads back as a number."
+  }
+ ]
+}

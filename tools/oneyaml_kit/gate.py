@@ -209,6 +209,8 @@ def build_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[
                 Step("bench", "benchmark self-test", ["cargo", "test", "--release", "--locked", "--quiet",
                                                       "--features", "selftest"], "bench/rust",
                      {"CARGO_TARGET_DIR": sel}),
+                Step("bench", "benchmark .NET harness format",
+                     [dotnet, "format", "whitespace", "bench/csharp/Bench.csproj", "--verify-no-changes"]),
                 Step("bench", "benchmark quick run", [py(), "bin/bench", "run"]),
                 Step("bench", "benchmark counters",
                      [py(), "bin/bench", "check", str(out / "bench" / "results.json"),

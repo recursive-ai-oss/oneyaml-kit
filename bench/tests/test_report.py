@@ -177,5 +177,80 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(P.fmt_ratio(12.34), "12.3×")
 
 
+def baseline_result() -> dict:
+    """A language with competitors only: three libraries on two workloads, one of them wrong in the second."""
+    cells = []
+    for w, (a, b, c) in (("w1", ((100.0, 1000), (200.0, 4000), (400.0, 2000))),
+                         ("w2", ((100.0, 1000), (100.0, 1000), (200.0, 500)))):
+        cells += [cell("alpha", workload=w, language="csharp", t=a[0], peak=a[1]),
+                  cell("beta", workload=w, language="csharp", t=b[0], peak=b[1]),
+                  cell("gamma", workload=w, language="csharp", t=c[0], peak=c[1])]
+    cells.append(cell("delta", workload="w1", language="csharp", status="differs", detail="at /a: got 1, expected 2"))
+    res = synthetic()
+    res["cells"] = cells
+    res["workloads"] = [w for w in res["workloads"] if w["id"] in ("w1", "w2")]
+    res["harnesses"] = {"csharp": {**res["harnesses"]["rust"], "libraries": [
+        {"id": n, "package": n, "version": "1", "role": "competitor", "settings": {}}
+        for n in ("alpha", "beta", "gamma", "delta")]}}
+    return res
+
+
+class BaselineReportTests(unittest.TestCase):
+    """A language that has no library of ours is a table of competitors and a baseline to beat."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.out = Path(cls.tmp.name)
+        cls.md = P.render(baseline_result(), cls.out)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def test_the_tables_name_the_best_library_and_make_no_claim_about_ours(self):
+        self.assertIn("Best in the row", self.md)
+        self.assertNotIn("Ours vs best competitor", self.md)
+        row = next(l for l in self.md.splitlines() if l.startswith("| `w1`") and "alpha" in l)
+        self.assertTrue(row.rstrip().endswith("| `alpha` |"), row)
+        mem = [l for l in self.md.splitlines() if l.startswith("| `w1`") and "KiB" in l or "B /" in l]
+        self.assertTrue(any(l.rstrip().endswith("| `alpha` |") for l in mem))
+
+    def test_the_summary_is_a_geometric_mean_against_the_best_in_each_row(self):
+        self.assertIn("Languages without a library of ours", self.md)
+        rows = [l for l in self.md.splitlines() if l.startswith("| csharp | generic-load |")]
+        by = {r.split("|")[3].strip(" `"): [c.strip() for c in r.split("|")[4:9]] for r in rows}
+        # beta: sqrt(2.00 * 1.00) = 1.41; gamma: sqrt(4.00 * 2.00) = 2.83; alpha is the best in both rows.
+        self.assertEqual(by["alpha"][:4], ["2", "2", "1.00×", "1"])
+        self.assertEqual(by["beta"][2], "1.41×")
+        self.assertEqual(by["gamma"][2], "2.83×")
+        # A library with no number in a row is judged on the rows where it has one.
+        self.assertNotIn("delta", by)
+        # Peak: w1 alpha 1000 best, w2 gamma 500 best. gamma: sqrt(2 * 1) = 1.41.
+        self.assertEqual(by["gamma"][3:5], ["1", "1.41×"])
+
+    def test_the_charts_exist_and_their_alt_text_carries_the_numbers(self):
+        names = {f.name for f in (self.out / "charts").glob("*.svg")}
+        self.assertIn("csharp-generic-load-time-light.svg", names)
+        self.assertIn("csharp-generic-load-memory-dark.svg", names)
+        alt = next(l for l in self.md.splitlines() if "generic-load (csharp): time" in l and "<img alt=" in l)
+        for needle in ("beta 1.41× over 2 rows, best in 0", "gamma 2.83× over 2 rows", "alpha 1.00× over 2 rows, best in 2"):
+            self.assertIn(needle, alt)
+        text = (self.out / "charts" / "csharp-generic-load-time-light.svg").read_text(encoding="utf-8")
+        root = ET.fromstring(text)
+        self.assertTrue(root.get("aria-label"))
+        self.assertIn("2 rows, best in 2", text)
+        # The bars are neutral: there is no win or loss between competitors.
+        self.assertNotIn("#cf222e", text)
+        self.assertNotIn("#1a7f37", text)
+
+    def test_a_wrong_answer_is_still_listed_and_the_report_is_clean(self):
+        self.assertIn("at /a: got 1, expected 2", self.md)
+        for line in self.md.splitlines():
+            self.assertIsNone(public_text.PATTERN.search(line), line)
+        # A report that has our library in it keeps the old summary, and one without it does not print an empty one.
+        self.assertNotIn("Weakest row", self.md)
+
+
 if __name__ == "__main__":
     unittest.main()
