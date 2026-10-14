@@ -2,20 +2,6 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
-   "case": "own:diagnostics/bom-inside-a-document-is-an-error",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Accepts input that is not valid YAML"
-  },
-  {
-   "case": "own:diagnostics/bom-inside-a-document-is-an-error",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Accepts input that is not valid YAML"
-  },
-  {
    "case": "own:diagnostics/directive-then-document-end-is-an-error",
    "expectation": "primary",
    "mode": "strict",
@@ -343,20 +329,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Takes the input without a limit error: accepted; only a limit error is allowed"
-  },
-  {
-   "case": "own:schema/code-constructing-tags-are-plain-data",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:python/object/apply:os.system"
-  },
-  {
-   "case": "own:schema/code-constructing-tags-are-plain-data",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:python/object/apply:os.system"
   },
   {
    "case": "own:schema/core-float-forms",
@@ -1554,6 +1526,55 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reads the value differently: $[0].Mark McGwire.avg: expected 0.278, got 0.27799999713897705"
+  },
+  {
+   "case": "own:diagnostics/second-bare-document-after-a-byte-order-mark-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted a second bare document after a byte order mark with no end marker before it; the case expects it to be rejected"
+  },
+  {
+   "case": "own:diagnostics/second-bare-document-after-a-byte-order-mark-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted a second bare document after a byte order mark with no end marker before it; the case expects it to be rejected"
+  },
+  {
+   "case": "own:parse/tag-suffix-utf-8-percent-escape-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "line 3: expected '=VAL <tag:x,1:%C3%A9> :a', got '=VAL <tag:x,1:é> :a'"
+  },
+  {
+   "case": "own:parse/tag-suffix-utf-8-percent-escape-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "line 3: expected '=VAL <tag:x,1:%C3%A9> :a', got '=VAL <tag:x,1:é> :a'"
+  },
+  {
+   "case": "own:safety/deep-block-sequences-100000-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected one of limit, got other"
+  },
+  {
+   "case": "own:safety/deep-flow-sequences-100000-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected one of limit, got other"
+  },
+  {
+   "case": "own:schema/code-constructing-tags-are-kept-or-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Refuses the document with an error the adapter cannot map to the kit's names (other); the case needs unresolved-tag"
   }
  ]
 }

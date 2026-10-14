@@ -9,7 +9,7 @@
   "YAML 1.2.2 section 3.3.2",
   "YAML 1.2.2 section 3.3.3"
  ],
- "notes": "Section 3.3 lets a processor treat an unrecognised tag as a load failure, so an error is conformant; a library that loads the document must keep the node with its tag and must not interpret it. Readers that construct objects from such tags let a document execute code. The time and memory bounds are the kit's robustness requirement, not a rule of the specification.",
+ "notes": "Section 3.3 lets a processor treat an unrecognised tag as a load failure, so an error is conformant (category unresolved-tag); a library that loads the document must keep the node with its tag and must not interpret it. Readers that construct objects from such tags let a document execute code. The time and memory bounds are the kit's robustness requirement, not a rule of the specification.",
  "provenance": {
   "reference": "CVE-2017-18342: PyYAML load() constructed arbitrary Python objects from python/ tags"
  },
@@ -20,7 +20,7 @@
   "kind": "bounded",
   "time_seconds": 10,
   "memory_mb": 1024,
-  "error": "any",
+  "error": "unresolved-tag",
   "accept": {
    "kind": "value",
    "file": "expected.json"

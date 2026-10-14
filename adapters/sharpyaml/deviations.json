@@ -2,20 +2,6 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
-   "case": "own:diagnostics/bom-inside-a-document-is-an-error",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Accepts input that is not valid YAML"
-  },
-  {
-   "case": "own:diagnostics/bom-inside-a-document-is-an-error",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Accepts input that is not valid YAML"
-  },
-  {
    "case": "own:diagnostics/directive-then-document-end-is-an-error",
    "expectation": "primary",
    "mode": "strict",
@@ -469,20 +455,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The error carries no distinct type for this class, so it is reported as other instead of limit"
-  },
-  {
-   "case": "own:schema/code-constructing-tags-are-plain-data",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"
-  },
-  {
-   "case": "own:schema/code-constructing-tags-are-plain-data",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"
   },
   {
    "case": "own:schema/core-infinity-and-nan-spellings",
@@ -3346,6 +3318,62 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Events before the error differ from the specified ones (got more lines after line 4: '=VAL :b')"
+  },
+  {
+   "case": "own:diagnostics/second-bare-document-after-a-byte-order-mark-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted a second bare document after a byte order mark with no end marker before it; the case expects it to be rejected"
+  },
+  {
+   "case": "own:diagnostics/second-bare-document-after-a-byte-order-mark-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted a second bare document after a byte order mark with no end marker before it; the case expects it to be rejected"
+  },
+  {
+   "case": "own:parse/tag-suffix-utf-8-percent-escape-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "line 3: expected '=VAL <tag:x,1:%C3%A9> :a', got '=VAL <tag:x,1:é> :a'"
+  },
+  {
+   "case": "own:parse/tag-suffix-utf-8-percent-escape-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "line 3: expected '=VAL <tag:x,1:%C3%A9> :a', got '=VAL <tag:x,1:é> :a'"
+  },
+  {
+   "case": "own:safety/deep-block-sequences-100000-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected one of limit, got other"
+  },
+  {
+   "case": "own:safety/deep-flow-sequences-100000-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected one of limit, got other"
+  },
+  {
+   "case": "own:schema/code-constructing-tags-are-kept-or-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Loads the python/object tag as a plain value and drops the tag: it neither keeps the tag nor refuses the document"
+  },
+  {
+   "case": "own:schema/code-constructing-tags-are-kept-or-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Loads the python/object tag as a plain value and drops the tag: it neither keeps the tag nor refuses the document"
   }
  ]
 }

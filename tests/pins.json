@@ -160,7 +160,7 @@
    "schema/alias-to-a-collection-is-shared-content": "894ec1fdc8ea3802c939a888f8331d1f3dfd4fe5c16746c01835c1609885f551",
    "schema/anchor-can-be-redefined": "cd12fe90c478301d6cae5a8ce3797934dbf3656ed73e385ae8abd21cb7278d27",
    "schema/anchor-keeps-the-resolved-type": "0e313a58138e34a8e650675cb887e408e259acc8aafb5000a5c14743736f030e",
-   "schema/code-constructing-tags-are-kept-or-refused": "4b56807ce35bffa9ffd5f8a35e58ac07ef63cd118d42db49edd2e9c22c89a6fe",
+   "schema/code-constructing-tags-are-kept-or-refused": "246308cd9ea33c12a4b3f2843e35e2b1a93fd69afa7fa3868cb4bea8a20d9402",
    "schema/core-float-forms": "ba2989d9765e8927300fbfb9a32c1e30edee1e72dfda89a6d9002490fae5faf0",
    "schema/core-floats": "aa00155bafd875d00838c4c218efbe1bcf046946f3164d0c19303eceaee3e730",
    "schema/core-infinity-and-nan-spellings": "571f420c327b69e0d8d71ffb05e8bdfe2118bcd47a971ce9cdf85191b183cc6f",

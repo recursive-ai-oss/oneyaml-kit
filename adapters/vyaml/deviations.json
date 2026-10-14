@@ -114,20 +114,6 @@
    "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
   },
   {
-   "case": "own:parse/tag-suffix-percent-escape-decodes-as-utf-8",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "unsupported",
-   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
-  },
-  {
-   "case": "own:parse/tag-suffix-percent-escape-decodes-as-utf-8",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "unsupported",
-   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
-  },
-  {
    "case": "own:safety/alias-byte-expansion-bomb",
    "expectation": "primary",
    "mode": "loose",
@@ -280,20 +266,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Accepts input that is not valid YAML"
-  },
-  {
-   "case": "own:schema/code-constructing-tags-are-plain-data",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"
-  },
-  {
-   "case": "own:schema/code-constructing-tags-are-plain-data",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"
   },
   {
    "case": "own:schema/core-infinity-and-nan-spellings",
@@ -2625,6 +2597,62 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Events before the error differ from the specified ones (expected more lines after line 4: \"=VAL 'b\")"
+  },
+  {
+   "case": "own:parse/tag-suffix-utf-8-percent-escape-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "own:parse/tag-suffix-utf-8-percent-escape-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "own:safety/deep-block-sequences-100000-value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The adapter process aborted (exit code -6) on a hundred-thousand-deep nesting"
+  },
+  {
+   "case": "own:safety/deep-block-sequences-100000-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The adapter process aborted (exit code -6) on a hundred-thousand-deep nesting"
+  },
+  {
+   "case": "own:safety/deep-flow-sequences-100000-value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The adapter process aborted (exit code -6) on a hundred-thousand-deep nesting"
+  },
+  {
+   "case": "own:safety/deep-flow-sequences-100000-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The adapter process aborted (exit code -6) on a hundred-thousand-deep nesting"
+  },
+  {
+   "case": "own:schema/code-constructing-tags-are-kept-or-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Loads the python/object tag as a plain value and drops the tag: it neither keeps the tag nor refuses the document"
+  },
+  {
+   "case": "own:schema/code-constructing-tags-are-kept-or-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Loads the python/object tag as a plain value and drops the tag: it neither keeps the tag nor refuses the document"
   }
  ]
 }

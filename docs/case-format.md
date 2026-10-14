@@ -159,7 +159,8 @@ For `error`, **loose** mode only requires that an error is reported, of any kind
 anywhere. **Strict** mode also checks whatever the case states:
 
 - `category`: one of `syntax`, `encoding`, `limit`, `patch-path`, `patch-test`,
-  `patch-invalid`, `refused-alias`, `refused-ambiguous`, or `any` (the default).
+  `patch-invalid`, `refused-alias`, `refused-ambiguous`, `unresolved-tag` (a reader
+  refused a tag it cannot resolve, YAML 1.2.2 section 3.3), or `any` (the default).
   Categories are stable names, never message text.
 - `line` and `column`: see *Positions* above. `column` may be left out when only the
   line is fixed.

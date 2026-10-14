@@ -1,7 +1,5 @@
 {"format": "oneyaml-kit-deviations/1",
  "entries": [
-  {"case": "own:diagnostics/bom-inside-a-document-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "own:diagnostics/bom-inside-a-document-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/directive-then-document-end-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/directive-then-document-end-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/extra-closing-brace", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
@@ -10,12 +8,8 @@
   {"case": "own:diagnostics/position-counts-characters-outside-the-basic-plane", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/yaml-directive-after-document-end-needs-a-start-marker", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/yaml-directive-after-document-end-needs-a-start-marker", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "own:parse/encoding-utf-16be-first-character-not-ascii", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: control characters are not allowed'"},
-  {"case": "own:parse/encoding-utf-16be-first-character-not-ascii", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: control characters are not allowed'"},
   {"case": "own:parse/encoding-utf-16be-without-bom", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: control characters are not allowed'"},
   {"case": "own:parse/encoding-utf-16be-without-bom", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: control characters are not allowed'"},
-  {"case": "own:parse/encoding-utf-16le-first-character-not-ascii", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: invalid trailing UTF-8 octet'"},
-  {"case": "own:parse/encoding-utf-16le-first-character-not-ascii", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: invalid trailing UTF-8 octet'"},
   {"case": "own:parse/encoding-utf-16le-without-bom", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: control characters are not allowed'"},
   {"case": "own:parse/encoding-utf-16le-without-bom", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: control characters are not allowed'"},
   {"case": "own:parse/encoding-utf-32be-with-bom", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: control characters are not allowed'"},
@@ -42,8 +36,6 @@
   {"case": "own:schema/alias-to-a-collection-is-shared-content", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].base: key 'y' missing"},
   {"case": "own:schema/anchor-keeps-the-resolved-type", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0].c: expected 1.0, got 1"},
   {"case": "own:schema/anchor-keeps-the-resolved-type", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].c: expected 1.0, got 1"},
-  {"case": "own:schema/code-constructing-tags-are-plain-data", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"},
-  {"case": "own:schema/code-constructing-tags-are-plain-data", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"},
   {"case": "own:schema/core-float-forms", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0].a: expected 1.0, got 1"},
   {"case": "own:schema/core-float-forms", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].a: expected 1.0, got 1"},
   {"case": "own:schema/core-floats", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'json: unsupported value: +Inf'"},
@@ -429,5 +421,9 @@
   {"case": "yts:Y79Y/010@value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: found character that cannot start any token'"},
   {"case": "yts:Y79Y/010@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: found character that cannot start any token'"},
   {"case": "yts:YJV2", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "yts:YJV2", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."}
+  {"case": "yts:YJV2", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/second-bare-document-after-a-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted a second bare document after a byte order mark with no end marker before it; the case expects it to be rejected"},
+  {"case": "own:diagnostics/second-bare-document-after-a-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted a second bare document after a byte order mark with no end marker before it; the case expects it to be rejected"},
+  {"case": "own:schema/code-constructing-tags-are-kept-or-refused", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Loads the python/object tag as a plain value and drops the tag: it neither keeps the tag nor refuses the document"},
+  {"case": "own:schema/code-constructing-tags-are-kept-or-refused", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Loads the python/object tag as a plain value and drops the tag: it neither keeps the tag nor refuses the document"}
  ]}
