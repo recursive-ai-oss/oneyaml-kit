@@ -1,0 +1,1041 @@
+{
+ "format": "oneyaml-kit-deviations/1",
+ "entries": [
+  {
+   "case": "own:diagnostics/position-counts-a-bare-cr-as-a-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 2:3; the first character that cannot belong to any document is at 2:4"
+  },
+  {
+   "case": "own:diagnostics/position-counts-crlf-as-one-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 2:3; the first character that cannot belong to any document is at 2:4"
+  },
+  {
+   "case": "own:diagnostics/position-implicit-key-over-two-lines",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at 2:3; the first character that cannot belong to any document is at 2:4"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the result expands to more than 4000000 nodes; the adapter does not render it"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the result expands to more than 4000000 nodes; the adapter does not render it"
+  },
+  {
+   "case": "own:schema/core-floats",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].h: expected 6.02e+23, got 6.020000172718952e+23"
+  },
+  {
+   "case": "own:schema/core-floats",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].h: expected 6.02e+23, got 6.020000172718952e+23"
+  },
+  {
+   "case": "own:schema/core-integers",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].d: expected 12, got '0o14'"
+  },
+  {
+   "case": "own:schema/core-integers",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].d: expected 12, got '0o14'"
+  },
+  {
+   "case": "own:schema/explicit-str-tag",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][2]: expected 'null', got None"
+  },
+  {
+   "case": "own:schema/explicit-str-tag",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][2]: expected 'null', got None"
+  },
+  {
+   "case": "own:schema/non-string-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$map': [[1, 'a'], [True, 'b'], ['x', 'c']]}, got {'1': 'a', 'true': 'b', 'x': 'c'}"
+  },
+  {
+   "case": "own:schema/non-string-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$map': [[1, 'a'], [True, 'b'], ['x', 'c']]}, got {'1': 'a', 'true': 'b', 'x': 'c'}"
+  },
+  {
+   "case": "own:schema/unresolved-tag-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!color"
+  },
+  {
+   "case": "own:schema/unresolved-tag-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!color"
+  },
+  {
+   "case": "yts:229Q@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0].avg: expected 0.278, got 0.27799999713897705"
+  },
+  {
+   "case": "yts:229Q@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0].avg: expected 0.278, got 0.27799999713897705"
+  },
+  {
+   "case": "yts:2G84/02@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected '', got None"
+  },
+  {
+   "case": "yts:2G84/02@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected '', got None"
+  },
+  {
+   "case": "yts:2G84/03@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected '', got None"
+  },
+  {
+   "case": "yts:2G84/03@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected '', got None"
+  },
+  {
+   "case": "yts:2XXW@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:set"
+  },
+  {
+   "case": "yts:2XXW@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:set"
+  },
+  {
+   "case": "yts:35KP@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:seq"
+  },
+  {
+   "case": "yts:35KP@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:seq"
+  },
+  {
+   "case": "yts:4H7K",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: events before the error differ from the specified ones (got more lines after line 7: '-DOC')"
+  },
+  {
+   "case": "yts:4H7K",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (line 3: expected '+SEQ', got '+SEQ []')"
+  },
+  {
+   "case": "yts:4MUZ/02",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:4MUZ/02",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:4MUZ/02@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:4MUZ/02@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:52DL@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!"
+  },
+  {
+   "case": "yts:52DL@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!"
+  },
+  {
+   "case": "yts:565N@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:binary"
+  },
+  {
+   "case": "yts:565N@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:binary"
+  },
+  {
+   "case": "yts:57H4@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:seq"
+  },
+  {
+   "case": "yts:57H4@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:seq"
+  },
+  {
+   "case": "yts:5TYM@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!my-light"
+  },
+  {
+   "case": "yts:5TYM@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!my-light"
+  },
+  {
+   "case": "yts:6CK3@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!local"
+  },
+  {
+   "case": "yts:6CK3@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!local"
+  },
+  {
+   "case": "yts:6JWB@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:seq"
+  },
+  {
+   "case": "yts:6JWB@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:seq"
+  },
+  {
+   "case": "yts:6WLZ@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!foo"
+  },
+  {
+   "case": "yts:6WLZ@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!foo"
+  },
+  {
+   "case": "yts:7FWL@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!bar"
+  },
+  {
+   "case": "yts:7FWL@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!bar"
+  },
+  {
+   "case": "yts:8MK2@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!"
+  },
+  {
+   "case": "yts:8MK2@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!"
+  },
+  {
+   "case": "yts:9WXW@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!foo"
+  },
+  {
+   "case": "yts:9WXW@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!foo"
+  },
+  {
+   "case": "yts:BS4K",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: events before the error differ from the specified ones (got more lines after line 3: '-DOC')"
+  },
+  {
+   "case": "yts:C4HZ@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:clarkevans.com,2002:shape"
+  },
+  {
+   "case": "yts:C4HZ@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:clarkevans.com,2002:shape"
+  },
+  {
+   "case": "yts:CC74@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:example.com,2000:app/foo"
+  },
+  {
+   "case": "yts:CC74@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:example.com,2000:app/foo"
+  },
+  {
+   "case": "yts:CUP7@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!local"
+  },
+  {
+   "case": "yts:CUP7@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!local"
+  },
+  {
+   "case": "yts:DK95/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:DK95/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:DK95/04",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a plain scalar, found a tab character that violate indentation."
+  },
+  {
+   "case": "yts:DK95/04",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a plain scalar, found a tab character that violate indentation."
+  },
+  {
+   "case": "yts:DK95/04@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a plain scalar, found a tab character that violate indentation."
+  },
+  {
+   "case": "yts:DK95/04@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a plain scalar, found a tab character that violate indentation."
+  },
+  {
+   "case": "yts:DK95/06",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 6: '=VAL :1')"
+  },
+  {
+   "case": "yts:EB22",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: events before the error differ from the specified ones (got more lines after line 3: '-DOC')"
+  },
+  {
+   "case": "yts:EHF6@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:seq"
+  },
+  {
+   "case": "yts:EHF6@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:seq"
+  },
+  {
+   "case": "yts:GH63@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 1.3, got 1.2999999523162842"
+  },
+  {
+   "case": "yts:GH63@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 1.3, got 1.2999999523162842"
+  },
+  {
+   "case": "yts:J7PZ@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:omap"
+  },
+  {
+   "case": "yts:J7PZ@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:yaml.org,2002:omap"
+  },
+  {
+   "case": "yts:JEF9/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a literal block scalar, found extra spaces in first line."
+  },
+  {
+   "case": "yts:JEF9/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a literal block scalar, found extra spaces in first line."
+  },
+  {
+   "case": "yts:JEF9/01@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a literal block scalar, found extra spaces in first line."
+  },
+  {
+   "case": "yts:JEF9/01@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a literal block scalar, found extra spaces in first line."
+  },
+  {
+   "case": "yts:JEF9/02",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 4: expected '=VAL |\\\\n', got '=VAL |'"
+  },
+  {
+   "case": "yts:JEF9/02",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 4: expected '=VAL |\\\\n', got '=VAL |'"
+  },
+  {
+   "case": "yts:JEF9/02@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected '\\n', got None"
+  },
+  {
+   "case": "yts:JEF9/02@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected '\\n', got None"
+  },
+  {
+   "case": "yts:L24T/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 5: expected '=VAL |x\\\\n \\\\n', got '=VAL |x\\\\n '"
+  },
+  {
+   "case": "yts:L24T/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 5: expected '=VAL |x\\\\n \\\\n', got '=VAL |x\\\\n '"
+  },
+  {
+   "case": "yts:L24T/01@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].foo: expected 'x\\n \\n', got 'x\\n '"
+  },
+  {
+   "case": "yts:L24T/01@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].foo: expected 'x\\n \\n', got 'x\\n '"
+  },
+  {
+   "case": "yts:LE5A@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][4]: expected '', got None"
+  },
+  {
+   "case": "yts:LE5A@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][4]: expected '', got None"
+  },
+  {
+   "case": "yts:M2N8/00",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 7: expected '=VAL :x', got '-MAP'"
+  },
+  {
+   "case": "yts:M2N8/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 7: expected '=VAL :x', got '-MAP'"
+  },
+  {
+   "case": "yts:M5C3@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!foo"
+  },
+  {
+   "case": "yts:M5C3@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!foo"
+  },
+  {
+   "case": "yts:MUS6/00",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:MUS6/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:MUS6/01",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: events before the error differ from the specified ones (got more lines after line 2: '=VAL :')"
+  },
+  {
+   "case": "yts:MUS6/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (got more lines after line 1: '+DOC ---')"
+  },
+  {
+   "case": "yts:P76L@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:example.com,2000:app/int"
+  },
+  {
+   "case": "yts:P76L@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:example.com,2000:app/int"
+  },
+  {
+   "case": "yts:RR7F@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 4.2, got 4.199999809265137"
+  },
+  {
+   "case": "yts:RR7F@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a: expected 4.2, got 4.199999809265137"
+  },
+  {
+   "case": "yts:S4JQ@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!"
+  },
+  {
+   "case": "yts:S4JQ@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!"
+  },
+  {
+   "case": "yts:SYW4@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].avg: expected 0.278, got 0.27799999713897705"
+  },
+  {
+   "case": "yts:SYW4@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].avg: expected 0.278, got 0.27799999713897705"
+  },
+  {
+   "case": "yts:T833",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (line 3: expected '+MAP', got '+MAP {}')"
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: rejects valid input: Encountered an unresolved tag 'tag:clarkevans.com,2002:invoice"
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: rejects valid input: Encountered an unresolved tag 'tag:clarkevans.com,2002:invoice"
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:clarkevans.com,2002:invoice"
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:clarkevans.com,2002:invoice"
+  },
+  {
+   "case": "yts:UKK6/00",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block collection, did not find expected '-' indicator."
+  },
+  {
+   "case": "yts:UKK6/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a block collection, did not find expected '-' indicator."
+  },
+  {
+   "case": "yts:VJP3/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:VJP3/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:VJP3/01@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:VJP3/01@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping,  did not find expected ',' or '}'."
+  },
+  {
+   "case": "yts:WZ62@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Exception during deserialization"
+  },
+  {
+   "case": "yts:WZ62@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Exception during deserialization"
+  },
+  {
+   "case": "yts:Y79Y/000",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (got more lines after line 4: '=VAL |')"
+  },
+  {
+   "case": "yts:Y79Y/003",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/003",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/007",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: events before the error differ from the specified ones (got more lines after line 6: '=VAL :')"
+  },
+  {
+   "case": "yts:Y79Y/007",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (line 3: expected '+SEQ', got '+MAP')"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:YD5X@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][1][2]: expected 0.278, got 0.27799999713897705"
+  },
+  {
+   "case": "yts:YD5X@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][1][2]: expected 0.278, got 0.27799999713897705"
+  },
+  {
+   "case": "yts:Z67P@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!foo"
+  },
+  {
+   "case": "yts:Z67P@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag '!foo"
+  },
+  {
+   "case": "yts:Z9M4@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:example.com,2000:app/foo"
+  },
+  {
+   "case": "yts:Z9M4@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Encountered an unresolved tag 'tag:example.com,2000:app/foo"
+  },
+  {
+   "case": "yts:ZF4X@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].Mark McGwire.avg: expected 0.278, got 0.27799999713897705"
+  },
+  {
+   "case": "yts:ZF4X@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].Mark McGwire.avg: expected 0.278, got 0.27799999713897705"
+  }
+ ]
+}

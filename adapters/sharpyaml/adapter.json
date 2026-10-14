@@ -1,0 +1,9 @@
+{
+  "format": "oneyaml-kit-adapter/1",
+  "name": "sharpyaml",
+  "language": "csharp",
+  "build": ["./build.sh"],
+  "command": ["./run.sh"],
+  "timeout_seconds": 10,
+  "deviations": "deviations.json"
+}

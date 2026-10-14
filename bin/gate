@@ -1,7 +1,8 @@
 #!/bin/sh
 # The kit's own gate: its tests, the fast set through every adapter, the checks.
 # Set KIT_OUT to move the output directory (default ./out) and CARGO_TARGET_DIR to
-# keep Rust build output out of the checkout.
+# keep Rust build output out of the checkout. The .NET adapters need the .NET SDK (DOTNET names
+# it when it is not on PATH); KIT_DOTNET_ARTIFACTS moves their build output.
 set -eu
 cd "$(dirname "$0")/.."
 export PYTHONDONTWRITEBYTECODE=1
@@ -18,6 +19,9 @@ for d in adapters/*/; do
   if [ -f "$d/Cargo.toml" ]; then
     (cd "$d" && cargo fmt --check && cargo clippy --release --locked --quiet -- -D warnings)
   fi
+done
+for p in adapters/*/*.csproj; do
+  [ -f "$p" ] && "${DOTNET:-dotnet}" format whitespace "$p" --verify-no-changes
 done
 echo "== public text"
 python3 bin/kit public-text

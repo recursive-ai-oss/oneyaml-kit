@@ -1,0 +1,2343 @@
+{
+ "format": "oneyaml-kit-deviations/1",
+ "entries": [
+  {
+   "case": "own:parse/tag-handle-directive",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "own:parse/tag-handle-directive",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the result expands to more than 4000000 nodes; the adapter does not render it"
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the result expands to more than 4000000 nodes; the adapter does not render it"
+  },
+  {
+   "case": "own:safety/invalid-utf-8-byte",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:safety/invalid-utf-8-byte",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:schema/explicit-str-tag",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected '12', got 12"
+  },
+  {
+   "case": "own:schema/explicit-str-tag",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected '12', got 12"
+  },
+  {
+   "case": "own:schema/unresolved-tag-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"
+  },
+  {
+   "case": "own:schema/unresolved-tag-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"
+  },
+  {
+   "case": "yts:2CMS",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:2G84/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+  },
+  {
+   "case": "yts:2G84/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+  },
+  {
+   "case": "yts:2G84/02",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:2G84/02",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:2G84/02@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected '', got None"
+  },
+  {
+   "case": "yts:2G84/02@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected '', got None"
+  },
+  {
+   "case": "yts:2G84/03",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:2G84/03",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:2G84/03@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected '', got None"
+  },
+  {
+   "case": "yts:2G84/03@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected '', got None"
+  },
+  {
+   "case": "yts:2SXE",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Mapping values are not allowed in this context"
+  },
+  {
+   "case": "yts:2SXE",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Mapping values are not allowed in this context"
+  },
+  {
+   "case": "yts:2SXE@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Mapping values are not allowed in this context"
+  },
+  {
+   "case": "yts:2SXE@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Mapping values are not allowed in this context"
+  },
+  {
+   "case": "yts:3RLN/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:3RLN/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:3RLN/01@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:3RLN/01@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:3RLN/04",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:3RLN/04",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:3RLN/04@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:3RLN/04@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:3UYS",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:3UYS",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:3UYS@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:3UYS@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:4EJS",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:4EJS",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:4H7K",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: events before the error differ from the specified ones (got more lines after line 7: '-DOC')"
+  },
+  {
+   "case": "yts:4H7K",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (line 3: expected '+SEQ', got '+SEQ []')"
+  },
+  {
+   "case": "yts:4JVG",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (got more lines after line 9: '=VAL &node2 :')"
+  },
+  {
+   "case": "yts:4MUZ/00",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:4MUZ/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:4MUZ/00@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:4MUZ/00@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:4MUZ/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:4MUZ/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:4MUZ/01@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:4MUZ/01@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:4MUZ/02",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:4MUZ/02",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:4MUZ/02@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:4MUZ/02@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:55WF",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+  },
+  {
+   "case": "yts:5MUD",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:5MUD",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:5MUD@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:5MUD@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:5TRB",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:5TRB",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:5TYM",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:5TYM",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:5U3A",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:5WE3",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:5WE3",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:62EZ",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+  },
+  {
+   "case": "yts:6BCT",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 10: expected '=VAL :baz', got '=VAL :\\\\tbaz'"
+  },
+  {
+   "case": "yts:6BCT",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 10: expected '=VAL :baz', got '=VAL :\\\\tbaz'"
+  },
+  {
+   "case": "yts:6BCT@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][1][1]: expected 'baz', got '\\tbaz'"
+  },
+  {
+   "case": "yts:6BCT@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][1][1]: expected 'baz', got '\\tbaz'"
+  },
+  {
+   "case": "yts:6CA3",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 3: expected '+SEQ []', got '=VAL :\\\\t[ ]'"
+  },
+  {
+   "case": "yts:6CA3",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 3: expected '+SEQ []', got '=VAL :\\\\t[ ]'"
+  },
+  {
+   "case": "yts:6CA3@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected [], got '\\t[ ]'"
+  },
+  {
+   "case": "yts:6CA3@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected [], got '\\t[ ]'"
+  },
+  {
+   "case": "yts:6CK3",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:6CK3",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:6M2F",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 6: expected '=VAL :', got '=VAL &b :'"
+  },
+  {
+   "case": "yts:6M2F",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 6: expected '=VAL :', got '=VAL &b :'"
+  },
+  {
+   "case": "yts:6PBE",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the tokenizer saw fewer nodes than the parser reported"
+  },
+  {
+   "case": "yts:6PBE",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the tokenizer saw fewer nodes than the parser reported"
+  },
+  {
+   "case": "yts:6WLZ",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:6WLZ",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:74H7@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'a': 'b', 'c': 42, 'e': 'f', 'g': 'h', '23': False}, got {'$map': [['a', 'b'], ['c', 42], ['e', 'f'], ['g', 'h'], ..."
+  },
+  {
+   "case": "yts:74H7@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {'a': 'b', 'c': 42, 'e': 'f', 'g': 'h', '23': False}, got {'$map': [['a', 'b'], ['c', 42], ['e', 'f'], ['g', 'h'], ..."
+  },
+  {
+   "case": "yts:7LBH",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:7Z25",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:7Z25",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:7Z25@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:7Z25@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:8XYN",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning an anchor or alias, did not find expected alphabetic or numeric character"
+  },
+  {
+   "case": "yts:8XYN",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning an anchor or alias, did not find expected alphabetic or numeric character"
+  },
+  {
+   "case": "yts:8XYN@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning an anchor or alias, did not find expected alphabetic or numeric character"
+  },
+  {
+   "case": "yts:8XYN@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning an anchor or alias, did not find expected alphabetic or numeric character"
+  },
+  {
+   "case": "yts:96NN/00",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:96NN/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:96NN/00@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:96NN/00@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:96NN/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:96NN/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:96NN/01@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:96NN/01@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:9C9N",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+  },
+  {
+   "case": "yts:9HCY",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:9HCY",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:9JBA",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:9JBA",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:9KBC",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+  },
+  {
+   "case": "yts:9MMW",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a flow sequence, expected ',' or ']"
+  },
+  {
+   "case": "yts:9MMW",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a flow sequence, expected ',' or ']"
+  },
+  {
+   "case": "yts:9MQT/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:9MQT/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:9SA2",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:9SA2",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:9SA2@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:9SA2@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:9WXW",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:9WXW",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:A2M4",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 6: expected '=VAL :b', got '=VAL :\\\\tb'"
+  },
+  {
+   "case": "yts:A2M4",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 6: expected '=VAL :b', got '=VAL :\\\\tb'"
+  },
+  {
+   "case": "yts:A2M4@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a[0]: expected 'b', got '\\tb'"
+  },
+  {
+   "case": "yts:A2M4@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].a[0]: expected 'b', got '\\tb'"
+  },
+  {
+   "case": "yts:BS4K",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: events before the error differ from the specified ones (got more lines after line 3: '-DOC')"
+  },
+  {
+   "case": "yts:C2SP",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:C4HZ",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:C4HZ",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:CC74",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:CC74",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:CFD4",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a node, did not find expected node content"
+  },
+  {
+   "case": "yts:CFD4",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a node, did not find expected node content"
+  },
+  {
+   "case": "yts:CN3R",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 4: expected '+MAP {}', got '+MAP {} &flowseq'"
+  },
+  {
+   "case": "yts:CN3R",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 4: expected '+MAP {}', got '+MAP {} &flowseq'"
+  },
+  {
+   "case": "yts:CQ3W",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+  },
+  {
+   "case": "yts:CVW2",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:CVW2",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:CXX2",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+  },
+  {
+   "case": "yts:D49Q",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:DE56/02",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:DE56/02",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:DE56/02@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:DE56/02@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:DE56/03",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:DE56/03",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:DE56/03@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:DE56/03@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:DK3J",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:DK3J",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:DK3J@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:DK3J@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:DK95/00",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 5: expected '=VAL :bar', got '=VAL :\\\\tbar'"
+  },
+  {
+   "case": "yts:DK95/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 5: expected '=VAL :bar', got '=VAL :\\\\tbar'"
+  },
+  {
+   "case": "yts:DK95/00@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].foo: expected 'bar', got '\\tbar'"
+  },
+  {
+   "case": "yts:DK95/00@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].foo: expected 'bar', got '\\tbar'"
+  },
+  {
+   "case": "yts:DK95/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:DK95/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:DK95/03",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Mapping values are not allowed in this context"
+  },
+  {
+   "case": "yts:DK95/03",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Mapping values are not allowed in this context"
+  },
+  {
+   "case": "yts:DK95/03@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Mapping values are not allowed in this context"
+  },
+  {
+   "case": "yts:DK95/03@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Mapping values are not allowed in this context"
+  },
+  {
+   "case": "yts:DK95/04",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a plain scaler, found a tab"
+  },
+  {
+   "case": "yts:DK95/04",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a plain scaler, found a tab"
+  },
+  {
+   "case": "yts:DK95/04@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a plain scaler, found a tab"
+  },
+  {
+   "case": "yts:DK95/04@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a plain scaler, found a tab"
+  },
+  {
+   "case": "yts:DK95/06",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:EB22",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:EB22",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:EB22",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:EB22",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:EW3V",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:FP8R",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:FP8R",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:FP8R@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:FP8R@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:G5U8",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:G5U8",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:G7JE",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:G9HC",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:G9HC",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:H7J7",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:H7J7",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:H7TQ",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 0: '+STR')"
+  },
+  {
+   "case": "yts:HRE5",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:HRE5",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:HU3P",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:HWV9",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a node, did not find expected node content"
+  },
+  {
+   "case": "yts:HWV9",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a node, did not find expected node content"
+  },
+  {
+   "case": "yts:HWV9@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a node, did not find expected node content"
+  },
+  {
+   "case": "yts:HWV9@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a node, did not find expected node content"
+  },
+  {
+   "case": "yts:JKF3",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:JY7Z",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:K3WX",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:K3WX",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:K3WX@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:K3WX@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:K858",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:K858",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:K858@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].strip: expected '', got None"
+  },
+  {
+   "case": "yts:K858@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].strip: expected '', got None"
+  },
+  {
+   "case": "yts:KH5V/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:KH5V/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:KH5V/01@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:KH5V/01@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
+  },
+  {
+   "case": "yts:KS4U",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (got more lines after line 5: '-DOC')"
+  },
+  {
+   "case": "yts:LE5A@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][4]: expected '', got None"
+  },
+  {
+   "case": "yts:LE5A@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][4]: expected '', got None"
+  },
+  {
+   "case": "yts:LHL4",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (got more lines after line 2: '+MAP {} <!invalid>')"
+  },
+  {
+   "case": "yts:M7A3",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:M7A3",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:M7A3@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:M7A3@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Did not find expected token of  `DocumentStart`"
+  },
+  {
+   "case": "yts:MUS6/00",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:MUS6/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:MUS6/01",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:MUS6/01",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:MUS6/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:MUS6/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:NJ66",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:NJ66",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:NJ66@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:NJ66@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:P2EQ",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+  },
+  {
+   "case": "yts:P76L",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:P76L",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:PW8X",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 18: expected '=VAL :', got '=VAL &d :'"
+  },
+  {
+   "case": "yts:PW8X",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 18: expected '=VAL :', got '=VAL &d :'"
+  },
+  {
+   "case": "yts:Q5MG",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 3: expected '+MAP {}', got '=VAL :\\\\t{}'"
+  },
+  {
+   "case": "yts:Q5MG",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 3: expected '+MAP {}', got '=VAL :\\\\t{}'"
+  },
+  {
+   "case": "yts:Q5MG@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {}, got '\\t{}'"
+  },
+  {
+   "case": "yts:Q5MG@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected {}, got '\\t{}'"
+  },
+  {
+   "case": "yts:QB6E",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:QB6E",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:QLJ7",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:QLJ7",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:QT73",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a node, did not find expected node content"
+  },
+  {
+   "case": "yts:QT73",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a node, did not find expected node content"
+  },
+  {
+   "case": "yts:QT73@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a node, did not find expected node content"
+  },
+  {
+   "case": "yts:QT73@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while parsing a node, did not find expected node content"
+  },
+  {
+   "case": "yts:R4YG",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:R4YG",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:R4YG@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:R4YG@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:RHX7",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:RHX7",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:RXY3",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:RXY3",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:S3PD",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:S3PD",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:S4GJ",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+  },
+  {
+   "case": "yts:S4JQ@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][2]: expected '12', got 12"
+  },
+  {
+   "case": "yts:S4JQ@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][2]: expected '12', got 12"
+  },
+  {
+   "case": "yts:S98Z",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:S98Z",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:SF5V",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:SF5V",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:SR86",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (got more lines after line 6: '=VAL &b :')"
+  },
+  {
+   "case": "yts:SU5Z",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:SU5Z",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:SU74",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (got more lines after line 5: '=VAL &b :')"
+  },
+  {
+   "case": "yts:SY6V",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 0: '+STR')"
+  },
+  {
+   "case": "yts:T833",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: events before the error differ from the specified ones (got more lines after line 4: '=VAL :1 bar')"
+  },
+  {
+   "case": "yts:T833",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (line 3: expected '+MAP', got '+MAP {}')"
+  },
+  {
+   "case": "yts:U3C3",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:U3C3",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:U99R",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (got more lines after line 3: '=VAL <tag:yaml.org,2002:str> :')"
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].product[0].price: expected 450, got 450.0"
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].product[0].price: expected 450, got 450.0"
+  },
+  {
+   "case": "yts:UT92",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:UT92",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:UT92@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:UT92@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:VJP3/00",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:VJP3/01",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:VJP3/01",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:VJP3/01@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:VJP3/01@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While parsing a flow mapping, did not find expected ',' or '}"
+  },
+  {
+   "case": "yts:W42U",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:W42U",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: an empty scalar next to a quoted or block scalar: the adapter cannot tell which has the token"
+  },
+  {
+   "case": "yts:W4TN",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a directive, could not find expected directive name"
+  },
+  {
+   "case": "yts:W4TN",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a directive, could not find expected directive name"
+  },
+  {
+   "case": "yts:W4TN@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a directive, could not find expected directive name"
+  },
+  {
+   "case": "yts:W4TN@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: While scanning a directive, could not find expected directive name"
+  },
+  {
+   "case": "yts:W5VH",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning an anchor or alias, did not find expected alphabetic or numeric character"
+  },
+  {
+   "case": "yts:W5VH",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning an anchor or alias, did not find expected alphabetic or numeric character"
+  },
+  {
+   "case": "yts:W5VH@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning an anchor or alias, did not find expected alphabetic or numeric character"
+  },
+  {
+   "case": "yts:W5VH@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning an anchor or alias, did not find expected alphabetic or numeric character"
+  },
+  {
+   "case": "yts:WZ62@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Value cannot be null. (Parameter 'key')"
+  },
+  {
+   "case": "yts:WZ62@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: Value cannot be null. (Parameter 'key')"
+  },
+  {
+   "case": "yts:X4QW",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:X4QW",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y2GN",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 5: expected '=VAL &an:chor :value', got '=VAL &an ::chor value'"
+  },
+  {
+   "case": "yts:Y2GN",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 5: expected '=VAL &an:chor :value', got '=VAL &an ::chor value'"
+  },
+  {
+   "case": "yts:Y2GN@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].key: expected 'value', got ':chor value'"
+  },
+  {
+   "case": "yts:Y2GN@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0].key: expected 'value', got ':chor value'"
+  },
+  {
+   "case": "yts:Y79Y/000",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:Y79Y/001",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:Y79Y/001",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:Y79Y/001@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:Y79Y/001@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: while scanning a block scalar, found a tab character where an indentation space is expected"
+  },
+  {
+   "case": "yts:Y79Y/003",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/003",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/004",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/005",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/006",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/007",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/007",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/007",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/007",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/008",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "corrected",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "corrected",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Against the corrected expectation: accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/009",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Y79Y/010",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 4: expected '=VAL :-1', got '=VAL :\\\\t-1'"
+  },
+  {
+   "case": "yts:Y79Y/010",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Event stream differs: line 4: expected '=VAL :-1', got '=VAL :\\\\t-1'"
+  },
+  {
+   "case": "yts:Y79Y/010@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected -1, got '\\t-1'"
+  },
+  {
+   "case": "yts:Y79Y/010@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0][0]: expected -1, got '\\t-1'"
+  },
+  {
+   "case": "yts:YJV2",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:YJV2",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "yts:Z9M4",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:Z9M4",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "The adapter declines this case: the stream declares %TAG handles, which VYaml does not expose"
+  },
+  {
+   "case": "yts:ZCZ6",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC')"
+  },
+  {
+   "case": "yts:ZL4Z",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Events before the error differ from the specified ones (expected more lines after line 1: '+DOC ---')"
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+<Project>
+
+  <!-- Keeps every build, restore and format step of the .NET adapters out of the source tree when
+       KIT_DOTNET_ARTIFACTS names a directory. Without it the usual bin and obj folders appear next to
+       each project, which the adapters' ignore files cover. -->
+  <PropertyGroup Condition="'$(KIT_DOTNET_ARTIFACTS)' != ''">
+    <ArtifactsPath>$(KIT_DOTNET_ARTIFACTS)</ArtifactsPath>
+  </PropertyGroup>
+
+</Project>
