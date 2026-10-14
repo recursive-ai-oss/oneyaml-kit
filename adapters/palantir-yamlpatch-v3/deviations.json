@@ -1,0 +1,21 @@
+{"format": "oneyaml-kit-deviations/1",
+ "entries": [
+  {"case": "own:edit/block-literal-keeps-style-with-newline", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 13: expected b'\\n#abc 123\\nb: |\\n this is a test2\\nc: 13\\n', got b'#abc 123\\nb: |\\n this is a test2\\nc: 13\\n' (lengths 52 and 51)"},
+  {"case": "own:edit/block-literal-keeps-style-with-newline", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 13: expected b'\\n#abc 123\\nb: |\\n this is a test2\\nc: 13\\n', got b'#abc 123\\nb: |\\n this is a test2\\nc: 13\\n' (lengths 52 and 51)"},
+  {"case": "own:edit/block-literal-strip-when-no-trailing-newline", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 13: expected b'\\n#abc 123\\nb: |-\\n this is a test2\\nc: 13\\n', got b'#abc 123\\nb: this is a test2\\nc: 13\\n' (lengths 53 and 47)"},
+  {"case": "own:edit/block-literal-strip-when-no-trailing-newline", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 13: expected b'\\n#abc 123\\nb: |-\\n this is a test2\\nc: 13\\n', got b'#abc 123\\nb: this is a test2\\nc: 13\\n' (lengths 53 and 47)"},
+  {"case": "own:edit/bom-and-crlf-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 0: expected b'\\xef\\xbb\\xbfa: 3\\r\\nb: 2\\r\\n', got b'a: 3\\nb: 2\\n' (lengths 15 and 10)"},
+  {"case": "own:edit/bom-and-crlf-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 0: expected b'\\xef\\xbb\\xbfa: 3\\r\\nb: 2\\r\\n', got b'a: 3\\nb: 2\\n' (lengths 15 and 10)"},
+  {"case": "own:edit/double-quoted-style-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 3: expected b'\"new\"\\nb: \\'x\\'\\n', got b\"new\\nb: 'x'\\n\" (lengths 16 and 14)"},
+  {"case": "own:edit/double-quoted-style-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 3: expected b'\"new\"\\nb: \\'x\\'\\n', got b\"new\\nb: 'x'\\n\" (lengths 16 and 14)"},
+  {"case": "own:edit/refuse-ambiguous-key", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Accepts input that must be rejected."},
+  {"case": "own:edit/refuse-ambiguous-key", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Accepts input that must be rejected."},
+  {"case": "own:edit/refuse-write-through-alias", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Accepts input that must be rejected."},
+  {"case": "own:edit/refuse-write-through-alias", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Accepts input that must be rejected."},
+  {"case": "own:edit/second-document", "expectation": "primary", "mode": "loose", "verdict": "unsupported", "reason": "Declined by the adapter: the library patches the first document only"},
+  {"case": "own:edit/second-document", "expectation": "primary", "mode": "strict", "verdict": "unsupported", "reason": "Declined by the adapter: the library patches the first document only"},
+  {"case": "own:edit/sequence-item", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 7: expected b' # keep\\n- c\\n', got b'\\n- c\\n' (lengths 19 and 12)"},
+  {"case": "own:edit/sequence-item", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 7: expected b' # keep\\n- c\\n', got b'\\n- c\\n' (lengths 19 and 12)"},
+  {"case": "own:edit/trailing-comment-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 10: expected b' # dev\\nname: web\\n', got b'\\nname: web\\n' (lengths 28 and 21)"},
+  {"case": "own:edit/trailing-comment-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 10: expected b' # dev\\nname: web\\n', got b'\\nname: web\\n' (lengths 28 and 21)"}
+ ]}
