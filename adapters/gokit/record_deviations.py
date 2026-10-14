@@ -25,6 +25,7 @@ sys.dont_write_bytecode = True
 
 from oneyaml_kit import compare, runner  # noqa: E402
 from oneyaml_kit.cases import load_all  # noqa: E402
+from oneyaml_kit.public_text import PATTERN  # noqa: E402
 
 LIMIT = 220
 
@@ -32,24 +33,25 @@ LIMIT = 220
 def reason(r: dict, src: dict, verdict: str) -> str:
     detail = (src.get("detail") or r.get("detail") or "").replace("\n", " ")
     if verdict == compare.UNSUPPORTED:
-        if r["expect"] == "error":
-            return ("The library accepted this input. It has no event stream, so the adapter "
-                    "can only decline, and the acceptance shows as unsupported.")
-        if "event stream" in detail:
-            return "The library has no event stream."
         return "Declined by the adapter: " + detail
     if detail.startswith("unexpected error: "):
         return "Rejects valid input: " + detail[len("unexpected error: "):]
     if detail.startswith("expected an error"):
-        return "Accepts input that must be rejected."
+        if r["op"] == "patch":
+            return "The patch was applied; the case expects it to be refused."
+        return "The library accepted this input; the case expects it to be rejected."
     if detail.startswith("position:"):
         return "Error position differs: " + detail[len("position: "):]
     if detail.startswith("category:"):
         return "Error category differs: " + detail[len("category: "):]
     if detail.startswith("events before the error"):
-        return "Reports no events before the error: the library has no event stream."
+        return "Events before the error differ: " + detail[len("events before the error: "):]
     if detail.startswith("$"):
         return "Value differs at " + detail
+    if detail.startswith("refused;"):
+        return "The library refused the input; the case allows only its exact result."
+    if detail.startswith(("memory growth", "took ", "peak memory")):
+        return "Over the case's bound: " + detail
     if detail.startswith("first difference"):
         return "Output differs: " + detail
     return detail or "Fails; see the comparison detail."
@@ -71,6 +73,10 @@ def entries(res: dict) -> list[dict]:
                 text = re.sub(r"\s+", " ", reason(r, src, v)).strip()
                 if len(text) > LIMIT:
                     text = text[: LIMIT - 3] + "..."
+                if PATTERN.search(text):
+                    # Quoted data from a case can look like internal text to the public-text
+                    # check, so such a reason keeps its first clause and leaves the data out.
+                    text = re.split(r"[:]", text, maxsplit=1)[0] + " (the data compared is in the results)."
                 out.append({"case": r["id"], "expectation": exp, "mode": mode,
                             "verdict": v, "reason": text})
     return out

@@ -168,7 +168,7 @@ pointer). The kit must never credit that to the library, so it is declared and m
 | Name | Meaning |
 |---|---|
 | `unchanged` | The original bytes are reported after a failed patch, because the library applies one edit at a time or returns nothing when it fails. |
-| `error` | An error was raised by the adapter, not the library: a missing path, a malformed pointer, an unknown operation, a write through an alias, a missing document. |
+| `error` | An error was raised by the adapter, not the library: a missing path, a malformed pointer, an unknown operation, a missing document. Never a refusal the library does not make (see *Resolving pointers*). |
 | `pointer` | A JSON Pointer was resolved to a node (or its source span) by the adapter, because the library has no addressing of its own. |
 | `decode` | Text encoding was handled by the adapter (detecting UTF-8, UTF-16 or UTF-32, removing a byte order mark, rejecting malformed input) because the library reads strings. |
 | `style` | Scalar style, flow or block form or explicit document markers were recovered by the adapter from another view of the input (for example a tokenizer), because the library's own events do not carry them. |
@@ -178,6 +178,24 @@ pointer). The kit must never credit that to the library, so it is declared and m
 
 Adding a name is a change to the kit (`tools/oneyaml_kit/vocabulary.py` and this table), so
 the same word means the same thing for every library.
+
+### Resolving pointers
+
+An adapter for a library that has no addressing of its own resolves a JSON Pointer by what a
+user of that library's API would naturally do, and marks `pointer`. It supplies **neither**
+of these protections, so that the cases about them show what the library does:
+
+- **Aliases.** It follows an alias to the node the library exposes as its target, and the
+  edit lands there. It does not refuse a write through an alias, and it does not copy the
+  value in place.
+- **Duplicate or ambiguous keys.** It matches a key with the library's own lookup when the
+  library has one, and otherwise takes the first match in document order. It does not look
+  for a second match and does not refuse.
+
+The adapter raises its own error (marked `error`) only for what the pointer itself says: a
+malformed pointer, a path that does not exist, an index that is out of range, an
+operation name that is not RFC 6902. A library that does refuse (it rejects duplicate keys
+when it loads, say) is credited with that refusal, because it is the library's.
 
 An adapter reports the library's own state wherever it can. Emulating is for what the
 library has no way to express, and the more an adapter emulates, the less its row says
