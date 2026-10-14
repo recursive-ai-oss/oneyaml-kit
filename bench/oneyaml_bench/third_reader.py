@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -64,6 +65,18 @@ def read(files: list[Path]) -> dict[str, dict]:
     return json.loads(r.stdout)
 
 
+def zero_signs(a, b, path=""):
+    """Where a float zero has a different sign. -0.0 == 0.0 in Python, so freeze.diff cannot see it;
+    the check lives here so the other callers of freeze.diff compare as before."""
+    if isinstance(a, float) and isinstance(b, float) and a == 0.0 == b:
+        return [] if math.copysign(1, a) == math.copysign(1, b) else [(path or "/", a, b)]
+    if isinstance(a, dict) and isinstance(b, dict):
+        return [d for k in a if k in b for d in zero_signs(a[k], b[k], f"{path}/{k}")]
+    if isinstance(a, list) and isinstance(b, list) and len(a) == len(b):
+        return [d for i, (x, y) in enumerate(zip(a, b)) for d in zero_signs(x, y, f"{path}/{i}")]
+    return []
+
+
 def check(real_dir: Path) -> dict[str, list]:
     """Differences between each real workload's expected.json and the third reading.
 
@@ -79,5 +92,5 @@ def check(real_dir: Path) -> dict[str, list]:
             out[d.name] = [("/", "a value", "refused: " + r["error"])]
             continue
         expected = json.loads((d / "expected.json").read_text(encoding="utf-8"))
-        out[d.name] = freeze.diff(expected, r["value"])
+        out[d.name] = freeze.diff(expected, r["value"]) + zero_signs(expected, r["value"])
     return out

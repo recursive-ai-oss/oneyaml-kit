@@ -239,8 +239,10 @@ def bench_test_modules(root: Path) -> list[str]:
 
 def bench_steps(root: Path, out: Path, target: str) -> list[Step]:
     """The benchmark driver, report and workloads. The hand-over tier runs their unit tests,
-    which need no toolchain, in both tiers. The full tier then runs a quick run of every harness
-    over every workload and checks the instruction counters against their baseline; the
+    which need no compiler but do need node and npm, in both tiers: the independent reader of the
+    real files installs its one pinned package with `npm ci` on first use, which needs the network
+    once. The full tier then runs a quick run of every harness over every workload and checks
+    the instruction counters against their baseline; the
     end-to-end tests of each harness are in its own area."""
     own = {"CARGO_TARGET_DIR": f"{target}-bench"}
     return [

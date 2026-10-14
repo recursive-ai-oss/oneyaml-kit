@@ -74,6 +74,39 @@ class ThirdReader(unittest.TestCase):
             (d / "expected.json").write_text('{"a":"yes","b":10}', encoding="utf-8")
             self.assertEqual(T.check(d.parent), {"numbers": []})
 
+    def differences(self, text, expected):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp) / "real" / "case"
+            d.mkdir(parents=True)
+            (d / "input.yaml").write_text(text, encoding="utf-8")
+            (d / "expected.json").write_text(expected, encoding="utf-8")
+            return T.check(d.parent)["case"]
+
+    def test_what_a_loose_reading_would_hide_is_a_difference(self):
+        # Each of these was once read without complaint: keys 1 and "1" collapsed to the last,
+        # a tag the parser cannot resolve read as the text after it, binary data as a byte map.
+        cases = {
+            "keys of different types that print alike": ('1: a\n"1": b\n', '{"1":"b"}'),
+            "a boolean key and a string key": ('true: a\n"true": b\n', '{"true":"b"}'),
+            "a tag that cannot resolve": ("a: !!int abc\n", '{"a":"abc"}'),
+            "a boolean tag on text": ("a: !!bool yes\n", '{"a":"yes"}'),
+            "an unknown tag": ("a: !foo bar\n", '{"a":"bar"}'),
+            "binary data": ("e: !!binary aGk=\n", '{"e":{"0":104.0,"1":105.0}}'),
+            "a collection as a key": ("? [a, b]\n: c\n", '{"a,b":"c"}'),
+            "negative zero": ("a: -0.0\n", '{"a":0.0}'),
+        }
+        for what, (text, expected) in cases.items():
+            with self.subTest(what):
+                self.assertTrue(self.differences(text, expected))
+
+    def test_negative_zero_is_read_with_its_sign(self):
+        self.assertEqual(self.differences("a: -0.0\nb: 0.0\n", '{"a":-0.0,"b":0.0}'), [])
+        self.assertEqual([p for p, *_ in self.differences("a: 0.0\n", '{"a":-0.0}')], ["/a"])
+
+    def test_plain_keys_of_other_types_are_read(self):
+        # An unquoted 200 is an integer key; it prints as the text 200, as in the expectations.
+        self.assertEqual(self.differences("200: ok\ntrue: t\nnull: n\n", '{"200":"ok","true":"t","null":"n"}'), [])
+
     def test_a_file_the_reader_refuses_is_a_difference(self):
         with tempfile.TemporaryDirectory() as tmp:
             d = Path(tmp) / "real" / "broken"

@@ -6,18 +6,18 @@
 //
 // The value is the document, or an array of documents when the file holds more than one, as in
 // `expected.json`. Integers print without a point and floats with one, so the comparison keeps
-// the difference between 1 and 1.0. A float that JSON cannot hold (NaN, infinity) and a key
-// that is not a plain scalar are reported as errors rather than guessed at.
+// the difference between 1 and 1.0, and negative zero prints as -0.0.
+//
+// The reader refuses rather than reads loosely: it reports an error for anything that JSON
+// cannot hold exactly. That is a float with no JSON form (NaN, infinity), a mapping key that is
+// not a scalar, two keys that print to the same text (`1` and `"1"`), a value that is not a
+// mapping, sequence or JSON scalar (binary data, a timestamp), and any warning the parser
+// raises. The parser reports a tag it cannot resolve (`!!int abc`, `!foo bar`) as a warning
+// and reads the text as a string, so a warning is never taken as a reading.
 import { readFileSync } from "node:fs";
 import { parseAllDocuments } from "yaml";
 
-function key(k) {
-  if (k === null || typeof k === "object") throw new Error("a mapping key that is not a scalar");
-  return typeof k === "string" ? k : String(k);
-}
-
-function json(v) {
-  if (v === null) return "null";
+function scalar(v) {
   switch (typeof v) {
     case "boolean":
       return v ? "true" : "false";
@@ -25,18 +25,37 @@ function json(v) {
       return v.toString();
     case "number": {
       if (!Number.isFinite(v)) throw new Error(`float ${v} has no JSON form`);
+      if (Object.is(v, -0)) return "-0.0";
       const s = String(v);
       return /[.eE]/.test(s) ? s : s + ".0";
     }
     case "string":
       return JSON.stringify(v);
   }
+  throw new Error(`a ${Object.prototype.toString.call(v)} value has no JSON form`);
+}
+
+function keyText(k) {
+  if (k === null) return "null";
+  if (typeof k === "object") throw new Error("a mapping key that is not a scalar");
+  return typeof k === "string" ? k : scalar(k);
+}
+
+function json(v) {
+  if (v === null) return "null";
   if (Array.isArray(v)) return "[" + v.map(json).join(",") + "]";
   if (v instanceof Map) {
-    return "{" + [...v].map(([k, x]) => JSON.stringify(key(k)) + ":" + json(x)).join(",") + "}";
+    const seen = new Set();
+    const parts = [];
+    for (const [k, x] of v) {
+      const text = keyText(k);
+      if (seen.has(text)) throw new Error(`two keys read as ${JSON.stringify(text)}`);
+      seen.add(text);
+      parts.push(JSON.stringify(text) + ":" + json(x));
+    }
+    return "{" + parts.join(",") + "}";
   }
-  if (v instanceof Date) throw new Error("a timestamp: the core schema reads it as a string");
-  return "{" + Object.entries(v).map(([k, x]) => JSON.stringify(k) + ":" + json(x)).join(",") + "}";
+  return scalar(v);
 }
 
 function read(path) {
@@ -45,15 +64,15 @@ function read(path) {
     version: "1.2",
     schema: "core",
     intAsBigInt: true,
-    mapAsMap: true,
     uniqueKeys: true,
-    // Aliases expand to their full value; the real files are small and have no alias bombs.
-    maxAliasCount: -1,
   });
   const values = [];
   for (const d of docs) {
     if (d.errors.length) throw new Error(d.errors[0].message);
-    values.push(json(d.toJS()));
+    if (d.warnings.length) throw new Error(d.warnings[0].message);
+    // Maps stay Maps, so keys of different types stay apart until json() has compared their text.
+    // Aliases expand in full; the real files are small and have no alias bombs.
+    values.push(json(d.toJS({ mapAsMap: true, maxAliasCount: -1 })));
   }
   return values.length === 1 ? values[0] : "[" + values.join(",") + "]";
 }
