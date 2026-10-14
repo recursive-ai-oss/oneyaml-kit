@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/local-tag-with-hash",
+ "title": "A shorthand tag may contain a hash sign",
+ "category": "parse",
+ "origin": "bug",
+ "productions": [
+  "40",
+  "97",
+  "99"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.1"
+ ],
+ "notes": "The suffix of a shorthand tag is made of tag characters (production 40): URI characters except `!` and the flow indicators, and `#` is a URI character. The comment indicator needs white space before it, so it does not start a comment here.",
+ "provenance": {
+  "reference": "A reader that stopped a tag at a hash sign and then complained that the tag was not followed by white space."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

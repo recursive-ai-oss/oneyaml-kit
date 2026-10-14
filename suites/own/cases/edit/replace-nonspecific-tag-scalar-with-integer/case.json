@@ -1,0 +1,34 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-nonspecific-tag-scalar-with-integer",
+ "title": "A scalar under the non-specific tag becomes an integer without the tag",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "100",
+  "97"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.1",
+  "YAML 1.2.2 section 3.3.2",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "The non-specific tag `!` makes a scalar a string (Example 6.28). Left in place it would make the new `7` the string \"7\"; setters are exact, so the tag goes.",
+ "provenance": {
+  "reference": "A writer that kept the non-specific tag, so the edited value read back as the string \"7\" instead of the integer 7."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/k",
+    "value": 7
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

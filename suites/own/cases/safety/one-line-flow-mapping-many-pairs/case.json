@@ -1,0 +1,34 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/one-line-flow-mapping-many-pairs",
+ "title": "A flow mapping of thirty thousand pairs on one line",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "140",
+  "141",
+  "142",
+  "154"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2",
+  "YAML 1.2.2 section 7.4.3"
+ ],
+ "notes": "The input is valid: the keys are the numbers 0 to 29999, all different. An implicit key is at most 1024 characters on one line, so a pending key candidate expires once it is that far behind, and time and memory must stay linear in the length of the line. A reader that keeps every candidate of a long line pending used 931 MB for a ten megabyte line; at the size stored here it stays under the bound, so the case pins the exact events of a long one-line mapping and the bounds are only a guard. The bounds are the robustness requirement of the kit, not a rule of the specification. Input: `{`, then `0: v, `, `1: v, ` and so on up to `29999: v, `, then `}`.",
+ "provenance": {
+  "reference": "A reader that kept every possible implicit key of a long one-line flow mapping in a queue, using 931 MB for a ten megabyte line."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "events",
+   "file": "expected.events"
+  }
+ }
+}

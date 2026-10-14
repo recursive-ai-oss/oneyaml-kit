@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-anchored-flow-collection-with-null",
+ "title": "Replacing an anchored empty flow sequence with null keeps the anchor apart from it",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "101",
+  "137"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.2",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The anchor stays on the replaced node (a kit convention), and the new scalar is separated from it by a space: `&snull` would be an anchor named `snull`, with an empty value.",
+ "provenance": {
+  "reference": "A writer that put the new scalar directly after the anchor name, so `&s` and `null` became the anchor `&snull`."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/k",
+    "value": null
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

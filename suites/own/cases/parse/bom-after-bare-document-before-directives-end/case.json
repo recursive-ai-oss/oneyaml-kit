@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/bom-after-bare-document-before-directives-end",
+ "title": "A byte order mark between a bare document and an explicit document that follows it",
+ "category": "parse",
+ "origin": "bug",
+ "productions": [
+  "3",
+  "202",
+  "203",
+  "208",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 9.1.1",
+  "YAML 1.2.2 section 9.2"
+ ],
+ "notes": "After a bare document the stream production allows document prefixes (comments and a byte order mark) and then an explicit document, with no end marker in between. The mark is not content, so the bare document ends at the line before it. The same input after an end marker is also valid; a second bare document after the mark is not (diagnostics/second-bare-document-after-a-byte-order-mark-is-an-error).",
+ "provenance": {
+  "reference": "A reader that accepted a byte order mark after an end marker but rejected the same mark after a bare document, at the directives end marker."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

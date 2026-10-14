@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/bom-inside-a-plain-scalar-is-an-error",
+ "title": "A byte order mark inside a plain scalar",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "3",
+  "27",
+  "131"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 5.7"
+ ],
+ "notes": "A byte order mark is not a non-break character (production 27 excludes it), so it cannot be part of a plain scalar, and one inside a document is an error. In quoted scalars it is allowed. The mark is the first character that cannot belong, the second character of the line.",
+ "provenance": {
+  "reference": "A reader that accepted a byte order mark in the middle of a plain scalar."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 2
+ }
+}

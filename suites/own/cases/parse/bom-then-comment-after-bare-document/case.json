@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/bom-then-comment-after-bare-document",
+ "title": "A byte order mark in front of a comment line after a bare document",
+ "category": "parse",
+ "origin": "bug",
+ "productions": [
+  "3",
+  "78",
+  "202",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 6.6",
+  "YAML 1.2.2 section 9.2"
+ ],
+ "notes": "A document prefix is an optional byte order mark followed by comment lines, so the mark in front of the comment is not part of the plain scalar `a`. The scalar cannot continue onto the line either: the mark is not a plain character (production 27).",
+ "provenance": {
+  "reference": "A reader that joined the byte order mark and the comment text to the preceding plain scalar, returning `a` followed by the mark and `# c`."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

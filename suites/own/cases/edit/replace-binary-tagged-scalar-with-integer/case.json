@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-binary-tagged-scalar-with-integer",
+ "title": "A scalar tagged !!binary becomes an integer without the tag",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "97"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.1",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "A tag that contradicts the new value must go, because the document has to read back as exactly the value that was set. Dropping the tag is a kit convention (docs/edit-semantics.md leaves the tag of a replaced node open otherwise).",
+ "provenance": {
+  "reference": "A writer that failed on a tag it could not keep, and left the tree half edited."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": 1
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -1,0 +1,39 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-anchored-flow-collection-keeps-aliases",
+ "title": "Replacing an anchored node keeps its anchor, so an alias reads the new value",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "101",
+  "104",
+  "137"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.2",
+  "YAML 1.2.2 section 7.1",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "Replacing the anchored node itself is the way to change a shared value (writing at the anchor's source), and the alias after it now reads null. The anchor stays and the new scalar is separated from it; keeping the anchor is a kit convention. Compare edit/alias-replace-source-of-anchor and the removal refusals, which are about taking the anchor away.",
+ "provenance": {
+  "reference": "A writer that put the new scalar directly after the anchor name, so `&s` and `null` became the anchor `&snull` and the alias lost its anchor."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/k",
+    "value": null
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

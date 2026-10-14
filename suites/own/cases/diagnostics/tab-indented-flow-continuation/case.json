@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/tab-indented-flow-continuation",
+ "title": "A tab does not indent the continuation line inside a flow collection",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "63",
+  "69",
+  "137"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.1",
+  "YAML 1.2.2 section 6.5",
+  "YAML 1.2.2 section 7.4"
+ ],
+ "notes": "Tabs are separation inside a flow collection, but only after the indentation: a flow collection that is the value of a block mapping at indentation 0 is parsed with n = 1, every following line starts with the flow line prefix (production 69, exactly one space, then optional white space), and a line that starts with a tab has no space. yaml-test-suite Y79Y/003 (a tab-led entry in a flow sequence inside a sequence) and DK95/01 are errors for the same reason. A tab-only line is still fine as an empty or comment line (Y79Y/002). The top-level flow collection of 6CA3 and Q5MG is valid because the prefix there needs no spaces. A tab may start a comment line, so `b` is the first character that cannot belong.",
+ "provenance": {
+  "reference": "A reader that counted the tab as indentation inside a flow collection and accepted the input as a sequence of the string `a b`."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 2
+ }
+}

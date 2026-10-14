@@ -2653,6 +2653,76 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Loads the python/object tag as a plain value and drops the tag: it neither keeps the tag nor refuses the document"
+  },
+  {
+   "case": "own:diagnostics/bom-inside-a-plain-scalar-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/bom-inside-a-plain-scalar-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/bom-after-bare-document-before-directives-end",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'BOM must be at the beginning of the stream or document. at Line: 2, Col: 0, Idx: 8'"
+  },
+  {
+   "case": "own:parse/bom-after-bare-document-before-directives-end",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'BOM must be at the beginning of the stream or document. at Line: 2, Col: 0, Idx: 8'"
+  },
+  {
+   "case": "own:parse/bom-then-comment-after-bare-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "line 3: expected '=VAL :a', got '=VAL :a \\ufeff# c'"
+  },
+  {
+   "case": "own:parse/bom-then-comment-after-bare-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "line 3: expected '=VAL :a', got '=VAL :a \\ufeff# c'"
+  },
+  {
+   "case": "own:parse/tab-only-line-after-block-scalar-at-end",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'while scanning a block scalar, found a tab character where an indentation space is expected at Line: 3, Col: 0, Idx: 8'"
+  },
+  {
+   "case": "own:parse/tab-only-line-after-block-scalar-at-end",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'while scanning a block scalar, found a tab character where an indentation space is expected at Line: 3, Col: 0, Idx: 8'"
+  },
+  {
+   "case": "own:safety/deep-flow-mappings-then-many-lines-unclosed",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Over the time bound: reading the same shape with 75,000 lines took about 5.8 s, growing in step with the line count (a high cost per line while 9,000 collections are open)"
+  },
+  {
+   "case": "own:safety/deep-flow-mappings-then-many-lines-unclosed",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Over the time bound: reading the same shape with 75,000 lines took about 5.8 s, growing in step with the line count (a high cost per line while 9,000 collections are open)"
   }
- ]
+]
 }

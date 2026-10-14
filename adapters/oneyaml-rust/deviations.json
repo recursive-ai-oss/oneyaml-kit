@@ -595,6 +595,76 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Same as the loose verdict: quotes the string yes although it is a string in the core schema"
+  },
+  {
+   "case": "own:diagnostics/anchor-directly-before-flow-collection",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 1:3, got 1:1"
+  },
+  {
+   "case": "own:diagnostics/tag-percent-escape-with-one-hex-digit",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 1:5, got 1:1"
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-percent-escape-with-non-hex-digits",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 1:5, got 1:1"
+  },
+  {
+   "case": "own:edit/remove-empty-key-of-flow-single-pair",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library refused the patch: 'remove target does not exist'"
+  },
+  {
+   "case": "own:edit/remove-empty-key-of-flow-single-pair",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library refused the patch: 'remove target does not exist'"
+  },
+  {
+   "case": "own:edit/remove-entry-with-anchored-key-in-use",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected refused-alias, got other"
+  },
+  {
+   "case": "own:edit/replace-custom-tagged-scalar-then-edit-neighbour",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'!foo z\\nb: 1\\nc: 2\\n', got b'z\\nb: 1\\nc: 2\\n' (lengths 20 and 15)"
+  },
+  {
+   "case": "own:edit/replace-custom-tagged-scalar-then-edit-neighbour",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'!foo z\\nb: 1\\nc: 2\\n', got b'z\\nb: 1\\nc: 2\\n' (lengths 20 and 15)"
+  },
+  {
+   "case": "own:parse/tab-only-line-after-block-scalar-at-end",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'tabs cannot be used for block indentation' at 2:1"
+  },
+  {
+   "case": "own:parse/tab-only-line-after-block-scalar-at-end",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'tabs cannot be used for block indentation' at 2:1"
   }
- ]
+]
 }

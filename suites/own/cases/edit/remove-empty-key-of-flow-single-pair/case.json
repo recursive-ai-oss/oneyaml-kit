@@ -1,0 +1,39 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-empty-key-of-flow-single-pair",
+ "title": "Removing the entry with the empty key from a single-pair mapping in a flow sequence",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "137",
+  "150",
+  "146"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.1",
+  "YAML 1.2.2 section 7.4.2",
+  "RFC 6901 section 3",
+  "RFC 6902 section 4.2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "A pointer token matches a key by its scalar text, and a key with no content has the empty text, so `/0/` names the entry `: 0`. Removing the only entry leaves an empty mapping, written `{}` (the same rule as edit/remove-last-entry-of-flow-single-pair). The convention is that an empty key is addressed by the empty token. The input is valid: yaml-test-suite CFD4 reads `[: x]` as a mapping with one empty key.",
+ "provenance": {
+  "reference": "A writer that removed the value and left `[:0]`, which reads as the string `:0`."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/0/"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}
