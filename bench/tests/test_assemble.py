@@ -55,5 +55,20 @@ class Complete(unittest.TestCase):
         self.assertFalse([r for r in self.reasons(res) if "pinned" in r])
 
 
+class TextApi(unittest.TestCase):
+    def test_a_library_that_takes_and_returns_text_is_flagged_so_it_never_sets_the_best(self):
+        h = harness()
+        h["libraries"].append({"id": "patcher", "role": "competitor", "settings": {"state": "the text"}})
+        metas = [{"id": "w", "kind": "generated", "tier": "quick", "description": "d", "documents": 1,
+                  "input_bytes": 1, "tasks": ["generic-load"], "source": {}}]
+        res = run.assemble("quick", {"go": h}, {"go": [ok("ours", "w"), ok("rival", "w"), ok("patcher", "w")]},
+                           metas, [0.1] * 10, 0.5, 0.5, 1.0, 0, 3, None, False)
+        by = {c["library"]: c for c in res["cells"]}
+        self.assertEqual(by["patcher"]["state"], "text")
+        self.assertNotIn("state", by["rival"])
+        [row] = results.compare_rows(res["cells"])
+        self.assertEqual(row["best_time"]["library"], "rival")
+
+
 if __name__ == "__main__":
     unittest.main()

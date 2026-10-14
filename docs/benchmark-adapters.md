@@ -88,7 +88,16 @@ the driver restarts `run` with `--skip` for the cells already begun.
 - `variant` names which accepted expectation matched: `spec`, `merged` (`<<` applied while
   loading), `bytes-only` (a document with no value to compare, judged on its bytes) or
   `value-only` (a patch baseline that works on JSON and so cannot keep the text, judged on the
-  value its output holds; see the patch rule below).
+  value its output holds; see the patch rule below) or `harness-rendered` (the library edits a
+  tree but has no writer that keeps the text, so the harness renders the edited tree to text itself
+  and the bytes are judged; the library's settings say so).
+  Only `spec` and `merged` can set the reference of a row; see
+  [What may be the best](#what-may-be-the-best).
+- `settings.state` is `the text` for a library whose API takes and returns text, so it has no parsed
+  document to start from and its parsing and writing are inside the timed work. The driver marks its
+  cells `"state": "text"`; they are shown, never the best of a row (see
+  [What may be the best](#what-may-be-the-best)). Any other value, or no value, means the library
+  starts from what the task table says.
 - `memory.method` says how the figures were taken, so numbers from different methods are
   not mixed in one table (see [Memory](#memory)).
 
@@ -107,6 +116,11 @@ the driver restarts `run` with `--skip` for the cells already begun.
    - `dump`: parse the output with two independent reference parsers; both must read the
      expected value (or the merged value, as variant `merged`). If the two disagree with each
      other, or only one accepts the text, report `unjudged`; if neither accepts it, `differs`.
+     The parsers supply the structure of the text (nodes, styles, anchors, explicit tags), never
+     its meaning: what a plain scalar is comes from a resolver of the harness's own for the YAML
+     1.2 core schema (`1_000` and `0b101` are text, `017` is the integer 17, `yes` is text), and a
+     merge key is an ordinary key, never merged. A parser's own typing, or a library under test
+     doing the reading, would judge the dump by that library's idea of YAML.
    - `document-parse`: the value (if the library can give one) and the unchanged bytes.
    - `unchanged-emit`, `edit-script`, `patch`: exact bytes. There is one accepted outcome; a
      library that restyles the edited value or anything around it is `differs`.
@@ -135,12 +149,17 @@ for one run of the task, taken in a separate pass from the timed ones:
 - `peak_bytes`: the high-water mark of **live managed heap** during the run, counting the
   starting state the task is given (a parsed document, say), not the process's resident set;
 - `allocated_bytes`: bytes the task itself requested, cumulative;
-- `allocations`: the number of allocation calls the task made.
+- `allocations`: the number of allocation calls the task made;
+- `retained_bytes` (optional, `null` or absent where a runtime cannot measure it): what one run
+  leaves behind. It is the live heap one full collection after the run, less the live heap just
+  before the run with the starting state held. It shows what a library keeps in pools and caches,
+  which `allocated_bytes` of the steady state hides because a pool reuses its buffers. The report
+  prints it as a third figure beside the peak and the allocated bytes.
 
 | Language | `method` | How |
 |---|---|---|
 | Rust | `counting global allocator` | a `GlobalAlloc` wrapper counts, switched on for the one pass; exact |
-| Go | `runtime.MemStats, sampled` | The **peak** pass: build the starting state, `runtime.GC()`, then run the task once with a sampler goroutine reading `HeapAlloc` every millisecond; `peak_bytes` is the highest `HeapAlloc` seen (the reading right after the run counts too, because a task shorter than the sampling interval is not seen by the sampler) **less the `HeapAlloc` the process held before the starting state was built**, so the harness's own data is not charged to the task. `HeapAlloc` includes garbage not yet collected, so it is an upper bound on live bytes at the moment of the reading. The **allocation** figures, `allocated_bytes` (ΔTotalAlloc) and `allocations` (ΔMallocs), are `testing.B`'s `B/op` and `allocs/op` averaged over all the timed samples, because a library that keeps buffers in a pool allocates fewer bytes per run the longer the heap stays unchanged, and one cold run is not the steady state. A separate pass averages the same two counters over up to 64 runs, and the cell fails (`error`) when the number of calls differs by more than 5% or the bytes by more than 25% |
+| Go | `runtime.MemStats, sampled` | The **peak** pass: build the starting state, `runtime.GC()`, then run the task once with a sampler goroutine reading `HeapAlloc` every millisecond; `peak_bytes` is the highest `HeapAlloc` seen (the reading right after the run counts too, because a task shorter than the sampling interval is not seen by the sampler) **less the `HeapAlloc` the process held before the starting state was built**, so the harness's own data is not charged to the task. `HeapAlloc` includes garbage not yet collected, so it is an upper bound on live bytes at the moment of the reading. The **allocation** figures, `allocated_bytes` (ΔTotalAlloc) and `allocations` (ΔMallocs), are `testing.B`'s `B/op` and `allocs/op` averaged over all the timed samples, because a library that keeps buffers in a pool allocates fewer bytes per run the longer the heap stays unchanged, and one cold run is not the steady state. A separate pass averages the same two counters over up to 64 runs, and the cell fails (`error`) when the number of calls differs by more than 5% or the bytes by more than 25%. `retained_bytes` is the `HeapAlloc` after one `runtime.GC()` following the peak run, less the `HeapAlloc` just before that run |
 | .NET | `GC.GetAllocatedBytesForCurrentThread` | `allocated_bytes` is the change in `GC.GetAllocatedBytesForCurrentThread()` over one run of the task on the measuring thread, exact. `peak_bytes` is the starting state plus the growth of the managed heap during the run. The state is the live bytes a full, blocking, compacting collection reports as promoted, read before and after the state is built (before finalizers run, so a library's array pools are in both readings or in neither). The growth is exactly `allocated_bytes` when no collection happens during the run, because nothing is freed then; when one does, it is the highest `GC.GetTotalMemory(false)` read by a second thread (and at the end of the run) over its value at the start. The size counts objects the task has dropped that the collector has not yet reclaimed, so it is the managed heap a process needs, not the live data alone. An untracked run comes first, so memory a library keeps for reuse (array pools, caches) already exists and appears in neither figure; a library that pools its buffers looks cheaper here than its resident size is. `allocations` is `null`: the runtime has no in-process count of allocation calls (`GCAllocationTick` fires once per 100 KB) |
 
 A field a runtime cannot measure is `null` and the report shows `n/a`; the method string
@@ -156,7 +175,7 @@ for the timing loop and still meet this contract:
 | Language | Timing | Counters |
 |---|---|---|
 | Rust | own loop on `std::time::Instant` | callgrind (`once`) |
-| Go | `testing.B` driven through `testing.Benchmark`, so the harness controls the output; `benchstat` over repeated runs for the spread | allocation counts |
+| Go | `testing.B` driven through `testing.Benchmark`, so the harness controls the output; the median and the median absolute deviation of the samples, as in the other harnesses (`benchstat` compares two runs of a binary and is not used) | allocation counts |
 | .NET | BenchmarkDotNet with a custom exporter that writes these records | allocated bytes |
 
 Whatever the tool, the cell record above is what leaves the harness.
@@ -169,7 +188,7 @@ starting states, call `b.ResetTimer()`, run the `b.N` tasks over the states, and
 clock. Call `b.ReportAllocs()`. Do not wrap each iteration in `StopTimer`/`StartTimer`: the
 pair costs about a microsecond and swamps short tasks. Cap the batch by the heap the states
 hold (as the Rust harness does), running several functions of a smaller `b.N` when needed,
-and take the spread across repeated runs with `benchstat`.
+and take the spread from the samples themselves.
 
 Go chunks the batch as the paragraph above says: inside the benchmark function the states of
 one chunk are built with the clock stopped, the chunk runs with the clock running, and
@@ -246,6 +265,24 @@ Implement `Library` in `bench/rust/src/libs/<name>.rs` and add it to `libs::all(
 `bench/rust/build.rs` exports the locked version of each package, so `package()` can
 return it with `env!("LOCKED_<NAME>")`.
 
+## What may be the best
+
+The row's best competitor, which every ratio and every verdict is measured against, is set only by a
+cell that did the full task as the task table in [benchmarks.md](benchmarks.md) specifies it. A cell
+does not when
+
+- its variant is `bytes-only`, `value-only` or `harness-rendered` (or any variant added later): the
+  answer was judged more loosely than the plain one;
+- its library's `settings.state` is `the text`: parsing and writing are inside its timed work, so it
+  does a different, larger job than a cell that starts from a parsed document.
+
+Such cells are measured and shown, marked, and listed with the reason; they never define the best.
+The variant `merged` (a library that reads YAML 1.1 merge keys while it loads) may set the reference:
+the value is the expected one apart from the merge, the work is loading the document, and a
+library that reads `<<` as an ordinary key (YAML 1.2) is measured against it honestly. It is
+labelled in every table. A row in which no cell may be the best has no best, and a library of ours
+in it gets "no rival".
+
 ## Go: adding a library
 
 A library is a `yamlLib` in `bench/go/libs_*.go`, registered in `libs.go`, with its module
@@ -253,8 +290,9 @@ pinned in `bench/go/go.mod`. It fills in only what the library really has: `unma
 document, also used for the typed models in `typed.go`), `decoder` for a stream, `marshal`, a
 `doc` (`parse`, `value`, `emit`, `prepareEdit`) when it has a lossless document, and a `patch`.
 What it leaves out is `unsupported`, with the reason it gives in `whyNo...`. The version in the
-results is read from the build, so it is the one `go.sum` locks. The reference parsers
-(`referee.go`) read a dumped document back.
+results is read from the build, so it is the one `go.sum` locks. The reference reading
+(`referee.go`) takes the structure of a dumped document from yaml.v3 and goccy and resolves it
+with the core-schema resolver of the harness.
 
 The harness builds without the control libraries, which are compiled only with the `selftest`
 tag and are never in a build that produces numbers.

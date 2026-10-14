@@ -96,13 +96,45 @@ def ok_cells(cells: list[dict]) -> list[dict]:
     return [c for c in cells if c["status"] == "ok"]
 
 
+# ---- what may define "the best" ---------------------------------------------------------------
+
+# Only a cell that did the full task, as the task table in docs/benchmarks.md specifies it, may set
+# the reference that other cells are compared with. A cell can fail that in two ways. Its variant says
+# the answer was judged more loosely than the plain one (`bytes-only`: no value to compare;
+# `value-only`: the text could not be kept; `harness-rendered`: the harness, not the library, wrote
+# the text), or its library does not start from the specified state (`state` is `text`: it takes and
+# returns text, so parsing and writing are inside the timed work). Such cells are shown, marked,
+# and never the best.
+#
+# `merged` is a library reading YAML 1.1 merge keys while it loads. The value is otherwise the
+# expected one and the work is the work of loading the document, so it may set the reference; the
+# report labels it wherever it appears.
+REFERENCE_VARIANTS = ("spec", "merged")
+
+
+def non_reference_label(c: dict) -> str:
+    """Why a cell may not set the best of its row; "" when it may."""
+    why = []
+    if c.get("state") == "text":
+        why.append("text API")
+    v = c.get("variant") or "spec"
+    if v not in REFERENCE_VARIANTS:
+        why.append(v)
+    return ", ".join(why)
+
+
+def sets_reference(c: dict) -> bool:
+    return c["status"] == "ok" and not non_reference_label(c)
+
+
 def compare_rows(cells: list[dict]) -> list[dict]:
     """One row per (task, workload) with every library's cell, the best competitor and the
     verdicts of each oneyaml library against it.
 
     The reference for ratios is the best competitor in that row, on that metric: the
-    fastest for time, the smallest peak for memory, whoever they are. A row where no
-    competitor produced a correct answer has no reference and says so.
+    fastest for time, the smallest peak for memory, whoever they are, among the cells that did
+    the full task (see `sets_reference`). A row where no competitor did has no reference and
+    says so.
     """
     rows: dict[tuple, dict] = {}
     for c in cells:
@@ -110,7 +142,7 @@ def compare_rows(cells: list[dict]) -> list[dict]:
     out = []
     for row in rows.values():
         cs = row["cells"]
-        comp = [c for c in ok_cells(cs) if c["role"] == "competitor"]
+        comp = [c for c in cs if c["role"] == "competitor" and sets_reference(c)]
         row["best_time"] = min(comp, key=lambda c: c["time"]["median_ns"]) if comp else None
         row["best_memory"] = min(comp, key=lambda c: c["memory"]["peak_bytes"]) if comp else None
         row["own"] = []
@@ -220,6 +252,17 @@ def add_reasons(result: dict, reasons: list[str]) -> None:
     pub["label"] = "smoke"
 
 
+def attach_known(result: dict, known: dict[str, dict]) -> None:
+    """Copies the reason of each listed known deviation onto its cell, so the report, which is built
+    from the result alone, can say why a library has no number. `known` maps a language to its
+    parsed known-deviations file."""
+    for c in result["cells"]:
+        entries = {e["cell"]: e for e in known.get(c["language"], {}).get("entries", [])}
+        e = entries.get(cell_name(c))
+        if e is not None and e.get("reason"):
+            c["known"] = e["reason"]
+
+
 # ---- validation --------------------------------------------------------------------------
 
 def validate(result: dict) -> None:
@@ -258,6 +301,9 @@ def validate(result: dict) -> None:
                     raise ResultError(f"ok cell {ident} lacks {k}")
             if c["time"]["median_ns"] <= 0:
                 raise ResultError(f"cell {ident} has a non-positive time")
+            r = c["memory"].get("retained_bytes")
+            if r is not None and (not isinstance(r, int) or r < 0):
+                raise ResultError(f"cell {ident} has a bad retained_bytes")
         elif has_numbers:
             # The rule that matters most: a wrong or missing answer never carries a number.
             raise ResultError(f"cell {ident} is {c['status']} but carries numbers")

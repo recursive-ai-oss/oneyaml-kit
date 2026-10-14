@@ -5,9 +5,11 @@
 
 Every cell of the Go harness that is not a plain correct answer (differs, rejects, unjudged,
 error, or an accepted variant other than the plain one) is listed with a reason. The reason is
-chosen from what the cell's own detail says, so it describes what happened; a cell whose detail
-matches no known pattern stops the script, so a new kind of failure is read by a person before
-it is listed. The run itself fails when a listed cell no longer happens or an unlisted one does.
+chosen from what the cell's own detail says, and the harness's detail names the cause: the kinds
+of difference between two texts (blank lines, indentation, ...) or the first line that differs.
+A cell whose detail matches no known pattern stops the script, so a new kind of failure is read
+by a person before it is listed. The run itself fails when a listed cell no longer happens or an
+unlisted one does.
 """
 
 from __future__ import annotations
@@ -18,17 +20,47 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parents[1] / "tools"))
+sys.dont_write_bytecode = True
 
-NODE_TEXT = ("The library writes the document back with different bytes from the input: the first "
-             "difference is in the cell's detail.")
-EDIT_TEXT = ("The edited document is not the expected bytes: the library rewrites text other than the "
-             "edited value, or writes the value in another style (the cell's detail has the first difference).")
+from oneyaml_kit.public_text import PATTERN  # noqa: E402
+
+KINDS = {
+    "blank lines": "blank lines",
+    "indentation": "indentation",
+    "quoting": "quoting",
+    "trailing spaces": "trailing spaces",
+    "spacing inside lines": "spacing inside lines",
+    "line breaks": "line breaks",
+}
+
+
+def safe(text: str) -> str:
+    """Quoted data from a case can look like internal text to the public-text check; the reason then
+    keeps its words and leaves the data out."""
+    return "(the line is in the cell's detail)" if PATTERN.search(text) else text
+
+
+def text_cause(detail: str, what: str) -> str | None:
+    """The cause of a difference between two texts, from the end of the harness's detail."""
+    m = re.search(r"; the texts differ only in (.+)$", detail)
+    if m:
+        return f"{what} differs from the expected text only in {m.group(1)}."
+    m = re.search(r'; line (\d+): got (".*"), expected (".*")$', detail)
+    if m:
+        got, want = m.group(2), m.group(3)
+        if got == '""' or want == '""':
+            return f"{what} differs from the expected text first at line {m.group(1)}, where one has a line and the other is empty."
+        return safe(f"{what} differs from the expected text first at line {m.group(1)}: it has {got} where {want} was expected.")
+    m = re.search(r"; got (\d+) lines, expected (\d+)$", detail)
+    if m:
+        return f"{what} has {m.group(1)} lines where {m.group(2)} were expected."
+    return None
 
 
 def reason(c: dict) -> str | None:
     s, task, v = c["status"], c["task"], c.get("variant") or "spec"
     d = c.get("detail") or ""
-    lib = c["library"]
     if s == "ok":
         if v == "merged":
             return ("The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value "
@@ -48,35 +80,37 @@ def reason(c: dict) -> str | None:
         if "missing path" in d or "does not apply" in d:
             return ("The library reads the YAML 1.1 key `on` as a boolean, so the path /on does not exist "
                     "in the JSON it patches.")
-        return "The library refused an input that YAML 1.2 accepts: " + d if d else None
-    if s == "differs":
-        if d.startswith("does not write the input back") or task == "unchanged-emit":
-            return NODE_TEXT
-        if task in ("edit-script", "patch") and d.startswith("byte "):
-            return EDIT_TEXT
-        if task == "patch" and d.startswith("value after the patch"):
-            return ("The patched value differs: the library goes through JSON, so a float with a whole "
-                    "value comes back as an integer.")
-        if re.search(r"got -?\d+, expected -?\d+(\.\d+)? \(float\)", d) and task == "dump":
-            return ("A float with a whole value is written without a decimal point, so it reads back as an "
-                    "integer.")
-        if "(float), expected" in d:
-            return ("An integer comes back as a float: the library converts to JSON and reads numbers as "
-                    "floats.")
-        if "missing /on" in d or "unexpected /jobs" in d:
-            return "The library reads the YAML 1.1 key `on` as the boolean true, not as the string \"on\"."
-        if re.search(r"got true, expected \"", d):
-            return "The library reads the YAML 1.1 scalar `y` as the boolean true."
-        if "expected a sequence of" in d and "got a mapping" in d:
-            return "The library reads only the first document of a stream."
-        if task in ("generic-load", "dump") and d.startswith("at /"):
-            return "The value differs from the expected one at the pointer in the cell's detail."
-        if task == "dump" and d.startswith("read back"):
-            return "Read back, the dumped text differs from the expected value at the pointer in the cell's detail."
-        if task == "typed-load" and d.startswith("/on/"):
-            return "The library reads the YAML 1.1 key `on` as the boolean true, so the model's `on` field stays empty."
+        return ("The library refused an input that YAML 1.2 accepts: " + d) if d else None
+    if s != "differs":
+        return None
+    # -- values -----------------------------------------------------------------------------
+    if task == "patch" and d.startswith("value after the patch") and "(float)" in d:
+        return ("The patched value differs: the library goes through JSON, so a float with a whole "
+                "value comes back as an integer.")
+    if re.search(r"got -?\d+, expected -?\d+(\.\d+)? \(float\)", d) and task == "dump":
+        return "A float with a whole value is written without a decimal point, so it reads back as an integer."
+    if re.search(r'got -?\d+, expected "[0-9]+"', d) and task == "dump":
+        return ("A string of digits with a leading zero is written as a plain scalar, which the core schema "
+                "reads as an integer.")
+    if "(float), expected" in d:
+        return "An integer comes back as a float: the library converts to JSON and reads numbers as floats."
+    if "missing /on" in d or (task == "typed-load" and d.startswith("/on/")):
         if task == "typed-load":
-            return "The decoded model differs from the expected value (see the cell's detail)."
+            return "The library reads the YAML 1.1 key `on` as the boolean true, so the model's `on` field stays empty."
+        return "The library reads the YAML 1.1 key `on` as the boolean true, not as the string \"on\"."
+    if re.search(r'got true, expected "', d):
+        return "The library reads the YAML 1.1 scalar `y` as the boolean true."
+    if "expected a sequence of" in d and "got a mapping" in d:
+        return "The library reads only the first document of a stream."
+    if task in ("generic-load", "dump", "typed-load"):
+        return None
+    # -- texts ------------------------------------------------------------------------------
+    if task == "document-parse" or task == "unchanged-emit":
+        return text_cause(d, "The document written back")
+    if task == "edit-script":
+        return text_cause(d, "The edited document")
+    if task == "patch":
+        return text_cause(d, "The patched document")
     return None
 
 
@@ -90,7 +124,7 @@ def main(argv: list[str]) -> int:
             continue
         why = reason(c)
         if why is None:
-            unknown.append(f"{c['library']}/{c['task']}/{c['workload']}: {c['status']} {c.get('detail', '')[:120]}")
+            unknown.append(f"{c['library']}/{c['task']}/{c['workload']}: {c['status']} {c.get('detail', '')[:200]}")
             continue
         e = {"cell": f"{c['library']}/{c['task']}/{c['workload']}", "status": c["status"]}
         if c["status"] == "ok":

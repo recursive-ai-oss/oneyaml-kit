@@ -179,11 +179,16 @@ def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[st
              counters: bool) -> dict:
     cells = []
     for lang, recs in cells_by_lang.items():
-        roles = {l["id"]: l["role"] for l in harness_records[lang].get("libraries", [])}
+        libs = {l["id"]: l for l in harness_records[lang].get("libraries", [])}
+        roles = {i: l["role"] for i, l in libs.items()}
         for c in recs:
             cell = {k: v for k, v in c.items() if k != "type"}
             cell["language"] = lang
             cell["role"] = roles.get(c["library"], "competitor")
+            # A library whose API takes and returns text has no parsed document to start from, so
+            # its cells do not do the task as specified (see results.sets_reference).
+            if ((libs.get(c["library"]) or {}).get("settings") or {}).get("state") == "the text":
+                cell["state"] = "text"
             cells.append(cell)
     selftest = any(h.get("selftest_build") for h in harness_records.values())
     # A cell that crashed or stalled was not measured, so the run did not finish what it set out to.

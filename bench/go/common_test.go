@@ -285,3 +285,17 @@ func TestAgreementCheck(t *testing.T) {
 		t.Error("bytes that differ by a factor of two were accepted")
 	}
 }
+
+func TestALongPathDoesNotCutOffTheValues(t *testing.T) {
+	deep := func(leaf any) any {
+		v := leaf
+		for i := 0; i < 60; i++ {
+			v = map[string]any{"k": v}
+		}
+		return v
+	}
+	d := firstDiff(deep(1.0), deep(Int("1")), "")
+	if !strings.Contains(d, "got 1 (float), expected 1") || !strings.HasPrefix(d, "at …") {
+		t.Errorf("got %s", d)
+	}
+}

@@ -335,7 +335,12 @@ func diffAt(at string, got, want any) string {
 	if at == "" {
 		at = "/"
 	}
-	return clip(fmt.Sprintf("at %s: got %s, expected %s", at, show(got), show(want)))
+	// A long pointer keeps its end, where the difference is, and the two values are never cut off
+	// by the length of the path.
+	if r := []rune(at); len(r) > 48 {
+		at = "…" + string(r[len(r)-47:])
+	}
+	return fmt.Sprintf("at %s: got %s, expected %s", at, clip(show(got)), clip(show(want)))
 }
 
 // bytesDiff says where two byte strings first differ; "" if they are equal.
@@ -355,5 +360,100 @@ func bytesDiff(got, want []byte) string {
 		}
 		return clip(fmt.Sprintf("%q", string(b[lo:hi])))
 	}
-	return fmt.Sprintf("byte %d: got %d bytes %s, expected %d bytes %s", at, len(got), ctx(got), len(want), ctx(want))
+	return fmt.Sprintf("byte %d: got %d bytes %s, expected %d bytes %s; %s", at, len(got), ctx(got), len(want), ctx(want),
+		explainBytes(got, want))
+}
+
+// A normalisation hides one kind of difference between two texts. The smallest set of kinds that
+// makes the texts equal says what the difference is made of.
+type normaliser struct {
+	name string
+	fn   func(string) string
+}
+
+var normalisers = []normaliser{
+	{"blank lines", func(s string) string {
+		var out []string
+		for _, l := range strings.Split(s, "\n") {
+			if strings.TrimSpace(l) != "" {
+				out = append(out, l)
+			}
+		}
+		return strings.Join(out, "\n")
+	}},
+	{"trailing spaces", func(s string) string {
+		ls := strings.Split(s, "\n")
+		for i, l := range ls {
+			ls[i] = strings.TrimRight(l, " \t")
+		}
+		return strings.Join(ls, "\n")
+	}},
+	{"indentation", func(s string) string {
+		ls := strings.Split(s, "\n")
+		for i, l := range ls {
+			ls[i] = strings.TrimLeft(l, " \t")
+		}
+		return strings.Join(ls, "\n")
+	}},
+	{"spacing inside lines", func(s string) string {
+		ls := strings.Split(s, "\n")
+		for i, l := range ls {
+			t := strings.TrimLeft(l, " \t")
+			ls[i] = l[:len(l)-len(t)] + strings.Join(strings.FieldsFunc(t, func(r rune) bool { return r == ' ' || r == '\t' }), " ")
+		}
+		return strings.Join(ls, "\n")
+	}},
+	{"quoting", func(s string) string { return strings.NewReplacer("'", "", "\"", "").Replace(s) }},
+	{"line breaks", func(s string) string { return strings.ReplaceAll(strings.ReplaceAll(s, "\r\n", "\n"), "\r", "\n") }},
+}
+
+// explainBytes says what two different texts differ in: the smallest set of the kinds above that
+// makes them equal, or else the first line that differs.
+func explainBytes(got, want []byte) string {
+	g, w := string(got), string(want)
+	n := len(normalisers)
+	best := -1
+	for mask := 1; mask < 1<<n; mask++ {
+		a, b := g, w
+		for i, nm := range normalisers {
+			if mask&(1<<i) != 0 {
+				a, b = nm.fn(a), nm.fn(b)
+			}
+		}
+		if a == b && (best < 0 || bits(mask) < bits(best)) {
+			best = mask
+		}
+	}
+	if best >= 0 {
+		var names []string
+		for i, nm := range normalisers {
+			if best&(1<<i) != 0 {
+				names = append(names, nm.name)
+			}
+		}
+		return "the texts differ only in " + strings.Join(names, " and ")
+	}
+	gl, wl := strings.Split(g, "\n"), strings.Split(w, "\n")
+	for i := 0; i < len(gl) && i < len(wl); i++ {
+		if gl[i] != wl[i] {
+			return fmt.Sprintf("line %d: got %s, expected %s", i+1, quoteClip(gl[i]), quoteClip(wl[i]))
+		}
+	}
+	return fmt.Sprintf("got %d lines, expected %d", len(gl), len(wl))
+}
+
+// quoteClip quotes a line, cutting a long one inside the quotes so the quote is always closed.
+func quoteClip(s string) string {
+	if r := []rune(s); len(r) > 60 {
+		s = string(r[:60]) + "…"
+	}
+	return strconv.Quote(s)
+}
+
+func bits(m int) int {
+	n := 0
+	for ; m > 0; m &= m - 1 {
+		n++
+	}
+	return n
 }

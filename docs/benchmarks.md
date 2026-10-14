@@ -106,7 +106,8 @@ places and are written to `out/bench/workloads/` before a run:
   absolute deviation (shown as a percentage), and all samples are kept in the result.
 - **Memory:** one extra tracked run of the task, through a counting global allocator.
   *Peak* is the high-water mark of live heap bytes, including the state the task starts
-  from (for example the parsed document of an emit). *Allocated* is the bytes the task
+  from (for example the parsed document of an emit). *Retained*, where a harness measures it,
+  is what a run leaves live after a collection (pools and caches). *Allocated* is the bytes the task
   itself requested, and *allocations* the number of allocation calls. Stacks and memory
   mapped outside the allocator are not seen.
   The Go harness cannot count through an allocator, so it reads `runtime.MemStats` instead
@@ -135,13 +136,21 @@ by the reference's, so below 1.0 is better. A gap is a **tie** when it is smalle
 the noise: 2% or three times the larger relative spread for time, 1% for memory.
 Otherwise it is a **win** or a **loss**. Losses are marked in the tables and the charts.
 
+Only cells that did the full task, as the task table specifies it, can be that best: a cell judged more
+loosely (`bytes-only`, `value-only`, `harness-rendered`) or from a library that takes and returns text
+(`state: the text`) is shown with a † and never defines it. `merged` may. The rule and the reasons are in
+[benchmark-adapters.md](benchmark-adapters.md#what-may-be-the-best).
+
 ### A language without a library of ours
 
 The verdicts compare our library with the best competitor. A language whose harness has no library of
 ours (the .NET harness, until there is one) has no such comparison. Its tables name the best library in
 each row instead, its summary lists for each library the geometric mean of its value divided by the best
 library's in the same row (1.0× is the best) and the number of rows it won, and its charts draw that mean
-per library. That is the baseline a library of ours has to beat.
+per library. That is the baseline a library of ours has to beat. Because an average over a library's own
+rows flatters a library that fails its slow rows, the summary also gives each library's mean over only the
+rows in which every library that can set the best has a number, with the number of those rows. A library
+that never sets the best because of the rule above is listed with its ratio and the reason.
 
 ## Correctness guard
 
