@@ -290,6 +290,10 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
              "plain one: *merged* means the library applied `<<` merge keys (a YAML 1.1 extension; YAML 1.2 "
              "reads `<<` as an ordinary key), and *bytes-only* means the library gives no value to compare, "
              "so its document is judged on the bytes it writes back. Both are listed as known deviations.\n")
+    if any(c.get("variant") == "value-only" for c in cells):
+        L.append("*value-only* means the library cannot keep the text of a document it patches (it works on "
+                 "JSON, say), so the text it wrote is judged on the value it holds, not byte for byte. It is a "
+                 "baseline for the cost of patching without keeping the text, and is listed as a known deviation.\n")
 
     # Per task sections
     for task in TASK_ORDER:

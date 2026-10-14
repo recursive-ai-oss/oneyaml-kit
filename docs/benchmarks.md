@@ -19,7 +19,7 @@ bin/bench check out/bench/results.json --baseline bench/rust/counters.json
 
 Output goes to `$KIT_OUT/bench` (default `./out/bench`, never committed):
 `results.json`, `report.md`, `charts/*.svg`, and the prepared `workloads/`.
-Rust build output goes to `$CARGO_TARGET_DIR`, or to `out/bench/target`.
+Build output goes to `$CARGO_TARGET_DIR`, or to `out/bench/target`: the Rust harness is built there by cargo, and the Go harness binary (`oneyaml-bench-go`) is written beside it.
 
 Quick mode is for the inner loop: short warm-up, five short samples per cell. Full mode
 is for numbers worth reading: a 300 ms warm-up and 31 samples of about 50 ms per cell, and
@@ -94,7 +94,9 @@ places and are written to `out/bench/workloads/` before a run:
   loading, a YAML 1.1 extension; YAML 1.2 reads `<<` as a plain key) for `generic-load`,
   `dump` and `document-parse`. Only the plain outcome is `spec`. A `merged` result, and a
   `bytes-only` one (a document judged on its bytes because the library gives no value to
-  compare), are listed as known deviations.
+  compare), are listed as known deviations. A third, `value-only`, exists for one purpose: the
+  baseline patcher that works on JSON and cannot keep the text (see
+  [benchmark-adapters.md](benchmark-adapters.md)); its output is judged on the value it holds.
 
 ### Metrics
 
@@ -107,6 +109,10 @@ places and are written to `out/bench/workloads/` before a run:
   from (for example the parsed document of an emit). *Allocated* is the bytes the task
   itself requested, and *allocations* the number of allocation calls. Stacks and memory
   mapped outside the allocator are not seen.
+  The Go harness cannot count through an allocator, so it reads `runtime.MemStats` instead
+  and says so in each cell's method (`runtime.MemStats, sampled`); its peak is the highest
+  heap reading seen and is not the same quantity as the Rust one. The exact method is in
+  [benchmark-adapters.md](benchmark-adapters.md#memory), and a table never mixes methods.
 - **Instructions** (`--counters`): instructions executed by one iteration, counted by
   callgrind restricted to the measured region.
 

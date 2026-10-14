@@ -1,0 +1,961 @@
+{
+ "format": "oneyaml-kit-bench-known/1",
+ "language": "go",
+ "entries": [
+  {
+   "cell": "goccy-go-yaml/document-parse/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "goccy-go-yaml/document-parse/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "goccy-go-yaml/document-parse/compose-wordpress",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/document-parse/gha-workflow",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/document-parse/helm-values-64k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/document-parse/openapi-api-with-examples",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/document-parse/prometheus-config",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/document-parse/records-4k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/document-parse/records-64k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/document-parse/unicode-32k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/dump/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "goccy-go-yaml/dump/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "goccy-go-yaml/dump/records-4k",
+   "status": "unjudged",
+   "reason": "The two reference parsers read the library's output differently, so it cannot be judged."
+  },
+  {
+   "cell": "goccy-go-yaml/dump/records-64k",
+   "status": "unjudged",
+   "reason": "The two reference parsers read the library's output differently, so it cannot be judged."
+  },
+  {
+   "cell": "goccy-go-yaml/dump/scalar-styles-32k",
+   "status": "unjudged",
+   "reason": "The two reference parsers read the library's output differently, so it cannot be judged."
+  },
+  {
+   "cell": "goccy-go-yaml/edit-script/compose-wordpress",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "goccy-go-yaml/edit-script/gha-workflow",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "goccy-go-yaml/edit-script/helm-values-64k",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "goccy-go-yaml/edit-script/openapi-api-with-examples",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "goccy-go-yaml/edit-script/openapi-petstore",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "goccy-go-yaml/edit-script/prometheus-config",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "goccy-go-yaml/edit-script/records-4k",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "goccy-go-yaml/edit-script/records-64k",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "goccy-go-yaml/edit-script/reference-b",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "goccy-go-yaml/generic-load/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "goccy-go-yaml/generic-load/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "goccy-go-yaml/unchanged-emit/compose-wordpress",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/unchanged-emit/gha-workflow",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/unchanged-emit/helm-values-64k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/unchanged-emit/openapi-api-with-examples",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/unchanged-emit/prometheus-config",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/unchanged-emit/records-4k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/unchanged-emit/records-64k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "goccy-go-yaml/unchanged-emit/unicode-32k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "json-patch/patch/compose-wordpress",
+   "status": "ok",
+   "variant": "value-only",
+   "reason": "The library works on JSON, so it cannot keep the text; the value it writes is the expected one and is accepted as value-only."
+  },
+  {
+   "cell": "json-patch/patch/gha-workflow",
+   "status": "rejects",
+   "reason": "The library reads the YAML 1.1 key `on` as a boolean, so the path /on does not exist in the JSON it patches."
+  },
+  {
+   "cell": "json-patch/patch/records-4k",
+   "status": "differs",
+   "reason": "The patched value differs: the library goes through JSON, so a float with a whole value comes back as an integer."
+  },
+  {
+   "cell": "json-patch/patch/records-64k",
+   "status": "differs",
+   "reason": "The patched value differs: the library goes through JSON, so a float with a whole value comes back as an integer."
+  },
+  {
+   "cell": "json-patch/patch/reference-a",
+   "status": "ok",
+   "variant": "value-only",
+   "reason": "The library works on JSON, so it cannot keep the text; the value it writes is the expected one and is accepted as value-only."
+  },
+  {
+   "cell": "json-patch/patch/reference-b",
+   "status": "ok",
+   "variant": "value-only",
+   "reason": "The library works on JSON, so it cannot keep the text; the value it writes is the expected one and is accepted as value-only."
+  },
+  {
+   "cell": "palantir-yamlpatch/patch/compose-wordpress",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "palantir-yamlpatch/patch/gha-workflow",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "palantir-yamlpatch/patch/reference-a",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "palantir-yamlpatch/patch/reference-b",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "palantir-yamlpatch-goccy/patch/compose-wordpress",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "palantir-yamlpatch-goccy/patch/gha-workflow",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "palantir-yamlpatch-goccy/patch/records-4k",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "palantir-yamlpatch-goccy/patch/records-64k",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "palantir-yamlpatch-goccy/patch/reference-b",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "sigs-yaml/dump/anchors-32k",
+   "status": "differs",
+   "reason": "The library reads the YAML 1.1 scalar `y` as the boolean true."
+  },
+  {
+   "cell": "sigs-yaml/dump/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "sigs-yaml/dump/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "sigs-yaml/dump/gha-workflow",
+   "status": "differs",
+   "reason": "The library reads the YAML 1.1 key `on` as the boolean true, not as the string \"on\"."
+  },
+  {
+   "cell": "sigs-yaml/dump/records-4k",
+   "status": "differs",
+   "reason": "A float with a whole value is written without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "sigs-yaml/dump/records-64k",
+   "status": "differs",
+   "reason": "A float with a whole value is written without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/anchors-32k",
+   "status": "differs",
+   "reason": "An integer comes back as a float: the library converts to JSON and reads numbers as floats."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/compose-merge-2k",
+   "status": "differs",
+   "reason": "An integer comes back as a float: the library converts to JSON and reads numbers as floats."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/compose-merge-64k",
+   "status": "differs",
+   "reason": "An integer comes back as a float: the library converts to JSON and reads numbers as floats."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/compose-wordpress",
+   "status": "differs",
+   "reason": "An integer comes back as a float: the library converts to JSON and reads numbers as floats."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/deep-block",
+   "status": "differs",
+   "reason": "The value differs from the expected one at the pointer in the cell's detail."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/deep-flow",
+   "status": "differs",
+   "reason": "The value differs from the expected one at the pointer in the cell's detail."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/flow-heavy-64k",
+   "status": "differs",
+   "reason": "An integer comes back as a float: the library converts to JSON and reads numbers as floats."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/gha-workflow",
+   "status": "differs",
+   "reason": "The library reads the YAML 1.1 key `on` as the boolean true, not as the string \"on\"."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/helm-ingress-nginx",
+   "status": "differs",
+   "reason": "The value differs from the expected one at the pointer in the cell's detail."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/helm-values-64k",
+   "status": "differs",
+   "reason": "An integer comes back as a float: the library converts to JSON and reads numbers as floats."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/k8s-ingress-nginx-multi",
+   "status": "differs",
+   "reason": "The library reads only the first document of a stream."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/k8s-multi-16k",
+   "status": "differs",
+   "reason": "The library reads only the first document of a stream."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/records-4k",
+   "status": "differs",
+   "reason": "An integer comes back as a float: the library converts to JSON and reads numbers as floats."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/records-64k",
+   "status": "differs",
+   "reason": "An integer comes back as a float: the library converts to JSON and reads numbers as floats."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/reference-a",
+   "status": "differs",
+   "reason": "An integer comes back as a float: the library converts to JSON and reads numbers as floats."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/reference-b",
+   "status": "differs",
+   "reason": "An integer comes back as a float: the library converts to JSON and reads numbers as floats."
+  },
+  {
+   "cell": "sigs-yaml/generic-load/wide-map-64k",
+   "status": "differs",
+   "reason": "An integer comes back as a float: the library converts to JSON and reads numbers as floats."
+  },
+  {
+   "cell": "sigs-yaml/typed-load/gha-workflow",
+   "status": "differs",
+   "reason": "The library reads the YAML 1.1 key `on` as the boolean true, so the model's `on` field stays empty."
+  },
+  {
+   "cell": "yaml-v2/dump/anchors-32k",
+   "status": "differs",
+   "reason": "The library reads the YAML 1.1 scalar `y` as the boolean true."
+  },
+  {
+   "cell": "yaml-v2/dump/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v2/dump/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v2/dump/gha-workflow",
+   "status": "differs",
+   "reason": "The library reads the YAML 1.1 key `on` as the boolean true, not as the string \"on\"."
+  },
+  {
+   "cell": "yaml-v2/dump/records-4k",
+   "status": "differs",
+   "reason": "A float with a whole value is written without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "yaml-v2/dump/records-64k",
+   "status": "differs",
+   "reason": "A float with a whole value is written without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "yaml-v2/generic-load/anchors-32k",
+   "status": "differs",
+   "reason": "The library reads the YAML 1.1 scalar `y` as the boolean true."
+  },
+  {
+   "cell": "yaml-v2/generic-load/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v2/generic-load/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v2/generic-load/gha-workflow",
+   "status": "differs",
+   "reason": "The library reads the YAML 1.1 key `on` as the boolean true, not as the string \"on\"."
+  },
+  {
+   "cell": "yaml-v3/document-parse/compose-merge-2k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/compose-merge-64k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/compose-wordpress",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/deep-block",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/gha-workflow",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/helm-values-64k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/k8s-ingress-nginx-multi",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/k8s-multi-16k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/long-scalars-256k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/openapi-api-with-examples",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/prometheus-config",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/reference-a",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/reference-b",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/scalar-styles-32k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/document-parse/unicode-32k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/dump/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v3/dump/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v3/dump/records-4k",
+   "status": "differs",
+   "reason": "A float with a whole value is written without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "yaml-v3/dump/records-64k",
+   "status": "differs",
+   "reason": "A float with a whole value is written without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "yaml-v3/edit-script/compose-merge-2k",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v3/edit-script/compose-merge-64k",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v3/edit-script/compose-wordpress",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v3/edit-script/gha-workflow",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v3/edit-script/helm-values-64k",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v3/edit-script/openapi-api-with-examples",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v3/edit-script/prometheus-config",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v3/edit-script/reference-a",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v3/edit-script/reference-b",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v3/generic-load/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v3/generic-load/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/compose-merge-2k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/compose-merge-64k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/compose-wordpress",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/deep-block",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/gha-workflow",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/helm-values-64k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/k8s-ingress-nginx-multi",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/k8s-multi-16k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/long-scalars-256k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/openapi-api-with-examples",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/prometheus-config",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/reference-a",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/reference-b",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/scalar-styles-32k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v3/unchanged-emit/unicode-32k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/anchors-32k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v4/document-parse/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v4/document-parse/compose-wordpress",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/deep-block",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/deep-flow",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/gha-workflow",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/helm-ingress-nginx",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/helm-values-64k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/k8s-multi-16k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/long-scalars-256k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/openapi-100k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/openapi-api-with-examples",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/openapi-petstore",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/prometheus-config",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/records-4k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/records-64k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/reference-a",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/reference-b",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/scalar-styles-32k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/document-parse/unicode-32k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/dump/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v4/dump/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v4/dump/records-4k",
+   "status": "differs",
+   "reason": "A float with a whole value is written without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "yaml-v4/dump/records-64k",
+   "status": "differs",
+   "reason": "A float with a whole value is written without a decimal point, so it reads back as an integer."
+  },
+  {
+   "cell": "yaml-v4/edit-script/compose-wordpress",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v4/edit-script/gha-workflow",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v4/edit-script/helm-ingress-nginx",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v4/edit-script/helm-values-64k",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v4/edit-script/openapi-100k",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v4/edit-script/openapi-api-with-examples",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v4/edit-script/openapi-petstore",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v4/edit-script/prometheus-config",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v4/edit-script/records-4k",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v4/edit-script/records-64k",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v4/edit-script/reference-a",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v4/edit-script/reference-b",
+   "status": "differs",
+   "reason": "The edited document is not the expected bytes: the library rewrites text other than the edited value, or writes the value in another style (the cell's detail has the first difference)."
+  },
+  {
+   "cell": "yaml-v4/generic-load/compose-merge-2k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v4/generic-load/compose-merge-64k",
+   "status": "ok",
+   "variant": "merged",
+   "reason": "The library applies `<<` merge keys while loading, which YAML 1.2 does not; the value is accepted as the merged one."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/anchors-32k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/compose-wordpress",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/deep-block",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/deep-flow",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/gha-workflow",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/helm-ingress-nginx",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/helm-values-64k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/k8s-multi-16k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/long-scalars-256k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/openapi-100k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/openapi-api-with-examples",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/openapi-petstore",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/prometheus-config",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/records-4k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/records-64k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/reference-a",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/reference-b",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/scalar-styles-32k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  },
+  {
+   "cell": "yaml-v4/unchanged-emit/unicode-32k",
+   "status": "differs",
+   "reason": "The library writes the document back with different bytes from the input: the first difference is in the cell's detail."
+  }
+ ]
+}

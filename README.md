@@ -13,7 +13,7 @@ from the results.
 | `suites/own/cases/` | The kit's own cases: parse, schema, edits by patch, diagnostics, safety. |
 | `adapters/` | One directory per library under test: manifest, adapter program, known deviations. |
 | `tools/oneyaml_kit/` | Loader, runner, comparison, report generator (Python standard library only). |
-| `bench/` | The benchmark harness: workloads, the Rust harness, the driver and the report generator. See [docs/benchmarks.md](docs/benchmarks.md). |
+| `bench/` | The benchmark harness: workloads, the Rust and Go harnesses, the driver and the report generator. See [docs/benchmarks.md](docs/benchmarks.md). |
 | `tests/` | The kit's own tests. |
 | `docs/` | [Case format](docs/case-format.md), [adapter protocol](docs/adapter-protocol.md), [result format](docs/result-format.md), [edit semantics](docs/edit-semantics.md), [benchmarks](docs/benchmarks.md), [benchmark adapters](docs/benchmark-adapters.md). |
 

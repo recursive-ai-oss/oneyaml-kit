@@ -6,7 +6,7 @@ the numbers include no process start or serialisation cost. This page is the con
 new language adds a directory and implements it; the driver, the workloads, the verdicts
 and the reports do not change.
 
-Rust is the first implementation: `bench/rust/`.
+Rust is the first implementation, `bench/rust/`; Go is the second, `bench/go/`.
 
 ## Layout
 
@@ -86,7 +86,9 @@ the driver restarts `run` with `--skip` for the cells already begun.
   has `time` and `memory`. Every other status has a `detail`. `unjudged` is for a dump whose
   output the harness's reference parsers read differently; it is not a verdict on the library.
 - `variant` names which accepted expectation matched: `spec`, `merged` (`<<` applied while
-  loading) or `bytes-only` (a document with no value to compare, judged on its bytes).
+  loading), `bytes-only` (a document with no value to compare, judged on its bytes) or
+  `value-only` (a patch baseline that works on JSON and so cannot keep the text, judged on the
+  value its output holds; see the patch rule below).
 - `memory.method` says how the figures were taken, so numbers from different methods are
   not mixed in one table (see [Memory](#memory)).
 
@@ -138,7 +140,7 @@ for one run of the task, taken in a separate pass from the timed ones:
 | Language | `method` | How |
 |---|---|---|
 | Rust | `counting global allocator` | a `GlobalAlloc` wrapper counts, switched on for the one pass; exact |
-| Go | `runtime.MemStats` | `runtime.GC()` twice, read `MemStats` (`HeapAlloc`, `TotalAlloc`, `Mallocs`), run the task once with a sampler goroutine reading `HeapAlloc` every millisecond for the peak, read again; `allocated_bytes = ΔTotalAlloc`, `allocations = ΔMallocs`, `peak_bytes` = the highest `HeapAlloc` seen (a lower bound for tasks shorter than the sampling interval, so name the method `runtime.MemStats, sampled`). The timed runs use `testing.B` with `-benchmem`; its `B/op` and `allocs/op` must agree with the pass, and the harness fails the cell if they differ by more than 5% |
+| Go | `runtime.MemStats, sampled` | The **peak** pass: build the starting state, `runtime.GC()`, then run the task once with a sampler goroutine reading `HeapAlloc` every millisecond; `peak_bytes` is the highest `HeapAlloc` seen (the reading right after the run counts too, because a task shorter than the sampling interval is not seen by the sampler) **less the `HeapAlloc` the process held before the starting state was built**, so the harness's own data is not charged to the task. `HeapAlloc` includes garbage not yet collected, so it is an upper bound on live bytes at the moment of the reading. The **allocation** figures, `allocated_bytes` (ΔTotalAlloc) and `allocations` (ΔMallocs), are `testing.B`'s `B/op` and `allocs/op` averaged over all the timed samples, because a library that keeps buffers in a pool allocates fewer bytes per run the longer the heap stays unchanged, and one cold run is not the steady state. A separate pass averages the same two counters over up to 64 runs, and the cell fails (`error`) when the number of calls differs by more than 5% or the bytes by more than 25% |
 | .NET | `GC.GetAllocatedBytesForCurrentThread` | `GC.Collect()` then read `GC.GetTotalMemory(true)` for the base; `allocated_bytes` from `GC.GetAllocatedBytesForCurrentThread()` before and after the task; `peak_bytes` from `GC.GetTotalMemory(false)` sampled by a timer on a second thread, or from GC events (`System.Diagnostics.Tracing` `GCHeapStats`); `allocations` from the `GCAllocationTick` event count or `null` if unavailable |
 
 A field a runtime cannot measure is `null` and the report shows `n/a`; the method string
@@ -168,6 +170,29 @@ clock. Call `b.ReportAllocs()`. Do not wrap each iteration in `StopTimer`/`Start
 pair costs about a microsecond and swamps short tasks. Cap the batch by the heap the states
 hold (as the Rust harness does), running several functions of a smaller `b.N` when needed,
 and take the spread across repeated runs with `benchstat`.
+
+Go chunks the batch as the paragraph above says: inside the benchmark function the states of
+one chunk are built with the clock stopped, the chunk runs with the clock running, and
+`runtime.GC()` runs between chunks with the clock stopped, so the previous chunk's garbage is
+not collected on the clock. The chunk is sized from the heap one state holds, at most 64 MiB in
+quick mode and 512 MiB in full mode. `testing.Benchmark` is called once for the warm-up and once
+per sample with `-test.benchtime` set to the mode's warm-up and sample target, and each call
+yields one sample, `T/N`.
+
+### Go: libraries whose API takes and returns text
+
+A patcher such as palantir's `yamlpatch` takes the text and returns text, so there is no
+parsed document to start from: parsing and writing are inside its timed work, and the cell's
+settings say `state: the text`. They are compared with each other, not with a library that
+starts from a parsed document.
+
+A baseline that works on JSON (evanphx's json-patch behind `sigs.k8s.io/yaml`) cannot keep the
+text of what it patches, so its output can never be the expected bytes. It is the one library
+that may declare its patch output `value-only`: when the bytes are not the expected ones, the
+output and the expected bytes are both read by the two reference parsers, and the values must
+be equal; the cell is then `ok` with variant `value-only`, which is a known deviation and is
+labelled in the report. A wrong value, or a failing patch that does not fail or changes the
+text, is still `differs`.
 
 ### .NET: set-up outside the clock
 
@@ -203,6 +228,19 @@ Implement `Library` in `bench/rust/src/libs/<name>.rs` and add it to `libs::all(
 
 `bench/rust/build.rs` exports the locked version of each package, so `package()` can
 return it with `env!("LOCKED_<NAME>")`.
+
+## Go: adding a library
+
+A library is a `yamlLib` in `bench/go/libs_*.go`, registered in `libs.go`, with its module
+pinned in `bench/go/go.mod`. It fills in only what the library really has: `unmarshal` (one
+document, also used for the typed models in `typed.go`), `decoder` for a stream, `marshal`, a
+`doc` (`parse`, `value`, `emit`, `prepareEdit`) when it has a lossless document, and a `patch`.
+What it leaves out is `unsupported`, with the reason it gives in `whyNo...`. The version in the
+results is read from the build, so it is the one `go.sum` locks. The reference parsers
+(`referee.go`) read a dumped document back.
+
+The harness builds without the control libraries, which are compiled only with the `selftest`
+tag and are never in a build that produces numbers.
 
 ## Known deviations
 
