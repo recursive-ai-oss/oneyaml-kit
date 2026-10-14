@@ -115,6 +115,25 @@ directly above the next entry, a comment after the last entry, and a header comm
 separated from the first entry by a blank line stay. YAML defines comments as presentation
 detail with no owner, so these cases are few.
 
+## The `test` operation
+
+`test` compares the value at the path with the patch's value by the YAML data model under
+the core schema (YAML 1.2.2 section 3.2.1.3, node comparison, with the schema's types):
+two scalars are equal when they have the same type and the same value, mappings are
+equal regardless of key order, and sequences are equal only in order. A plain, quoted or
+block scalar with the same text is the same string; `0x1F` and `31` are the same integer;
+`yes` is a string, not a boolean.
+
+A number in a patch maps to a YAML type by how JSON writes it, the rule of the kit's
+values (see the case format): a number without a decimal point or exponent is an integer,
+one with either is a float. So `1` is the integer 1 and `1.0` is the float 1.0, and they
+are **not** equal: testing the document's `1` against `1.0`, or its `1.0` against `1`,
+fails with `patch-test`. This departs from RFC 6902 section 4.6, which compares numbers
+numerically (1 equals 1.0). It is a kit convention (tag `convention`), because YAML 1.2
+gives the two different types and a patch that tests a type should be able to say so. A
+library that compares numerically, as the RFC does, fails these cases and lists them as
+known deviations with that reason.
+
 ## Atomicity
 
 A patch is applied as a whole. If any operation fails, including a failing `test`,

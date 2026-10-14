@@ -52,8 +52,9 @@ def reason(r: dict, src: dict, verdict: str) -> str:
         return "Value differs at " + detail
     if detail.startswith("refused;"):
         return "The library refused the input; the case allows only its exact result."
-    if detail.startswith(("memory growth", "took ", "peak memory")):
-        return "Over the case's bound: " + detail
+    if detail.startswith(("memory growth", "took ", "peak memory", "no answer within")):
+        # Which bound a run reaches first depends on the machine, so the reason names neither.
+        return "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
     if detail.startswith("first difference"):
         return "Output differs: " + detail
     return detail or "Fails; see the comparison detail."

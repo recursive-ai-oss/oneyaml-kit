@@ -63,6 +63,9 @@ func keyString(k any) (string, error) {
 		return strconv.FormatBool(x), nil
 	case float64:
 		return strconv.FormatFloat(x, 'g', -1, 64), nil
+	case Int:
+		// The reference reading builds integers as Int already.
+		return string(x), nil
 	}
 	v, err := fromAny(k)
 	if err != nil {

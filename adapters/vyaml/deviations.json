@@ -118,14 +118,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
   },
   {
    "case": "own:safety/alias-byte-expansion-bomb",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
   },
   {
    "case": "own:safety/alias-expansion-bomb",

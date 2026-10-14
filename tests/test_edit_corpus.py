@@ -160,6 +160,21 @@ class Coverage(unittest.TestCase):
         for cat in coverage.CATEGORIES:
             self.assertIn(f"| {cat} |", md)
 
+    def test_the_question_mark_indicator_comes_from_the_explicit_entry_not_from_every_entry(self):
+        # [188] is any block mapping entry, written with `?` or not; [189] and [190] are the explicit ones.
+        self.assertNotIn("5", coverage.DERIVED.get("188", []))
+        self.assertEqual(coverage.DERIVED["189"], ["5"])
+        self.assertEqual(coverage.DERIVED["190"], ["5"])
+        implicit = [c for c in OWN if "188" in c.productions and not {"189", "190"} & set(c.productions)]
+        self.assertTrue(implicit)
+        self.assertNotIn("5", coverage.derived_numbers(implicit))
+
+    def test_a_stream_with_a_second_byte_order_mark_names_the_mark_and_the_document_prefix(self):
+        # Their second document starts with its own byte order mark: [3] is the mark, [202] the prefix it belongs to.
+        for c in OWN:
+            if c.id.startswith("own:parse/encoding-utf-") and c.id.endswith("-without-bom"):
+                self.assertTrue({"3", "202"} <= set(c.productions), c.id)
+
     def test_a_production_named_by_no_case_is_listed_as_a_gap(self):
         keep = [c for c in OWN if "187" not in c.productions]
         md = coverage.render(keep)
@@ -191,8 +206,8 @@ class Coverage(unittest.TestCase):
         for c in OWN:
             if "3" in c.productions:
                 inp = c.input
-                self.assertTrue(inp[:2] in (b"\xff\xfe", b"\xfe\xff") or b"\xef\xbb\xbf" in inp
-                                or b"\xfe\xff" in inp, c.id)
+                # The mark may start the stream or a later document of it, in any of the encodings.
+                self.assertTrue(any(m in inp for m in (b"\xff\xfe", b"\xfe\xff", b"\xef\xbb\xbf")), c.id)
 
     def test_ranges(self):
         self.assertEqual(coverage._ranges([1, 2, 3, 7, 9, 10]), "1-3, 7, 9-10")

@@ -108,34 +108,75 @@ class Rows(unittest.TestCase):
 
 
 class WhatMaySetTheReference(unittest.TestCase):
-    """A cell that did not do the full task as specified is shown but never defines the best."""
+    """A cell that did not do the full task as specified is never called the best, but a row is always
+    compared with the strongest competitor in it, and a loss to a marked one is a loss."""
 
-    def test_loose_variants_and_text_apis_never_set_the_reference(self):
+    def test_a_faster_marked_cell_is_the_one_ours_is_compared_with_and_it_is_named_with_its_mark(self):
         for variant in ("bytes-only", "value-only", "harness-rendered", "something-new"):
             fast = cell("loose", t=10, variant=variant)
             [row] = R.compare_rows([cell("ours", "own", t=100), fast, cell("real", t=200)])
-            self.assertEqual(row["best_time"]["library"], "real", variant)
-            self.assertEqual(row["own"][0]["time"]["verdict"], "win", variant)
+            self.assertEqual(row["best_time"]["library"], "loose", variant)
+            self.assertEqual(row["best_time_mark"], variant)
+            e = row["own"][0]["time"]
+            self.assertEqual((e["vs"], e["vs_mark"], e["verdict"]), ("loose", variant, "loss"), variant)
             self.assertEqual(R.non_reference_label(fast), variant)
         text = cell("patcher", t=10)
         text["state"] = "text"
         [row] = R.compare_rows([cell("ours", "own", t=100), text, cell("real", t=200)])
-        self.assertEqual(row["best_time"]["library"], "real")
-        self.assertEqual(R.non_reference_label(text), "text API")
+        self.assertEqual(row["own"][0]["time"]["verdict"], "loss")
+        self.assertEqual(row["own"][0]["time"]["vs_mark"], "text API")
+        self.assertEqual(R.tally([row], "time")["loss"], 1)
         both = cell("patcher", t=10, variant="value-only")
         both["state"] = "text"
         self.assertEqual(R.non_reference_label(both), "text API, value-only")
+
+    def test_a_marked_cell_that_is_slower_does_not_change_the_comparison(self):
+        slow = cell("loose", t=1000, variant="bytes-only")
+        [row] = R.compare_rows([cell("ours", "own", t=100), slow, cell("real", t=200)])
+        self.assertEqual(row["best_time"]["library"], "real")
+        self.assertEqual(row["best_time_mark"], "")
+        self.assertEqual(row["own"][0]["time"]["verdict"], "win")
+
+    def test_a_tie_goes_to_the_unmarked_cell(self):
+        [row] = R.compare_rows([cell("ours", "own", t=100), cell("loose", t=50, variant="bytes-only"), cell("real", t=50)])
+        self.assertEqual(row["best_time"]["library"], "real")
+
+    def test_memory_is_compared_with_a_marked_cell_too(self):
+        [row] = R.compare_rows([cell("ours", "own", t=100, peak=1000), cell("loose", t=500, peak=100, variant="value-only"),
+                                cell("real", t=200, peak=500)])
+        m = row["own"][0]["memory"]
+        self.assertEqual((m["vs"], m["vs_mark"], m["verdict"]), ("loose", "value-only", "loss"))
+        self.assertEqual(row["own"][0]["time"]["verdict"], "win")
 
     def test_a_merged_cell_may_set_the_reference(self):
         [row] = R.compare_rows([cell("ours", "own", t=100), cell("merger", t=10, variant="merged"), cell("real", t=200)])
         self.assertEqual(row["best_time"]["library"], "merger")
         self.assertEqual(R.non_reference_label(cell("merger", variant="merged")), "")
 
-    def test_a_row_of_only_such_cells_has_no_reference(self):
-        [row] = R.compare_rows([cell("ours", "own", t=100), cell("loose", t=10, variant="bytes-only")])
+    def test_a_row_of_only_marked_cells_is_compared_with_the_strongest_of_them_and_a_loss_is_a_loss(self):
+        # The only lossless competitor of a task is often a bytes-only one. Ours losing to it is a loss.
+        [row] = R.compare_rows([cell("ours", "own", t=100, peak=1000), cell("loose", t=10, peak=100, variant="bytes-only")])
+        self.assertEqual(row["best_time"]["library"], "loose")
+        e = row["own"][0]
+        self.assertEqual((e["time"]["verdict"], e["time"]["vs_mark"]), ("loss", "bytes-only"))
+        self.assertEqual(e["memory"]["verdict"], "loss")
+        self.assertEqual(R.tally([row], "time")["loss"], 1)
+        self.assertEqual(R.tally([row], "time")["no-rival"], 0)
+        self.assertEqual(R.tally([row], "memory")["loss"], 1)
+
+    def test_a_row_is_no_rival_only_when_no_competitor_answered(self):
+        [row] = R.compare_rows([cell("ours", "own", t=100), cell("bad", status="differs", detail="x"),
+                                cell("loose", status="unsupported")])
         self.assertIsNone(row["best_time"])
         self.assertIsNone(row["own"][0]["time"])
         self.assertEqual(R.tally([row], "time")["no-rival"], 1)
+
+    def test_the_baseline_reference_is_a_full_task_cell_when_there_is_one(self):
+        c = [cell("a", t=100), cell("loose", t=10, variant="bytes-only"), cell("b", t=300)]
+        [row] = R.compare_rows(c)
+        self.assertEqual(R.baseline_reference(row, "time")["library"], "a")
+        [row] = R.compare_rows([cell("loose", t=10, variant="bytes-only"), cell("l2", t=20, variant="value-only")])
+        self.assertEqual(R.baseline_reference(row, "time")["library"], "loose")
 
 
 class KnownReasonsReachTheCells(unittest.TestCase):
@@ -199,6 +240,21 @@ class Publishability(unittest.TestCase):
         self.assertTrue(any("not pinned" in r for r in a["reasons"]))
         self.assertTrue(any("'powersave'" in r for r in a["reasons"]))
         self.assertEqual((a["measured"]["pinned_cpu"], a["measured"]["governor"]), (None, "powersave"))
+
+    def test_a_cell_timed_before_its_warmup_settled_blocks_publication_in_full_mode_only(self):
+        ok = cell("a")
+        ok["time"]["warmup_settled"] = True
+        bad = cell("b", workload="w2")
+        bad["time"]["warmup_settled"] = False
+        self.assertEqual(R.unsettled_reasons("full", [ok]), [])
+        [why] = R.unsettled_reasons("full", [ok, bad])
+        self.assertIn("b/generic-load/w2", why)
+        self.assertEqual(R.unsettled_reasons("quick", [ok, bad]), [])
+        # A harness that does not record the field (Rust, Go) is not affected.
+        self.assertEqual(R.unsettled_reasons("full", [cell("c")]), [])
+        r = result([ok], mode="full", publishable=True, reasons=())
+        R.add_reasons(r, R.unsettled_reasons("full", [ok, bad]))
+        self.assertFalse(r["run"]["publishability"]["publishable"])
 
     def test_reasons_found_after_the_run_make_it_a_smoke_result(self):
         r = result([cell("a")], mode="full", publishable=True, reasons=())

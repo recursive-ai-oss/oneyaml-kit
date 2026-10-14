@@ -748,42 +748,42 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
   },
   {
    "case": "own:safety/alias-byte-expansion-bomb",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
   },
   {
    "case": "own:safety/alias-expansion-bomb",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
   },
   {
    "case": "own:safety/alias-expansion-bomb",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
   },
   {
    "case": "own:safety/alias-expansion-bomb-ten-by-ten",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
   },
   {
    "case": "own:safety/alias-expansion-bomb-ten-by-ten",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Grows past the memory bound of the case (memory growth passed the 1024 MB bound)"
+   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
   },
   {
    "case": "own:safety/deep-block-sequences-50000",
@@ -4010,28 +4010,28 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The patch was applied; the case expects it to be refused."
+   "reason": "The patch was applied. The library compares through JSON, where numbers compare numerically (1 equals 1.0), as RFC 6902 section 4.6 says. The case expects the kit's data-model rule, under which 1 and 1.0 differ."
   },
   {
    "case": "own:edit/test-error-float-is-not-integer",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The patch was applied; the case expects it to be refused."
+   "reason": "The patch was applied. The library compares through JSON, where numbers compare numerically (1 equals 1.0), as RFC 6902 section 4.6 says. The case expects the kit's data-model rule, under which 1 and 1.0 differ."
   },
   {
    "case": "own:edit/test-error-integer-is-not-float",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The patch was applied; the case expects it to be refused."
+   "reason": "The patch was applied. The library compares through JSON, where numbers compare numerically (1 equals 1.0), as RFC 6902 section 4.6 says. The case expects the kit's data-model rule, under which 1 and 1.0 differ."
   },
   {
    "case": "own:edit/test-error-integer-is-not-float",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The patch was applied; the case expects it to be refused."
+   "reason": "The patch was applied. The library compares through JSON, where numbers compare numerically (1 equals 1.0), as RFC 6902 section 4.6 says. The case expects the kit's data-model rule, under which 1 and 1.0 differ."
   }
  ]
 }

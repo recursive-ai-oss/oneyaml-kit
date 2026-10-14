@@ -88,16 +88,14 @@ the driver restarts `run` with `--skip` for the cells already begun.
 - `variant` names which accepted expectation matched: `spec`, `merged` (`<<` applied while
   loading), `bytes-only` (a document with no value to compare, judged on its bytes),
   `harness-rendered` (an edit whose lookup and new text are the harness's code, because the library
-  only replaces a range of characters) or
+  only replaces a range of characters; the bytes are judged and the work is timed) or
   `value-only` (a patch baseline that works on JSON and so cannot keep the text, judged on the
-  value its output holds; see the patch rule below) or `harness-rendered` (the library edits a
-  tree but has no writer that keeps the text, so the harness renders the edited tree to text itself
-  and the bytes are judged; the library's settings say so).
-  Only `spec` and `merged` can set the reference of a row; see
+  value its output holds; see the patch rule below).
+  Only `spec` and `merged` are called the best of a row, but every ok cell is compared with; see
   [What may be the best](#what-may-be-the-best).
 - `settings.state` is `the text` for a library whose API takes and returns text, so it has no parsed
   document to start from and its parsing and writing are inside the timed work. The driver marks its
-  cells `"state": "text"`; they are shown, never the best of a row (see
+  cells `"state": "text"`; they are shown, marked, and never called the best of a row (see
   [What may be the best](#what-may-be-the-best)). Any other value, or no value, means the library
   starts from what the task table says.
 - `memory.method` says how the figures were taken, so numbers from different methods are
@@ -110,9 +108,9 @@ the driver restarts `run` with `--skip` for the cells already begun.
    only if it passed. The code judged and the code timed must be the same code.
 2. **Convert outside the clock.** Conversion to the common JSON form is for the guard and
    never timed.
-3. **Build the starting state outside the clock** and fresh for every iteration, and release
-   it after the clock stops; drop each result inside the clock. One exception is allowed in every
-   harness: a task that leaves its starting state unchanged (it only reads it) may run a whole batch
+3. **Build the starting state outside the clock** and fresh for every iteration (except as the
+   next sentence allows), and release it after the clock stops; drop each result inside the clock.
+   One exception is allowed in every harness: a task that leaves its starting state unchanged (it only reads it) may run a whole batch
    over one shared state, which keeps the set-up of a large state short. A harness that does this
    must check it, not assume it: run the task twice over one state and compare the two answers, and
    refuse the runner (a failed cell, never a number) when the second differs from the first. A task
@@ -301,22 +299,38 @@ return it with `env!("LOCKED_<NAME>")`.
 
 ## What may be the best
 
-The row's best competitor, which every ratio and every verdict is measured against, is set only by a
-cell that did the full task as the task table in [benchmarks.md](benchmarks.md) specifies it. A cell
-does not when
+A row is always compared with the **strongest competitor in it**: the fastest for time, the smallest
+peak for memory, whatever that competitor did. Every ratio and every verdict of our library is
+measured against it. Losses are always shown, and a competitor is never left out because it did a
+different job.
+
+A cell carries the mark † when it did not do the full task as the task table in
+[benchmarks.md](benchmarks.md) specifies it:
 
 - its variant is `bytes-only`, `value-only` or `harness-rendered` (or any variant added later): the
   answer was judged more loosely than the plain one;
 - its library's `settings.state` is `the text`: parsing and writing are inside its timed work, so it
   does a different, larger job than a cell that starts from a parsed document.
 
-Such cells are measured and shown, marked, and listed with the reason; they never define the best.
-The variant `merged` (a library that reads YAML 1.1 merge keys while it loads) may set the reference
-of the rows where it occurs (`generic-load`, `dump` and `document-parse`):
-the value is the expected one apart from the merge, the work is loading the document, and a
+The mark limits what is *said*, never whether a loss is shown:
+
+- A † cell is never called "the best" of a row, because that would flatter it: it did less.
+- When a † cell is faster than ours, or is the only competitor that answered, the verdict is against
+  it and names it with its mark and its reason, for example "loss vs yaml-edit †, bytes-only". A
+  loss to it counts as a loss in the tally and in the weakest row. A loss is never "no rival".
+- "No rival" means only that no competitor produced a correct answer in that row.
+- A † cell that is slower than the strongest full-task cell changes nothing.
+- In a language with no library of ours, the ratios are taken against the strongest cell that did the
+  full task (so a library's mean is not measured against work it did not do), unless no such cell
+  answered in the row. A † cell that is faster is not hidden: it is listed with its own ratio, named
+  beside the row's best with its mark, and the summary counts the rows in which one was ahead of each
+  library.
+
+The variant `merged` (a library that reads YAML 1.1 merge keys while it loads) carries no mark and may be
+called the best on every task where it occurs (`generic-load`, `dump` and `document-parse`): the
+value is the expected one apart from the merge, the work is loading the document, and a
 library that reads `<<` as an ordinary key (YAML 1.2) is measured against it honestly. It is
-labelled in every table. A row in which no cell may be the best has no best, and a library of ours
-in it gets "no rival".
+labelled in every table.
 
 ## Go: adding a library
 

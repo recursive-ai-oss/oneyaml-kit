@@ -106,7 +106,7 @@ class ReportTests(unittest.TestCase):
         self.assertTrue(alts)
         time_alt = next(a for a in alts if "generic-load (rust): time" in a)
         for needle in ("w1 0.50×", "w2 2.00×", "w3 0.80×", "loss", "ours 200 ns vs rival 100 ns",
-                       "Ours ÷ best competitor"):
+                       "Ours ÷ strongest competitor"):
             self.assertIn(needle, time_alt)
 
     def test_charts_are_well_formed_light_and_dark(self):
@@ -272,7 +272,8 @@ def stats_of(res, metric="time"):
 
 
 class WhatSetsTheBest(unittest.TestCase):
-    """Only a cell that did the full task, as specified, may be the best of its row."""
+    """Only a cell that did the full task, as specified, may be called the best of its row, but a faster
+    cell that did less is never hidden: it is shown, marked, and counted."""
 
     def faster(self, variant="spec", state=None, lib="quick"):
         c = cell(lib, workload="w1", language="csharp", t=10.0, peak=100, variant=variant)
@@ -281,45 +282,63 @@ class WhatSetsTheBest(unittest.TestCase):
             c["state"] = c2["state"] = state
         return c, c2
 
-    def test_each_loose_judgement_is_shown_but_never_the_best(self):
+    def test_each_loose_judgement_is_shown_marked_and_counted_but_never_the_best(self):
         for variant, state in (("bytes-only", None), ("value-only", None), ("harness-rendered", None),
                                ("spec", "text"), ("made-up-later", None)):
             res = with_extra(*self.faster(variant, state), libs=["quick"])
-            base = {r["workload"]: r for r in R.compare_rows(baseline_result()["cells"]) if r["task"] == "generic-load"}
-            for r in R.compare_rows(res["cells"]):
-                if r["task"] == "generic-load":
-                    self.assertEqual(r["best_time"]["library"], base[r["workload"]]["best_time"]["library"], (variant, state))
-                    self.assertEqual(r["best_memory"]["library"], base[r["workload"]]["best_memory"]["library"], (variant, state))
             st = stats_of(res)
-            # It is listed, with a ratio against the real best (below 1.0: it is faster) and its reason,
-            # and it is the best in no row.
+            # It is listed, with a ratio against the strongest full-task library (below 1.0: it is faster) and
+            # its reason, and it is credited as the best in no row.
             self.assertEqual(st["quick"]["best"], 0, (variant, state))
             self.assertLess(st["quick"]["ratio"], 1.0)
             self.assertTrue(st["quick"]["labels"], (variant, state))
             self.assertFalse(st["quick"]["can_set_reference"])
-            self.assertEqual(st["alpha"]["best"], 2)
+            self.assertEqual(st["alpha"]["best"], 2, "the best full-task library is still named, beside the marked cell")
+            # The libraries behind it are told so, in both metrics.
+            for lib in ("alpha", "beta", "gamma"):
+                self.assertEqual(st[lib]["behind_marked"], 2, (variant, state, lib))
+            self.assertEqual(st["quick"]["behind_marked"], 0)
+
+    def test_the_baseline_table_names_the_faster_marked_cell_and_counts_it(self):
+        res = with_extra(*self.faster("bytes-only"), libs=["quick"])
+        with tempfile.TemporaryDirectory() as t:
+            md = P.render(res, Path(t))
+        row = next(l for l in md.splitlines() if l.startswith("| `w1`") and "(bytes-only)" in l)
+        self.assertIn("ahead of it: `quick` † (bytes-only)", row)
+        self.assertTrue(row.rstrip().endswith("(bytes-only) |"), row)
+        summ = next(l for l in md.splitlines() if l.startswith("| csharp | generic-load | `alpha`"))
+        self.assertTrue(summ.rstrip().endswith("| 2 / 2 |"), summ)
+        self.assertIn("Behind a †", md)
 
     def test_a_merged_cell_may_set_the_best_and_is_labelled(self):
         res = with_extra(*self.faster("merged"), libs=["quick"])
         for r in R.compare_rows(res["cells"]):
             if r["task"] == "generic-load":
                 self.assertEqual(r["best_time"]["library"], "quick")
+                self.assertEqual(r["best_time_mark"], "")
         self.assertEqual(stats_of(res)["quick"]["best"], 2)
         self.assertEqual(stats_of(res)["quick"]["labels"], [])
         md = P.render(res, Path(tempfile.mkdtemp()))
         self.assertIn("(merged)", md)
+
+    def test_a_merged_cell_may_be_the_best_of_any_task(self):
+        for task in ("generic-load", "dump", "document-parse", "typed-load"):
+            [row] = R.compare_rows([cell("ours", "own", task=task, t=100), cell("merger", task=task, t=10, variant="merged"),
+                                    cell("real", task=task, t=200)])
+            self.assertEqual(row["best_time"]["library"], "merger", task)
+            self.assertEqual(row["best_time_mark"], "", task)
 
     def test_the_report_marks_them_and_says_what_the_mark_means(self):
         res = with_extra(*self.faster("value-only", "text"), libs=["quick"], state_text=("quick",))
         with tempfile.TemporaryDirectory() as t:
             md = P.render(res, Path(t))
         self.assertIn("†", md)
-        self.assertIn("never the best of a row", md)
+        self.assertIn("never called the best of a row", md)
         self.assertIn("`quick` (text API)", md)
         row = next(l for l in md.splitlines() if l.startswith("| `w1`") and "(value-only)" in l)
         self.assertIn(" †", row)
-        # The row's best is still the library that did the full task.
-        self.assertTrue(row.rstrip().endswith("| `alpha` |"), row)
+        # The best of the row is still the library that did the full task; the faster marked one is named beside it.
+        self.assertIn("`alpha`; ahead of it: `quick` † (text API, value-only)", row)
         summary = next(l for l in md.splitlines() if l.startswith("| csharp | generic-load | `quick` †"))
         self.assertIn("text API, value-only", summary)
 
@@ -330,7 +349,7 @@ class WhatSetsTheBest(unittest.TestCase):
         self.assertIn("*harness-rendered* means", md)
         self.assertIn("(harness-rendered) †", md)
 
-    def test_a_row_with_only_loose_cells_has_no_best_and_says_so(self):
+    def test_a_row_with_only_loose_cells_is_compared_with_the_strongest_marked_one(self):
         cells = [cell("lone", workload="w1", language="csharp", variant="value-only", t=5.0),
                  cell("lone", workload="w1", language="csharp", task="patch", variant="value-only", t=5.0)]
         res = baseline_result()
@@ -338,7 +357,9 @@ class WhatSetsTheBest(unittest.TestCase):
         res["harnesses"]["csharp"]["libraries"] = [
             {"id": "lone", "package": "lone", "version": "1", "role": "competitor", "settings": {}}]
         rows = R.compare_rows(res["cells"])
-        self.assertTrue(all(r["best_time"] is None for r in rows))
+        # Nobody did the full task: the marked cell is the only one there is, and it is named as such.
+        self.assertTrue(all(r["best_time"]["library"] == "lone" for r in rows))
+        self.assertTrue(all(r["best_time_mark"] == "value-only" for r in rows))
         with tempfile.TemporaryDirectory() as t:
             md = P.render(res, Path(t))
         self.assertIn("`lone` †", md)

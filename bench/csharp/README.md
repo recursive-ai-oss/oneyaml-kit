@@ -45,7 +45,7 @@ recorded in each library's `settings` in the result file:
   or value API) and applies the text changes, last edit first, all inside the clock. The lookup and the writing
   of the new text (style, quoting, block header, chomping) are the harness's own code, not the library's, so
   these cells carry the variant **`harness-rendered`**: they are listed as known deviations, shown apart from
-  the other rows, and never set the reference that other libraries are compared with.
+  the other rows, marked †, and never called the best of a row (a row is still compared with them when they are ahead).
 - Limits are never raised. SharpYaml's depth limit of 64 and YamlDotNet's serializer limit of 50 are defaults
   a user gets, so a workload that nests deeper is `rejects` with the reason "default limit, not raised".
 

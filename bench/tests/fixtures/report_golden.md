@@ -34,15 +34,15 @@ Why this run is not publishable:
 
 ## Summary
 
-Each row of the tables compares our library with the **best competitor in that row** (the fastest for time, the smallest peak for memory). A gap inside the measurement noise (at least 2% for time, 1% for memory) is a tie. Cells without a number say why.
+Each row of the tables compares our library with the **strongest competitor in that row** (the fastest for time, the smallest peak for memory). A competitor that did less than the full task is still the one compared with when it is ahead: it is named with a † and its reason, and a loss to it is a loss. A gap inside the measurement noise (at least 2% for time, 1% for memory) is a tie. Cells without a number say why.
 
-| Language | Task | Workloads | Time win / tie / loss | Memory win / tie / loss | No number | No rival | Weakest row (our time ÷ best competitor's) |
+| Language | Task | Workloads | Time win / tie / loss | Memory win / tie / loss | No number | No rival | Weakest row (our time ÷ strongest competitor's) |
 |---|---|---|---|---|---|---|---|
 | rust | generic-load | 4 | 2 / 0 / 1 | 0 / 2 / 1 | 1 | 0 | w2 2.00× of rival |
 | rust | dump | 1 | 1 / 0 / 0 | 0 / 1 / 0 | 0 | 0 | w1 0.90× of other |
 | rust | patch | 1 | 0 / 0 / 0 | 0 / 0 / 0 | 1 | 0 | — |
 
-*No number*: our library's answer was wrong, refused or missing. *No rival*: no competitor produced a correct answer for that row, so there is nothing to compare with.
+*No number*: our library's answer was wrong, refused or missing. *No rival*: no competitor produced a correct answer for that row, so there is nothing to compare with. A competitor that answered correctly but did less than the full task (†) is a rival.
 
 A time in parentheses names the accepted variant of the expected result when it is not the plain one: *merged* means the library applied `<<` merge keys (a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key), and *bytes-only* means the library gives no value to compare, so its document is judged on the bytes it writes back. Both are listed as known deviations.
 
@@ -54,7 +54,7 @@ Parse into the library's generic value tree; all documents of a stream.
 
 **Time per operation**
 
-| Workload | Input | `ours` | `other` | `rival` | Ours vs best competitor |
+| Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|
 | `w1` | 1000 B | 50 ns ±2% | 120 ns ±1% | 100 ns ±1% | 0.50× of `rival` ▲ win |
 | `w2` | 1.95 KiB | 200 ns ±0% | 150 ns ±1% | 100 ns ±1% | 2.00× of `rival` ▼ loss |
@@ -63,7 +63,7 @@ Parse into the library's generic value tree; all documents of a stream.
 
 **Peak / allocated heap per operation**
 
-| Workload | Input | `ours` | `other` | `rival` | Ours vs best competitor |
+| Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|
 | `w1` | 1000 B | 900 B / 1.76 KiB | 800 B / 1.56 KiB | 400 B / 800 B | 2.25× of `rival` ▼ loss |
 | `w2` | 1.95 KiB | 100 B / 200 B | 100 B / 200 B | 100 B / 200 B | 1.00× of `rival` ● tie |
@@ -72,12 +72,12 @@ Parse into the library's generic value tree; all documents of a stream.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="charts/rust-generic-load-time-dark.svg">
-  <img alt="generic-load (rust): time, ours against the best competitor. Time. Ours ÷ best competitor, log scale: left of the 1.0× line is better for us, right of it is a loss. 3 workloads: 2 better, 0 level, 1 worse. w1 0.50× (ours 50 ns vs rival 100 ns); w2 2.00× (ours 200 ns vs rival 100 ns, loss); w3 0.80× (ours 80 ns vs rival 100 ns)." src="charts/rust-generic-load-time-light.svg">
+  <img alt="generic-load (rust): time, ours against the strongest competitor. Time. Ours ÷ strongest competitor (a † names one that did less than the full task), log scale: left of the 1.0× line is better for us, right of it is a loss. 3 workloads: 2 better, 0 level, 1 worse. w1 0.50× (ours 50 ns vs rival 100 ns); w2 2.00× (ours 200 ns vs rival 100 ns, loss); w3 0.80× (ours 80 ns vs rival 100 ns)." src="charts/rust-generic-load-time-light.svg">
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="charts/rust-generic-load-memory-dark.svg">
-  <img alt="generic-load (rust): peak heap, ours against the best competitor. Peak heap. Ours ÷ best competitor, log scale: left of the 1.0× line is better for us, right of it is a loss. 3 workloads: 0 better, 2 level, 1 worse. w1 2.25× (ours 900 B vs rival 400 B, loss); w2 1.00× (ours 100 B vs rival 100 B); w3 1.00× (ours 1000 B vs rival 1000 B)." src="charts/rust-generic-load-memory-light.svg">
+  <img alt="generic-load (rust): peak heap, ours against the strongest competitor. Peak heap. Ours ÷ strongest competitor (a † names one that did less than the full task), log scale: left of the 1.0× line is better for us, right of it is a loss. 3 workloads: 0 better, 2 level, 1 worse. w1 2.25× (ours 900 B vs rival 400 B, loss); w2 1.00× (ours 100 B vs rival 100 B); w3 1.00× (ours 1000 B vs rival 1000 B)." src="charts/rust-generic-load-memory-light.svg">
 </picture>
 
 ## dump
@@ -88,24 +88,24 @@ Write a generic value tree back to YAML text.
 
 **Time per operation**
 
-| Workload | Input | `ours` | `other` | `rival` | Ours vs best competitor |
+| Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|
 | `w1` | 1000 B | 90 ns ±1% | 100 ns ±1% | unjudged | 0.90× of `other` ▲ win |
 
 **Peak / allocated heap per operation**
 
-| Workload | Input | `ours` | `other` | `rival` | Ours vs best competitor |
+| Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|
 | `w1` | 1000 B | 1000 B / 1.95 KiB | 1000 B / 1.95 KiB | unjudged | 1.00× of `other` ● tie |
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="charts/rust-dump-time-dark.svg">
-  <img alt="dump (rust): time, ours against the best competitor. Time. Ours ÷ best competitor, log scale: left of the 1.0× line is better for us, right of it is a loss. 1 workloads: 1 better, 0 level, 0 worse. w1 0.90× (ours 90 ns vs other 100 ns)." src="charts/rust-dump-time-light.svg">
+  <img alt="dump (rust): time, ours against the strongest competitor. Time. Ours ÷ strongest competitor (a † names one that did less than the full task), log scale: left of the 1.0× line is better for us, right of it is a loss. 1 workloads: 1 better, 0 level, 0 worse. w1 0.90× (ours 90 ns vs other 100 ns)." src="charts/rust-dump-time-light.svg">
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="charts/rust-dump-memory-dark.svg">
-  <img alt="dump (rust): peak heap, ours against the best competitor. Peak heap. Ours ÷ best competitor, log scale: left of the 1.0× line is better for us, right of it is a loss. 1 workloads: 0 better, 1 level, 0 worse. w1 1.00× (ours 1000 B vs other 1000 B)." src="charts/rust-dump-memory-light.svg">
+  <img alt="dump (rust): peak heap, ours against the strongest competitor. Peak heap. Ours ÷ strongest competitor (a † names one that did less than the full task), log scale: left of the 1.0× line is better for us, right of it is a loss. 1 workloads: 0 better, 1 level, 0 worse. w1 1.00× (ours 1000 B vs other 1000 B)." src="charts/rust-dump-memory-light.svg">
 </picture>
 
 ## patch
@@ -116,13 +116,13 @@ Apply an RFC 6902 patch to a document, atomically, and write the bytes.
 
 **Time per operation**
 
-| Workload | Input | `ours` | `other` | `rival` | Ours vs best competitor |
+| Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|
 | `w1` | 1000 B | — | — | rejects | no number (unsupported) |
 
 **Peak / allocated heap per operation**
 
-| Workload | Input | `ours` | `other` | `rival` | Ours vs best competitor |
+| Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|
 | `w1` | 1000 B | — | — | rejects | no number (unsupported) |
 
