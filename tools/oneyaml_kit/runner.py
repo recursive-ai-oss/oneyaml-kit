@@ -13,7 +13,8 @@ from pathlib import Path
 from . import compare
 from .cases import (Case, ROOT, YTS_RELEASE, SUITE_YTS, corpus_digest, current_pins, kit_version,
                     yts_revision)
-from .protocol import SubprocessAdapter
+from . import vocabulary
+from .protocol import PROTOCOL, SUPPORTED_PROTOCOLS, SubprocessAdapter
 
 RESULT_FORMAT = "oneyaml-kit-results/2"
 ADAPTER_FORMAT = "oneyaml-kit-adapter/1"
@@ -94,12 +95,16 @@ def limits_of(case: Case) -> dict | None:
     return None
 
 
-def evaluate_case(case: Case, resp: dict, caps: set, wall_us: int, emulates: set = frozenset()) -> dict:
+def evaluate_case(case: Case, resp: dict, caps: set, wall_us: int, emulates: set = frozenset(),
+                  protocol: int = PROTOCOL) -> dict:
     base, _ = compare.required_caps(case, case.expect)
     r = {
         "id": case.id, "suite": case.suite, "category": case.category, "op": case.op,
         "expect": case.expect["kind"], "micros": wall_us,
     }
+    if resp.get("status") == "accepted" and protocol < 2:
+        resp = {"status": "crash", "detail": "protocol: `accepted` is an answer of protocol 2; "
+                                           "this adapter said hello with protocol 1"}
     emu = resp.get("emulated") or []
     if not isinstance(emu, list) or not set(emu) <= set(emulates):
         resp = {"status": "crash", "detail": f"protocol: response claims emulated behaviours {emu!r} "
@@ -114,10 +119,12 @@ def evaluate_case(case: Case, resp: dict, caps: set, wall_us: int, emulates: set
     else:
         v = compare.evaluate(case, case.expect, resp, caps)
         r.update(loose=v["loose"], strict=v["strict"], detail=v["detail"])
-        if v["strict"] == compare.UNSUPPORTED:
+        if v.get("reason"):
+            r["reason"] = v["reason"]
+        if v["strict"] == compare.UNSUPPORTED and not v.get("reason"):
             r["reason"] = "capability"
             _, extra = compare.required_caps(case, case.expect)
-            missing = sorted(extra - caps)
+            missing = sorted(x for x in extra if x not in caps)
             if missing:
                 r["detail"] = (v["detail"] + "; " if v["detail"] else "") + "strict needs " + ", ".join(missing)
         if case.expect["kind"] in ("error", "bounded"):
@@ -170,7 +177,8 @@ def verify_deviations(results: list[dict], deviations: list[dict], complete: boo
             "ok": not (unlisted or stale or unknown)}
 
 
-def execute(ad, caps: set, cases: list[Case], progress=None, emulates=()) -> list[dict]:
+def execute(ad, caps: set, cases: list[Case], progress=None, emulates=(),
+            protocol: int = PROTOCOL) -> list[dict]:
     """Send every case the adapter declared support for and judge the answers."""
     results = []
     emulates = set(emulates)
@@ -183,17 +191,51 @@ def execute(ad, caps: set, cases: list[Case], progress=None, emulates=()) -> lis
             resp = ad.run(c.id, c.op, c.input, c.args, lim) if lim else ad.run(c.id, c.op, c.input, c.args)
         else:
             resp = {"status": "skipped"}
-        results.append(evaluate_case(c, resp, caps, int((time.monotonic() - t) * 1e6), emulates))
+        results.append(evaluate_case(c, resp, caps, int((time.monotonic() - t) * 1e6), emulates, protocol))
         if progress:
             progress(len(results), len(cases))
     return results
 
 
+PROTOCOL2_CAPS = ("error-events",)
+
+
+def check_hello(hello: dict) -> tuple[set, int]:
+    """Validate an adapter's hello; return its capabilities (normalised) and protocol version.
+
+    A protocol 1 adapter that declares `events` has always sent the events before an error,
+    so it is credited with `error-events`; the newer capabilities need protocol 2."""
+    name = hello.get("name")
+    protocol = hello.get("protocol")
+    if protocol not in SUPPORTED_PROTOCOLS:
+        raise RunError(f"adapter {name}: protocol {protocol!r} is not one of {SUPPORTED_PROTOCOLS}")
+    caps = hello.get("capabilities")
+    if not isinstance(caps, list) or not all(isinstance(c, str) for c in caps):
+        raise RunError(f"adapter {name}: capabilities must be a list of strings")
+    bad = vocabulary.check(hello.get("emulates", []))
+    if bad:
+        raise RunError(f"adapter {name}: unknown emulated behaviours {bad}; the vocabulary is "
+                       f"{sorted(vocabulary.EMULATES)}")
+    caps = set(caps)
+    if protocol == 1:
+        new = sorted(c for c in caps if c in PROTOCOL2_CAPS or c.startswith("outcome:"))
+        if new:
+            raise RunError(f"adapter {name}: {new} need protocol 2")
+        if "events" in caps:
+            caps.add("error-events")
+    return caps, protocol
+
+
 def run_adapter(name: str, cases: list[Case], complete: bool, adapters_dir: Path = ADAPTERS,
                 timeout: float | None = None, env: dict | None = None,
-                skip_build: bool = False, progress=None) -> dict:
+                skip_build: bool = False, progress=None, out: Path | None = None) -> dict:
     manifest = load_manifest(name, adapters_dir)
     env = dict(os.environ if env is None else env)
+    if out is not None:
+        # Build output belongs in the output directory, never in the checkout.
+        env.setdefault("CARGO_TARGET_DIR", str(Path(out) / "target"))
+        env.setdefault("KIT_GO_BIN", str(Path(out) / "gobin"))
+        env.setdefault("KIT_DOTNET_ARTIFACTS", str(Path(out) / "artifacts"))
     if not skip_build:
         build(manifest, env)
     deviations = load_deviations(manifest)
@@ -201,10 +243,14 @@ def run_adapter(name: str, cases: list[Case], complete: bool, adapters_dir: Path
                            timeout=timeout or float(manifest.get("timeout_seconds", 10)),
                            memory_limit_mb=manifest.get("memory_limit_mb"))
     hello = ad.start()
-    caps = set(hello["capabilities"])
+    try:
+        caps, protocol = check_hello(hello)
+    except RunError:
+        ad.close()
+        raise
     t0 = time.monotonic()
     try:
-        results = execute(ad, caps, cases, progress, hello.get("emulates", []))
+        results = execute(ad, caps, cases, progress, hello.get("emulates", []), protocol)
     finally:
         ad.close()
     elapsed = time.monotonic() - t0
@@ -230,7 +276,7 @@ def run_adapter(name: str, cases: list[Case], complete: bool, adapters_dir: Path
         },
         "adapter": {
             "name": hello["name"], "version": hello["version"], "language": hello["language"],
-            "capabilities": sorted(caps), "emulates": sorted(hello.get("emulates", [])),
+            "capabilities": sorted(hello["capabilities"]), "emulates": sorted(hello.get("emulates", [])),
             "info": hello.get("info", {}),
             "protocol": hello["protocol"],
         },

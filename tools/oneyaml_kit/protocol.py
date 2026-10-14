@@ -15,9 +15,13 @@ import threading
 import time
 from pathlib import Path
 
+from . import kitjson
 from .cases import b64
 
-PROTOCOL = 1
+PROTOCOL = 2
+# Hello versions the runner accepts. 1 is the original protocol; 2 adds the `accepted` answer
+# and the capabilities `error-events` and `outcome:<op>` (docs/adapter-protocol.md).
+SUPPORTED_PROTOCOLS = (1, 2)
 _EOF = object()
 POLL_SECONDS = 0.05
 
@@ -112,7 +116,7 @@ class SubprocessAdapter:
         threading.Thread(target=self._pump, args=(self.proc, self._q), daemon=True).start()
         self._send({"type": "hello", "protocol": PROTOCOL})
         h = self._recv(self.timeout * 3)
-        if not isinstance(h, dict) or h.get("type") != "hello" or h.get("protocol") != PROTOCOL:
+        if not isinstance(h, dict) or h.get("type") != "hello" or h.get("protocol") not in SUPPORTED_PROTOCOLS:
             self.stop()
             raise AdapterError(f"bad hello from adapter: {h!r}")
         for k in ("name", "version", "language", "capabilities"):
@@ -160,8 +164,8 @@ class SubprocessAdapter:
         if line is _EOF:
             return "eof"
         try:
-            return json.loads(line)
-        except ValueError:
+            return kitjson.loads(line)
+        except (ValueError, RecursionError):
             return "garbage"
 
     def _kill_tree(self, session: int) -> None:

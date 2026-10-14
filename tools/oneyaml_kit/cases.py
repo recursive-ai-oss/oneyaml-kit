@@ -20,6 +20,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from . import kitjson
+
 CASE_FORMAT = "oneyaml-kit-case/2"
 CORRECTIONS_FORMAT = "oneyaml-kit-corrections/2"
 
@@ -95,55 +97,20 @@ def split_lines(text: str) -> list[str]:
     return text.split("\n")
 
 
-ESCAPES = ("$float", "$map", "$tagged")
+ESCAPES = kitjson.ESCAPES
 
 
-def check_kit_value(v: Any, where: str, depth: int = 0) -> None:
+def check_kit_value(v: Any, where: str) -> None:
     """Reject anything that is not a kit value (see docs/case-format.md).
 
     Object keys starting with `$` are reserved for the three escape forms, so a YAML
     mapping that has such a key can only be written in the `$map` form and can never
-    be mistaken for an escape.
+    be mistaken for an escape. Walks with an explicit stack: depth is not limited.
     """
-    if depth > 500:
-        raise CaseError(f"{where}: value nested too deeply")
-    if v is None or isinstance(v, (bool, int, str)):
-        return
-    if isinstance(v, float):
-        if v != v or v in (float("inf"), float("-inf")):
-            raise CaseError(f"{where}: non-finite floats are written {{\"$float\": ...}}")
-        return
-    if isinstance(v, list):
-        for x in v:
-            check_kit_value(x, where, depth + 1)
-        return
-    if isinstance(v, dict):
-        dollar = [k for k in v if k.startswith("$")]
-        if not dollar:
-            for x in v.values():
-                check_kit_value(x, where, depth + 1)
-            return
-        if len(v) != 1 or dollar[0] not in ESCAPES:
-            raise CaseError(f"{where}: an object with a $-prefixed key must be exactly one escape "
-                            f"form {ESCAPES}; write other mappings as {{\"$map\": [[key, value], ...]}}")
-        k = dollar[0]
-        if k == "$float":
-            if v[k] not in ("inf", "-inf", "nan"):
-                raise CaseError(f"{where}: $float must be inf, -inf or nan")
-        elif k == "$map":
-            if not isinstance(v[k], list) or not all(isinstance(p, list) and len(p) == 2 for p in v[k]):
-                raise CaseError(f"{where}: $map must be a list of [key, value] pairs")
-            for p in v[k]:
-                check_kit_value(p[0], where, depth + 1)
-                check_kit_value(p[1], where, depth + 1)
-        else:
-            t = v[k]
-            if (not isinstance(t, dict) or set(t) != {"tag", "value"} or not isinstance(t["tag"], str)
-                    or not t["tag"]):
-                raise CaseError(f"{where}: $tagged must be {{\"tag\": \"...\", \"value\": ...}}")
-            check_kit_value(t["value"], where, depth + 1)
-        return
-    raise CaseError(f"{where}: not a kit value: {type(v).__name__}")
+    try:
+        kitjson.check_kit_value(v)
+    except ValueError as e:
+        raise CaseError(f"{where}: {e}; write other mappings as {{\"$map\": [[key, value], ...]}}") from e
 
 
 def _positive(d: dict, key: str, where: str) -> float:
@@ -185,7 +152,7 @@ def _expect_from_json(d: Any, base: Path | None, where: str, nested: bool = Fals
         only("file", "value")
         if ("file" in d) == ("value" in d):
             raise CaseError(f"{where}: value expectation needs exactly one of file/value")
-        v = json.loads(read(d["file"])) if "file" in d else d["value"]
+        v = kitjson.loads(read(d["file"])) if "file" in d else d["value"]
         if not isinstance(v, list):
             raise CaseError(f"{where}: value must be a list of documents")
         check_kit_value(v, where)
@@ -195,8 +162,8 @@ def _expect_from_json(d: Any, base: Path | None, where: str, nested: bool = Fals
         ts, mb = _positive(d, "time_seconds", where), _positive(d, "memory_mb", where)
         acc = _expect_from_json(d["accept"], base, where, nested=True) if "accept" in d else None
         err = d.get("error")
-        if err is not None and (err not in ERROR_CATEGORIES or err == "any"):
-            raise CaseError(f"{where}: bounded error must name a category other than any")
+        if err is not None and err not in ERROR_CATEGORIES:
+            raise CaseError(f"{where}: bounded error must be an error category (any allows every kind)")
         if acc is None and err is None:
             raise CaseError(f"{where}: bounded needs an accepted result, an error category, or both")
         return {"kind": "bounded", "time_seconds": ts, "memory_mb": mb, "accept": acc, "category": err}
@@ -398,8 +365,8 @@ def _apply_correction(case: Case, c: dict) -> None:
         if case.expect["kind"] != "value":
             raise CaseError(f"corrections: {case.id} is not a value case")
         e["value"] = c["value"]
-        # Compare the JSON text: Python says 450 == 450.0, but these are different values.
-        same = json.dumps(e["value"], sort_keys=True) == json.dumps(case.expect["value"], sort_keys=True)
+        # Kit equality, not Python's: 450 and 450.0 are different values here.
+        same = kitjson.values_equal(e["value"], case.expect["value"])
     if same:
         raise CaseError(f"corrections: {case.id} equals the upstream expectation")
     case.correction = {"expect": e, "reason": c["reason"], "citation": c["citation"]}

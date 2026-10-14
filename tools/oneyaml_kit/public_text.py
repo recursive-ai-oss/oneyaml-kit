@@ -18,18 +18,15 @@ _WORDS = [
     "revi" + r"ew(er)?",
     "rul" + "ing",
     r"\bunit[- ]?[0-9]",
-    r"\bphase [A-Z0-9]",
     "PROC" + "EDURE",
     "REQUIRE" + "MENTS",
     "HAND" + "OFF",
     "PLAN" + r"\.md",
     "RULES" + r"\.md",
     "DESIGN" + r"\.md",
-    r"\b(R[0-9]a?|P[0-9]|Q[0-9](\.[0-9])?|NN-[0-9]|K[0-9])\b",
     "\u00a7" + "[0-9]",
     "STAN" + "DARDS",
     "LEARN" + "INGS",
-    r"(?-i:\b(T[0-3]|L[0-7])\b)",  # upper case only
     "sw" + "arm",
     "wai" + "v",
     "oneyaml-" + "inter" + "nal",
@@ -37,7 +34,14 @@ _WORDS = [
     "/x/" + "al" + "era",
     "/ho" + "me/",
 ]
-PATTERN = re.compile("|".join(_WORDS), re.IGNORECASE)
+# Identifiers are matched in the case they are written in. A data key such as `k1` or a
+# variable `p2` is ordinary text; only the upper case form is an internal identifier.
+_IDS = [
+    r"\bphase [A-Z0-9]",
+    r"\b(R[0-9]a?|P[0-9]|Q[0-9](\.[0-9])?|NN-[0-9]|K[0-9])\b",
+    r"\b(T[0-3]|L[0-7])\b",
+]
+PATTERN = re.compile("(?i:" + "|".join(_WORDS) + ")|" + "|".join(_IDS))
 HASH = re.compile(r"\b[0-9a-f]{40}\b")
 
 # Vendored third-party data is not ours to edit and is checked by its digest instead.

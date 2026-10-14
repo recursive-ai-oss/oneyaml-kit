@@ -15,25 +15,27 @@ needs (for example error positions), never a silent pass.
 from __future__ import annotations
 
 import base64
-import math
-from typing import Any
 
-from .cases import ESCAPES, PATCH_OPS
+from . import kitjson
+from .cases import PATCH_OPS
 
 PASS, FAIL, UNSUPPORTED = "pass", "fail", "unsupported"
 
 ANY_PATCH = "patch:*"
 CAP_CATEGORY = "error-category"
 CAP_POSITION = "error-position"
+CAP_ERROR_EVENTS = "error-events"
 
 
 def required_caps(case, expect: dict) -> tuple[set, set]:
     """(capabilities both modes need, extra capabilities strict mode needs)."""
     base: set[str] = set()
+    # `a|b` means either capability will do. An adapter that cannot describe results can still
+    # say whether an input is accepted (`outcome:<op>`), which is enough to be asked.
     if case.op == "events":
-        base.add("events")
+        base.add("events|outcome:events")
     elif case.op == "value":
-        base.add("value")
+        base.add("value|outcome:value")
     else:
         if case.args.get("format", "json-patch") == "merge-patch":
             base.add("patch:merge")
@@ -55,18 +57,21 @@ def required_caps(case, expect: dict) -> tuple[set, set]:
             strict.add(CAP_CATEGORY)
         if expect["line"] is not None:
             strict.add(CAP_POSITION)
-    if expect["kind"] == "bounded" and expect["category"] is not None:
+        if expect["events"] is not None:
+            strict.add(CAP_ERROR_EVENTS)
+    if expect["kind"] == "bounded" and expect["category"] not in (None, "any"):
         strict.add(CAP_CATEGORY)
     return base, strict
 
 
 def satisfied(needs: set, caps: set) -> bool:
-    """Whether `caps` covers `needs` (the wildcard needs any patch capability)."""
+    """Whether `caps` covers `needs`. The wildcard needs any patch capability, and `a|b`
+    needs either a or b."""
     for n in needs:
         if n == ANY_PATCH:
             if not any(c.startswith("patch:") for c in caps):
                 return False
-        elif n not in caps:
+        elif not any(alt in caps for alt in n.split("|")):
             return False
     return True
 
@@ -75,95 +80,11 @@ def satisfied(needs: set, caps: set) -> bool:
 # Values
 
 
-def canon(v: Any, ignore_tags: bool = False):
-    """A canonical form: types are strict (1 != 1.0 != true), mappings are unordered, and
-    only the three escape forms may use `$`-prefixed keys. Raises ValueError for anything
-    that is not a kit value, so a malformed answer can never compare equal."""
-    if v is None:
-        return ("n",)
-    if isinstance(v, bool):
-        return ("b", v)
-    if isinstance(v, int):
-        return ("i", v)
-    if isinstance(v, float):
-        if math.isnan(v) or math.isinf(v):
-            raise ValueError("non-finite float outside the $float form")
-        return ("f", v)
-    if isinstance(v, str):
-        return ("s", v)
-    if isinstance(v, list):
-        return ("l", [canon(x, ignore_tags) for x in v])
-    if isinstance(v, dict):
-        dollar = [k for k in v if isinstance(k, str) and k.startswith("$")]
-        if dollar:
-            if len(v) != 1 or dollar[0] not in ESCAPES:
-                raise ValueError("object with a reserved key")
-            k, x = dollar[0], v[dollar[0]]
-            if k == "$float":
-                if x not in ("inf", "-inf", "nan"):
-                    raise ValueError("bad $float")
-                return ("f", x)
-            if k == "$tagged":
-                if not isinstance(x, dict) or set(x) != {"tag", "value"} or not isinstance(x["tag"], str):
-                    raise ValueError("bad $tagged")
-                inner = canon(x["value"], ignore_tags)
-                return inner if ignore_tags else ("t", x["tag"], inner)
-            if not isinstance(x, list) or not all(isinstance(p, list) and len(p) == 2 for p in x):
-                raise ValueError("bad $map")
-            pairs = [(canon(a, ignore_tags), canon(b, ignore_tags)) for a, b in x]
-        else:
-            pairs = [(("s", k), canon(x, ignore_tags)) for k, x in v.items()]
-        return ("m", sorted(pairs, key=repr))
-    raise ValueError(f"not a kit value: {type(v).__name__}")
-
-
-def values_equal(a: Any, b: Any, ignore_tags: bool = False) -> bool:
-    try:
-        return canon(a, ignore_tags) == canon(b, ignore_tags)
-    except (ValueError, KeyError, TypeError, RecursionError):
-        return False
-
-
-def _short(x: Any, n: int = 160) -> str:
-    s = repr(x)
-    return s if len(s) <= n else s[: n - 3] + "..."
-
-
-def _untag(v: Any) -> Any:
-    while (isinstance(v, dict) and set(v) == {"$tagged"} and isinstance(v["$tagged"], dict)
-           and "value" in v["$tagged"]):
-        v = v["$tagged"]["value"]
-    return v
-
-
-def value_diff(exp: Any, act: Any, path: str = "$", depth: int = 0, ignore_tags: bool = False) -> str:
-    """Where two kit values first differ, as a path, for the failure detail."""
-    if depth > 200:
-        return f"{path}: nested too deeply to describe"
-    try:
-        if canon(exp, ignore_tags) == canon(act, ignore_tags):
-            return ""
-    except (ValueError, KeyError, TypeError, RecursionError):
-        return f"{path}: not a kit value"
-    if ignore_tags:
-        exp, act = _untag(exp), _untag(act)
-    if isinstance(exp, list) and isinstance(act, list):
-        for i, (e, a) in enumerate(zip(exp, act)):
-            d = value_diff(e, a, f"{path}[{i}]", depth + 1, ignore_tags)
-            if d:
-                return d
-        return f"{path}: expected {len(exp)} items, got {len(act)}"
-    if (isinstance(exp, dict) and isinstance(act, dict)
-            and not any(k.startswith("$") for k in list(exp) + list(act))):
-        for k in exp:
-            if k not in act:
-                return f"{path}: key {k!r} missing"
-            d = value_diff(exp[k], act[k], f"{path}.{k}", depth + 1, ignore_tags)
-            if d:
-                return d
-        extra = [k for k in act if k not in exp]
-        return f"{path}: unexpected key {extra[0]!r}" if extra else f"{path}: differs"
-    return f"{path}: expected {_short(exp, 60)}, got {_short(act, 60)}"
+# Equality, digests and the first-difference path live in kitjson: they never recurse, so a
+# value nested a hundred thousand levels deep is compared like any other.
+values_equal = kitjson.values_equal
+value_diff = kitjson.value_diff
+_short = kitjson.short
 
 
 def diff_lines(exp: list, act: list) -> str:
@@ -209,36 +130,65 @@ def _success(case, expect: dict, resp: dict) -> str:
     return "output missing or not base64" if out is None else diff_bytes(expect["bytes"], out)
 
 
-def _bounded(case, expect: dict, resp: dict, caps: set) -> dict:
-    status, err = resp["status"], resp.get("error") or {}
+def _over_bounds(expect: dict, resp: dict) -> str:
+    """Why a bounded case went over its time or memory bound, or ''."""
     m = resp.get("_measure") or {}
     secs, peak = m.get("seconds"), m.get("peak_mb")
     if secs is not None and secs > expect["time_seconds"]:
-        return {"loose": FAIL, "strict": FAIL,
-                "detail": f"took {secs:.2f} s, bound {expect['time_seconds']:g} s"}
+        return f"took {secs:.2f} s, bound {expect['time_seconds']:g} s"
     if peak is not None and peak > expect["memory_mb"]:
-        return {"loose": FAIL, "strict": FAIL,
-                "detail": f"peak memory growth {peak:.0f} MB, bound {expect['memory_mb']:g} MB"}
-    if status == "ok":
+        return f"peak memory growth {peak:.0f} MB, bound {expect['memory_mb']:g} MB"
+    return ""
+
+
+def _bounded(case, expect: dict, resp: dict, caps: set) -> dict:
+    status, err = resp["status"], resp.get("error") or {}
+    peak = (resp.get("_measure") or {}).get("peak_mb")
+    over = _over_bounds(expect, resp)
+    if over:
+        return {"loose": FAIL, "strict": FAIL, "detail": over}
+    want = expect["category"]
+    if status in ("ok", "accepted"):
         if expect["accept"] is None:
-            return {"loose": FAIL, "strict": FAIL,
-                    "detail": f"accepted; only a {expect['category']} error is allowed"}
+            what = f"a {want} error" if want != "any" else "an error"
+            return {"loose": FAIL, "strict": FAIL, "detail": f"accepted; only {what} is allowed"}
+        if status == "accepted":
+            # Within the bounds, but nothing was described that could be compared.
+            return {"loose": UNSUPPORTED, "strict": UNSUPPORTED,
+                    "reason": "adapter" if case.op in caps else "capability",
+                    "detail": "accepted within the bounds; the result was not described, so it "
+                              "cannot be checked"}
         d = _success(case, expect["accept"], resp)
         if d:
             return {"loose": FAIL, "strict": FAIL, "detail": "accepted with a wrong result: " + d}
         verdict, detail = PASS, ""
     else:
-        if expect["category"] is None:
+        if want is None:
             return {"loose": FAIL, "strict": FAIL, "detail": "refused; the exact result is required"}
         verdict, detail = PASS, ""
-        if CAP_CATEGORY not in caps:
+        if want == "any":
+            pass
+        elif CAP_CATEGORY not in caps:
             verdict = UNSUPPORTED
-        elif err.get("category") != expect["category"]:
+        elif err.get("category") != want:
             verdict = FAIL
-            detail = f"category: expected {expect['category']}, got {err.get('category')}"
+            detail = f"category: expected {want}, got {err.get('category')}"
     if verdict == PASS and peak is None:
         verdict, detail = UNSUPPORTED, "memory use could not be measured on this platform"
     return {"loose": PASS, "strict": verdict, "detail": detail}
+
+
+def _accepted(case, expect: dict, caps: set) -> dict:
+    """An `accepted` answer: the input was taken, and no result is described."""
+    if case.op == "patch":
+        return {"loose": FAIL, "strict": FAIL, "detail": "protocol: accepted is not an answer to a patch"}
+    if expect["kind"] == "error":
+        return {"loose": FAIL, "strict": FAIL, "detail": "expected an error, the input was accepted"}
+    # A result was expected but cannot be compared. Without the full capability that is the
+    # adapter's declared limit (nothing to list); with it, the adapter declined this answer.
+    reason = "adapter" if case.op in caps else "capability"
+    return {"loose": UNSUPPORTED, "strict": UNSUPPORTED, "reason": reason,
+            "detail": "accepted; the result was not described, so it cannot be checked"}
 
 
 def evaluate(case, expect: dict, resp: dict, caps: set) -> dict:
@@ -249,7 +199,7 @@ def evaluate(case, expect: dict, resp: dict, caps: set) -> dict:
         return {"loose": FAIL, "strict": FAIL, "detail": d}
     if status == "unsupported":
         return {"loose": UNSUPPORTED, "strict": UNSUPPORTED, "detail": resp.get("reason", "")}
-    if status not in ("ok", "error"):
+    if status not in ("ok", "error", "accepted"):
         d = f"protocol: bad status {status!r}"
         return {"loose": FAIL, "strict": FAIL, "detail": d}
 
@@ -258,6 +208,9 @@ def evaluate(case, expect: dict, resp: dict, caps: set) -> dict:
 
     if kind == "bounded":
         return _bounded(case, expect, resp, caps)
+
+    if status == "accepted":
+        return _accepted(case, expect, caps)
 
     if kind == "error":
         if status != "error":
@@ -277,9 +230,12 @@ def evaluate(case, expect: dict, resp: dict, caps: set) -> dict:
                 if got != want:
                     problems.append(f"position: expected {want[0]}:{want[1]}, got {got[0]}:{got[1]}")
         if expect["events"] is not None:
-            d = diff_lines(expect["events"], resp.get("events") or [])
-            if d:
-                problems.append("events before the error: " + d)
+            if CAP_ERROR_EVENTS not in caps:
+                missing = True  # the error and its position still count; the prefix is not claimed
+            else:
+                d = diff_lines(expect["events"], resp.get("events") or [])
+                if d:
+                    problems.append("events before the error: " + d)
         if expect["unchanged"]:
             out = _decode_output(resp)
             if out is None:

@@ -55,7 +55,7 @@ def cmd_run(args) -> int:
     for name in names:
         try:
             res = run_adapter(name, cases, complete, timeout=args.timeout,
-                              skip_build=args.no_build)
+                              skip_build=args.no_build, out=out)
         except RunError as e:
             print(f"{name}: {e}", file=sys.stderr)
             return 2
@@ -127,6 +127,11 @@ def cmd_list(args) -> int:
     return 0
 
 
+def cmd_gate(args) -> int:
+    from . import gate
+    return gate.main(args)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="kit", description="oneyaml-kit conformance runner")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -159,6 +164,14 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(fn=cmd_public_text)
     p = sub.add_parser("list", help="count cases by suite, category and operation")
     p.set_defaults(fn=cmd_list)
+    p = sub.add_parser("gate", help="the hand-over gate (areas a change touched) or --full")
+    p.add_argument("--full", action="store_true", help="every area and adapter (what CI runs)")
+    p.add_argument("--base", default="main", help="branch to compare with (default: main)")
+    p.add_argument("--areas", help="comma-separated areas to run instead of choosing by changes")
+    p.add_argument("--jobs", type=int, default=1, help="areas to run side by side (default 1)")
+    p.add_argument("--plan", action="store_true", help="print the steps and stop")
+    p.add_argument("--out", help="output directory (default: $KIT_OUT or ./out)")
+    p.set_defaults(fn=cmd_gate)
     args = ap.parse_args(argv)
     return args.fn(args)
 

@@ -19,7 +19,7 @@ def run(cases, answers_from=None):
 
 def mutate(expect):
     """A different expectation of the same kind: what a careless edit would produce."""
-    e = copy.deepcopy(expect)
+    e = dict(expect)  # a copy of the top level is enough: the lists below are replaced, not edited
     k = e["kind"]
     if k == "events":
         e["events"] = e["events"] + ["=VAL :zzz"]

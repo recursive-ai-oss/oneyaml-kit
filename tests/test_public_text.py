@@ -31,11 +31,21 @@ class PublicText(unittest.TestCase):
     ]
     GOOD = ["plain prose about YAML", "RFC 6902 section 4.3", "a unit of work", "the kit's cases",
             "the section 5.2 of the spec", "r30 is fine", "PR3", "https://github.com/recursive-ai-oss/oneyaml-kit",
-            "a standard library", "swap", "a wavy line", "T4 is not a tier", "LT1", "t0 = start()", "l1 cache"]
+            "a standard library", "swap", "a wavy line", "T4 is not a tier", "LT1", "t0 = start()", "l1 cache",
+            "k1: value", "p2 = 3", "r3 and q4", "t1 = time()", "l2 cache", "nn-1 is lower case", "phase a of the moon",
+            "a phase change"]
 
     def test_patterns_catch_process_text(self):
         for s in self.BAD:
             self.assertTrue(PATTERN.search(s), s)
+
+    def test_identifiers_are_matched_in_the_case_they_are_written_in(self):
+        for s in ("K" + "2 notes", "see T" + "1", "phase" + " K", "R" + "3a", "L" + "4 work", "NN" + "-1"):
+            self.assertTrue(PATTERN.search(s), s)
+        for s in ("k" + "2", "t" + "1", "l" + "4", "p" + "1", "nn" + "-1", "r3a", "phase" + " k"):
+            self.assertIsNone(PATTERN.search(s), s)
+        # Words stay case-insensitive.
+        self.assertTrue(PATTERN.search("The AR" + "CHITECT said"))
 
     def test_patterns_leave_ordinary_text_alone(self):
         for s in self.GOOD:
