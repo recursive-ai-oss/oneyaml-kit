@@ -32,6 +32,10 @@ expectation and never compares anything, so every library is judged by the same 
   in time is killed, the case fails, and a fresh process serves the next case.
 - `memory_limit_mb` (optional, POSIX) caps the adapter's address space.
 - `deviations` names the list of known deviations (below).
+- `requires_env` (optional) lists environment variables that must be set and non-empty for the
+  adapter to run, for a library the kit cannot fetch itself. When one is missing the adapter is
+  *unavailable*: `bin/kit fast` prints `SKIPPED, not available: <why>`, the report lists it
+  under "Not run", and the run is not a failure. It is never built or started.
 
 The library under test is pinned to an exact version in the adapter's own manifest
 and lockfile. The adapter reports that version in its hello.

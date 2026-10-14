@@ -6,5 +6,6 @@ func allLibraries() []Library {
 		libYAMLv3(), libYAMLv4(), libYAMLv2(), libSigs(), libGoccy(),
 		libPalantir(), libPalantirGoccy(), libJSONPatch(),
 	}
+	libs = append(libs, ownLibraries()...)
 	return append(libs, controlLibraries()...)
 }

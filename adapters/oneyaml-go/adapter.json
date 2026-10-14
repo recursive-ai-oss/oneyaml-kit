@@ -1,0 +1,11 @@
+{
+  "format": "oneyaml-kit-adapter/1",
+  "name": "oneyaml-go",
+  "language": "go",
+  "build": ["sh", "build.sh"],
+  "command": ["sh", "../gokit/run.sh"],
+  "requires_env": ["KIT_ONEYAML_GO_SRC"],
+  "timeout_seconds": 10,
+  "memory_limit_mb": 8192,
+  "deviations": "deviations.json"
+}

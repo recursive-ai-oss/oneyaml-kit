@@ -26,6 +26,7 @@ need Go).
 ```sh
 bin/kit fast                      # every adapter, whole fast set, writes out/
 bin/kit fast --adapter oneyaml-rust --suite own
+KIT_ONEYAML_GO_SRC=/path/to/oneyaml-go bin/kit fast --adapter oneyaml-go   # the Go library, from a checkout
 bin/kit report out/results/*.json # render a report from result files
 bin/kit list                      # case counts
 bin/kit coverage                  # which YAML 1.2.2 productions the own cases name (names, not coverage)

@@ -154,9 +154,19 @@ def render_one(res: dict) -> str:
     return "\n".join(lines)
 
 
-def render(results: list[dict]) -> str:
-    if not results:
+def render_skipped(skipped) -> str:
+    """The adapters that did not run here and why, so a missing row is never silent."""
+    lines = ["## Not run", "", "These adapters were skipped because this machine lacks something "
+             "they need. They are not failures and have no results below.", ""]
+    lines += [f"- `{n}`: {why}" for n, why in skipped]
+    return "\n".join(lines) + "\n"
+
+
+def render(results: list[dict], skipped=()) -> str:
+    if not results and not skipped:
         raise ValueError("no results")
+    if not results:
+        return "# Conformance report\n\n" + render_skipped(skipped)
     k = results[0]["kit"]
     ys = k["suites"]["yaml-test-suite"]
     head = [
@@ -169,4 +179,5 @@ def render(results: list[dict]) -> str:
         CRITERIA,
     ]
     body = [render_one(r) for r in sorted(results, key=lambda r: r["adapter"]["name"])]
-    return "\n".join(head) + "\n" + "\n".join(body).rstrip() + "\n"
+    md = "\n".join(head) + "\n" + "\n".join(body).rstrip() + "\n"
+    return md + "\n" + render_skipped(skipped) if skipped else md

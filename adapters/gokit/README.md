@@ -14,6 +14,7 @@ This directory holds what they share. It is not an adapter itself.
 | `goccy-go-yaml` | `github.com/goccy/go-yaml` | values, accept or reject with positions, AST edits: replace |
 | `palantir-yamlpatch-v3` | `github.com/palantir/pkg/yamlpatch`, default back end | RFC 6902 patches |
 | `palantir-yamlpatch-goccy` | the same library, goccy back end | RFC 6902 patches |
+| `oneyaml-go` | `oneyaml.dev/go`, from a local checkout (optional, see [its README](../oneyaml-go/README.md)) | nothing yet |
 
 ## Running
 

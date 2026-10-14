@@ -67,6 +67,24 @@ func parseArgs(argv []string) (*args, error) {
 	return a, nil
 }
 
+// taskLister is implemented by a library that takes part in only some tasks. For any other
+// task it gets no cell at all, not an `unsupported` one: it has not been written for that
+// task yet, which is different from a library that cannot do it.
+type taskLister interface{ Tasks() []Task }
+
+func offers(l Library, t Task) bool {
+	tl, ok := l.(taskLister)
+	if !ok {
+		return true
+	}
+	for _, x := range tl.Tasks() {
+		if x == t {
+			return true
+		}
+	}
+	return false
+}
+
 func cellName(lib string, t Task, w string) string { return lib + "/" + string(t) + "/" + w }
 
 // out writes JSON lines, each flushed as it is written, so the driver can name the cell that
@@ -221,6 +239,9 @@ func run(a *args) error {
 				continue
 			}
 			for _, lib := range libs {
+				if !offers(lib, task) {
+					continue
+				}
 				name := cellName(lib.ID(), task, w.ID)
 				if contains(a.skip, name) {
 					continue

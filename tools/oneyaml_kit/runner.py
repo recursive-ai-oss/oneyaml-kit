@@ -28,6 +28,12 @@ class RunError(Exception):
     pass
 
 
+class AdapterUnavailable(RunError):
+    """The adapter cannot run on this machine because something it needs is not there (see
+    `requires_env` in the manifest). This is not a failure of the adapter: callers report the
+    adapter as skipped and say why."""
+
+
 def load_manifest(name: str, adapters_dir: Path = ADAPTERS) -> dict:
     d = adapters_dir / name
     try:
@@ -70,6 +76,16 @@ def load_deviations(manifest: dict) -> list[dict]:
         seen.add(key)
         out.append(e)
     return out
+
+
+def unavailable_reason(manifest: dict, env: dict) -> str | None:
+    """Why the adapter cannot run here, or None. `requires_env` lists environment variables
+    that must be set and non-empty; an adapter for a library that is not publicly fetchable
+    uses it to point at a local checkout."""
+    missing = [v for v in manifest.get("requires_env", []) if not env.get(v)]
+    if missing:
+        return "environment variable " + ", ".join(missing) + " is not set"
+    return None
 
 
 def build(manifest: dict, env: dict) -> None:
@@ -243,6 +259,9 @@ def run_adapter(name: str, cases: list[Case], complete: bool, adapters_dir: Path
         env.setdefault("CARGO_TARGET_DIR", str(Path(out) / "target"))
         env.setdefault("KIT_GO_BIN", str(Path(out) / "gobin"))
         env.setdefault("KIT_DOTNET_ARTIFACTS", str(Path(out) / "artifacts"))
+    why = unavailable_reason(manifest, env)
+    if why:
+        raise AdapterUnavailable(f"adapter {name}: not available: {why}")
     if not skip_build:
         build(manifest, env)
     deviations = load_deviations(manifest)

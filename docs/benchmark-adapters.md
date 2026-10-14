@@ -270,6 +270,11 @@ An edit whose lookup and new text are written by the harness because the library
 characters (SharpYaml's syntax tree) is reported with the variant `harness-rendered`. Its work is done inside
 the clock, and it is listed as a known deviation.
 
+A harness may build a library only when the machine has it: the Go harness links oneyaml-go when
+`KIT_ONEYAML_GO_SRC` names a checkout (see `bench/go/build.sh`), and otherwise measures the
+competitors alone. A library may implement `Tasks() []Task` to take part in only those tasks; for
+the others it gets no cell, which is different from an `unsupported` one.
+
 `harness.json` has no counters, and its `build` and `command` take the build directory as their first
 argument (`./build.sh {build}`, `./run.sh {build}`), so output goes under it and never into the source tree.
 

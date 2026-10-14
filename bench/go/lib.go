@@ -56,6 +56,10 @@ func (l *yamlLib) Package() string             { return l.pkg }
 func (l *yamlLib) Role() string                { return "competitor" }
 func (l *yamlLib) Settings() map[string]string { return l.settings }
 
+// localRevisions names the commit of a library that is built from a local checkout, by module
+// path, because a module replaced by a directory has no version of its own.
+var localRevisions = map[string]string{}
+
 // moduleVersion is the version of a module in this build, which is the version the lock file
 // pinned.
 func moduleVersion(path string) string {
@@ -66,6 +70,12 @@ func moduleVersion(path string) string {
 	for _, d := range bi.Deps {
 		if d.Path == path {
 			if d.Replace != nil {
+				if d.Replace.Version == "" || d.Replace.Version == "(devel)" {
+					// Replaced by a directory: the build says which commit it was.
+					if rev, ok := localRevisions[path]; ok {
+						return rev
+					}
+				}
 				return d.Replace.Version
 			}
 			return d.Version

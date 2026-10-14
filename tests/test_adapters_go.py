@@ -7,6 +7,7 @@ a populated module cache, so that part only runs when KIT_ADAPTER_TESTS=1 (the g
 import os
 import re
 import subprocess
+import tempfile
 import unittest
 
 import support
@@ -15,7 +16,11 @@ from oneyaml_kit import report, runner
 from oneyaml_kit.runner import run_adapter, validate_result, verify_deviations
 
 ADAPTERS = support.ROOT / "adapters"
-GO = sorted(p.name for p in ADAPTERS.iterdir() if (p / "go.mod").is_file() and (p / "adapter.json").is_file())
+# oneyaml-go needs a checkout of the library, so it is optional: it has its own tests below
+# and is not part of the run over the adapters that always build.
+OPTIONAL = "oneyaml-go"
+GO = sorted(p.name for p in ADAPTERS.iterdir()
+            if (p / "go.mod").is_file() and (p / "adapter.json").is_file() and p.name != OPTIONAL)
 
 # What each library can do, from the library's own API. Declaring more would be a claim
 # the kit then judges; declaring less hides results.
@@ -65,6 +70,43 @@ class Static(unittest.TestCase):
     def test_go_build_output_stays_out_of_the_repository(self):
         r = subprocess.run(["git", "check-ignore", "-q", "adapters/gokit/.bin/go-yaml-v3"], cwd=support.ROOT)
         self.assertEqual(r.returncode, 0)
+
+
+class Optional(unittest.TestCase):
+    """The oneyaml-go adapter links a library that the kit cannot fetch, so it is built only when
+    KIT_ONEYAML_GO_SRC names a checkout, and is skipped, and said to be, otherwise."""
+
+    def test_it_is_registered_as_needing_the_checkout(self):
+        m = runner.load_manifest(OPTIONAL)
+        self.assertEqual(m["language"], "go")
+        self.assertEqual(m["requires_env"], ["KIT_ONEYAML_GO_SRC"])
+        self.assertEqual(runner.load_deviations(m), [])
+        mod = (ADAPTERS / OPTIONAL / "go.mod").read_text()
+        self.assertNotIn("oneyaml.dev", mod)  # the build generates that requirement
+
+    def test_without_the_checkout_it_is_unavailable_and_the_run_says_so(self):
+        env = {k: v for k, v in os.environ.items() if k != "KIT_ONEYAML_GO_SRC"}
+        with self.assertRaises(runner.AdapterUnavailable) as cm:
+            run_adapter(OPTIONAL, [], complete=False, env=env)
+        self.assertIn("KIT_ONEYAML_GO_SRC", str(cm.exception))
+        # An empty value counts as unset.
+        self.assertIsNotNone(runner.unavailable_reason(runner.load_manifest(OPTIONAL),
+                                                       dict(env, KIT_ONEYAML_GO_SRC="")))
+        self.assertIsNone(runner.unavailable_reason(runner.load_manifest(OPTIONAL),
+                                                    dict(env, KIT_ONEYAML_GO_SRC="/x")))
+
+    def test_the_report_names_a_skipped_adapter(self):
+        md = report.render([], [(OPTIONAL, "environment variable KIT_ONEYAML_GO_SRC is not set")])
+        self.assertIn("Not run", md)
+        self.assertIn(OPTIONAL, md)
+
+    def test_the_cli_skips_it_without_failing(self):
+        env = {k: v for k, v in os.environ.items() if k != "KIT_ONEYAML_GO_SRC"}
+        with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR") or None) as out:
+            r = subprocess.run(["python3", "bin/kit", "fast", "--adapter", OPTIONAL, "--out", out],
+                               cwd=support.ROOT, env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("SKIPPED", r.stdout)
 
 
 @unittest.skipUnless(os.environ.get("KIT_ADAPTER_TESTS") == "1", "set KIT_ADAPTER_TESTS=1 to build and run adapters")
@@ -214,6 +256,18 @@ class Run(unittest.TestCase):
         md = report.render(list(self.res.values()))
         for n in GO:
             self.assertIn(n, md)
+
+
+@unittest.skipUnless(os.environ.get("KIT_ADAPTER_TESTS") == "1" and os.environ.get("KIT_ONEYAML_GO_SRC"),
+                     "needs KIT_ADAPTER_TESTS=1 and KIT_ONEYAML_GO_SRC")
+class OptionalRun(unittest.TestCase):
+    def test_it_builds_declares_nothing_and_fails_nothing(self):
+        res = run_adapter(OPTIONAL, C.load_all(), complete=True)
+        self.assertEqual(validate_result(res), [])
+        self.assertEqual(res["adapter"]["capabilities"], [])
+        d = res["deviations"]
+        self.assertEqual((d["ok"], d["listed"], d["unlisted"], d["stale"], d["unknown"]), (True, 0, [], [], []))
+        self.assertTrue(all(r["loose"] == "unsupported" and r["strict"] == "unsupported" for r in res["cases"]))
 
 
 if __name__ == "__main__":

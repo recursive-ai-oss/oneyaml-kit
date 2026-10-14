@@ -12,7 +12,7 @@ from pathlib import Path
 from . import report as report_mod
 from .cases import (CaseError, ROOT, current_pins, load_all)
 from .public_text import repo_files, scan
-from .runner import RunError, list_adapters, run_adapter
+from .runner import AdapterUnavailable, RunError, list_adapters, run_adapter
 
 PINS_FILE = ROOT / "tests" / "pins.json"
 
@@ -50,12 +50,18 @@ def cmd_run(args) -> int:
         return 2
     out = out_dir(args.out)
     (out / "results").mkdir(exist_ok=True)
-    results, status = [], 0
+    results, skipped, status = [], [], 0
     t0 = time.monotonic()
     for name in names:
         try:
             res = run_adapter(name, cases, complete, timeout=args.timeout,
                               skip_build=args.no_build, out=out)
+        except AdapterUnavailable as e:
+            # Not a failure: the machine lacks something the adapter needs. Say so.
+            reason = str(e).split(": not available: ", 1)[-1]
+            print(f"{name}: SKIPPED, not available: {reason}")
+            skipped.append((name, reason))
+            continue
         except RunError as e:
             print(f"{name}: {e}", file=sys.stderr)
             return 2
@@ -73,7 +79,7 @@ def cmd_run(args) -> int:
             status = 1
             for line in (d["unlisted"] + d["stale"] + d["unknown"])[:20]:
                 print("  - " + line)
-    md = report_mod.render(results)
+    md = report_mod.render(results, skipped)
     (out / "conformance.md").write_text(md, encoding="utf-8")
     hits = scan([out / "conformance.md"], root=out)
     if hits:
