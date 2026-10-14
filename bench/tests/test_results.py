@@ -107,6 +107,48 @@ class Rows(unittest.TestCase):
         self.assertEqual(row["best_time"]["library"], "rival")
 
 
+class WhatMaySetTheReference(unittest.TestCase):
+    """A cell that did not do the full task as specified is shown but never defines the best."""
+
+    def test_loose_variants_and_text_apis_never_set_the_reference(self):
+        for variant in ("bytes-only", "value-only", "harness-rendered", "something-new"):
+            fast = cell("loose", t=10, variant=variant)
+            [row] = R.compare_rows([cell("ours", "own", t=100), fast, cell("real", t=200)])
+            self.assertEqual(row["best_time"]["library"], "real", variant)
+            self.assertEqual(row["own"][0]["time"]["verdict"], "win", variant)
+            self.assertEqual(R.non_reference_label(fast), variant)
+        text = cell("patcher", t=10)
+        text["state"] = "text"
+        [row] = R.compare_rows([cell("ours", "own", t=100), text, cell("real", t=200)])
+        self.assertEqual(row["best_time"]["library"], "real")
+        self.assertEqual(R.non_reference_label(text), "text API")
+        both = cell("patcher", t=10, variant="value-only")
+        both["state"] = "text"
+        self.assertEqual(R.non_reference_label(both), "text API, value-only")
+
+    def test_a_merged_cell_may_set_the_reference(self):
+        [row] = R.compare_rows([cell("ours", "own", t=100), cell("merger", t=10, variant="merged"), cell("real", t=200)])
+        self.assertEqual(row["best_time"]["library"], "merger")
+        self.assertEqual(R.non_reference_label(cell("merger", variant="merged")), "")
+
+    def test_a_row_of_only_such_cells_has_no_reference(self):
+        [row] = R.compare_rows([cell("ours", "own", t=100), cell("loose", t=10, variant="bytes-only")])
+        self.assertIsNone(row["best_time"])
+        self.assertIsNone(row["own"][0]["time"])
+        self.assertEqual(R.tally([row], "time")["no-rival"], 1)
+
+
+class KnownReasonsReachTheCells(unittest.TestCase):
+    def test_attach_known_copies_the_reason_by_language_and_cell(self):
+        a = cell("lib", status="differs", detail="x", language="go")
+        b = cell("lib", status="differs", detail="x", language="csharp")
+        res = {"cells": [a, b]}
+        R.attach_known(res, {"go": {"entries": [{"cell": "lib/generic-load/w", "status": "differs",
+                                                   "reason": "default limit, not raised"}]}})
+        self.assertEqual(a["known"], "default limit, not raised")
+        self.assertNotIn("known", b)
+
+
 class Publishability(unittest.TestCase):
     QUIET = [0.1] * 20
 

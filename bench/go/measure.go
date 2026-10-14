@@ -171,6 +171,10 @@ func timeRunner(r Runner, cfg Config) Timing {
 
 // Memory is the result of the memory pass.
 type Memory struct {
+	// RetainedBytes is what one run leaves behind: the live heap one collection after the run,
+	// less the live heap just before it with the starting state held. It is what a library keeps in
+	// pools and caches, which the allocation figures of the steady state do not show.
+	RetainedBytes  uint64
 	PeakBytes      uint64
 	AllocatedBytes uint64
 	Allocations    uint64
@@ -241,6 +245,13 @@ func memoryPass(r Runner, runs int) Memory {
 	peak := <-done
 	tick.Stop()
 	peak = max(peak, after.HeapAlloc, before.HeapAlloc)
+	var kept runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&kept)
+	var retained uint64
+	if kept.HeapAlloc > before.HeapAlloc {
+		retained = kept.HeapAlloc - before.HeapAlloc
+	}
 	if peak > base {
 		peak -= base
 	} else {
@@ -256,7 +267,7 @@ func memoryPass(r Runner, runs int) Memory {
 	runtime.ReadMemStats(&after)
 	runtime.KeepAlive(avg)
 	n := uint64(runs)
-	return Memory{PeakBytes: peak,
+	return Memory{RetainedBytes: retained, PeakBytes: peak,
 		AllocatedBytes: (after.TotalAlloc - before.TotalAlloc + n/2) / n,
 		Allocations:    (after.Mallocs - before.Mallocs + n/2) / n}
 }

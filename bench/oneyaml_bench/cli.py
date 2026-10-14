@@ -42,6 +42,16 @@ def write_report(result: dict, out: Path) -> list[Path]:
     return files
 
 
+def known_lists(result: dict) -> dict[str, dict]:
+    """The parsed known-deviations file of every language in the result."""
+    out = {}
+    for lang, h in run.discover().items():
+        if lang in result["harnesses"]:
+            path = h["_dir"] / "known.json"
+            out[lang] = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"entries": []}
+    return out
+
+
 def known_problems(result: dict) -> list[str]:
     """Checks every language's deviation list against the cells measured and against the
     full set of libraries, tasks and workloads."""
@@ -70,6 +80,8 @@ def cmd_run(a: argparse.Namespace) -> int:
     problems = known_problems(result)
     results.add_reasons(result, [f"the list of known deviations does not match this run "
                                  f"({len(problems)} problems, the first: {problems[0]})"] if problems else [])
+    # The reason of each listed deviation goes into the result, so the report can say why a cell has no number.
+    results.attach_known(result, known_lists(result))
     run.write(result, out / "results.json")
     files = write_report(result, out)
     hits = public_text_hits(files)

@@ -128,6 +128,37 @@ class GoPipeline(unittest.TestCase):
         self.assertEqual(c["status"], "unsupported")
         self.assertTrue(c["detail"])
 
+    def test_dumps_are_judged_by_the_core_schema_and_not_by_a_parser_s_typing(self):
+        # A zip code written as a plain 05509 is the integer 5509 under the core schema: wrong, and
+        # said to be wrong. A dump of mixed scalar styles, with a tab inside a plain scalar, is right.
+        _, cells, _ = self.harness(self.wl, ["records-4k", "scalar-styles-32k"], ["goccy-go-yaml"], ["dump"],
+                                   name="core")
+        by = {c["workload"]: c for c in cells}
+        self.assertEqual(by["records-4k"]["status"], "differs")
+        self.assertIn("zip", by["records-4k"]["detail"])
+        self.assertIn("05509", by["records-4k"]["detail"])
+        self.assertEqual(by["scalar-styles-32k"]["status"], "ok")
+
+    def test_retained_bytes_are_reported_beside_the_peak(self):
+        _, cells, _ = self.harness(self.wl, ["reference-a", "records-4k"], ["yaml-v3"], ["generic-load"], name="kept")
+        for c in cells:
+            self.assertEqual(c["status"], "ok")
+            kept = c["memory"]["retained_bytes"]
+            self.assertIsInstance(kept, int)
+            self.assertGreaterEqual(kept, 0)
+            # A load leaves nothing behind but what the library keeps; it is far below the peak.
+            self.assertLess(kept, c["memory"]["peak_bytes"])
+
+    def test_the_text_api_libraries_are_marked_and_never_the_best(self):
+        rec, cells, _ = self.harness(self.wl, ["reference-a"], ["palantir-yamlpatch", "json-patch"], ["patch"], name="text")
+        for lib in rec["libraries"]:
+            self.assertEqual(lib["settings"]["state"], "the text")
+        res = self.result_of(rec, cells, [m for m in self.metas if m["id"] == "reference-a"])
+        for c in res["cells"]:
+            self.assertEqual(c["state"], "text")
+        for row in results.compare_rows(res["cells"]):
+            self.assertIsNone(row["best_time"])
+
     def test_the_non_lossless_patch_baseline_is_marked_value_only(self):
         rec, cells, _ = self.harness(self.wl, ["reference-a"], ["json-patch", "palantir-yamlpatch"], ["patch"],
                                      name="vo")

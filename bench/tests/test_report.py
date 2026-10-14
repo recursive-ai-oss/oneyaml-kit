@@ -219,15 +219,18 @@ class BaselineReportTests(unittest.TestCase):
     def test_the_summary_is_a_geometric_mean_against_the_best_in_each_row(self):
         self.assertIn("Languages without a library of ours", self.md)
         rows = [l for l in self.md.splitlines() if l.startswith("| csharp | generic-load |")]
-        by = {r.split("|")[3].strip(" `"): [c.strip() for c in r.split("|")[4:9]] for r in rows}
+        by = {r.split("|")[3].strip(" `"): [c.strip() for c in r.split("|")[4:12]] for r in rows}
         # beta: sqrt(2.00 * 1.00) = 1.41; gamma: sqrt(4.00 * 2.00) = 2.83; alpha is the best in both rows.
-        self.assertEqual(by["alpha"][:4], ["2", "2", "1.00×", "1"])
+        self.assertEqual(by["alpha"][:3], ["2", "2", "1.00×"])
         self.assertEqual(by["beta"][2], "1.41×")
         self.assertEqual(by["gamma"][2], "2.83×")
         # A library with no number in a row is judged on the rows where it has one.
         self.assertNotIn("delta", by)
         # Peak: w1 alpha 1000 best, w2 gamma 500 best. gamma: sqrt(2 * 1) = 1.41.
-        self.assertEqual(by["gamma"][3:5], ["1", "1.41×"])
+        self.assertEqual(by["gamma"][4:6], ["1", "1.41×"])
+        # Every library here has a number in both rows, so the common-row ratio is the same mean.
+        self.assertEqual(by["beta"][3], "1.41× (2 rows)")
+        self.assertEqual(by["alpha"][7], "—")
 
     def test_the_charts_exist_and_their_alt_text_carries_the_numbers(self):
         names = {f.name for f in (self.out / "charts").glob("*.svg")}
@@ -250,6 +253,136 @@ class BaselineReportTests(unittest.TestCase):
             self.assertIsNone(public_text.PATTERN.search(line), line)
         # A report that has our library in it keeps the old summary, and one without it does not print an empty one.
         self.assertNotIn("Weakest row", self.md)
+
+
+def with_extra(*extra, libs=(), state_text=()):
+    """The baseline result with more cells and libraries, to try what may and may not set the best."""
+    res = baseline_result()
+    res["cells"] = res["cells"] + list(extra)
+    for name in libs:
+        res["harnesses"]["csharp"]["libraries"].append(
+            {"id": name, "package": name, "version": "1", "role": "competitor",
+             "settings": {"state": "the text"} if name in state_text else {}})
+    return res
+
+
+def stats_of(res, metric="time"):
+    rows = [r for r in R.compare_rows(res["cells"]) if r["task"] == "generic-load"]
+    return {s["library"]: s for s in P.baseline_stats(rows, metric)}
+
+
+class WhatSetsTheBest(unittest.TestCase):
+    """Only a cell that did the full task, as specified, may be the best of its row."""
+
+    def faster(self, variant="spec", state=None, lib="quick"):
+        c = cell(lib, workload="w1", language="csharp", t=10.0, peak=100, variant=variant)
+        c2 = cell(lib, workload="w2", language="csharp", t=10.0, peak=100, variant=variant)
+        if state:
+            c["state"] = c2["state"] = state
+        return c, c2
+
+    def test_each_loose_judgement_is_shown_but_never_the_best(self):
+        for variant, state in (("bytes-only", None), ("value-only", None), ("harness-rendered", None),
+                               ("spec", "text"), ("made-up-later", None)):
+            res = with_extra(*self.faster(variant, state), libs=["quick"])
+            base = {r["workload"]: r for r in R.compare_rows(baseline_result()["cells"]) if r["task"] == "generic-load"}
+            for r in R.compare_rows(res["cells"]):
+                if r["task"] == "generic-load":
+                    self.assertEqual(r["best_time"]["library"], base[r["workload"]]["best_time"]["library"], (variant, state))
+                    self.assertEqual(r["best_memory"]["library"], base[r["workload"]]["best_memory"]["library"], (variant, state))
+            st = stats_of(res)
+            # It is listed, with a ratio against the real best (below 1.0: it is faster) and its reason,
+            # and it is the best in no row.
+            self.assertEqual(st["quick"]["best"], 0, (variant, state))
+            self.assertLess(st["quick"]["ratio"], 1.0)
+            self.assertTrue(st["quick"]["labels"], (variant, state))
+            self.assertFalse(st["quick"]["can_set_reference"])
+            self.assertEqual(st["alpha"]["best"], 2)
+
+    def test_a_merged_cell_may_set_the_best_and_is_labelled(self):
+        res = with_extra(*self.faster("merged"), libs=["quick"])
+        for r in R.compare_rows(res["cells"]):
+            if r["task"] == "generic-load":
+                self.assertEqual(r["best_time"]["library"], "quick")
+        self.assertEqual(stats_of(res)["quick"]["best"], 2)
+        self.assertEqual(stats_of(res)["quick"]["labels"], [])
+        md = P.render(res, Path(tempfile.mkdtemp()))
+        self.assertIn("(merged)", md)
+
+    def test_the_report_marks_them_and_says_what_the_mark_means(self):
+        res = with_extra(*self.faster("value-only", "text"), libs=["quick"], state_text=("quick",))
+        with tempfile.TemporaryDirectory() as t:
+            md = P.render(res, Path(t))
+        self.assertIn("†", md)
+        self.assertIn("never the best of a row", md)
+        self.assertIn("`quick` (text API)", md)
+        row = next(l for l in md.splitlines() if l.startswith("| `w1`") and "(value-only)" in l)
+        self.assertIn(" †", row)
+        # The row's best is still the library that did the full task.
+        self.assertTrue(row.rstrip().endswith("| `alpha` |"), row)
+        summary = next(l for l in md.splitlines() if l.startswith("| csharp | generic-load | `quick` †"))
+        self.assertIn("text API, value-only", summary)
+
+    def test_a_harness_rendered_cell_is_explained(self):
+        res = with_extra(*self.faster("harness-rendered"), libs=["quick"])
+        with tempfile.TemporaryDirectory() as t:
+            md = P.render(res, Path(t))
+        self.assertIn("*harness-rendered* means", md)
+        self.assertIn("(harness-rendered) †", md)
+
+    def test_a_row_with_only_loose_cells_has_no_best_and_says_so(self):
+        cells = [cell("lone", workload="w1", language="csharp", variant="value-only", t=5.0),
+                 cell("lone", workload="w1", language="csharp", task="patch", variant="value-only", t=5.0)]
+        res = baseline_result()
+        res["cells"] = cells
+        res["harnesses"]["csharp"]["libraries"] = [
+            {"id": "lone", "package": "lone", "version": "1", "role": "competitor", "settings": {}}]
+        rows = R.compare_rows(res["cells"])
+        self.assertTrue(all(r["best_time"] is None for r in rows))
+        with tempfile.TemporaryDirectory() as t:
+            md = P.render(res, Path(t))
+        self.assertIn("`lone` †", md)
+
+    def test_rows_every_library_has_are_averaged_apart(self):
+        # `slow` fails w2 (the row where everyone is slow); its own-rows mean flatters it.
+        cells = [cell("fast", workload="w1", language="csharp", t=100.0), cell("slow", workload="w1", language="csharp", t=110.0),
+                 cell("fast", workload="w2", language="csharp", t=1000.0),
+                 cell("slow", workload="w2", language="csharp", status="differs", detail="at /a: got 1, expected 2"),
+                 cell("fast", workload="w3", language="csharp", t=100.0), cell("slow", workload="w3", language="csharp", t=200.0)]
+        res = baseline_result()
+        res["cells"] = cells
+        rows = [r for r in R.compare_rows(cells) if r["task"] == "generic-load"]
+        st = {s["library"]: s for s in P.baseline_stats(rows, "time")}
+        self.assertEqual(st["fast"]["rows"], 3)
+        self.assertEqual(st["slow"]["rows"], 2)
+        self.assertEqual(st["slow"]["common_rows"], 2)
+        self.assertAlmostEqual(st["slow"]["common_ratio"], (1.1 * 2.0) ** 0.5)
+        self.assertAlmostEqual(st["fast"]["common_ratio"], 1.0)
+
+    def test_a_known_deviation_reason_reaches_the_table_of_cells_without_a_number(self):
+        res = baseline_result()
+        res["cells"][-1]["known"] = "default limit, not raised"
+        with tempfile.TemporaryDirectory() as t:
+            md = P.render(res, Path(t))
+        self.assertIn("Known deviation", md)
+        row = next(l for l in md.splitlines() if l.startswith("| csharp | `delta` | generic-load"))
+        self.assertTrue(row.rstrip().endswith("| default limit, not raised |"), row)
+        # Without any, the table is as it was.
+        res = baseline_result()
+        with tempfile.TemporaryDirectory() as t:
+            self.assertNotIn("Known deviation", P.render(res, Path(t)))
+
+    def test_retained_bytes_are_shown_beside_the_peak_and_are_optional(self):
+        res = baseline_result()
+        res["cells"][0]["memory"]["retained_bytes"] = 2048
+        R.validate(res)
+        with tempfile.TemporaryDirectory() as t:
+            md = P.render(res, Path(t))
+        self.assertIn("retained", md)
+        self.assertIn("/ 2 KiB", md)
+        res["cells"][0]["memory"]["retained_bytes"] = -1
+        with self.assertRaises(R.ResultError):
+            R.validate(res)
 
 
 if __name__ == "__main__":
