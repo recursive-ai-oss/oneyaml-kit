@@ -66,7 +66,11 @@ def memory_cell(c: dict) -> str:
     if c["status"] != "ok":
         return time_cell(c)
     m = c["memory"]
-    return f"{fmt_bytes(m['peak_bytes'])} / {fmt_bytes(m['allocated_bytes'])}"
+    text = f"{fmt_bytes(m['peak_bytes'])} / {fmt_bytes(m['allocated_bytes'])}"
+    # What the library keeps after the task (pools, caches), where the harness measures it.
+    if m.get("retained_bytes") is not None:
+        text += f" (keeps {fmt_bytes(m['retained_bytes'])})"
+    return text
 
 
 def md_table(header: list[str], rows: list[list[str]]) -> str:

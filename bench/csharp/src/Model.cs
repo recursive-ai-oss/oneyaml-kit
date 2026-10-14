@@ -131,10 +131,18 @@ public abstract class Runner
 {
     /// <summary>Runs the task once, as it is timed, and converts the result for the guard.</summary>
     public abstract Product Check();
-    /// <summary>Builds <paramref name="n"/> independent starting states, outside the clock.</summary>
+    /// <summary>Builds <paramref name="n"/> starting states, outside the clock: independent ones, or one state
+    /// that every run shares when <see cref="SharedState"/> is set.</summary>
     public abstract Batch Prepare(int n);
     /// <summary>For patch runners: applies the failing patch and reports the outcome.</summary>
     public virtual FailedPatch? CheckFailing() => null;
+    /// <summary>True when the task only reads its starting state, so a batch may run all its tasks over one
+    /// state instead of building one per task. The guard runs the task twice over one state and refuses a
+    /// runner whose second answer differs from its first.</summary>
+    public virtual bool SharedState => false;
+    /// <summary>The variant a correct answer is reported as, when it is not the guard's (for example
+    /// <c>harness-rendered</c>); null keeps the guard's.</summary>
+    public virtual string? Variant => null;
 }
 
 public interface ILibrary
@@ -152,20 +160,40 @@ public interface ILibrary
 /// convert the result for the guard.</summary>
 public sealed class FnRunner<TState, TOut>(
     Func<TState> setup, Func<TState, TOut> run, Func<TOut, Product> product,
-    Func<FailedPatch>? failing = null) : Runner
+    Func<FailedPatch>? failing = null, bool sharedState = false, string? variant = null) : Runner
 {
+    public override bool SharedState => sharedState;
+    public override string? Variant => variant;
+
     public override Product Check()
     {
         var state = setup();
-        return product(run(state));
+        var first = product(run(state));
+        if (sharedState && !Same(first, product(run(state))))
+            throw new InvalidOperationException("the task changed its starting state: a second run over the same state gave another answer, so the runner cannot share one state");
+        return first;
     }
+
+    static bool Same(Product a, Product b) => (a, b) switch
+    {
+        (Product.Bytes x, Product.Bytes y) => x.Data.AsSpan().SequenceEqual(y.Data),
+        (Product.Value x, Product.Value y) => J.FirstDiff(x.Tree, y.Tree) == null,
+        (Product.Document x, Product.Document y) => x.Emitted.AsSpan().SequenceEqual(y.Emitted) && (x.Tree == null ? y.Tree == null : y.Tree != null && J.FirstDiff(x.Tree, y.Tree) == null),
+        _ => false,
+    };
 
     public override FailedPatch? CheckFailing() => failing?.Invoke();
 
     public override Batch Prepare(int n)
     {
         var states = new TState[n];
-        for (int i = 0; i < n; i++) states[i] = setup();
+        if (sharedState)
+        {
+            var one = setup();
+            Array.Fill(states, one);
+        }
+        else
+            for (int i = 0; i < n; i++) states[i] = setup();
         return new FnBatch(states, run);
     }
 

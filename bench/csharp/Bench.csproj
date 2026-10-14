@@ -16,12 +16,9 @@
          the background collector off so no background collection lands inside a sample. -->
     <ServerGarbageCollector>false</ServerGarbageCollector>
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
-    <!-- Library code starts as fully optimised machine code: with quick JIT on, a method called only a few
-         times per sample would run as unoptimised tier-0 code for most of a short run, and what a cell
-         measures would depend on how many times the run happened to call it. Dynamic PGO needs the tier-0
-         instrumentation, so it is off with it. Both are recorded in the harness flags. -->
-    <TieredCompilationQuickJit>false</TieredCompilationQuickJit>
-    <TieredPGO>false</TieredPGO>
+    <!-- The runtime keeps its defaults (tiered compilation, quick JIT, dynamic PGO), as a user's program has them.
+         The harness warms every cell until the JIT stops compiling, so what is timed is the optimised code the
+         profile produced; see Measure.WarmUp. -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <!-- Once a lock file exists the restore must match it exactly, so a version only moves on purpose. -->
     <RestoreLockedMode Condition="Exists('$(MSBuildProjectDirectory)/packages.lock.json')">true</RestoreLockedMode>

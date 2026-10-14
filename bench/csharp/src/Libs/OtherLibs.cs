@@ -20,6 +20,7 @@ public sealed class VYamlLib : ILibrary
         ["api"] = "VYaml.Serialization.YamlSerializer over UTF-8 bytes, source-generated formatters for the typed models",
         ["input"] = "the input bytes as they are (the library reads UTF-8); output bytes are what the library writes",
         ["limits"] = "defaults",
+        ["input and output"] = "UTF-8 bytes in and out, which is the form the library works in",
     };
 
     public Runner Runner(BenchTask task, Workload w)
@@ -48,7 +49,7 @@ public sealed class VYamlLib : ILibrary
                 if (!single) throw Support.No("dump is defined for one document");
                 return new FnRunner<object?, ReadOnlyMemory<byte>>(() => VYaml.Serialization.YamlSerializer.Deserialize<object>(bytes),
                     tree => VYaml.Serialization.YamlSerializer.Serialize<object?>(tree),
-                    m => new Product.Bytes(m.ToArray()));
+                    m => new Product.Bytes(m.ToArray()), sharedState: true);
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
                 throw Support.No("no lossless document: comments and layout are discarded");
             default:
@@ -73,6 +74,7 @@ public sealed class Yaml2JsonNodeLib : ILibrary
         ["api"] = "Yaml2JsonNode.YamlSerializer.Parse / ToJsonNode / ToYamlNode / Serialize, System.Text.Json for typed models",
         ["patch"] = "JsonPatch.Net " + Support.Version("JsonPatch.Net") + " on the JsonNode tree, then written back as YAML; not lossless",
         ["yaml parser"] = "YamlDotNet " + Support.Version("YamlDotNet"),
+        ["input and output"] = "UTF-8 bytes in and out: the text is decoded and encoded inside the timed work, as it is for every library that works on strings",
     };
 
     static readonly JsonSerializerOptions Typed = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -80,8 +82,11 @@ public sealed class Yaml2JsonNodeLib : ILibrary
     static string Write(System.Text.Json.Nodes.JsonNode? node) =>
         Yaml2JsonNode.YamlSerializer.Serialize(node!.ToYamlNode(), null);
 
+    static byte[] WriteBytes(System.Text.Json.Nodes.JsonNode? node) => Support.Utf8.GetBytes(Write(node));
+
     public Runner Runner(BenchTask task, Workload w)
     {
+        var input = w.Input;
         var text = w.InputText;
         bool single = w.Documents == 1;
         switch (task)
@@ -89,21 +94,21 @@ public sealed class Yaml2JsonNodeLib : ILibrary
             case BenchTask.TypedLoad:
                 return w.TypedModel switch
                 {
-                    "gha" => new FnRunner<int, Workflow?>(() => 0, _ => Yaml2JsonNode.YamlSerializer.Deserialize<Workflow>(text, Typed),
+                    "gha" => new FnRunner<int, Workflow?>(() => 0, _ => Yaml2JsonNode.YamlSerializer.Deserialize<Workflow>(Support.Utf8.GetString(input), Typed),
                         t => new Product.Value(Conv.WorkflowJ(t!))),
-                    "records" => new FnRunner<int, List<Record>?>(() => 0, _ => Yaml2JsonNode.YamlSerializer.Deserialize<List<Record>>(text, Typed),
+                    "records" => new FnRunner<int, List<Record>?>(() => 0, _ => Yaml2JsonNode.YamlSerializer.Deserialize<List<Record>>(Support.Utf8.GetString(input), Typed),
                         t => new Product.Value(Conv.Records(t!))),
                     _ => throw Support.No("no typed model for this workload"),
                 };
             case BenchTask.GenericLoad:
                 return new FnRunner<int, List<System.Text.Json.Nodes.JsonNode?>>(() => 0,
-                    _ => Yaml2JsonNode.YamlSerializer.Parse(text).ToJsonNode().ToList(),
+                    _ => Yaml2JsonNode.YamlSerializer.Parse(Support.Utf8.GetString(input)).ToJsonNode().ToList(),
                     docs => new Product.Value(Conv.Docs(docs.Select(Support.FromJsonNode).ToList())));
             case BenchTask.Dump:
                 if (!single) throw Support.No("dump is defined for one document");
-                return new FnRunner<System.Text.Json.Nodes.JsonNode?, string>(
-                    () => Yaml2JsonNode.YamlSerializer.Parse(text).ToJsonNode().First(), Write,
-                    s => new Product.Bytes(Support.Utf8.GetBytes(s)));
+                return new FnRunner<System.Text.Json.Nodes.JsonNode?, byte[]>(
+                    () => Yaml2JsonNode.YamlSerializer.Parse(text).ToJsonNode().First(), WriteBytes,
+                    b => new Product.Bytes(b), sharedState: true);
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
                 throw Support.No("no lossless document: the tree is data, and comments and layout are discarded");
             default:
@@ -112,22 +117,23 @@ public sealed class Yaml2JsonNodeLib : ILibrary
                     var patch = BuildPatch(w.PatchOps);
                     var failing = BuildPatch(w.PatchFailingOps);
                     System.Text.Json.Nodes.JsonNode? Load() => Yaml2JsonNode.YamlSerializer.Parse(text).ToJsonNode().First();
-                    return new FnRunner<System.Text.Json.Nodes.JsonNode?, string>(
+                    return new FnRunner<System.Text.Json.Nodes.JsonNode?, byte[]>(
                         Load,
                         doc =>
                         {
                             // JsonPatch.Net applies the operations to a copy and reports failure in its result.
                             var r = patch.Apply(doc);
                             if (!r.IsSuccess) throw new Rejected(r.Error ?? "the patch failed");
-                            return Write(r.Result);
+                            return WriteBytes(r.Result);
                         },
-                        s => new Product.Bytes(Support.Utf8.GetBytes(s)),
+                        b => new Product.Bytes(b),
                         () =>
                         {
                             var doc = Load();
                             var r = failing.Apply(doc);
-                            return new FailedPatch(!r.IsSuccess, Support.Utf8.GetBytes(Write(doc)));
-                        });
+                            return new FailedPatch(!r.IsSuccess, WriteBytes(doc));
+                        },
+                        sharedState: true);
                 }
         }
     }

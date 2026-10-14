@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Engines;
@@ -9,23 +10,27 @@ using BenchmarkDotNet.Toolchains.InProcess.Emit;
 
 namespace OneYamlKit.Bench;
 
-/// <summary>How long to warm up and how many samples to take.</summary>
-public sealed record Config(int WarmupMs, int Samples, int SampleTargetMs, long MaxPreparedBytes, int MaxIters)
+/// <summary>How long to warm up and how many samples to take.
+///
+/// The runtime runs with its defaults: tiered compilation, quick JIT and dynamic PGO on, as a user's program
+/// does. A method then goes through unoptimised code, instrumented code and finally optimised code that the
+/// profile shaped, and each step waits for a timer and a call count. The warm-up therefore runs the cell until the
+/// number of methods the JIT has compiled stops changing for a whole settle window (the runtime waits 100 ms
+/// without new unoptimised code before it counts calls, so a window of 250 ms spans one step), and only then
+/// calibrates and samples.</summary>
+public sealed record Config(
+    int WarmupMinMs, int WarmupMaxMs, int SettleWindowMs, int SettleWindows,
+    int Samples, int MinSamples, int SampleTargetMs, long MaxPreparedBytes, int MaxIters, int MaxCellMs)
 {
-    public static Config Quick => new(2, 5, 1, 64L << 20, 10_000);
-    public static Config Full => new(300, 31, 50, 512L << 20, 1_000_000);
-
-    /// <summary>Building the states of one sample may take this many times the sample target. A task much
-    /// faster than the building of its state (writing back a parsed tree that holds its own text) would
-    /// otherwise ask for thousands of states per sample and spend its whole run building them.</summary>
-    public const int MaxSetupFactor = 20;
-
-    /// <summary>Warm-up iterations handed to BenchmarkDotNet: enough to cover the warm-up time with
-    /// iterations of about the sample length, and never fewer than one.</summary>
-    public int WarmupIterations => Math.Max(1, (int)Math.Ceiling(WarmupMs / (double)Math.Max(1, SampleTargetMs)));
+    public static Config Quick => new(0, 4_000, 250, 1, 5, 5, 1, 64L << 20, 10_000, 4_000);
+    public static Config Full => new(300, 12_000, 250, 2, 31, 11, 50, 512L << 20, 1_000_000, 20_000);
 }
 
-public sealed record Timing(int ItersPerSample, double[] SamplesNs)
+/// <summary>What the warm-up did: how long it ran, whether the compiled-method count settled before the limit,
+/// and how many methods the JIT compiled while it ran.</summary>
+public sealed record WarmupResult(double Ms, bool Settled, long Compiled);
+
+public sealed record Timing(int ItersPerSample, double[] SamplesNs, WarmupResult? Warmup = null)
 {
     public double Median => MedianSorted(SamplesNs);
 
@@ -86,19 +91,12 @@ public static class Measure
     static long Now() => Stopwatch.GetTimestamp();
     static double Ns(long ticks) => ticks * 1e9 / Stopwatch.Frequency;
 
-    static void CollectAll()
-    {
-        GC.Collect(2, GCCollectionMode.Forced, true, true);
-        GC.WaitForPendingFinalizers();
-        GC.Collect(2, GCCollectionMode.Forced, true, true);
-    }
-
     /// <summary>The bytes of live objects at a full, blocking, compacting collection: what the collector reports
     /// as promoted by it, so unreferenced objects and allocation slack are not in it. The figure is read
     /// before finalizers run. Library pools of reusable arrays are trimmed by a callback that runs on the
     /// finalizer thread after such a collection; reading first means a pool is counted in the same state
     /// every time, so a difference of two readings is the objects that were added between them.</summary>
-    static long LiveNow()
+    public static long LiveNow()
     {
         GC.Collect(2, GCCollectionMode.Forced, true, true);
         long live = GC.GetGCMemoryInfo(GCKind.FullBlocking).PromotedBytes;
@@ -127,7 +125,9 @@ public static class Measure
                 .WithStrategy(RunStrategy.Throughput)
                 .WithGcServer(false).WithGcConcurrent(false)
                 .WithLaunchCount(1)
-                .WithWarmupCount(cfg.WarmupIterations)
+                // The harness has already warmed the cell until the JIT stopped compiling; this one iteration
+                // only takes BenchmarkDotNet through its own first call.
+                .WithWarmupCount(1)
                 .WithIterationCount(cfg.Samples)
                 // One invocation per iteration, which runs the whole batch the set-up built.
                 .WithInvocationCount(1).WithUnrollFactor(1)
@@ -138,14 +138,40 @@ public static class Measure
 
     public static string ArtifactsPath = Path.Combine(Path.GetTempPath(), "oneyaml-bench-bdn");
 
+    /// <summary>Runs the cell until the runtime has finished optimising what it calls: until the number of
+    /// methods the JIT has compiled has not changed for <c>SettleWindowMs * SettleWindows</c>, at least
+    /// <c>WarmupMinMs</c>, at most <c>WarmupMaxMs</c>. Each round is a batch of about 2 ms of work, so the
+    /// calls that trigger the next tier come quickly.</summary>
+    public static WarmupResult WarmUp(Runner r, Config cfg, long cap)
+    {
+        var clock = Stopwatch.StartNew();
+        long first = JitInfo.GetCompiledMethodCount(false), seen = first;
+        double lastChange = 0;
+        int k = 1;
+        while (true)
+        {
+            var b = r.Prepare(k);
+            long t = Now();
+            b.Run();
+            double perTask = Ns(Now() - t) / k;
+            k = (int)Math.Clamp(2e6 / Math.Max(perTask, 1), 1, Math.Min(cap, 1000));
+            long c = JitInfo.GetCompiledMethodCount(false);
+            double at = clock.Elapsed.TotalMilliseconds;
+            if (c != seen) { seen = c; lastChange = at; }
+            if (at >= cfg.WarmupMinMs && at - lastChange >= cfg.SettleWindowMs * cfg.SettleWindows)
+                return new WarmupResult(at, true, seen - first);
+            if (at >= cfg.WarmupMaxMs) return new WarmupResult(at, false, seen - first);
+        }
+    }
+
     /// <param name="stateBytes">the live bytes of one starting state, when the memory pass has already measured it</param>
     public static Timing Time(Runner r, Config cfg, long? stateBytes = null)
     {
         long cap = Math.Min(Math.Max(1, cfg.MaxPreparedBytes / Math.Max(stateBytes ?? StateBytes(r), 1)), cfg.MaxIters);
-        // Calibrate on single iterations, keeping the fastest to ignore a cold start.
+        var warm = WarmUp(r, cfg, cap);
+        // Calibrate on single iterations of warmed code, keeping the fastest.
         double one = double.MaxValue, setup = double.MaxValue;
-        long start = Now();
-        for (int tries = 0; tries < 3 || (Ns(Now() - start) < cfg.WarmupMs * 1e6 && tries < 1000); tries++)
+        for (int tries = 0; tries < 5; tries++)
         {
             long s = Now();
             var b = r.Prepare(1);
@@ -154,24 +180,38 @@ public static class Measure
             b.Run();
             one = Math.Min(one, Ns(Now() - t));
         }
-        long setupCap = (long)Math.Max(1, Config.MaxSetupFactor * cfg.SampleTargetMs * 1e6 / Math.Max(setup, 1));
-        int iters = (int)Math.Clamp(Math.Ceiling(cfg.SampleTargetMs * 1e6 / Math.Max(one, 1)), 1, Math.Min(cap, setupCap));
+        // The batch always fills the sample target, whatever the starting states cost to build: a smaller batch
+        // would make the fixed cost of one invocation part of the answer. A task that does not change its state
+        // shares one (see Runner.SharedState), which keeps the set-up short; otherwise a cell whose states are
+        // slow to build takes fewer samples, never fewer tasks per sample.
+        int iters = (int)Math.Clamp(Math.Ceiling(cfg.SampleTargetMs * 1e6 / Math.Max(one, 1)), 1, cap);
+        double perSampleMs = iters * ((r.SharedState ? 0 : setup) + one) / 1e6 + cfg.SampleTargetMs;
+        int samples = (int)Math.Clamp(cfg.MaxCellMs / Math.Max(perSampleMs, 1e-3), cfg.MinSamples, cfg.Samples);
 
         CellBenchmark.Current = r;
         CellBenchmark.BatchSize = iters;
-        var summary = BenchmarkRunner.Run(typeof(CellBenchmark), BdnConfig(cfg));
+        var summary = BenchmarkRunner.Run(typeof(CellBenchmark), BdnConfig(cfg with { Samples = samples }));
         CellBenchmark.Current = null;
         var report = summary.Reports.SingleOrDefault();
         if (report == null || !report.Success)
             throw new InvalidOperationException("BenchmarkDotNet did not complete the run: " +
                 string.Join("; ", summary.ValidationErrors.Select(e => e.Message)));
-        var samples = report.AllMeasurements
+        var taken = report.AllMeasurements
             .Where(m => m.IterationMode == IterationMode.Workload && m.IterationStage == IterationStage.Actual)
             .Select(m => m.Nanoseconds / iters)
             .OrderBy(x => x)
             .ToArray();
-        if (samples.Length == 0) throw new InvalidOperationException("BenchmarkDotNet reported no measurements");
-        return new Timing(iters, samples);
+        if (taken.Length == 0) throw new InvalidOperationException("BenchmarkDotNet reported no measurements");
+        return new Timing(iters, taken, warm);
+    }
+
+    /// <summary>The bytes the task requests on this thread over one run of a throw-away state.</summary>
+    static long Requested(Runner r)
+    {
+        var b = r.Prepare(1);
+        long a0 = GC.GetAllocatedBytesForCurrentThread();
+        b.Run();
+        return GC.GetAllocatedBytesForCurrentThread() - a0;
     }
 
     /// <summary>One extra run of the task, taken apart from the timed ones so that tracking never slows
@@ -180,16 +220,16 @@ public static class Measure
     /// Allocated: the bytes the task's own thread requested (<c>GC.GetAllocatedBytesForCurrentThread</c>),
     /// exact.
     ///
-    /// Memory a library keeps for reuse between calls (pooled buffers, caches) is part of neither figure: an
-    /// untracked run comes first, so it already exists.
+    /// Peak: the starting state plus every byte the task requested, as if nothing were collected. The run happens
+    /// inside a no-GC region sized from an earlier run of the task, so no collection can happen during it, nothing
+    /// is freed, and the heap grows by exactly what was requested. The collector's state before the run (what ran
+    /// earlier, how full the young generation is) cannot change the figure, which is the same however the
+    /// cells are ordered or filtered. If the region is too small and the runtime leaves it, the run is
+    /// repeated with a larger one. The state is the live bytes after a full collection with the state built,
+    /// minus those before it was built.
     ///
-    /// Peak: the starting state plus the most the managed heap grew while the task ran. The state is the
-    /// live bytes after a full collection with the state built, minus those before it was built. The growth is
-    /// exact when no collection happened during the run, because nothing is freed then and the heap grew by
-    /// exactly what the task requested. When a collection did happen, the growth is the highest heap size a
-    /// second thread read (<c>GC.GetTotalMemory(false)</c>) or the size at the end, over the size at the
-    /// start. Either way the size counts objects the task has dropped that the collector has not yet
-    /// reclaimed, so it is the managed heap a process needs, not the live data alone.</summary>
+    /// Memory a library keeps for reuse between calls (pooled buffers, caches) is part of neither figure: an
+    /// untracked run comes first, so it already exists. <see cref="Retained(Func{Runner})"/> measures it.</summary>
     public static Usage Memory(Runner r)
     {
         // One untracked run first, so the figures are the steady state of a program that has used the library
@@ -200,39 +240,41 @@ public static class Measure
         var b = r.Prepare(1);
         // The garbage left by building the state is not part of the task; what survives is the state.
         long state = Math.Max(LiveNow() - h0, 0);
-        // The collections above trimmed the library's pools; fill them again, and start with an empty young
-        // generation so a small task runs without a collection.
-        r.Prepare(1).Run();
-        GC.Collect(1, GCCollectionMode.Forced, true, false);
-
-        long seen = 0;
-        bool stop = false;
-        var sampler = new Thread(() =>
+        // The collections above trimmed the library's pools; fill them again.
+        long estimate = Requested(r);
+        long allocated = -1;
+        for (int attempt = 0; attempt < 4 && allocated < 0; attempt++)
         {
-            long m = 0;
-            while (!Volatile.Read(ref stop))
-            {
-                long v = GC.GetTotalMemory(false);
-                if (v > m) m = v;
-                Thread.Yield();
-            }
-            Volatile.Write(ref seen, m);
-        })
-        { IsBackground = true };
-        sampler.Start();
-
-        long hb = GC.GetTotalMemory(false);
-        int gcs = GC.CollectionCount(0);
-        long a0 = GC.GetAllocatedBytesForCurrentThread();
-        b.Run();
-        long a1 = GC.GetAllocatedBytesForCurrentThread();
-        long end = GC.GetTotalMemory(false);
-        bool collected = GC.CollectionCount(0) != gcs;
-        Volatile.Write(ref stop, true);
-        sampler.Join();
+            long room = (estimate + (1L << 20)) << attempt;
+            if (room > (8L << 30)) throw new InvalidOperationException("the task requests too much to measure in a no-GC region");
+            // Room for the same number of bytes in the small and the large object heap, whichever the task uses.
+            if (!GC.TryStartNoGCRegion(room * 2, room)) throw new InvalidOperationException("a no-GC region could not be started");
+            long a0 = GC.GetAllocatedBytesForCurrentThread();
+            b.Run();
+            long a1 = GC.GetAllocatedBytesForCurrentThread();
+            bool unbroken = GCSettings.LatencyMode == GCLatencyMode.NoGCRegion;
+            if (unbroken) { GC.EndNoGCRegion(); allocated = a1 - a0; }
+            else { b = r.Prepare(1); r.Prepare(1).Run(); }
+        }
+        if (allocated < 0) throw new InvalidOperationException("the task kept leaving the no-GC region");
         GC.KeepAlive(b);
-        long allocated = a1 - a0;
-        long growth = collected ? Math.Max(Math.Max(Volatile.Read(ref seen), end) - hb, 0) : allocated;
-        return new Usage(state + growth, allocated, state);
+        return new Usage(state + allocated, allocated, state);
     }
+
+    /// <summary>What the library keeps after the task: the live bytes after one run, with the state and the result
+    /// dropped, minus the live bytes before the runner was made. It is meant for a process that has not run the
+    /// library before, so that array pools and caches the library fills are not already full; the harness runs it
+    /// in a fresh process for each cell. Making the runner is inside the reading, because a runner may use the
+    /// library (to check that it can express the task) and what that fills is the library's to keep.</summary>
+    public static long Retained(Func<Runner> make)
+    {
+        long before = LiveNow();
+        RunOnce(make());
+        return Math.Max(LiveNow() - before, 0);
+    }
+
+    public static long Retained(Runner r) => Retained(() => r);
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    static void RunOnce(Runner r) => r.Prepare(1).Run();
 }

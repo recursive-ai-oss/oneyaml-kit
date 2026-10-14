@@ -19,6 +19,7 @@ public static class Program
         public string Workloads = "workloads";
         public string? Out;
         public string Mode = "quick";
+        public bool GuardOnly => Mode == "guard";
         public List<string> Libraries = [], Tasks = [], Only = [], Skip = [];
     }
 
@@ -93,6 +94,7 @@ public static class Program
             {
                 case "run": Run(a); break;
                 case "once": Once(a); break;
+                case "retained": Retained(a); break;
                 case "show": Show(a); break;
 #if SELFTEST
                 case "selftest": return SelfTests.Run();
@@ -149,17 +151,26 @@ public static class Program
         w.WriteString("benchmarkdotnet", Support.Version("BenchmarkDotNet"));
         w.WriteString("job", "InProcessEmitToolchain, Throughput, InvocationCount=1, UnrollFactor=1, WithGcServer(false), WithGcConcurrent(false), EvaluateOverhead=false");
         w.WriteString("gc", GCSettingsText());
-        w.WriteString("quick_jit", Switch("System.Runtime.TieredCompilation.QuickJit"));
-        w.WriteString("tiered_pgo", Switch("System.Runtime.TieredPGO"));
+        // The runtime runs with its defaults, as a user's program does; the warm-up (see Measure.WarmUp) brings
+        // each cell to optimised, profiled code before it is timed. A run that was started with one of these
+        // switched off says so here.
+        w.WriteString("tiered_compilation", Switch("System.Runtime.TieredCompilation", "TieredCompilation"));
+        w.WriteString("quick_jit", Switch("System.Runtime.TieredCompilation.QuickJit", "TC_QuickJit"));
+        w.WriteString("tiered_pgo", Switch("System.Runtime.TieredPGO", "TieredPGO"));
+        w.WriteString("warmup", $"each cell runs until the number of methods the JIT has compiled stays unchanged for {cfg.SettleWindowMs * cfg.SettleWindows} ms (at least {cfg.WarmupMinMs} ms, at most {cfg.WarmupMaxMs} ms), so the code that is timed is the optimised code that dynamic PGO produces; the cell records how long it took and whether it settled");
         w.WriteEndObject();
         w.WriteString("mode", a.Mode);
         w.WriteStartObject("config");
-        w.WriteNumber("warmup_ms", cfg.WarmupMs);
+        w.WriteNumber("warmup_ms", cfg.WarmupMinMs);
         w.WriteNumber("samples", cfg.Samples);
         w.WriteNumber("sample_target_ms", cfg.SampleTargetMs);
+        w.WriteNumber("settle_window_ms", cfg.SettleWindowMs);
+        w.WriteNumber("settle_windows", cfg.SettleWindows);
+        w.WriteNumber("warmup_max_ms", cfg.WarmupMaxMs);
+        w.WriteNumber("min_samples", cfg.MinSamples);
         w.WriteEndObject();
-        w.WriteString("timer", "BenchmarkDotNet, one invocation per iteration that runs a batch of prepared tasks (IterationSetup builds the states, IterationCleanup releases them); time per task = invocation time / batch size; median and median absolute deviation of the iterations");
-        w.WriteString("memory", "managed heap: bytes requested by the task (GC.GetAllocatedBytesForCurrentThread, exact); peak is the largest managed heap size seen (GC.GetTotalMemory(false), read by a second thread while the task runs and once at its end) counted from before the starting state existed, so it includes the starting state and any dropped objects the collector has not reclaimed yet; allocation calls are not available");
+        w.WriteString("timer", "BenchmarkDotNet, one invocation per iteration that runs a batch of prepared tasks (IterationSetup builds the states, IterationCleanup releases them); time per task = invocation time / batch size; median and median absolute deviation of the iterations; the batch always fills the sample target, and a cell whose states are slow to build takes fewer samples (never below min_samples)");
+        w.WriteString("memory", "managed heap: allocated is the bytes requested by the task (GC.GetAllocatedBytesForCurrentThread, exact); peak is the starting state (live bytes after a full collection) plus the bytes requested, measured in a no-GC region so no collection frees anything during the run and the figure does not depend on the collector's earlier state; retained is the live bytes the library keeps after one run in a fresh process (pools, caches), with the state and the result dropped; allocation calls are not available");
         w.WriteBoolean("selftest_build",
 #if SELFTEST
             true
@@ -184,8 +195,12 @@ public static class Program
         w.WriteEndObject();
     }
 
-    static string Switch(string name) =>
-        AppContext.TryGetSwitch(name, out var on) ? (on ? "on" : "off") : "default (on)";
+    static string Switch(string name, string env)
+    {
+        var e = Environment.GetEnvironmentVariable("DOTNET_" + env) ?? Environment.GetEnvironmentVariable("COMPlus_" + env);
+        if (e != null) return e == "0" ? "off (environment)" : "on (environment)";
+        return AppContext.TryGetSwitch(name, out var on) ? (on ? "on" : "off") : "default (on)";
+    }
 
     static string GCSettingsText()
     {
@@ -195,7 +210,7 @@ public static class Program
 
     // ---- cells ---------------------------------------------------------------------------------
 
-    sealed record Cell(string Status, string Detail, string? Variant = null, Timing? Time = null, Usage? Memory = null);
+    sealed record Cell(string Status, string Detail, string? Variant = null, Timing? Time = null, Usage? Memory = null, long? Retained = null);
 
     static readonly System.Text.RegularExpressions.Regex LeadingPosition = new(@"^\(Lin: \d+, Col: \d+, Chr: \d+\)( - \(Lin: \d+, Col: \d+, Chr: \d+\))?: ");
 
@@ -204,10 +219,15 @@ public static class Program
         var inner = e is System.Reflection.TargetInvocationException { InnerException: { } i } ? i : e;
         // SharpYaml starts its messages with the position twice, which the cell has no use for.
         var message = LeadingPosition.Replace(inner.Message, "");
-        return J.Clip($"{inner.GetType().Name}: {message}".Replace('\n', ' ').Replace('\r', ' '), 160);
+        var text = $"{inner.GetType().Name}: {message}".Replace('\n', ' ').Replace('\r', ' ');
+        // The depth limits are defaults a user gets and the harness never raises; saying so up front keeps it in the
+        // cell's detail, which the report shows, even when the message is clipped.
+        if (inner.GetType().Name == "MaximumRecursionLevelReachedException" || message.Contains("maximum nesting depth", StringComparison.OrdinalIgnoreCase))
+            text = "default limit, not raised: " + text;
+        return J.Clip(text, 160);
     }
 
-    static Cell OneCell(ILibrary lib, BenchTask task, Workload w, Config cfg)
+    static Cell OneCell(ILibrary lib, BenchTask task, Workload w, Config cfg, Args a)
     {
         Runner runner;
         try { runner = lib.Runner(task, w); }
@@ -232,12 +252,16 @@ public static class Program
         catch (Exception e) { return new Cell("error", "while judging: " + Describe(e)); }
 
         if (verdict is not Verdict.Ok ok) return new Cell(verdict.Status, verdict.Detail);
+        // Only the verdicts are wanted when the known deviations are being recorded.
+        if (a.GuardOnly) return new Cell("ok", "", runner.Variant ?? ok.Variant);
         try
         {
-            // The memory pass comes first: it also measures the starting state, which caps the size of a batch.
+            // Time first, which warms the cell: the memory pass then sees the optimised code a user's program runs.
+            // Unoptimised code allocates more (it boxes and copies what the optimiser keeps on the stack), so a
+            // figure taken before the warm-up would depend on how much the cell had already run.
+            var t = Measure.Time(runner, cfg);
             var m = Measure.Memory(runner);
-            var t = Measure.Time(runner, cfg, m.StateBytes);
-            return new Cell("ok", "", ok.Variant, t, m);
+            return new Cell("ok", "", runner.Variant ?? ok.Variant, t, m, RetainedInFreshProcess(a, lib, task, w));
         }
         catch (Exception e) { return new Cell("error", "while measuring: " + Describe(e)); }
     }
@@ -252,6 +276,7 @@ public static class Program
         w.WriteNumber("input_bytes", w2.Input.Length);
         w.WriteString("status", c.Status);
         w.WriteString("detail", c.Detail);
+        if (c.Status == "ok" && c.Time == null) w.WriteString("variant", c.Variant);
         if (c.Status == "ok" && c.Time != null && c.Memory != null)
         {
             w.WriteString("variant", c.Variant);
@@ -262,23 +287,57 @@ public static class Program
             w.WriteNumber("mad_ns", c.Time.Mad);
             w.WriteNumber("min_ns", c.Time.SamplesNs[0]);
             w.WriteNumber("max_ns", c.Time.SamplesNs[^1]);
+            if (c.Time.Warmup is { } wu)
+            {
+                w.WriteNumber("warmup_ms", Math.Round(wu.Ms, 1));
+                w.WriteBoolean("warmup_settled", wu.Settled);
+                w.WriteNumber("warmup_compiled_methods", wu.Compiled);
+            }
             w.WriteStartArray("samples_ns");
             foreach (var x in c.Time.SamplesNs) w.WriteNumberValue(x);
             w.WriteEndArray();
             w.WriteEndObject();
             w.WriteStartObject("memory");
-            w.WriteString("method", "GC.GetAllocatedBytesForCurrentThread");
+            w.WriteString("method", MemoryMethod);
             w.WriteNumber("peak_bytes", c.Memory.PeakBytes);
             w.WriteNumber("allocated_bytes", c.Memory.AllocatedBytes);
             w.WriteNull("allocations");
+            if (c.Retained is { } kept) w.WriteNumber("retained_bytes", kept); else w.WriteNull("retained_bytes");
             w.WriteEndObject();
         }
         w.WriteEndObject();
     }
 
+    /// <summary>The name a cell's memory figures carry, so a table never mixes this method with another.</summary>
+    public const string MemoryMethod = "GC.GetAllocatedBytesForCurrentThread, no-GC region";
+
+    /// <summary>The live bytes the library keeps after one run, taken in a new process so that nothing an earlier
+    /// cell filled (array pools, caches, static tables) is already there. Null when the child could not say.</summary>
+    static long? RetainedInFreshProcess(Args a, ILibrary lib, BenchTask task, Workload w)
+    {
+        try
+        {
+            var host = Environment.ProcessPath;
+            var entry = System.Reflection.Assembly.GetEntryAssembly()?.Location;
+            if (host == null || entry == null) return null;
+            var psi = new System.Diagnostics.ProcessStartInfo(host) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
+            if (Path.GetFileNameWithoutExtension(host).Equals("dotnet", StringComparison.OrdinalIgnoreCase)) psi.ArgumentList.Add(entry);
+            foreach (var x in new[] { "retained", "--workloads", a.Workloads, "--library", lib.Id, "--task", task.Id(), "--workload", w.Id })
+                psi.ArgumentList.Add(x);
+            using var p = System.Diagnostics.Process.Start(psi)!;
+            var err = p.StandardError.ReadToEndAsync();
+            var outp = p.StandardOutput.ReadToEnd();
+            if (!p.WaitForExit(120_000)) { p.Kill(true); return null; }
+            const string tag = "retained_bytes ";
+            int at = outp.IndexOf(tag, StringComparison.Ordinal);
+            return p.ExitCode == 0 && at >= 0 && long.TryParse(outp[(at + tag.Length)..].Trim(), out var n) ? n : null;
+        }
+        catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception or InvalidOperationException) { return null; }
+    }
+
     static Config ConfigFor(string mode) => mode switch
     {
-        "quick" => Config.Quick,
+        "quick" or "guard" => Config.Quick,
         "full" => Config.Full,
         _ => throw new ArgumentException($"unknown mode {mode}"),
     };
@@ -305,7 +364,7 @@ public static class Program
                         // A crash cannot be caught, so mark the cell first; the driver reads the last mark
                         // to find the cell that killed the process.
                         WriteLine(outp, w => { w.WriteStartObject(); w.WriteString("type", "begin"); w.WriteString("cell", name); w.WriteEndObject(); });
-                        var cell = OneCell(lib, task, wl, cfg);
+                        var cell = OneCell(lib, task, wl, cfg, a);
                         WriteLine(outp, w => WriteCell(w, lib, task, wl, cell));
                     }
         }
@@ -336,5 +395,17 @@ public static class Program
         var w = LoadWorkloads(a.Workloads, [a.Only[0]]).SingleOrDefault() ?? throw new ArgumentException("unknown workload");
         var lib = AllLibraries().FirstOrDefault(l => l.Id == a.Libraries[0]) ?? throw new ArgumentException("unknown library");
         lib.Runner(task, w).Prepare(1).Run();
+    }
+
+    /// <summary>Prints the live bytes one run of one cell leaves behind, for the measuring process to read. It
+    /// runs in a process of its own so that the library has not been used before.</summary>
+    static void Retained(Args a)
+    {
+        if (a.Libraries.Count == 0 || a.Tasks.Count == 0 || a.Only.Count == 0)
+            throw new ArgumentException("retained needs --library, --task and --workload");
+        var task = TaskIds.Parse(a.Tasks[0]) ?? throw new ArgumentException("unknown task");
+        var w = LoadWorkloads(a.Workloads, [a.Only[0]]).SingleOrDefault() ?? throw new ArgumentException("unknown workload");
+        var lib = AllLibraries().FirstOrDefault(l => l.Id == a.Libraries[0]) ?? throw new ArgumentException("unknown library");
+        Console.WriteLine("retained_bytes " + Measure.Retained(() => lib.Runner(task, w)));
     }
 }

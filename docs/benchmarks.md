@@ -97,6 +97,9 @@ places and are written to `out/bench/workloads/` before a run:
   compare), are listed as known deviations. A third, `value-only`, exists for one purpose: the
   baseline patcher that works on JSON and cannot keep the text (see
   [benchmark-adapters.md](benchmark-adapters.md)); its output is judged on the value it holds.
+  A fourth, `harness-rendered`, marks an edit whose lookup and new text are written by the harness
+  because the library only replaces a range of characters; the work is timed, and the cell is
+  listed as a known deviation.
 
 ### Metrics
 
@@ -114,8 +117,10 @@ places and are written to `out/bench/workloads/` before a run:
   heap reading seen and is not the same quantity as the Rust one. The exact method is in
   [benchmark-adapters.md](benchmark-adapters.md#memory), and a table never mixes methods.
 - **Memory in .NET** is not an allocator count: allocated bytes are exact, the peak is the starting
-  state plus the growth of the managed heap (see [benchmark-adapters.md](benchmark-adapters.md#memory)),
-  and the number of allocation calls is not available. Do not compare it with the Rust or Go figures.
+  state plus every byte the task requested, measured in a no-GC region so that it does not depend on the
+  collector's earlier state (see [benchmark-adapters.md](benchmark-adapters.md#memory)), `retained_bytes`
+  is what the library keeps after a run (pools, caches), and the number of allocation calls is not
+  available. Do not compare it with the Rust or Go figures.
 - **Instructions** (`--counters`): instructions executed by one iteration, counted by
   callgrind restricted to the measured region.
 
