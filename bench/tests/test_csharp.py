@@ -438,5 +438,109 @@ class Pipeline(unittest.TestCase):
         self.assertTrue((self.target / "dotnet" / "bin" / "Bench" / "release" / "OneYamlKit.Bench.CSharp.dll").exists())
 
 
+class LinkedLockCheck(unittest.TestCase):
+    """The linked build restores without the lock file, so its result is compared with it afterwards."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(CSHARP))
+        import check_linked_lock
+        cls.check = check_linked_lock
+
+    @staticmethod
+    def lock(**versions):
+        return {"version": 2, "dependencies": {"net10.0": {
+            n: {"type": "Transitive", "resolved": v} for n, v in versions.items()}}}
+
+    def write(self, name, doc):
+        path = Path(self.tmp) / name
+        path.write_text(json.dumps(doc), encoding="utf-8")
+        return str(path)
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR") or None)
+        self.tmp = self._tmp.name
+        self.addCleanup(self._tmp.cleanup)
+
+    def run_check(self, locked, linked):
+        return self.check.main(["x", self.write("a.json", locked), self.write("b.json", linked)])
+
+    def test_the_committed_lock_agrees_with_itself(self):
+        self.assertEqual(self.check.main(["x"] + [str(CSHARP / "packages.lock.json")] * 2), 0)
+
+    def test_a_package_the_checkout_adds_is_allowed(self):
+        self.assertEqual(self.run_check(self.lock(A="1.0.0"), self.lock(A="1.0.0", Own="2.0.0")), 0)
+
+    def test_a_locked_package_that_resolves_differently_or_is_missing_fails(self):
+        self.assertEqual(self.run_check(self.lock(A="1.0.0"), self.lock(A="1.1.0")), 1)
+        self.assertEqual(self.run_check(self.lock(A="1.0.0"), self.lock(B="1.0.0")), 1)
+
+    def test_a_missing_or_unreadable_linked_lock_fails(self):
+        locked = self.write("a.json", self.lock(A="1.0.0"))
+        self.assertEqual(self.check.main(["x", locked, str(Path(self.tmp) / "none.json")]), 1)
+        (Path(self.tmp) / "bad.json").write_text("{", encoding="utf-8")
+        self.assertEqual(self.check.main(["x", locked, str(Path(self.tmp) / "bad.json")]), 1)
+
+    def test_the_build_script_passes_paths_as_whole_words(self):
+        script = (CSHARP / "build.sh").read_text(encoding="utf-8")
+        self.assertNotRegex(script, r"(?m)^[^#]*\s\$link\b")
+        self.assertIn('"-p:OneYamlSrc=$src"', script)
+        self.assertIn("check_linked_lock.py", script)
+        adapter = (run.ROOT.parent / "adapters" / "oneyaml-csharp" / "build.sh").read_text(encoding="utf-8")
+        self.assertIn('-p:OneYamlSrc="$src"', adapter)
+
+
+@unittest.skipUnless(DOTNET, "the .NET SDK is not available (set DOTNET)")
+class LinkedBuildStandIns(unittest.TestCase):
+    """Stand-in libraries, in a folder whose name contains a space, through the real build script."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls._tmp = tempfile.TemporaryDirectory(prefix="linked ", dir=os.environ.get("TMPDIR") or None)
+        cls.root = Path(cls._tmp.name)
+        for name, extra in (("ordinary", ""),
+                            # Pulls a newer release of a package that a competitor brings in at 6.0.0.
+                            ("unifying", '<ItemGroup><PackageReference Include="Microsoft.Extensions.Primitives" '
+                                         'Version="8.0.0" /></ItemGroup>')):
+            d = cls.root / name / "src" / "OneYaml"
+            d.mkdir(parents=True)
+            (d / "OneYaml.csproj").write_text(
+                '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework>'
+                "<RestorePackagesWithLockFile>false</RestorePackagesWithLockFile></PropertyGroup>"
+                + extra + "</Project>", encoding="utf-8")
+            (d / "Stub.cs").write_text("namespace OneYaml; public class Stub { }\n", encoding="utf-8")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp.cleanup()
+
+    def build(self, name):
+        e = dict(os.environ, KIT_ONEYAML_CSHARP_SRC=str(self.root / name), DOTNET=DOTNET)
+        e.pop("KIT_DOTNET_ARTIFACTS", None)
+        return subprocess.run(["sh", str(CSHARP / "build.sh"), str(self.root / ("out " + name))], env=e,
+                              capture_output=True, text=True, timeout=250)
+
+    def test_a_checkout_under_a_path_with_a_space_builds_and_passes_the_lock_check(self):
+        self.assertIn(" ", str(self.root))
+        r = self.build("ordinary")
+        self.assertEqual(r.returncode, 0, r.stdout[-1500:] + r.stderr[-800:])
+        dll = self.root / "out ordinary" / "dotnet" / "bin" / "Bench" / "release" / "OneYamlKit.Bench.CSharp.dll"
+        self.assertTrue(dll.exists())
+
+    def test_a_checkout_that_moves_a_competitors_dependency_fails_the_build(self):
+        r = self.build("unifying")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("Microsoft.Extensions.Primitives", r.stderr)
+        self.assertIn("locked at 6.0.0", r.stderr)
+
+    def test_the_adapter_build_accepts_a_checkout_and_output_under_paths_with_spaces(self):
+        e = dict(os.environ, KIT_ONEYAML_CSHARP_SRC=str(self.root / "ordinary"), DOTNET=DOTNET,
+                 KIT_DOTNET_ARTIFACTS=str(self.root / "adapter out"))
+        script = run.ROOT.parent / "adapters" / "oneyaml-csharp" / "build.sh"
+        r = subprocess.run(["sh", str(script)], env=e, capture_output=True, text=True, timeout=250)
+        self.assertEqual(r.returncode, 0, r.stdout[-1500:] + r.stderr[-800:])
+        self.assertTrue((self.root / "adapter out" / "bin" / "OneYamlAdapter" / "release").is_dir())
+
+
 if __name__ == "__main__":
     unittest.main()
