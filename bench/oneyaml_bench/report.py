@@ -189,8 +189,9 @@ def svg_chart(title: str, unit_note: str, data: list[dict], theme: str, fmt, alt
         lx = x1 + 6 if r >= 1 else x0 - 6
         anchor = "start" if r >= 1 else "end"
         o.append(f'<text x="{lx:.1f}" y="{y + 15}" font-size="11" text-anchor="{anchor}">{esc(label)}</text>')
+        side = d["note"] if "note" in d else f'{fmt(d["own"])} vs {fmt(d["rival"])}'
         o.append(f'<text x="{width - right + 90}" y="{y + 15}" font-size="10" fill="{c["muted"]}" text-anchor="start">'
-                 f'{esc(fmt(d["own"]))} vs {esc(fmt(d["rival"]))}</text>')
+                 f'{esc(side)}</text>')
     o.append("</g></svg>")
     return "\n".join(o) + "\n"
 
@@ -199,6 +200,48 @@ def picture(name: str, alt: str, rel: str) -> str:
     a = html.escape(alt, quote=True)
     return (f'<picture>\n  <source media="(prefers-color-scheme: dark)" srcset="{rel}/{name}-dark.svg">\n'
             f'  <img alt="{a}" src="{rel}/{name}-light.svg">\n</picture>')
+
+
+# ---- languages without an own library ----------------------------------------------------
+
+def own_languages(cells: list[dict]) -> set[str]:
+    return {c["language"] for c in cells if c["role"] == "own"}
+
+
+def baseline_stats(rows: list[dict], metric: str) -> list[dict]:
+    """For a language with only competitors: each library's geometric mean of its value divided by the
+    best library's in the same row (1.0 is the best in every row it has a number), over the rows where
+    it has one, and the number of rows where it is the best."""
+    key = ("time", "median_ns") if metric == "time" else ("memory", "peak_bytes")
+    acc: dict[str, dict] = {}
+    for r in rows:
+        best = r["best_time" if metric == "time" else "best_memory"]
+        if best is None:
+            continue
+        b = max(best[key[0]][key[1]], 1)
+        for c in r["cells"]:
+            if c["status"] != "ok" or c["role"] == "control":
+                continue
+            a = acc.setdefault(c["library"], {"logs": [], "best": 0})
+            a["logs"].append(math.log(max(c[key[0]][key[1]], 1) / b))
+            a["best"] += 1 if c["library"] == best["library"] else 0
+    return [{"library": lib, "rows": len(a["logs"]), "best": a["best"],
+             "ratio": math.exp(sum(a["logs"]) / len(a["logs"]))} for lib, a in sorted(acc.items())]
+
+
+def baseline_chart_data(stats: list[dict]) -> list[dict]:
+    return [{"workload": s["library"], "library": s["library"], "vs": "the best in each row", "verdict": "tie",
+             "ratio": s["ratio"], "own": s["ratio"], "rival": 1.0,
+             "note": f"{s['rows']} rows, best in {s['best']}"} for s in stats]
+
+
+BASELINE_NOTE = ("Each library's value ÷ the best library's in the same row, geometric mean over its rows, "
+                 "log scale: the line at 1.0× is the best library in every row.")
+
+
+def baseline_alt(title: str, stats: list[dict]) -> str:
+    return (f"{title}. {BASELINE_NOTE} " + "; ".join(
+        f"{s['library']} {fmt_ratio(s['ratio'])} over {s['rows']} rows, best in {s['best']}" for s in stats) + ".")
 
 
 # ---- the report --------------------------------------------------------------------------
@@ -267,7 +310,9 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
              "(the fastest for time, the smallest peak for memory). A gap inside the measurement noise "
              "(at least 2% for time, 1% for memory) is a tie. Cells without a number say why.\n")
     summ = []
-    for lang in sorted({c["language"] for c in cells}):
+    own_langs = own_languages(cells)
+    base_langs = sorted({c["language"] for c in cells} - own_langs)
+    for lang in sorted(own_langs):
         lang_rows = [r for r in rows_all if r["cells"][0]["language"] == lang]
         for task in TASK_ORDER:
             tr = [r for r in lang_rows if r["task"] == task]
@@ -280,11 +325,34 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                          f"{tt['win']} / {tt['tie']} / {tt['loss']}", f"{tm['win']} / {tm['tie']} / {tm['loss']}",
                          str(tt["no-number"]), str(tt["no-rival"]),
                          "—" if worst is None else f"{worst['workload']} {fmt_ratio(worst['ratio'])} of {worst['vs']}"])
-    L.append(md_table(["Language", "Task", "Workloads", "Time win / tie / loss", "Memory win / tie / loss",
-                       "No number", "No rival", "Weakest row (our time ÷ best competitor's)"], summ))
-    L.append("")
-    L.append("*No number*: our library's answer was wrong, refused or missing. *No rival*: no competitor "
-             "produced a correct answer for that row, so there is nothing to compare with.\n")
+    if summ:
+        L.append(md_table(["Language", "Task", "Workloads", "Time win / tie / loss", "Memory win / tie / loss",
+                           "No number", "No rival", "Weakest row (our time ÷ best competitor's)"], summ))
+        L.append("")
+        L.append("*No number*: our library's answer was wrong, refused or missing. *No rival*: no competitor "
+                 "produced a correct answer for that row, so there is nothing to compare with.\n")
+    if base_langs:
+        L.append("**Languages without a library of ours** (" + ", ".join(base_langs) + "): the competitors are "
+                 "measured against each other, the baseline a library of ours has to beat. For each task, a "
+                 "library's ratio is its value ÷ the best library's in the same row (1.0× is the best), as a "
+                 "geometric mean over the rows where it has a number.\n")
+        bsum = []
+        for lang in base_langs:
+            lang_rows = [r for r in rows_all if r["cells"][0]["language"] == lang]
+            for task in TASK_ORDER:
+                tr = [r for r in lang_rows if r["task"] == task]
+                st, sm = baseline_stats(tr, "time"), baseline_stats(tr, "memory")
+                if not tr or not st:
+                    continue
+                mem = {x["library"]: x for x in sm}
+                for x in st:
+                    m = mem.get(x["library"])
+                    bsum.append([lang, task, f"`{x['library']}`", str(x["rows"]), str(x["best"]),
+                                 fmt_ratio(x["ratio"]), "—" if m is None else str(m["best"]),
+                                 "—" if m is None else fmt_ratio(m["ratio"])])
+        L.append(md_table(["Language", "Task", "Library", "Rows with a number", "Fastest in", "Time ratio",
+                           "Smallest peak in", "Peak ratio"], bsum))
+        L.append("")
 
     L.append("A time in parentheses names the accepted variant of the expected result when it is not the "
              "plain one: *merged* means the library applied `<<` merge keys (a YAML 1.1 extension; YAML 1.2 "
@@ -309,8 +377,10 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
             if not lang_rows:
                 continue
             L.append(f"### {task}, {lang}\n")
+            has_own = lang in own_langs
             for metric, title in (("time", "Time per operation"), ("memory", "Peak / allocated heap per operation")):
-                header = ["Workload", "Input"] + [f"`{l[1]}`" for l in lib_cols] + [f"Ours vs best competitor"]
+                header = ["Workload", "Input"] + [f"`{l[1]}`" for l in lib_cols] + \
+                    ["Ours vs best competitor" if has_own else "Best in the row"]
                 body = []
                 for r in lang_rows:
                     by = {c["library"]: c for c in r["cells"]}
@@ -319,6 +389,9 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                         c = by.get(l[1])
                         row.append("—" if c is None else (time_cell(c) if metric == "time" else memory_cell(c)))
                     verdicts = []
+                    if not has_own:
+                        best = r["best_time" if metric == "time" else "best_memory"]
+                        verdicts.append("—" if best is None else f"`{best['library']}`")
                     for e in r["own"]:
                         if e["status"] != "ok":
                             verdicts.append(f"no number ({e['status']})")
@@ -333,6 +406,20 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                 L.append(md_table(header, body))
                 L.append("")
             for metric, fmt, unit in (("time", fmt_time, "time"), ("memory", fmt_bytes, "peak heap")):
+                if not has_own:
+                    stats = baseline_stats(lang_rows, metric)
+                    if not stats:
+                        continue
+                    name = f"{lang}-{task}-{metric}"
+                    title = f"{task} ({lang}): {unit}, each library against the best in the row"
+                    alt = baseline_alt(title, stats)
+                    data = baseline_chart_data(stats)
+                    for theme in THEMES:
+                        (chart_dir / f"{name}-{theme}.svg").write_text(
+                            svg_chart(title, BASELINE_NOTE, data, theme, fmt, alt), encoding="utf-8")
+                    L.append(picture(name, alt, chart_dir_name))
+                    L.append("")
+                    continue
                 data = ratios(lang_rows, metric)
                 if not data:
                     continue

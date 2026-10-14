@@ -113,6 +113,9 @@ places and are written to `out/bench/workloads/` before a run:
   and says so in each cell's method (`runtime.MemStats, sampled`); its peak is the highest
   heap reading seen and is not the same quantity as the Rust one. The exact method is in
   [benchmark-adapters.md](benchmark-adapters.md#memory), and a table never mixes methods.
+- **Memory in .NET** is not an allocator count: allocated bytes are exact, the peak is the starting
+  state plus the growth of the managed heap (see [benchmark-adapters.md](benchmark-adapters.md#memory)),
+  and the number of allocation calls is not available. Do not compare it with the Rust or Go figures.
 - **Instructions** (`--counters`): instructions executed by one iteration, counted by
   callgrind restricted to the measured region.
 
@@ -131,6 +134,14 @@ fastest for time, the smallest peak for memory. Our library's ratio is its value
 by the reference's, so below 1.0 is better. A gap is a **tie** when it is smaller than
 the noise: 2% or three times the larger relative spread for time, 1% for memory.
 Otherwise it is a **win** or a **loss**. Losses are marked in the tables and the charts.
+
+### A language without a library of ours
+
+The verdicts compare our library with the best competitor. A language whose harness has no library of
+ours (the .NET harness, until there is one) has no such comparison. Its tables name the best library in
+each row instead, its summary lists for each library the geometric mean of its value divided by the best
+library's in the same row (1.0× is the best) and the number of rows it won, and its charts draw that mean
+per library. That is the baseline a library of ours has to beat.
 
 ## Correctness guard
 

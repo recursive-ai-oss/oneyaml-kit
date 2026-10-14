@@ -1,0 +1,14 @@
+<Project>
+
+  <!-- The harness builds into a directory the driver chooses (KIT_DOTNET_ARTIFACTS), never into
+       the source tree. If a build was run without it or was interrupted, the folders it left behind
+       hold generated source files, which the default globs would compile into the next build. -->
+  <PropertyGroup Condition="'$(KIT_DOTNET_ARTIFACTS)' != ''">
+    <ArtifactsPath>$(KIT_DOTNET_ARTIFACTS)</ArtifactsPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);artifacts/**;bin/**;obj/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+</Project>

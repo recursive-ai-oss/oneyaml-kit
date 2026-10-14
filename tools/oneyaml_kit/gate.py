@@ -213,6 +213,8 @@ def build_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[
                 # The self-test build has fake libraries in it, so only its tests use the tag.
                 Step("bench", "benchmark go self-test",
                      ["sh", "-c", "go vet -tags selftest ./... && go test -short -tags selftest ./..."], "bench/go"),
+                Step("bench", "benchmark .NET harness format",
+                     [dotnet, "format", "whitespace", "bench/csharp/Bench.csproj", "--verify-no-changes"]),
                 Step("bench", "benchmark quick run", [py(), "bin/bench", "run"]),
                 Step("bench", "benchmark counters",
                      [py(), "bin/bench", "check", str(out / "bench" / "results.json"),

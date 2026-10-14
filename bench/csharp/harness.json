@@ -1,0 +1,6 @@
+{
+ "format": "oneyaml-kit-bench-harness/1",
+ "language": "csharp",
+ "build": ["./build.sh", "{build}"],
+ "command": ["./run.sh", "{build}"]
+}

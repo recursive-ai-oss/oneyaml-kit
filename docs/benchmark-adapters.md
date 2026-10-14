@@ -6,7 +6,7 @@ the numbers include no process start or serialisation cost. This page is the con
 new language adds a directory and implements it; the driver, the workloads, the verdicts
 and the reports do not change.
 
-Rust is the first implementation, `bench/rust/`; Go is the second, `bench/go/`.
+Rust is the first implementation, `bench/rust/`; Go is the second, `bench/go/`; the .NET harness is `bench/csharp/`.
 
 ## Layout
 
@@ -141,7 +141,7 @@ for one run of the task, taken in a separate pass from the timed ones:
 |---|---|---|
 | Rust | `counting global allocator` | a `GlobalAlloc` wrapper counts, switched on for the one pass; exact |
 | Go | `runtime.MemStats, sampled` | The **peak** pass: build the starting state, `runtime.GC()`, then run the task once with a sampler goroutine reading `HeapAlloc` every millisecond; `peak_bytes` is the highest `HeapAlloc` seen (the reading right after the run counts too, because a task shorter than the sampling interval is not seen by the sampler) **less the `HeapAlloc` the process held before the starting state was built**, so the harness's own data is not charged to the task. `HeapAlloc` includes garbage not yet collected, so it is an upper bound on live bytes at the moment of the reading. The **allocation** figures, `allocated_bytes` (ΔTotalAlloc) and `allocations` (ΔMallocs), are `testing.B`'s `B/op` and `allocs/op` averaged over all the timed samples, because a library that keeps buffers in a pool allocates fewer bytes per run the longer the heap stays unchanged, and one cold run is not the steady state. A separate pass averages the same two counters over up to 64 runs, and the cell fails (`error`) when the number of calls differs by more than 5% or the bytes by more than 25% |
-| .NET | `GC.GetAllocatedBytesForCurrentThread` | `GC.Collect()` then read `GC.GetTotalMemory(true)` for the base; `allocated_bytes` from `GC.GetAllocatedBytesForCurrentThread()` before and after the task; `peak_bytes` from `GC.GetTotalMemory(false)` sampled by a timer on a second thread, or from GC events (`System.Diagnostics.Tracing` `GCHeapStats`); `allocations` from the `GCAllocationTick` event count or `null` if unavailable |
+| .NET | `GC.GetAllocatedBytesForCurrentThread` | `allocated_bytes` is the change in `GC.GetAllocatedBytesForCurrentThread()` over one run of the task on the measuring thread, exact. `peak_bytes` is the starting state plus the growth of the managed heap during the run. The state is the live bytes a full, blocking, compacting collection reports as promoted, read before and after the state is built (before finalizers run, so a library's array pools are in both readings or in neither). The growth is exactly `allocated_bytes` when no collection happens during the run, because nothing is freed then; when one does, it is the highest `GC.GetTotalMemory(false)` read by a second thread (and at the end of the run) over its value at the start. The size counts objects the task has dropped that the collector has not yet reclaimed, so it is the managed heap a process needs, not the live data alone. An untracked run comes first, so memory a library keeps for reuse (array pools, caches) already exists and appears in neither figure; a library that pools its buffers looks cheaper here than its resident size is. `allocations` is `null`: the runtime has no in-process count of allocation calls (`GCAllocationTick` fires once per 100 KB) |
 
 A field a runtime cannot measure is `null` and the report shows `n/a`; the method string
 says what was used. Never fill a gap with a different quantity under the same name.
@@ -205,6 +205,23 @@ task. `[IterationCleanup]` releases the states after the clock stops. Set
 `Job.WithGcServer(false).WithGcConcurrent(false)` so a background GC does not land in the
 sample, and record the job in `flags`.
 
+### .NET: how the harness uses BenchmarkDotNet
+
+`bench/csharp/` runs every cell inside its own process (the in-process toolchain, so there is no
+build per benchmark) and hands BenchmarkDotNet one class, `CellBenchmark`, whose static fields name
+the cell. Per sample BenchmarkDotNet calls `[IterationSetup]`, which builds the batch of fresh starting
+states, then runs a single invocation of `[Benchmark]`, which performs the whole batch, and then
+`[IterationCleanup]`, which releases it (`InvocationCount = 1`, `UnrollFactor = 1`, overhead evaluation
+off). The harness divides the invocation time by the batch size, so the record holds the time per task.
+The batch size is chosen the way the Rust harness chooses it: from the fastest of a few single runs, to
+fill the sample target, capped by the heap the states hold. Workstation, non-concurrent collection is set
+in the project file (an in-process job cannot change it) and recorded in `flags`. BenchmarkDotNet
+collects garbage between iterations, which also empties the array pools some libraries keep, so the set-up
+runs one untracked task first and the clock sees a program in its steady state.
+
+`harness.json` has no counters, and its `build` and `command` take the build directory as their first
+argument (`./build.sh {build}`, `./run.sh {build}`), so output goes under it and never into the source tree.
+
 ### Announcing a cell: the `begin` record
 
 The driver finds the cell that killed a process from the last `begin` line, so the harness
@@ -241,6 +258,16 @@ results is read from the build, so it is the one `go.sum` locks. The reference p
 
 The harness builds without the control libraries, which are compiled only with the `selftest`
 tag and are never in a build that produces numbers.
+
+## .NET: adding a library
+
+Implement `ILibrary` in `bench/csharp/src/Libs/` and add it to `Program.AllLibraries()`, with an exact
+version range in `Bench.csproj` (`[1.2.3]`) and a refreshed `packages.lock.json`. For each task return a
+`FnRunner<TState, TOut>(setup, run, product)` or throw `Unsupported(reason)`; the meaning of the three
+functions is the same as the Rust `runner(setup, run, product)`. An exception from `setup` or `run` is the
+library refusing the input. A library that can be driven in more than one way (a serializer, a node model,
+a syntax tree) is one `id` per way, each with its own `settings`, so a table row says which API it measured.
+`Models.cs` holds the typed models; the attributes of every library are on the same classes.
 
 ## Known deviations
 

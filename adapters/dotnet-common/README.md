@@ -25,9 +25,11 @@ bin/kit fast --adapter yamldotnet --adapter sharpyaml --adapter vyaml --adapter 
 Each adapter builds once (`build.sh`) and then runs as a prebuilt program (`run.sh` starts it with
 `exec`, so the runtime stays in the process the kit started and its memory is measured directly).
 The .NET SDK 10 is needed. `DOTNET` names the `dotnet` executable when it is not on `PATH`, and
-`KIT_DOTNET_ARTIFACTS` says where build output goes (default: an `artifacts` folder next to each
-adapter, which is ignored). A cold build of all four takes a few seconds on a developer machine;
-the whole fast set then runs in about two seconds per adapter.
+`KIT_DOTNET_ARTIFACTS` says where build output goes (default: `out/artifacts` under the repository,
+which is ignored; never an adapter folder). A folder named `artifacts`, `bin` or `obj` left inside a
+project by some other tool is not source: the project defaults exclude it, so it cannot break the next
+build. A cold build of all four takes a few seconds on a developer machine; the whole fast set then
+runs in about two seconds per adapter.
 
 ## What an adapter reports
 

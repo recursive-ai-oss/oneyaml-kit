@@ -7,4 +7,11 @@
     <ArtifactsPath>$(KIT_DOTNET_ARTIFACTS)</ArtifactsPath>
   </PropertyGroup>
 
+  <!-- Whatever a build leaves inside a project folder (an artifacts folder from a run without
+       KIT_DOTNET_ARTIFACTS, or one that was interrupted) holds generated source files. The default
+       globs would compile them into the next build as duplicates, so they are never source. -->
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);artifacts/**;bin/**;obj/**</DefaultItemExcludes>
+  </PropertyGroup>
+
 </Project>

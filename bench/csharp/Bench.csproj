@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>OneYamlKit.Bench.CSharp</AssemblyName>
+    <RootNamespace>OneYamlKit.Bench</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Optimize>true</Optimize>
+    <DebugType>portable</DebugType>
+    <!-- The libraries and the harness run under the collector most programs get: workstation, with
+         the background collector off so no background collection lands inside a sample. -->
+    <ServerGarbageCollector>false</ServerGarbageCollector>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <!-- Library code starts as fully optimised machine code: with quick JIT on, a method called only a few
+         times per sample would run as unoptimised tier-0 code for most of a short run, and what a cell
+         measures would depend on how many times the run happened to call it. Dynamic PGO needs the tier-0
+         instrumentation, so it is off with it. Both are recorded in the harness flags. -->
+    <TieredCompilationQuickJit>false</TieredCompilationQuickJit>
+    <TieredPGO>false</TieredPGO>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- Once a lock file exists the restore must match it exactly, so a version only moves on purpose. -->
+    <RestoreLockedMode Condition="Exists('$(MSBuildProjectDirectory)/packages.lock.json')">true</RestoreLockedMode>
+    <NoWarn>$(NoWarn);CS8981</NoWarn>
+  </PropertyGroup>
+
+  <!-- The self-test build adds deliberately wrong and refusing libraries (src/Libs/Control.cs). It
+       is a different assembly name so it can never be mistaken for a measurement build. -->
+  <PropertyGroup Condition="'$(Selftest)' == 'true'">
+    <DefineConstants>$(DefineConstants);SELFTEST</DefineConstants>
+    <AssemblyName>OneYamlKit.Bench.CSharp.Selftest</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="src/Libs/Control.cs" Condition="'$(Selftest)' != 'true'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The libraries under measurement and the harness, each pinned to one exact release. -->
+    <PackageReference Include="YamlDotNet" Version="[18.1.0]" />
+    <PackageReference Include="SharpYaml" Version="[3.14.0]" />
+    <PackageReference Include="VYaml" Version="[1.4.0]" />
+    <PackageReference Include="Yaml2JsonNode" Version="[3.0.1]" />
+    <PackageReference Include="JsonPatch.Net" Version="[5.0.3]" />
+    <PackageReference Include="BenchmarkDotNet" Version="[0.15.8]" />
+  </ItemGroup>
+
+</Project>
