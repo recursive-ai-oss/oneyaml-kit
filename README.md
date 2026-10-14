@@ -91,9 +91,15 @@ compared. Renames count as a deletion and an addition, so the area a file left i
 
 - The kit's code (`tools/`, `bin/`, `adapters/`, `bench/` harnesses, `tests/` and `docs/`) is
   dual licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
+  So are `.github/` and the other files under `bench/` that are not vendored workloads (the
+  `known.json` lists, the counters and so on): they are kit code and data.
 - The kit's own cases (`suites/own/`) are dedicated to the public domain under
   [CC0 1.0](suites/own/LICENSE), so other YAML projects can copy them without attribution.
+  A `licence` field in a case's provenance names the licence of the source the case was derived
+  from; the case data itself is CC0.
 - Vendored material keeps its own licence: the yaml-test-suite data in `suites/yaml-test-suite/`
-  (MIT, see its `LICENSE` and `SOURCE.md`) and the real-world benchmark files in
+  (MIT, see its `LICENSE`; `SOURCE.md` records where it came from) and the real-world benchmark files in
   `bench/workloads/real/` (each file's repository, revision and licence are in its
   `workload.json` and in `SOURCES.md`, with the licence texts in `LICENSES/`).
+  Inside that vendored directory, `corrections.json` and `SOURCE.md` are the kit's own text and
+  are CC0 like the own cases.

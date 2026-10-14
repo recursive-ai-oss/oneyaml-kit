@@ -104,8 +104,36 @@ class LicenceFiles(unittest.TestCase):
             self.assertGreater(len(text), 500, f)
             self.assertIn("](" + f + ")", readme, f)
 
-    def test_only_the_licence_texts_are_exempt_from_the_scan(self):
-        self.assertEqual(public_text.LICENSE_TEXTS - set(self.FILES), {"suites/yaml-test-suite/LICENSE"})
+    def test_the_mit_and_apache_texts_are_scanned_like_any_other_file(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(public_text.LICENSE_TEXTS, {"suites/yaml-test-suite/LICENSE"})
+        self.assertEqual(scan([root / "LICENSE-MIT", root / "LICENSE-APACHE"], root), [])
+        t = tmp()
+        try:
+            mit = t / "LICENSE-MIT"
+            mit.write_text((root / "LICENSE-MIT").read_text(encoding="utf-8") + j("see the arch", "itect\n"))
+            self.assertEqual(len(scan([mit], root=t)), 1)
+        finally:
+            shutil.rmtree(t)
+
+    def test_the_cc0_text_is_skipped_only_while_it_is_the_standard_text(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(scan([root / public_text.CC0_PATH], root), [])
+        t = tmp()
+        try:
+            cc0 = t / public_text.CC0_PATH
+            cc0.parent.mkdir(parents=True)
+            standard = (root / public_text.CC0_PATH).read_bytes()
+            cc0.write_bytes(standard)
+            self.assertEqual(scan([cc0], root=t), [])
+            # An edit of any kind brings the file back under the scan, which flags the planted text.
+            cc0.write_bytes(standard + j("see the arch", "itect\n").encode())
+            self.assertTrue(any(j("arch", "itect") in h for h in scan([cc0], root=t)))
+            # Even a harmless edit does: the unedited text contains ordinary legal words the check flags.
+            cc0.write_bytes(standard.replace(b"CC0 1.0 Universal", b"CC0 1.0  Universal"))
+            self.assertTrue(scan([cc0], root=t))
+        finally:
+            shutil.rmtree(t)
 
 
 if __name__ == "__main__":
