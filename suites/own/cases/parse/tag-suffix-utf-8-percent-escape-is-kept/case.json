@@ -1,18 +1,19 @@
 {
  "format": "oneyaml-kit-case/2",
- "id": "parse/tag-suffix-percent-escape-decodes-as-utf-8",
- "title": "A multi-byte percent-escaped tag suffix resolves to the decoded character",
+ "id": "parse/tag-suffix-utf-8-percent-escape-is-kept",
+ "title": "A percent-escaped non-ASCII tag suffix is kept as written, not decoded",
  "category": "parse",
  "origin": "spec",
  "productions": [
+  "39",
   "88",
   "99"
  ],
  "refs": [
-  "YAML 1.2.2 section 6.8.2.2",
+  "YAML 1.2.2 section 5.6",
   "YAML 1.2.2 section 6.9.1"
  ],
- "notes": "Shorthand suffixes are URI characters; the escape sequence %C3%A9 is the UTF-8 encoding of U+00E9 and the resolved tag carries the character.",
+ "notes": "Section 5.6 says a processor must not expand escaped URI characters in a tag: tag characters are preserved and compared exactly as presented. Section 6.9.1 requires expanding an escaped restricted ASCII character, but says nothing about decoding UTF-8 sequences of non-ASCII characters, so the escape stays.",
  "provenance": {
   "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
   "revision": "93e9e30",

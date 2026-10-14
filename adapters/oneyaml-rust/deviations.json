@@ -231,6 +231,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reports the position where the construct starts, not the offending character: 2:1 is the dash, the space after it (the first character that rules out a key such as -x) is at 2:2"
+  },
+  {
+   "case": "own:parse/tag-suffix-utf-8-percent-escape-is-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Decodes the percent-escaped UTF-8 sequence in a tag suffix into the character (tag:x,1:é); the specification says escaped tag characters are preserved and compared as presented"
+  },
+  {
+   "case": "own:parse/tag-suffix-utf-8-percent-escape-is-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: the resolved tag differs"
   }
  ]
 }

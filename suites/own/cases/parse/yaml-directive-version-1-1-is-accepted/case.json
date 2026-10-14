@@ -11,7 +11,7 @@
  "refs": [
   "YAML 1.2.2 section 6.8.1"
  ],
- "notes": "A 1.2 processor must accept 1.1 documents and should process a higher minor version with a warning. Neither changes the events.",
+ "notes": "A 1.2 processor must accept 1.1 documents. For a higher minor version the specification only says it should be processed with a warning, so accepting 1.3 rests on a 'should', not a 'must'. Neither changes the events.",
  "operation": {
   "type": "events"
  },
