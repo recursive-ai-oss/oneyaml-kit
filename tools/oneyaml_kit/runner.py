@@ -13,7 +13,7 @@ from pathlib import Path
 from . import compare
 from .cases import (Case, ROOT, YTS_RELEASE, SUITE_YTS, corpus_digest, current_pins, kit_version,
                     yts_revision)
-from . import vocabulary
+from . import speed, vocabulary
 from .protocol import PROTOCOL, SUPPORTED_PROTOCOLS, SubprocessAdapter
 
 RESULT_FORMAT = "oneyaml-kit-results/2"
@@ -88,10 +88,12 @@ def _load() -> float | None:
         return None
 
 
-def limits_of(case: Case) -> dict | None:
+def limits_of(case: Case, scale: float = 1.0) -> dict | None:
+    """The bounds to enforce for a case; `scale` stretches the time bound for a slow machine
+    (see speed.py). The memory bound is never scaled: it does not depend on speed."""
     e = case.expect
     if e["kind"] == "bounded":
-        return {"time_seconds": e["time_seconds"], "memory_mb": e["memory_mb"]}
+        return {"time_seconds": e["time_seconds"] * scale, "memory_mb": e["memory_mb"]}
     return None
 
 
@@ -132,6 +134,7 @@ def evaluate_case(case: Case, resp: dict, caps: set, wall_us: int, emulates: set
         if resp.get("_measure"):
             m = resp["_measure"]
             r["measured"] = {"seconds": round(m["seconds"], 3),
+                             "time_bound": m.get("time_bound", case.expect.get("time_seconds")),
                              "peak_mb": None if m["peak_mb"] is None else round(m["peak_mb"], 1)}
     if emu:
         r["emulated"] = sorted(emu)
@@ -189,8 +192,9 @@ def execute(ad, caps: set, cases: list[Case], progress=None, emulates=(),
         t = time.monotonic()
         base, _ = compare.required_caps(c, c.expect)
         # A case the adapter has not declared support for is not sent at all.
+        scale = speed.time_scale() if c.expect["kind"] == "bounded" else 1.0
         if compare.satisfied(base, caps):
-            lim = limits_of(c)
+            lim = limits_of(c, scale)
             resp = ad.run(c.id, c.op, c.input, c.args, lim) if lim else ad.run(c.id, c.op, c.input, c.args)
         else:
             resp = {"status": "skipped"}

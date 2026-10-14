@@ -334,8 +334,12 @@ public static class SelfTests
             Measure.ArtifactsPath = Path.Combine(Path.GetTempPath(), "oneyaml-bench-selftest-" + Environment.ProcessId);
             var cfg = Config.Quick with { WarmupMaxMs = 300, SettleWindowMs = 20 };
             var t = Measure.Time(slow, cfg);
-            Check(t.ItersPerSample * t.Median >= 0.5 * cfg.SampleTargetMs * 1e6,
-                  $"a sample of {t.ItersPerSample} tasks of {t.Median:F0} ns is shorter than half the {cfg.SampleTargetMs} ms target");
+            // Judged on the estimate the batch was sized from, not on the speed the samples then ran at: the JIT
+            // keeps optimising for as long as it likes (on a slow or busy machine for longer), and the test config
+            // here cuts the warm-up short. What the test is about is that the cost of building states does not
+            // shrink the batch below what the target asks for.
+            Check(t.ItersPerSample * t.CalibratedNs >= 0.9 * cfg.SampleTargetMs * 1e6,
+                  $"a batch of {t.ItersPerSample} tasks of an estimated {t.CalibratedNs:F0} ns is shorter than the {cfg.SampleTargetMs} ms target");
             Equal(t.SamplesNs.Length, cfg.MinSamples, "samples are cut only down to the minimum");
         }),
         ("the peak is the starting state plus what the task requested, whatever the collector did before", () =>
@@ -369,10 +373,26 @@ public static class SelfTests
             var keep = new List<byte[]>();
             var keeper = new FnRunner<int, int>(() => 0, _ => { keep.Add(new byte[1 << 20]); return 1; }, _ => new Product.Bytes([]));
             var tidy = new FnRunner<int, byte[]>(() => 0, _ => new byte[1 << 20], _ => new Product.Bytes([]));
-            long kept = Measure.Retained(keeper);
+            // The figure comes with the memory pass: the live heap one collection after one run, less the live heap
+            // just before it, with the starting state held (the definition every harness shares).
+            long kept = Measure.Memory(keeper).RetainedBytes;
             Check(kept >= (1 << 20), "a buffer the library holds on to is retained: " + kept);
-            Check(Measure.Retained(tidy) < 64 * 1024, "garbage is not retained: " + Measure.Retained(tidy));
+            long garbage = Measure.Memory(tidy).RetainedBytes;
+            Check(garbage < 64 * 1024, "garbage is not retained: " + garbage);
             GC.KeepAlive(keep);
+        }),
+        ("the starting state is held in both readings, so it is not what the run retained", () =>
+        {
+            // A large state that the task only reads: it is live before and after, and the run leaves nothing.
+            var big = new FnRunner<byte[], int>(() => new byte[8 << 20], s => s[0], _ => new Product.Bytes([]));
+            long kept = Measure.Memory(big).RetainedBytes;
+            Check(kept < 64 * 1024, "a state the run only reads is not retained: " + kept);
+        }),
+        ("a full run keeps at least thirty samples, and fewer are allowed only in quick mode", () =>
+        {
+            Check(Config.Full.MinSamples >= 30, "full-mode floor: " + Config.Full.MinSamples);
+            Check(Config.Full.Samples >= Config.Full.MinSamples, "full-mode target: " + Config.Full.Samples);
+            Check(Config.Quick.MinSamples < 30, "quick mode is the smoke tier");
         }),
         ("warming up under the full-mode policy reaches optimised, profiled code and the JIT then goes quiet", () =>
         {

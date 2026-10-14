@@ -54,8 +54,11 @@ otherwise. The hand-over gate has a time budget of 150 seconds (`--budget`) and 
 exceeds it, which keeps the tier inside its three-minute limit; the fix is a faster step or
 moving it to the full tier. The full gate (`bin/gate --full`) runs every area and every
 step, including the slow ones (the end-to-end benchmark pipeline tests, the quick benchmark
-run over every workload, the counter check, the plain-build lint of the Rust harness); it is
-what CI runs, and it has no budget. Each step
+run over every workload, the counter check, the plain-build lint of the Rust harness), and it
+has no budget. CI runs it as one job per area (`--areas <area>`, each on its own runner with
+its own caches), so the slowest area sets the time. A bounded case's time limit is stretched
+on a slow or busy machine (see the case format), so a verdict does not depend on how fast
+the machine is. Each step
 logs under `out/gate/` and shows its output only when it fails. Before any step the gate
 prints, and `out/gate/summary.json` records, the revision it checked: HEAD, the base and merge
 base, a fingerprint of the change against the merge base (the binary diff plus the path and

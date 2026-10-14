@@ -79,18 +79,20 @@ libraries that work on strings decode the input and encode the output inside the
 which works on bytes, does not. This is stated in each library's settings. A task that only reads its
 starting state (dump, unchanged-emit, edit-script, patch) runs every task of a batch over one shared state
 instead of building one per task: the guard runs such a task twice over one state and refuses a runner whose
-second answer differs. A batch is always as large as the sample target needs, however slow the states are to
-build; a cell whose states are slow to build takes fewer samples (never below `min_samples`) and not fewer
-tasks per sample, because a one-task batch measures the fixed cost of an invocation.
+second answer differs (the contract allows this option in every harness, on this condition). A batch is always as
+large as the sample target needs, however slow the states are to build; a cell whose states are slow to build
+takes fewer samples in quick mode, and in full mode never fewer than 30 (`min_samples`), and not fewer tasks per
+sample, because a one-task batch measures the fixed cost of an invocation.
 
 **Memory.** The memory pass runs after the timing, so it sees the optimised code a user's program runs (unoptimised
 code allocates more). `allocated_bytes` is exact (the bytes the task's own thread requested). `peak_bytes` is the
 starting state (live bytes after a full collection) plus every byte the task requested, taken in a no-GC
 region sized from an earlier run, so no collection happens during the run and the figure is the same
 whatever ran before it and however the cells are filtered or ordered. It counts garbage the collector has
-not yet freed, as the Go figure does, and is an upper bound on the live heap. `retained_bytes` is what the
-library keeps after one run with the state and the result dropped (pools of reusable arrays, caches, static
-tables), measured in a process of its own so that nothing an earlier cell filled is already there. The
+not yet freed, as the Go figure does, and is an upper bound on the live heap. `retained_bytes` is what one run leaves
+live (pools of reusable arrays, caches): the live bytes one full collection after the run, less the live bytes just
+before it, with the starting state held, the same quantity every harness reports. It has a pass of its own, after the
+others, because the collections it needs would trim the pools they use. The
 number of allocation calls is not available. Within a process the figures repeat to the byte; between processes
 the bytes a task requests move by a few percent in steps, because dynamic PGO changes how many objects the JIT
 keeps on the stack (without the profile they repeat to the byte). The definition, and what it hides, is in the adapter contract's

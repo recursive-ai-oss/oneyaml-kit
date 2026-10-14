@@ -76,6 +76,10 @@ class Pipeline(unittest.TestCase):
                 self.assertGreater(c["time"]["median_ns"], 0)
                 self.assertGreaterEqual(c["memory"]["peak_bytes"], 0)
                 self.assertGreater(c["memory"]["allocations"], 0)
+                # What a run leaves live: the one definition every harness shares, never more than the peak.
+                self.assertIsInstance(c["memory"]["retained_bytes"], int)
+                self.assertGreaterEqual(c["memory"]["retained_bytes"], 0)
+                self.assertLessEqual(c["memory"]["retained_bytes"], c["memory"]["peak_bytes"])
         # Merge keys are an extension: whichever way a library reads them is named.
         merged = {c["library"]: c.get("variant") for c in cells
                   if c["workload"] == "compose-merge-2k" and c["task"] == "generic-load"

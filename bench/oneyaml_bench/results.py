@@ -21,6 +21,9 @@ from __future__ import annotations
 
 FORMAT = "oneyaml-kit-bench/1"
 STATUSES = ("ok", "differs", "rejects", "unsupported", "unjudged", "error")
+# A full run takes at least this many samples in every cell, in every harness. Fewer are allowed
+# only in quick mode, which is a smoke run.
+MIN_FULL_SAMPLES = 30
 NON_NUMBER = ("differs", "rejects", "unsupported", "unjudged", "error")
 
 # A difference smaller than this fraction of the time is called a tie whatever the
@@ -301,6 +304,9 @@ def validate(result: dict) -> None:
                     raise ResultError(f"ok cell {ident} lacks {k}")
             if c["time"]["median_ns"] <= 0:
                 raise ResultError(f"cell {ident} has a non-positive time")
+            if run["mode"] == "full" and c["time"]["samples"] < MIN_FULL_SAMPLES:
+                raise ResultError(f"cell {ident} took {c['time']['samples']} samples in a full run "
+                                  f"(at least {MIN_FULL_SAMPLES} are required)")
             r = c["memory"].get("retained_bytes")
             if r is not None and (not isinstance(r, int) or r < 0):
                 raise ResultError(f"cell {ident} has a bad retained_bytes")

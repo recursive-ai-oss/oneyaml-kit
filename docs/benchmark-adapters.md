@@ -111,7 +111,12 @@ the driver restarts `run` with `--skip` for the cells already begun.
 2. **Convert outside the clock.** Conversion to the common JSON form is for the guard and
    never timed.
 3. **Build the starting state outside the clock** and fresh for every iteration, and release
-   it after the clock stops; drop each result inside the clock.
+   it after the clock stops; drop each result inside the clock. One exception is allowed in every
+   harness: a task that leaves its starting state unchanged (it only reads it) may run a whole batch
+   over one shared state, which keeps the set-up of a large state short. A harness that does this
+   must check it, not assume it: run the task twice over one state and compare the two answers, and
+   refuse the runner (a failed cell, never a number) when the second differs from the first. A task
+   that changes its state, an edit or a patch applied in place, always gets a state of its own.
 4. **Judge the whole answer.**
    - `typed-load` and `generic-load`: value equality, where an integer is not the float with
      the same digits and `"1"` is not `1`. For a stream, an array of documents.
@@ -129,8 +134,11 @@ the driver restarts `run` with `--skip` for the cells already begun.
    - `patch`: also apply `failing_ops` and require an error and an unchanged document.
 5. **Report, never hide.** A refusal is `rejects`, a missing capability is `unsupported`
    with its reason, a panic or exception is `rejects`. Catch what the language can catch.
-6. **Warm up and repeat.** Warm up, take at least five samples in quick mode and 30 in
-   full mode, report the median and the median absolute deviation, and keep the samples.
+6. **Warm up and repeat.** Warm up, take at least five samples in quick mode and at least 30 in
+   full mode, report the median and the median absolute deviation, and keep the samples. Fewer
+   than 30 samples are allowed only in quick mode; a cell that is slow in a full run still takes
+   30 (it takes longer, never fewer samples), and the driver refuses a full-mode result with a
+   cell below 30.
 7. **Measure memory in a separate run** so tracking never slows the timed ones, and report
    peak live bytes (including the starting state), bytes requested by the task, and the
    number of allocations.
@@ -153,16 +161,20 @@ for one run of the task, taken in a separate pass from the timed ones:
 - `allocated_bytes`: bytes the task itself requested, cumulative;
 - `allocations`: the number of allocation calls the task made;
 - `retained_bytes` (optional, `null` or absent where a runtime cannot measure it): what one run
-  leaves behind. It is the live heap one full collection after the run, less the live heap just
-  before the run with the starting state held. It shows what a library keeps in pools and caches,
+  leaves behind. It has one definition in every harness: the live heap one full collection after
+  the run, less the live heap just before the run, with the starting state held in both readings
+  and the result dropped inside the task. A starting state that the task only reads is in both
+  readings, so it is never part of what the run retained. Where memory is freed the moment it is
+  dropped (Rust), there is no collection to wait for and the two readings are the live bytes the
+  allocator reports. It shows what a library keeps in pools and caches,
   which `allocated_bytes` of the steady state hides because a pool reuses its buffers. The report
   prints it as a third figure beside the peak and the allocated bytes.
 
 | Language | `method` | How |
 |---|---|---|
-| Rust | `counting global allocator` | a `GlobalAlloc` wrapper counts, switched on for the one pass; exact |
+| Rust | `counting global allocator` | a `GlobalAlloc` wrapper counts, switched on for the one pass; exact. `retained_bytes` is the wrapper's live bytes after the run, less its live bytes just before the run, with the starting state held |
 | Go | `runtime.MemStats, sampled` | The **peak** pass: build the starting state, `runtime.GC()`, then run the task once with a sampler goroutine reading `HeapAlloc` every millisecond; `peak_bytes` is the highest `HeapAlloc` seen (the reading right after the run counts too, because a task shorter than the sampling interval is not seen by the sampler) **less the `HeapAlloc` the process held before the starting state was built**, so the harness's own data is not charged to the task. `HeapAlloc` includes garbage not yet collected, so it is an upper bound on live bytes at the moment of the reading. The **allocation** figures, `allocated_bytes` (ΔTotalAlloc) and `allocations` (ΔMallocs), are `testing.B`'s `B/op` and `allocs/op` averaged over all the timed samples, because a library that keeps buffers in a pool allocates fewer bytes per run the longer the heap stays unchanged, and one cold run is not the steady state. A separate pass averages the same two counters over up to 64 runs, and the cell fails (`error`) when the number of calls differs by more than 5% or the bytes by more than 25%. `retained_bytes` is the `HeapAlloc` after one `runtime.GC()` following the peak run, less the `HeapAlloc` just before that run |
-| .NET | `GC.GetAllocatedBytesForCurrentThread, no-GC region` | `allocated_bytes` is the change in `GC.GetAllocatedBytesForCurrentThread()` over one run of the task on the measuring thread, exact. `peak_bytes` is the starting state plus `allocated_bytes`: the run happens inside a no-GC region sized from an earlier run (and repeated in a larger one if the runtime leaves it), so no collection frees anything during it and the figure does not depend on what ran before, how full the young generation was, or which cells were selected. The state is the live bytes a full, blocking, compacting collection reports as promoted, read before and after the state is built (before finalizers run, so a library's array pools are in both readings or in neither). The figure counts objects the task has dropped that the collector has not yet reclaimed, so it is an upper bound on the managed heap a process needs, not the live data alone. The pass runs after the cell has been timed (and so warmed), because unoptimised code allocates more than the optimised code a user's program runs. Within a process the figures repeat to the byte; between processes `allocated_bytes` moves by a few percent in steps, because dynamic PGO changes how many objects the JIT keeps on the stack. An untracked run comes first, so memory a library keeps for reuse (array pools, caches) already exists and appears in neither figure; `retained_bytes` is where it shows: the live bytes left after one run with the state and the result dropped, minus those before the state was built, taken in a fresh process so that no earlier cell has filled the pools. `allocations` is `null`: the runtime has no in-process count of allocation calls (`GCAllocationTick` fires once per 100 KB) |
+| .NET | `GC.GetAllocatedBytesForCurrentThread, no-GC region` | `allocated_bytes` is the change in `GC.GetAllocatedBytesForCurrentThread()` over one run of the task on the measuring thread, exact. `peak_bytes` is the starting state plus `allocated_bytes`: the run happens inside a no-GC region sized from an earlier run (and repeated in a larger one if the runtime leaves it), so no collection frees anything during it and the figure does not depend on what ran before, how full the young generation was, or which cells were selected. The state is the live bytes a full, blocking, compacting collection reports as promoted, read before and after the state is built (before finalizers run, so a library's array pools are in both readings or in neither). The figure counts objects the task has dropped that the collector has not yet reclaimed, so it is an upper bound on the managed heap a process needs, not the live data alone. The pass runs after the cell has been timed (and so warmed), because unoptimised code allocates more than the optimised code a user's program runs. Within a process the figures repeat to the byte; between processes `allocated_bytes` moves by a few percent in steps, because dynamic PGO changes how many objects the JIT keeps on the stack. An untracked run comes first, so memory a library keeps for reuse (array pools, caches) already exists and appears in neither figure; `retained_bytes` is where it shows: its own pass, after the peak and allocation figures, takes a full collection with a fresh starting state held, runs the task once (it drops its result), takes another full collection, and reports the difference. It is a pass of its own because the collections would otherwise trim the pools the other passes need. `allocations` is `null`: the runtime has no in-process count of allocation calls (`GCAllocationTick` fires once per 100 KB) |
 
 A field a runtime cannot measure is `null` and the report shows `n/a`; the method string
 says what was used. Never fill a gap with a different quantity under the same name.
@@ -250,8 +262,8 @@ is the optimised code the profile produced. The cell records how long that took 
 
 A batch is always as large as the sample target needs. A task that only reads its starting state runs the
 whole batch over one shared state (the guard runs it twice over one state and fails a runner whose second
-answer differs); other tasks build one state each, and a cell whose states are slow to build takes fewer
-samples, never fewer tasks per sample, because a batch of one measures the fixed cost of an invocation.
+answer differs, which is the check the contract asks of every harness that shares a state); other tasks build one state each, and a cell whose states are slow to build takes longer
+(a full run never takes fewer than 30 samples), never fewer tasks per sample, because a batch of one measures the fixed cost of an invocation.
 
 Every library is handed UTF-8 bytes and returns UTF-8 bytes, which is the form of a file: a library that works
 on strings decodes and encodes inside the timed work, and one that works on bytes does not.
@@ -299,7 +311,8 @@ does not when
   does a different, larger job than a cell that starts from a parsed document.
 
 Such cells are measured and shown, marked, and listed with the reason; they never define the best.
-The variant `merged` (a library that reads YAML 1.1 merge keys while it loads) may set the reference:
+The variant `merged` (a library that reads YAML 1.1 merge keys while it loads) may set the reference
+of the rows where it occurs (`generic-load`, `dump` and `document-parse`):
 the value is the expected one apart from the merge, the work is loading the document, and a
 library that reads `<<` as an ordinary key (YAML 1.2) is measured against it honestly. It is
 labelled in every table. A row in which no cell may be the best has no best, and a library of ours

@@ -89,7 +89,8 @@ class Accepted(unittest.TestCase):
         r = one(c, ok, OUTCOME)
         self.assertEqual((r["loose"], r["strict"]), ("fail", "fail"))
         self.assertIn("only a limit error is allowed", r["detail"])
-        self.assertEqual(r["measured"], {"seconds": 0.2, "peak_mb": 5.0})
+        # With no bound in the measurement the case's own bound is the one recorded.
+        self.assertEqual(r["measured"], {"seconds": 0.2, "time_bound": 5, "peak_mb": 5.0})
         slow = {"status": "accepted", "_measure": {"seconds": 9.0, "peak_mb": 5.0}}
         self.assertIn("took 9.00 s", one(c, slow, OUTCOME)["detail"])
         big = {"status": "accepted", "_measure": {"seconds": 0.1, "peak_mb": 500.0}}

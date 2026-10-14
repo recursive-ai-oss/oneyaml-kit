@@ -183,7 +183,9 @@ class DotnetAdapters(unittest.TestCase):
         # SharpYaml and Yaml2JsonNode expand the aliases and run past the memory bound: the kit stops them.
         for n in ("sharpyaml", "yaml2jsonnode"):
             r = self.by_id[n][bomb]
-            self.assertEqual((r["loose"], r["got"]["status"]), ("fail", "memory"), n)
+            # Whether memory or time runs out first depends on the machine; both are the kit's stop.
+            self.assertEqual(r["loose"], "fail", n)
+            self.assertIn(r["got"]["status"], ("memory", "timeout"), n)
             self.assertGreaterEqual(self.res[n]["run"]["adapter_restarts"], 1, n)
         # The other two keep the aliases shared, so the adapter answers `accepted`; the case allows only a
         # limit error, so taking the input is the failure, and the measured cost is recorded.
@@ -196,7 +198,7 @@ class DotnetAdapters(unittest.TestCase):
         for n in ("yamldotnet", "vyaml"):
             r = self.by_id[n]["own:safety/deeply-nested-flow-sequences"]
             self.assertEqual((r["loose"], r["strict"]), ("pass", "pass"), n)
-            self.assertLess(r["measured"]["seconds"], 10)
+            self.assertLess(r["measured"]["seconds"], r["measured"]["time_bound"])
             self.assertIsNotNone(r["measured"]["peak_mb"])
         r = self.by_id["sharpyaml"]["own:safety/deeply-nested-flow-sequences"]
         self.assertEqual((r["loose"], r["strict"]), ("pass", "fail"))

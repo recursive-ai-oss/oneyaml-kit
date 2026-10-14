@@ -22,7 +22,8 @@ Output goes to `$KIT_OUT/bench` (default `./out/bench`, never committed):
 Build output goes to `$CARGO_TARGET_DIR`, or to `out/bench/target`: the Rust harness is built there by cargo, and the Go harness binary (`oneyaml-bench-go`) is written beside it.
 
 Quick mode is for the inner loop: short warm-up, five short samples per cell. Full mode
-is for numbers worth reading: a 300 ms warm-up and 31 samples of about 50 ms per cell, and
+is for numbers worth reading: a 300 ms warm-up and 31 samples of about 50 ms per cell (a full run never
+takes fewer than 30 samples in any cell; fewer are for quick mode only), and
 the large scaling inputs. Numbers taken on a shared machine are **smoke results** and the
 report says so (see [Publishable runs](#publishable-runs)).
 
@@ -110,7 +111,9 @@ places and are written to `out/bench/workloads/` before a run:
 - **Memory:** one extra tracked run of the task, through a counting global allocator.
   *Peak* is the high-water mark of live heap bytes, including the state the task starts
   from (for example the parsed document of an emit). *Retained*, where a harness measures it,
-  is what a run leaves live after a collection (pools and caches). *Allocated* is the bytes the task
+  is what a run leaves live: the live heap one full collection after the run, less the live heap
+  just before it, with the starting state held in both readings. It has this one definition in
+  every harness (pools and caches show up in it). *Allocated* is the bytes the task
   itself requested, and *allocations* the number of allocation calls. Stacks and memory
   mapped outside the allocator are not seen.
   The Go harness cannot count through an allocator, so it reads `runtime.MemStats` instead
@@ -143,7 +146,8 @@ Otherwise it is a **win** or a **loss**. Losses are marked in the tables and the
 
 Only cells that did the full task, as the task table specifies it, can be that best: a cell judged more
 loosely (`bytes-only`, `value-only`, `harness-rendered`) or from a library that takes and returns text
-(`state: the text`) is shown with a † and never defines it. `merged` may. The rule and the reasons are in
+(`state: the text`) is shown with a † and never defines it. `merged` may (on the rows where it occurs:
+`generic-load`, `dump` and `document-parse`), and is labelled wherever it appears. The rule and the reasons are in
 [benchmark-adapters.md](benchmark-adapters.md#what-may-be-the-best).
 
 ### A language without a library of ours

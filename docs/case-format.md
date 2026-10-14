@@ -194,6 +194,15 @@ A `bounded` case names the acceptable outcomes and the resources it may use:
   adapter process is killed if its resident memory grows past the memory bound while the
   case runs. Memory is the growth in peak resident memory over what the process held
   when the case started.
+- The time bound is stated for a reference machine. The runner measures how long a fixed
+  piece of work takes on the machine it runs on, and multiplies the bound by 1, 2, 4 or 8
+  (never less than 1, so a fast machine is held to the bound as written; at most 8). A slow or
+  busy machine, such as a two-core CI runner running several jobs at once, then does not fail a
+  library that would pass on a faster one. A bound that is still missed at the largest factor
+  is a hang or a runaway cost on any machine. The memory bound is never scaled. Each result
+  records the bound that was enforced (`measured.time_bound`). `KIT_TIME_SCALE=<number>` fixes
+  the factor and skips the measurement; the kit's own tests use it, and so can a run that must
+  be repeatable to the second.
 - Loose passes when the outcome is the accepted result or any error, inside both bounds.
   Strict also needs the named category. If memory cannot be measured on the platform
   (see the adapter protocol: the whole process tree is measured), the memory bound is not

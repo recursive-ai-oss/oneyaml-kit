@@ -203,7 +203,8 @@ about the library.
 
 ## Limits and measurement
 
-For a `bounded` case the runner uses the case's own time bound as the timeout, polls the
+For a `bounded` case the runner uses the case's own time bound (stretched for a slow machine, see the
+case format) as the timeout, polls the
 adapter's resident memory while the case runs and kills the process if its growth passes
 the case's memory bound, and afterwards reads the peak resident memory since the case
 started. **The whole process tree is measured**, not only the process the kit starts: the adapter

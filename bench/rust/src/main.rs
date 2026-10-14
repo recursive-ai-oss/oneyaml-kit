@@ -205,6 +205,7 @@ fn one_cell(lib: &dyn Library, task: Task, w: &'static Workload, cfg: &measure::
                     "peak_bytes": m.peak_bytes,
                         "allocated_bytes": m.allocated_bytes,
                         "allocations": m.allocations,
+                        "retained_bytes": m.retained_bytes,
                     }),
                 );
             }

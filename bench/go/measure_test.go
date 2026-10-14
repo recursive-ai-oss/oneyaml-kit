@@ -45,3 +45,27 @@ func TestRetainedBytesSeeWhatARunKeeps(t *testing.T) {
 		t.Errorf("a run that keeps nothing retained %d bytes", m.RetainedBytes)
 	}
 }
+
+// A state the task only reads is live before and after the run, so it is not what the run kept.
+func TestRetainedBytesDoNotCountTheHeldStartingState(t *testing.T) {
+	reads := newRunner(func() []byte { return make([]byte, 8<<20) },
+		func(s *[]byte) ([]byte, error) { return nil, nil },
+		bytesProduct)
+	m := memoryPass(reads, 3)
+	if m.RetainedBytes > 1<<20 {
+		t.Errorf("a held state retained %d bytes", m.RetainedBytes)
+	}
+	if m.PeakBytes < 8<<20 {
+		t.Errorf("the state counts in the peak: %d", m.PeakBytes)
+	}
+}
+
+// A full run keeps at least thirty samples in every cell; fewer are for quick mode only.
+func TestFullModeKeepsAtLeastThirtySamples(t *testing.T) {
+	if fullConfig().Samples < 30 {
+		t.Errorf("full mode takes %d samples", fullConfig().Samples)
+	}
+	if quickConfig().Samples >= 30 {
+		t.Error("quick mode is the smoke tier")
+	}
+}
