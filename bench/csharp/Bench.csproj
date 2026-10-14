@@ -25,6 +25,28 @@
     <NoWarn>$(NoWarn);CS8981</NoWarn>
   </PropertyGroup>
 
+  <!-- oneyaml-csharp is measured only when build.sh passes OneYamlSrc, the checkout named by
+       KIT_ONEYAML_CSHARP_SRC; without it nothing below changes and the lock file below applies as before.
+       Tools that only load the project (formatting) never link the checkout. The checkout is a project
+       reference, which the lock file cannot hold, so a build with the variable restores unlocked (the
+       competitor packages are still exact versions) and keeps its lock file in the build's obj folder. -->
+  <PropertyGroup Condition="'$(OneYamlSrc)' != ''">
+    <OneYamlProject>$([System.IO.Path]::GetFullPath('$(OneYamlSrc)/src/OneYaml/OneYaml.csproj'))</OneYamlProject>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(OneYamlProject)' != '' And Exists('$(OneYamlProject)')">
+    <DefineConstants>$(DefineConstants);ONEYAML_LINKED</DefineConstants>
+    <NuGetLockFilePath>$(MSBuildProjectExtensionsPath)packages.linked.lock.json</NuGetLockFilePath>
+    <RestoreLockedMode>false</RestoreLockedMode>
+    <OneYamlRevision Condition="'$(OneYamlRevision)' == ''">devel</OneYamlRevision>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(OneYamlProject)' != '' And Exists('$(OneYamlProject)')">
+    <ProjectReference Include="$(OneYamlProject)" />
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>OneYamlRevision</_Parameter1>
+      <_Parameter2>$(OneYamlRevision)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <!-- The self-test build adds deliberately wrong and refusing libraries (src/Libs/Control.cs). It
        is a different assembly name so it can never be mistaken for a measurement build. -->
   <PropertyGroup Condition="'$(Selftest)' == 'true'">

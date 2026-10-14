@@ -8,14 +8,16 @@ it is not on PATH).
 import base64
 import os
 import shutil
+import subprocess
+import tempfile
 import unittest
 
 import support  # noqa: F401
 from oneyaml_kit import cases as C
 from oneyaml_kit import report
 from oneyaml_kit.protocol import SubprocessAdapter
-from oneyaml_kit.runner import (ADAPTERS, load_deviations, load_manifest, run_adapter, validate_result,
-                                verify_deviations)
+from oneyaml_kit.runner import (ADAPTERS, AdapterUnavailable, load_deviations, load_manifest, run_adapter,
+                                unavailable_reason, validate_result, verify_deviations)
 
 NAMES = ("yamldotnet", "sharpyaml", "vyaml", "yaml2jsonnode")
 PINS = {"yamldotnet": "18.1.0", "sharpyaml": "3.14.0", "vyaml": "1.4.0", "yaml2jsonnode": "3.0.1"}
@@ -261,6 +263,58 @@ class DotnetAdapters(unittest.TestCase):
             self.assertEqual(m["language"], "csharp")
             self.assertNotIn("memory_limit_mb", m)  # the runtime reserves address space far beyond its use
             self.assertTrue((ADAPTERS / n / "packages.lock.json").is_file(), n)
+
+
+OPTIONAL = "oneyaml-csharp"
+VAR = "KIT_ONEYAML_CSHARP_SRC"
+
+
+class OptionalAdapter(unittest.TestCase):
+    """The oneyaml-csharp adapter links a library the kit cannot fetch, so it is built only when
+    KIT_ONEYAML_CSHARP_SRC names a checkout, and is skipped, and said to be, otherwise."""
+
+    def test_it_is_registered_as_needing_the_checkout(self):
+        m = load_manifest(OPTIONAL)
+        self.assertEqual(m["language"], "csharp")
+        self.assertEqual(m["requires_env"], [VAR])
+        self.assertEqual(load_deviations(m), [])
+        d = ADAPTERS / OPTIONAL
+        proj = (d / "OneYamlAdapter.csproj").read_text(encoding="utf-8")
+        self.assertNotIn("PackageReference", proj)  # the library is a checkout, not a package
+        self.assertIn("ONEYAML_LINKED", proj)
+        self.assertFalse((d / "packages.lock.json").exists())
+        for script in ("build.sh", "run.sh"):
+            self.assertIn("KIT_DOTNET_ARTIFACTS", (d / script).read_text(encoding="utf-8"))
+
+    def test_without_the_checkout_it_is_unavailable_and_the_run_says_so(self):
+        env = {k: v for k, v in os.environ.items() if k != VAR}
+        with self.assertRaises(AdapterUnavailable) as cm:
+            run_adapter(OPTIONAL, [], complete=False, env=env)
+        self.assertIn(VAR, str(cm.exception))
+        m = load_manifest(OPTIONAL)
+        self.assertIsNotNone(unavailable_reason(m, dict(env, **{VAR: ""})))
+        self.assertIsNone(unavailable_reason(m, dict(env, **{VAR: "/x"})))
+
+    def test_the_cli_skips_it_without_failing(self):
+        env = {k: v for k, v in os.environ.items() if k != VAR}
+        with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR") or None) as out:
+            r = subprocess.run(["python3", "bin/kit", "fast", "--adapter", OPTIONAL, "--out", out],
+                               cwd=support.ROOT, env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("SKIPPED", r.stdout)
+
+
+@unittest.skipUnless(os.environ.get("KIT_ADAPTER_TESTS") == "1" and HAVE_DOTNET and os.environ.get(VAR),
+                     f"needs KIT_ADAPTER_TESTS=1, dotnet and {VAR}")
+class OptionalAdapterRun(unittest.TestCase):
+    def test_it_builds_declares_nothing_and_fails_nothing(self):
+        res = run_adapter(OPTIONAL, C.load_all(), complete=True)
+        self.assertEqual(validate_result(res), [])
+        self.assertEqual(res["adapter"]["capabilities"], [])
+        self.assertEqual(res["adapter"]["info"]["linked"], "yes")
+        d = res["deviations"]
+        self.assertEqual((d["ok"], d["listed"], d["unlisted"], d["stale"], d["unknown"]), (True, 0, [], [], []))
+        self.assertTrue(all(r["loose"] == "unsupported" and r["strict"] == "unsupported" for r in res["cases"]))
 
 
 if __name__ == "__main__":

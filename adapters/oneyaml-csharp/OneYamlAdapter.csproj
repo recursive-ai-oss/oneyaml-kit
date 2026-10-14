@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>OneYamlKit.Adapter.OneYamlCSharp</AssemblyName>
+    <RootNamespace>OneYamlKit.Adapter.OneYamlCSharpAdapter</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <ServerGarbageCollector>false</ServerGarbageCollector>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <!-- The library is a checkout, not a package: there is nothing to pin, and a lock file would
+         record the checkout's own references and be rewritten into this folder. -->
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <!-- build.sh passes the checkout's commit; the program reports it as its version. -->
+    <OneYamlRevision Condition="'$(OneYamlRevision)' == ''">devel</OneYamlRevision>
+  </PropertyGroup>
+
+  <!-- Linked only when build.sh passes OneYamlSrc, the checkout that holds the library. A tool that
+       merely loads the project (formatting, listing) therefore neither needs the checkout nor
+       restores it, which would write its obj folder into the checkout. -->
+  <PropertyGroup>
+    <OneYamlProject Condition="'$(OneYamlSrc)' != ''">$([System.IO.Path]::GetFullPath('$(OneYamlSrc)/src/OneYaml/OneYaml.csproj'))</OneYamlProject>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OneYamlProject)' != '' And Exists('$(OneYamlProject)')">
+    <DefineConstants>$(DefineConstants);ONEYAML_LINKED</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(OneYamlProject)' != '' And Exists('$(OneYamlProject)')">
+    <ProjectReference Include="$(OneYamlProject)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../dotnet-common/Common.csproj" />
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>OneYamlRevision</_Parameter1>
+      <_Parameter2>$(OneYamlRevision)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

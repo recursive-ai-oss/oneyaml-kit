@@ -53,6 +53,10 @@ public static class Program
             new YamlDotNetLib(), new SharpYamlLib(), new SharpYamlModelLib(), new SharpYamlSyntaxLib(),
             new VYamlLib(), new Yaml2JsonNodeLib(),
         };
+#if ONEYAML_LINKED
+        libs.Add(new OneYamlReflectionLib());
+        libs.Add(new OneYamlGeneratedLib());
+#endif
 #if SELFTEST
         foreach (var k in new[] { "correct", "wrong", "reject", "crash" }) libs.Add(new ControlLib(k));
 #endif

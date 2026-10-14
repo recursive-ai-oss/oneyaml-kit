@@ -23,6 +23,21 @@ under the driver's build directory, never into this folder.
 | `vyaml` | VYaml 1.4.0 | `YamlSerializer` over UTF-8 bytes; typed models marked `[YamlObject]` so its source generator writes the formatters | typed-load, generic-load, dump |
 | `yaml2jsonnode` | Yaml2JsonNode 3.0.1, JsonPatch.Net 5.0.3 | YAML to `JsonNode` and back; System.Text.Json for typed models; RFC 6902 on the tree | typed-load, generic-load, dump, patch |
 
+Optional rows, built in only when the machine has the library:
+
+| Id | Package | API used | Tasks |
+|---|---|---|---|
+| `oneyaml-csharp` | OneYaml, from the checkout named by `KIT_ONEYAML_CSHARP_SRC` | reflection binder | none yet |
+| `oneyaml-csharp-gen` | the same | source-generated binder | none yet |
+
+`KIT_ONEYAML_CSHARP_SRC` names a checkout of oneyaml-csharp (a directory with `src/OneYaml/OneYaml.csproj`),
+linked as a project reference with its commit as the version. Without it the harness is exactly the
+competitors above and `packages.lock.json` applies. With it the restore is not locked (a project reference
+has no place in the lock file), the competitor packages are still exact versions, and the lock file that
+restore writes goes to the build's obj folder, not here. The two ids are separate rows so each path is
+compared with the strongest competitor on its own footing; both answer `unsupported` until the library has
+the entry point.
+
 A task a library cannot do is `unsupported`, with the reason: there is no lossless document in
 YamlDotNet, VYaml or Yaml2JsonNode, and no patch engine except JsonPatch.Net's. `yaml2jsonnode` is the
 patch baseline of the ecosystem and is **not lossless**: it parses the document into a JSON tree, applies
