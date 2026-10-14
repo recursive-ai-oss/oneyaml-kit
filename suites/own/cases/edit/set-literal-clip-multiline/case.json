@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-literal-clip-multiline",
+ "title": "A literal block scalar takes several lines",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "170",
+  "16"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.2",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "x\ny\nz\n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

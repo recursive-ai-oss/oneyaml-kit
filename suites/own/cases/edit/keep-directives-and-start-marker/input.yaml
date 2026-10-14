@@ -1,0 +1,5 @@
+%YAML 1.2
+%TAG !e! tag:example.com,2000:
+---
+k: !e!t v
+n: 1

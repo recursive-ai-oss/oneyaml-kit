@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/pointer-escape-order",
+ "title": "~01 is the key ~1, not the key /",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "109",
+  "19"
+ ],
+ "refs": [
+  "RFC 6901 section 3",
+  "RFC 6901 section 4",
+  "RFC 6902 section 4.3"
+ ],
+ "notes": "RFC 6901 section 4 decodes ~1 first and ~0 second, so ~01 becomes ~1 and the slash is not involved.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/~01",
+    "value": "x"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

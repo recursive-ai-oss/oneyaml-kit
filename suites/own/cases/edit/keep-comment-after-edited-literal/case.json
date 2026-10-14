@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/keep-comment-after-edited-literal",
+ "title": "A comment after a block scalar stays when the scalar is replaced",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "170",
+  "75",
+  "16",
+  "12"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.6",
+  "YAML 1.2.2 section 8.1.2",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "new\n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

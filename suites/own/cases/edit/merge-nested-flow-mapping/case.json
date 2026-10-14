@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/merge-nested-flow-mapping",
+ "title": "A merge patch adds to a nested flow mapping",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "140",
+  "10",
+  "11"
+ ],
+ "refs": [
+  "RFC 7396 section 2",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": {
+   "a": {
+    "y": 2
+   }
+  },
+  "format": "merge-patch"
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -4,6 +4,11 @@
  "title": "The core schema defines no merge key: << is an ordinary string key",
  "category": "schema",
  "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
  "refs": [
   "YAML 1.2.2 section 10.3"
  ],

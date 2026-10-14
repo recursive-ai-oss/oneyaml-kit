@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/keep-comment-at-end-of-collection",
+ "title": "A comment after the last item of a sequence stays",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "75",
+  "78",
+  "12"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.6",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/k/1",
+    "value": "c"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

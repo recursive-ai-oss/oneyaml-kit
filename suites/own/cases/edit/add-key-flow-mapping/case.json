@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-key-flow-mapping",
+ "title": "A key added to a flow mapping",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "140",
+  "10",
+  "11"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/a/y",
+    "value": 2
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

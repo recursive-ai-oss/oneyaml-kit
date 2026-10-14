@@ -4,6 +4,10 @@
  "title": "Explicit core tags select the type of a scalar that would resolve differently",
  "category": "schema",
  "origin": "spec",
+ "productions": [
+  "97",
+  "15"
+ ],
  "refs": [
   "YAML 1.2.2 section 10.3.2",
   "YAML 1.2.2 section 6.9.1"

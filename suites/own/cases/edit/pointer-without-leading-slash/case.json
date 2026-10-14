@@ -4,6 +4,11 @@
  "title": "A pointer that is neither empty nor starts with a slash is invalid",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
  "refs": [
   "RFC 6901 section 3"
  ],

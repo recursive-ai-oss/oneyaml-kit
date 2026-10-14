@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/copy-item-to-end",
+ "title": "A sequence item copied to the end",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "183",
+  "4",
+  "63"
+ ],
+ "refs": [
+  "RFC 6902 section 4.5",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "copy",
+    "from": "/0",
+    "path": "/-"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

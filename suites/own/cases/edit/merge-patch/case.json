@@ -4,6 +4,11 @@
  "title": "A merge patch deletes with null and adds new keys",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
  "refs": [
   "RFC 7396 section 2"
  ],

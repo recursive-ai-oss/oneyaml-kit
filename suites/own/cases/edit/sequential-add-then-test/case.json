@@ -1,0 +1,40 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/sequential-add-then-test",
+ "title": "A test sees the value an earlier replace set",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
+ "refs": [
+  "RFC 6902 section 5",
+  "RFC 6902 section 4.6"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": 2
+   },
+   {
+    "op": "test",
+    "path": "/a",
+    "value": 2
+   },
+   {
+    "op": "replace",
+    "path": "/b",
+    "value": 1
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

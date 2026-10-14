@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/alias-refusal-remove-anchored-with-aliases",
+ "title": "Removing an anchored node that still has aliases is refused",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "104",
+  "101",
+  "14",
+  "13"
+ ],
+ "refs": [
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/base"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "refused-alias",
+  "unchanged": true
+ }
+}

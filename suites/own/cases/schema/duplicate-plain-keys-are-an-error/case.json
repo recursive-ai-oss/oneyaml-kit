@@ -4,6 +4,11 @@
  "title": "Two equal keys in one mapping are an error",
  "category": "schema",
  "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
  "refs": [
   "YAML 1.2.2 section 3.2.1.1"
  ],

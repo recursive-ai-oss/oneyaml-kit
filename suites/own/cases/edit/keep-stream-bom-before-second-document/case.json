@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/keep-stream-bom-before-second-document",
+ "title": "A mark before a later document stays",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "3",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 9.1.1",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/b",
+    "value": 9
+   }
+  ],
+  "document": 1
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-error-missing-key",
+ "title": "Removing a key that does not exist is refused",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6902 section 4.2"
+ ],
+ "notes": "The target location must exist.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/zz"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-path",
+  "unchanged": true
+ }
+}

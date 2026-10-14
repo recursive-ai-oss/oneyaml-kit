@@ -4,6 +4,10 @@
  "title": "A block mapping entry with an empty key has a null key",
  "category": "schema",
  "origin": "spec",
+ "productions": [
+  "188",
+  "5"
+ ],
  "refs": [
   "YAML 1.2.2 section 8.2.2",
   "YAML 1.2.2 section 7.2"

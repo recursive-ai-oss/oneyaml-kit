@@ -3374,6 +3374,230 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Loads the python/object tag as a plain value and drops the tag: it neither keeps the tag nor refuses the document"
+  },
+  {
+   "case": "own:edit/alias-refusal-after-successful-edit",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-after-successful-edit",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-alias-as-sequence-item",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-alias-as-sequence-item",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-deep-below-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-deep-below-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-replace-below-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-replace-below-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-sequence-alias-item",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-sequence-alias-item",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/keep-stream-bom-before-second-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: '(Lin: 2, Col: 0, Chr: 9) - (Lin: 3, Col: 1, Chr: 15): Did not find expected <document start>.' at 3:1"
+  },
+  {
+   "case": "own:edit/keep-stream-bom-before-second-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: '(Lin: 2, Col: 0, Chr: 9) - (Lin: 3, Col: 1, Chr: 15): Did not find expected <document start>.' at 3:1"
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-after-success",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-after-success",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-boolean-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-boolean-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/set-collection-to-scalar",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/set-collection-to-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/set-flow-sequence-to-scalar",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/set-flow-sequence-to-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/set-folded-to-boolean",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: '(Lin: 0, Col: 9, Chr: 9) - (Lin: 0, Col: 9, Chr: 9): Mapping values are not allowed in this context.' at 1:10"
+  },
+  {
+   "case": "own:edit/set-folded-to-boolean",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: '(Lin: 0, Col: 9, Chr: 9) - (Lin: 0, Col: 9, Chr: 9): Mapping values are not allowed in this context.' at 1:10"
+  },
+  {
+   "case": "own:edit/set-folded-two-lines-need-an-empty-line",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'>\\n one\\n\\n two\\nb: 1\\n', got b'|\\n one\\n two\\nb: 1\\n' (lengths 23 and 22)"
+  },
+  {
+   "case": "own:edit/set-folded-two-lines-need-an-empty-line",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'>\\n one\\n\\n two\\nb: 1\\n', got b'|\\n one\\n two\\nb: 1\\n' (lengths 23 and 22)"
+  },
+  {
+   "case": "own:edit/set-literal-indentation-indicator-needed",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: '(Lin: 0, Col: 10, Chr: 10) - (Lin: 0, Col: 11, Chr: 11): While parsing a block mapping, did not find expected key.' at 1:11"
+  },
+  {
+   "case": "own:edit/set-literal-indentation-indicator-needed",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: '(Lin: 0, Col: 10, Chr: 10) - (Lin: 0, Col: 11, Chr: 11): While parsing a block mapping, did not find expected key.' at 1:11"
+  },
+  {
+   "case": "own:edit/set-literal-keep-drops-the-extra-line",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'+\\n new\\nb: 1\\n', got b'\\n new\\nb: 1\\n' (lengths 17 and 16)"
+  },
+  {
+   "case": "own:edit/set-literal-keep-drops-the-extra-line",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'+\\n new\\nb: 1\\n', got b'\\n new\\nb: 1\\n' (lengths 17 and 16)"
+  },
+  {
+   "case": "own:edit/set-literal-to-integer",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: '(Lin: 0, Col: 5, Chr: 5) - (Lin: 0, Col: 5, Chr: 5): Mapping values are not allowed in this context.' at 1:6"
+  },
+  {
+   "case": "own:edit/set-literal-to-integer",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: '(Lin: 0, Col: 5, Chr: 5) - (Lin: 0, Col: 5, Chr: 5): Mapping values are not allowed in this context.' at 1:6"
+  },
+  {
+   "case": "own:edit/set-sequence-to-scalar",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/set-sequence-to-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"
   }
  ]
 }

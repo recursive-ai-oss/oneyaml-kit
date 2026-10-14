@@ -50,7 +50,7 @@ cases are `yts:<ID>` (`yts:DK95/06` for numbered sub-cases); where the suite shi
 | `origin` | `spec`, `bug`, `fuzz`, `real-world`, `competitor` or `upstream`. |
 | `productions` | YAML 1.2.2 production numbers the case exercises, as strings. Optional; used by a future spec-coverage report. |
 | `refs` | Citations: spec sections, RFC sections, or a page of these docs. A `spec` case must have at least one. |
-| `tags` | Free labels. `slow` keeps a case out of the fast mode. |
+| `tags` | Free labels. `slow` keeps a case out of the fast mode. `judgement` marks a case whose exact bytes rest on a convention the specification leaves open, and `comment-ownership` one that depends on which node a comment belongs to; both say so in `notes`, and reports count them so a library is not failed on taste unnoticed. |
 | `notes` | Optional reasoning for a reader. |
 | `provenance` | Where the case comes from: optional `source` (URL), `revision`, `licence` and `reference` (a report, issue or paper), all non-empty strings. A `bug`, `fuzz` or `competitor` case must have `reference`; a `real-world` case must have `source` and `licence`. A case written for the kit says so in `reference`. |
 | `input` | Input file name; default `input.yaml`. |

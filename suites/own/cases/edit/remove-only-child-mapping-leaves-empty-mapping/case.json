@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-only-child-mapping-leaves-empty-mapping",
+ "title": "Removing the only key of a nested mapping leaves {}",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "140",
+  "6",
+  "63",
+  "10",
+  "11"
+ ],
+ "refs": [
+  "RFC 6902 section 4.2",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "Leaving `a:` would read back as null, not as an empty mapping, so the empty flow form is written.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/a/b"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

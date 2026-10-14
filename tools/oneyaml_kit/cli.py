@@ -127,6 +127,16 @@ def cmd_list(args) -> int:
     return 0
 
 
+def cmd_coverage(args) -> int:
+    from . import coverage
+    md = coverage.render(load_all(include_slow=True))
+    if args.out:
+        Path(args.out).write_text(md, encoding="utf-8")
+    else:
+        sys.stdout.write(md)
+    return 0
+
+
 def cmd_gate(args) -> int:
     from . import gate
     return gate.main(args)
@@ -164,6 +174,9 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(fn=cmd_public_text)
     p = sub.add_parser("list", help="count cases by suite, category and operation")
     p.set_defaults(fn=cmd_list)
+    p = sub.add_parser("coverage", help="which YAML 1.2.2 productions and error paths the own cases cover")
+    p.add_argument("--out")
+    p.set_defaults(fn=cmd_coverage)
     p = sub.add_parser("gate", help="the hand-over gate (areas a change touched) or --full")
     p.add_argument("--full", action="store_true", help="every area and adapter (what CI runs)")
     p.add_argument("--base", default="main", help="branch to compare with (default: main)")

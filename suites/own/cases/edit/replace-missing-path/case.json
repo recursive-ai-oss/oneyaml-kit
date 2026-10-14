@@ -4,6 +4,11 @@
  "title": "Replacing a path that does not exist is an error",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
  "refs": [
   "RFC 6902 section 4.3"
  ],

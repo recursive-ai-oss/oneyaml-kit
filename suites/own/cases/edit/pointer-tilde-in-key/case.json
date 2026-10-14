@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/pointer-tilde-in-key",
+ "title": "~0 in a pointer stands for a tilde in the key",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6901 section 3",
+  "RFC 6901 section 4",
+  "RFC 6902 section 4.3"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/m~0n",
+    "value": 9
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

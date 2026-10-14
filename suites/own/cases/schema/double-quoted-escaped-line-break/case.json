@@ -4,6 +4,10 @@
  "title": "A backslash before a line break joins the lines without a space",
  "category": "schema",
  "origin": "spec",
+ "productions": [
+  "109",
+  "19"
+ ],
  "refs": [
   "YAML 1.2.2 section 7.3.1",
   "YAML 1.2.2 section 6.5"

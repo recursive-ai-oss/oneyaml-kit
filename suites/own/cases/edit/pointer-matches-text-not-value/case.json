@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/pointer-matches-text-not-value",
+ "title": "Keys 1 and 1.0 are different texts: /1 addresses only the first",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6901 section 3",
+  "RFC 6901 section 4",
+  "RFC 6902 section 4.3"
+ ],
+ "notes": "A token matches a key by the key's scalar text, so there is no ambiguity here.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/1",
+    "value": "x"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

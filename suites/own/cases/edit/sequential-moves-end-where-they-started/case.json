@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/sequential-moves-end-where-they-started",
+ "title": "Two moves in one patch see each other's result",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
+ "refs": [
+  "RFC 6902 section 4.4",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "move",
+    "from": "/a",
+    "path": "/b"
+   },
+   {
+    "op": "move",
+    "from": "/b",
+    "path": "/a"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

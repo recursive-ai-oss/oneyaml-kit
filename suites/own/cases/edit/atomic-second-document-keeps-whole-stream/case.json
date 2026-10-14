@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/atomic-second-document-keeps-whole-stream",
+ "title": "A failure in a later document patch leaves the whole stream as it was",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6902 section 5"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/b",
+    "value": 9
+   },
+   {
+    "op": "replace",
+    "path": "/nope",
+    "value": 1
+   }
+  ],
+  "document": 1
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-path",
+  "unchanged": true
+ }
+}

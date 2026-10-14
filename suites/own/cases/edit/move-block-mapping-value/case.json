@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/move-block-mapping-value",
+ "title": "A nested block mapping moved to a new key",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
+ "refs": [
+  "RFC 6902 section 4.4",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "move",
+    "from": "/a",
+    "path": "/c"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

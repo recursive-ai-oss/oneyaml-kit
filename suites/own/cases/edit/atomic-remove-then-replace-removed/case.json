@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/atomic-remove-then-replace-removed",
+ "title": "A replace of something the patch removed fails and undoes the removal",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6902 section 5"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/a"
+   },
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": 5
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-path",
+  "unchanged": true
+ }
+}

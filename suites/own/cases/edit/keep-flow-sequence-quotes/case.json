@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/keep-flow-sequence-quotes",
+ "title": "Quotes of the other items in a flow sequence stay",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "137",
+  "8",
+  "9"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.1",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a/2",
+    "value": "w"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

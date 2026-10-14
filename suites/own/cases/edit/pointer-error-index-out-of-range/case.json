@@ -1,0 +1,25 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/pointer-error-index-out-of-range",
+ "title": "An index past the end finds no item",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6901 section 4"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/2",
+    "value": "y"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-path",
+  "unchanged": true
+ }
+}

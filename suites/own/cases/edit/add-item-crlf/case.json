@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-item-crlf",
+ "title": "An item added to a CRLF document ends with CRLF",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "183",
+  "28",
+  "4",
+  "63"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "New lines use the document's own line break.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/-",
+    "value": "c"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

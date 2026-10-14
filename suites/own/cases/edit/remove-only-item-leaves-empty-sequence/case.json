@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-only-item-leaves-empty-sequence",
+ "title": "Removing the only item of a nested sequence leaves []",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "183",
+  "137",
+  "4",
+  "63",
+  "8",
+  "9"
+ ],
+ "refs": [
+  "RFC 6902 section 4.2",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "Leaving `k:` would read back as null, not as an empty sequence.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/k/0"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

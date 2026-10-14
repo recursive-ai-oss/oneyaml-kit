@@ -4,6 +4,15 @@
  "title": "A write through an alias is refused because it would change every user of the anchor",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "187",
+  "101",
+  "104",
+  "6",
+  "63",
+  "13",
+  "14"
+ ],
  "refs": [
   "docs/edit-semantics.md"
  ],

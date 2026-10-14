@@ -4,6 +4,13 @@
  "title": "A plain block document is written back unchanged",
  "category": "roundtrip",
  "origin": "spec",
+ "productions": [
+  "183",
+  "187",
+  "4",
+  "63",
+  "6"
+ ],
  "refs": [
   "YAML 1.2.2 section 8.2"
  ],

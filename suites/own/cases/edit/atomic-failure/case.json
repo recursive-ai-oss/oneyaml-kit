@@ -4,6 +4,11 @@
  "title": "When a later operation fails the document is left as it was",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
  "refs": [
   "RFC 6902 section 5"
  ],

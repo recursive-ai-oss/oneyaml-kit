@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/move-onto-existing-key-replaces",
+ "title": "A move onto an existing key replaces its value",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "137",
+  "8",
+  "9"
+ ],
+ "refs": [
+  "RFC 6902 section 4.4",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "Removal then add: the add replaces the existing member (RFC 6902 section 4.1).",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "move",
+    "from": "/k/0",
+    "path": "/m"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

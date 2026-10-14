@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/merge-nested-members",
+ "title": "A merge patch merges nested mappings member by member",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
+ "refs": [
+  "RFC 7396 section 2",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "RFC 7396 appendix A example.",
+ "operation": {
+  "type": "patch",
+  "patch": {
+   "a": {
+    "b": "d",
+    "c": null
+   }
+  },
+  "format": "merge-patch"
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

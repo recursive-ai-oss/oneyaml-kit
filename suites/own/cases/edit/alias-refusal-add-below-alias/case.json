@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/alias-refusal-add-below-alias",
+ "title": "An add below an alias is refused",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "104",
+  "101",
+  "14",
+  "13"
+ ],
+ "refs": [
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/copy/y",
+    "value": 2
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "refused-alias",
+  "unchanged": true
+ }
+}

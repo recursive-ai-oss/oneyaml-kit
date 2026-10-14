@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-key-keeps-comment-for-next-entry",
+ "title": "A comment directly above the next entry stays when the entry before is removed",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "75",
+  "6",
+  "63",
+  "12"
+ ],
+ "refs": [
+  "RFC 6902 section 4.2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "comment-ownership"
+ ],
+ "notes": "Comment ownership is not fixed by the specification. The case follows the usual reading: a comment directly above an entry is about that entry, not the one before.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/b"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

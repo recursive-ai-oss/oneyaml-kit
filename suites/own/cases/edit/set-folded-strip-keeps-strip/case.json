@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-folded-strip-keeps-strip",
+ "title": "A folded strip scalar keeps its header for a value with no final line feed",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "174",
+  "164",
+  "17"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1.2",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "short"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

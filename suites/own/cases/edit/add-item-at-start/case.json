@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-item-at-start",
+ "title": "An item added at index 0 goes first",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "183",
+  "4",
+  "63"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/0",
+    "value": "z"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

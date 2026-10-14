@@ -1,0 +1,36 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-item-mapping-to-sequence-of-mappings",
+ "title": "A mapping added to a sequence of mappings is written compactly like its siblings",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "183",
+  "187",
+  "4",
+  "63",
+  "6"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "The added value is written in the style of its siblings, which is the kit's rule for inserted content (docs/edit-semantics.md). ",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/-",
+    "value": {
+     "name": "b",
+     "v": 2
+    }
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

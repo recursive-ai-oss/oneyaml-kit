@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/keep-crlf-new-literal-uses-crlf",
+ "title": "A block scalar written into a CRLF document uses CRLF",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "28",
+  "170",
+  "16"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.4",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "The document's own line break is used for new lines, so the file does not end up with mixed breaks.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml/tests/edit_regressions.rs (new_text_uses_the_documents_line_break)"
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/b",
+    "value": "x\ny\n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

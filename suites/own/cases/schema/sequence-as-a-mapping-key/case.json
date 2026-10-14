@@ -4,6 +4,10 @@
  "title": "A sequence used as a key makes a mapping with a complex key",
  "category": "schema",
  "origin": "spec",
+ "productions": [
+  "188",
+  "5"
+ ],
  "refs": [
   "YAML 1.2.2 section 8.2.2"
  ],

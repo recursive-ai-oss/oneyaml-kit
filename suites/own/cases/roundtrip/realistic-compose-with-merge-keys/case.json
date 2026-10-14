@@ -4,6 +4,15 @@
  "title": "A compose-shaped document with anchors and merge keys",
  "category": "roundtrip",
  "origin": "spec",
+ "productions": [
+  "101",
+  "104",
+  "187",
+  "13",
+  "14",
+  "6",
+  "63"
+ ],
  "refs": [
   "YAML 1.2.2 section 7.1"
  ],

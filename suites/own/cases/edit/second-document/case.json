@@ -4,6 +4,9 @@
  "title": "A patch addresses one document of a stream",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "211"
+ ],
  "refs": [
   "RFC 6902 section 4.3",
   "docs/edit-semantics.md"

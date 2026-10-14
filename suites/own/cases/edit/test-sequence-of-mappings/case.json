@@ -1,0 +1,44 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/test-sequence-of-mappings",
+ "title": "A sequence of mappings matches by value",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "183",
+  "4",
+  "63"
+ ],
+ "refs": [
+  "RFC 6902 section 4.6",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "test",
+    "path": "/k",
+    "value": [
+     {
+      "n": "a",
+      "v": 1
+     },
+     {
+      "n": "b",
+      "v": 2
+     }
+    ]
+   },
+   {
+    "op": "replace",
+    "path": "/z",
+    "value": 1
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

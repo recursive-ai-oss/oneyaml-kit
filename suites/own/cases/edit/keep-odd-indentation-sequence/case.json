@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/keep-odd-indentation-sequence",
+ "title": "A sequence with a wide dash gap keeps its layout",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "183",
+  "4",
+  "63"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.1",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/k/1",
+    "value": "z"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

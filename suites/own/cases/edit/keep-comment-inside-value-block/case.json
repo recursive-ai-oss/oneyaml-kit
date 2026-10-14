@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/keep-comment-inside-value-block",
+ "title": "A comment between a key and its block value stays",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "75",
+  "78",
+  "12"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.6",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a/b",
+    "value": 5
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

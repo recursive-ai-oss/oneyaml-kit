@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/move-item-to-end",
+ "title": "The first item of a sequence moved to the end",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "183",
+  "4",
+  "63"
+ ],
+ "refs": [
+  "RFC 6902 section 4.4",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "The item is removed first, then added at index 2 of the two that remain.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "move",
+    "from": "/0",
+    "path": "/2"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

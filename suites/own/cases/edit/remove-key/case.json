@@ -4,6 +4,11 @@
  "title": "Removing a mapping entry",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
  "refs": [
   "RFC 6902 section 4.2"
  ],

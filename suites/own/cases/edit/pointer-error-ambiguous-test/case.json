@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/pointer-error-ambiguous-test",
+ "title": "Reading through an ambiguous token is refused too",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "109",
+  "19"
+ ],
+ "refs": [
+  "docs/edit-semantics.md",
+  "RFC 6901 section 3"
+ ],
+ "notes": "A read that cannot say which key it means must not pick one.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "test",
+    "path": "/80",
+    "value": "a"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "refused-ambiguous",
+  "unchanged": true
+ }
+}

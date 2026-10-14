@@ -4,6 +4,10 @@
  "title": "Setting a literal block scalar to text that ends in a newline changes only that text",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "170",
+  "16"
+ ],
  "refs": [
   "RFC 6902 section 4.3",
   "docs/edit-semantics.md"
