@@ -3,10 +3,13 @@
 import argparse
 import contextlib
 import io
+import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -67,21 +70,34 @@ class Choosing(unittest.TestCase):
         self.assertEqual(areas(["tests/test_adapter_dotnet.py"])[0], ["core", "csharp"])
         self.assertEqual(areas(["tests/test_adapter_oneyaml_rust.py"])[0], ["core", "rust"])
 
-    def test_the_benchmark_harness_is_its_own_area(self):
-        self.assertEqual(areas(["bench/oneyaml_bench/run.py"])[0], ["core", "bench"])
-        self.assertEqual(areas(["bin/bench"])[0], ["core", "bench"])
+    def test_the_benchmark_driver_is_its_own_area_and_smoke_tests_one_harness(self):
+        for f in ("bench/oneyaml_bench/run.py", "bin/bench", "bench/workloads/real/x.yaml"):
+            got, _, why = areas([f])
+            self.assertEqual(got, ["core", "bench", "bench-rust"], f)
+            self.assertIn("smoke", why)
+        # Tests of the driver need no harness at all.
+        self.assertEqual(areas(["bench/tests/test_results.py"])[0], ["core", "bench"])
+
+    def test_a_harness_change_selects_that_harness_alone(self):
+        self.assertEqual(areas(["bench/go/measure.go"])[0], ["core", "bench-go"])
+        self.assertEqual(areas(["bench/rust/src/main.rs"])[0], ["core", "bench-rust"])
+        self.assertEqual(areas(["bench/rust/counters.json"])[0], ["core", "bench-rust"])
+        self.assertEqual(areas(["bench/csharp/Bench.csproj"])[0], ["core", "bench-csharp"])
+        self.assertEqual(areas(["bench/tests/test_pipeline_go.py"])[0], ["core", "bench-go"])
+        self.assertEqual(areas(["bench/tests/test_pipeline.py"])[0], ["core", "bench-rust"])
+        self.assertEqual(areas(["bench/tests/test_csharp.py"])[0], ["core", "bench-csharp"])
 
     def test_several_changes_add_up_in_a_stable_order(self):
         got, touched, _ = areas(["adapters/vyaml/Program.cs", "adapters/go-yaml-v2/main.go", "bench/x.py"])
-        self.assertEqual(got, ["core", "csharp", "go", "bench"])
+        self.assertEqual(got, ["core", "csharp", "go", "bench", "bench-rust"])
         self.assertEqual(touched["go"], {"go-yaml-v2"})
 
     def test_the_full_mode_covers_every_area_and_every_adapter(self):
         got, touched, _ = areas([], full=True)
         ads = gate.adapter_dirs(ROOT)
         self.assertEqual(got[0], "core")
-        self.assertEqual(got[-1], "bench")
-        self.assertEqual(set(got) - {"core", "bench"}, {a["language"] for a in ads.values()})
+        self.assertEqual(got[-len(gate.AREA_NAMES_BENCH):], gate.AREA_NAMES_BENCH)
+        self.assertEqual(set(got) - {"core", *gate.AREA_NAMES_BENCH}, {a["language"] for a in ads.values()})
         steps = gate.build_steps(got, touched, ROOT, OUT)
         text = "\n".join(f"{s.name} {' '.join(s.argv)}" for s in steps)
         for name, a in ads.items():
@@ -92,6 +108,10 @@ class Choosing(unittest.TestCase):
             elif a["language"] == "rust":
                 self.assertIn(f"{name}: clippy", text, name)
         self.assertIn("benchmark quick run", text)
+        for step in ("benchmark counters", "benchmark clippy", "benchmark self-test clippy", "benchmark self-test",
+                     "benchmark unit tests", "benchmark fmt", "benchmark go: gofmt, vet, test",
+                     "benchmark go self-test", "benchmark .NET harness format"):
+            self.assertIn(step, text)
         self.assertIn("public text", text)
 
     def test_every_language_is_either_tested_or_run_by_name(self):
@@ -259,6 +279,154 @@ class Changes(unittest.TestCase):
         self.git("add", ".")
         self.git("commit", "-q", "-m", "base")
         self.assertIsNone(gate.changed_files(self.t, "no-such-branch"))
+
+
+ALL = ["core", *sorted({a["language"] for a in gate.adapter_dirs(ROOT).values()}), *gate.AREA_NAMES_BENCH]
+
+
+def plan(full, areas=ALL):
+    return gate.build_steps(areas, {a: None for a in areas}, ROOT, OUT, full=full)
+
+
+def ident(s):
+    return (s.area, s.name, tuple(s.argv), s.cwd)
+
+
+class Tiers(unittest.TestCase):
+    def test_the_hand_over_tier_leaves_the_slow_steps_to_the_full_tier(self):
+        fast = {s.name for s in plan(False)}
+        for slow in ("benchmark quick run", "benchmark counters", "benchmark clippy",
+                     "benchmark rust pipeline tests", "benchmark go pipeline tests",
+                     "benchmark csharp pipeline tests"):
+            self.assertNotIn(slow, fast)
+        for quick in ("benchmark unit tests", "benchmark rust smoke run", "benchmark self-test",
+                      "benchmark go smoke run", "benchmark csharp smoke run", "benchmark .NET harness files"):
+            self.assertIn(quick, fast)
+
+    def test_every_moved_step_still_runs_in_the_full_tier(self):
+        full = {s.name for s in plan(True)}
+        for moved in ("benchmark quick run", "benchmark counters", "benchmark clippy",
+                      "benchmark rust pipeline tests", "benchmark go pipeline tests",
+                      "benchmark csharp pipeline tests", "benchmark self-test clippy", "benchmark self-test"):
+            self.assertIn(moved, full)
+        # The hand-over tier's only extras are quick stand-ins that the full tier's slow steps subsume.
+        extra = {s.name for s in plan(False)} - full
+        self.assertEqual(extra, {"benchmark rust smoke run", "benchmark go smoke run",
+                                 "benchmark csharp smoke run", "benchmark .NET harness files"})
+
+    def test_the_full_tier_runs_every_hand_over_step_that_is_not_a_stand_in(self):
+        full = {ident(s) for s in plan(True)}
+        for s in plan(False):
+            if s.tier == "both":
+                self.assertIn(ident(s), full, s.name)
+            else:
+                self.assertEqual(s.tier, "hand-over", s.name)
+
+    def test_the_full_tier_runs_every_benchmark_test_module(self):
+        mods = sorted(p.stem for p in (ROOT / "bench" / "tests").glob("test_*.py"))
+        steps = plan(True)
+        unit = next(s for s in steps if s.name == "benchmark unit tests")
+        run_files = {m + ".py" for m in unit.argv[unit.argv.index("-q") + 1:]}
+        for s in steps:
+            if s.name.endswith("pipeline tests"):
+                run_files.add(s.argv[s.argv.index("-p") + 1])
+        self.assertEqual(run_files, {m + ".py" for m in mods})
+
+    def test_the_slow_test_rule_matches_files_and_pipeline_modules(self):
+        mods = [p.stem for p in (ROOT / "bench" / "tests").glob("test_*.py")]
+        for frag in gate.BENCH_SLOW_TESTS:
+            self.assertTrue(any(frag in m for m in mods), f"stale entry {frag!r}")
+        slow = {m + ".py" for m in mods if any(f in m for f in gate.BENCH_SLOW_TESTS)}
+        self.assertEqual(slow, set(gate.BENCH_PIPELINE_TESTS.values()))
+        self.assertEqual(set(gate.BENCH_PIPELINE_TESTS), set(gate.BENCH_LANGS))
+
+    def test_a_harness_area_builds_only_its_own_language(self):
+        tools = {"bench-go": "go", "bench-rust": "cargo", "bench-csharp": "dotnet"}
+        for area, tool in tools.items():
+            for s in plan(False, [area]):
+                exe = os.path.basename(s.argv[0])
+                others = {t for a, t in tools.items() if a != area}
+                self.assertNotIn(exe, others, f"{area}: {s.name}")
+                self.assertFalse(any(f"bench/{o}" in s.cwd for o in ("rust", "go", "csharp") if o != area[6:]), s.name)
+                if "--lang" in s.argv:
+                    self.assertEqual(s.argv[s.argv.index("--lang") + 1], area[6:])
+
+    def test_areas_that_run_side_by_side_build_into_separate_directories(self):
+        dirs = {}
+        for s in plan(False, gate.AREA_NAMES_BENCH):
+            if s.name.endswith("smoke run"):
+                dirs[s.area] = s.env["CARGO_TARGET_DIR"]
+        self.assertEqual(len(dirs), len(gate.BENCH_LANGS))
+        self.assertEqual(len(set(dirs.values())), len(dirs))
+
+    def test_the_smoke_run_uses_small_workloads_and_a_typed_one(self):
+        for w in gate.SMOKE_WORKLOADS:
+            self.assertIn(w, workload_ids())
+        self.assertTrue(any(w == "gha-workflow" for w in gate.SMOKE_WORKLOADS))
+
+
+def workload_ids():
+    sys.path.insert(0, str(ROOT / "bench"))
+    from oneyaml_bench import workloads
+    return set(workloads.universe(("quick",)))
+
+
+class Budget(unittest.TestCase):
+    def results(self):
+        return [{"area": "go", "name": "slow", "seconds": 90.0}, {"area": "core", "name": "fast", "seconds": 1.0}]
+
+    def test_a_run_over_budget_is_reported_with_its_slowest_steps(self):
+        msg = gate.over_budget(200.0, 150, self.results())
+        self.assertIn("200 s", msg)
+        self.assertIn("budget of 150 s", msg)
+        self.assertIn("go: slow (90 s)", msg)
+        self.assertIsNone(gate.over_budget(150.0, 150, self.results()))
+        self.assertIsNone(gate.over_budget(9999.0, None, self.results()))
+
+    def test_the_default_budget_leaves_a_margin_under_three_minutes(self):
+        self.assertLessEqual(gate.BUDGET_SECONDS, 150)
+
+    def run_fake(self, full, budget, jobs=1, nap=0.3):
+        steps = [gate.Step(a, f"nap {a}", [gate.py(), "-c", f"import time; time.sleep({nap})"]) for a in ("go", "rust")]
+        args = argparse.Namespace(full=full, base="main", areas="go,rust", without_core=True, jobs=jobs, plan=False,
+                                  budget=budget, out=str(Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))))
+        self.addCleanup(shutil.rmtree, args.out)
+        buf, err = io.StringIO(), io.StringIO()
+        old = gate.build_steps
+        gate.build_steps = lambda *a, **k: steps
+        try:
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                t0 = time.monotonic()
+                rc = gate.main(args)
+                wall = time.monotonic() - t0
+        finally:
+            gate.build_steps = old
+        summary = json.loads((Path(args.out) / "gate" / "summary.json").read_text())
+        return rc, buf.getvalue(), err.getvalue(), wall, summary
+
+    def test_the_hand_over_gate_fails_when_it_exceeds_its_budget(self):
+        rc, out, err, _, summary = self.run_fake(full=False, budget=0.1)
+        self.assertEqual(rc, 1)
+        self.assertIn("over its budget", err)
+        self.assertIn("wall-clock", out)
+        self.assertTrue(summary["over_budget"])
+        rc, out, err, _, summary = self.run_fake(full=False, budget=60)
+        self.assertEqual(rc, 0)
+        self.assertFalse(summary["over_budget"])
+
+    def test_the_full_gate_has_no_budget(self):
+        rc, out, err, _, summary = self.run_fake(full=True, budget=0.1)
+        self.assertEqual(rc, 0)
+        self.assertIsNone(summary["budget_seconds"])
+
+    def test_areas_run_side_by_side_by_default_and_one_at_a_time_on_request(self):
+        rc, _, _, wall_one, _ = self.run_fake(full=False, budget=60, jobs=1)
+        rc, _, _, wall_two, summary = self.run_fake(full=False, budget=60, jobs=2)
+        self.assertLess(wall_two, wall_one - 0.2)
+        self.assertEqual(summary["jobs"], 2)
+        _, _, _, _, summary = self.run_fake(full=False, budget=60, jobs=0)
+        self.assertEqual(summary["jobs"], gate.default_jobs())
+        self.assertTrue(1 <= gate.default_jobs() <= gate.DEFAULT_JOBS)
 
 
 if __name__ == "__main__":
