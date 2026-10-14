@@ -5,9 +5,7 @@
  "category": "edit",
  "origin": "spec",
  "productions": [
-  "140",
-  "10",
-  "11"
+  "140"
  ],
  "refs": [
   "RFC 6902 section 4.1",
@@ -26,5 +24,9 @@
  "expect": {
   "kind": "bytes",
   "file": "expected.yaml"
- }
+ },
+ "tags": [
+  "convention"
+ ],
+ "notes": "The new member goes at the end of its mapping, which is a kit convention (docs/edit-semantics.md); RFC 6902 does not fix the position. How a member is inserted into a flow collection (`[x]`, `{k: v}`, `, ` separators) is a kit convention (docs/edit-semantics.md)."
 }

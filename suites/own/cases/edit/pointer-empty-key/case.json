@@ -5,8 +5,7 @@
  "category": "edit",
  "origin": "spec",
  "productions": [
-  "109",
-  "19"
+  "109"
  ],
  "refs": [
   "RFC 6901 section 3",

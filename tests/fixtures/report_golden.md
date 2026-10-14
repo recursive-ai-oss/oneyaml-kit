@@ -23,6 +23,10 @@ Kit version 9.9.9 (corpus digest `0123456789ab`). Scored baseline: yaml-test-sui
   the library has none (for example discarding a half-applied patch). They are
   counted in Loose and Strict, and counted again here, so that adapter behaviour is
   never read as library behaviour. A library with a native implementation has none.
+- **Convention cases**: a case tagged `convention` has exact bytes that rest on a rule the
+  kit chose where the specification leaves a choice (for example where a new mapping key
+  goes). Each adapter's section counts them apart, so a loss on one of them can be read as
+  a difference of taste rather than of correctness.
 - **Strict, corrected**: strict, judged against the kit's corrected expectation for
   the cases where the upstream one is wrong. Corrections and their reasons are in
   `suites/yaml-test-suite/corrections.json`.

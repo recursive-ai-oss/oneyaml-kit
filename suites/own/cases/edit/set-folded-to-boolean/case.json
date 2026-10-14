@@ -5,8 +5,7 @@
  "category": "edit",
  "origin": "spec",
  "productions": [
-  "174",
-  "17"
+  "174"
  ],
  "refs": [
   "YAML 1.2.2 section 8.1.3",

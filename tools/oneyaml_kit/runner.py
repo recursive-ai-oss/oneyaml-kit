@@ -135,6 +135,9 @@ def evaluate_case(case: Case, resp: dict, caps: set, wall_us: int, emulates: set
                              "peak_mb": None if m["peak_mb"] is None else round(m["peak_mb"], 1)}
     if emu:
         r["emulated"] = sorted(emu)
+    if case.suite == "own" and case.tags:
+        # Carried into the record so a report can show which verdicts rest on a convention.
+        r["tags"] = sorted(case.tags)
     if case.correction and r["loose"] != compare.UNSUPPORTED:
         cv = compare.evaluate(case, case.correction["expect"], resp, caps)
         r["corrected"] = {"loose": cv["loose"], "strict": cv["strict"], "detail": cv["detail"]}
@@ -307,6 +310,9 @@ def validate_result(res: dict) -> list[str]:
         if r.get("id") in seen:
             problems.append(f"duplicate case {r['id']}")
         seen.add(r.get("id"))
+        t = r.get("tags", [])
+        if not isinstance(t, list) or not all(isinstance(x, str) for x in t):
+            problems.append(f"case {r.get('id')}: tags must be a list of strings")
         for m in MODES:
             if r.get(m) not in verdicts:
                 problems.append(f"case {r.get('id')}: bad {m} verdict {r.get(m)!r}")

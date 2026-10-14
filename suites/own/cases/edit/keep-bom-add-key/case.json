@@ -5,7 +5,8 @@
  "category": "edit",
  "origin": "fuzz",
  "productions": [
-  "3"
+  "3",
+  "202"
  ],
  "refs": [
   "YAML 1.2.2 section 5.2",
@@ -31,5 +32,9 @@
  "expect": {
   "kind": "bytes",
   "file": "expected.yaml"
- }
+ },
+ "tags": [
+  "convention"
+ ],
+ "notes": "The new member goes at the end of its mapping, which is a kit convention (docs/edit-semantics.md); RFC 6902 does not fix the position."
 }

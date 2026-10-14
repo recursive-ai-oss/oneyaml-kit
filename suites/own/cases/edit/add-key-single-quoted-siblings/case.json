@@ -6,16 +6,13 @@
  "origin": "spec",
  "productions": [
   "187",
-  "120",
-  "6",
-  "63",
-  "18"
+  "120"
  ],
  "refs": [
   "RFC 6902 section 4.1",
   "docs/edit-semantics.md"
  ],
- "notes": "The added value is written in the style of its siblings, which is the kit's rule for inserted content (docs/edit-semantics.md). ",
+ "notes": "The added value is written in the style of its siblings (docs/edit-semantics.md).  The new member goes at the end of its mapping, which is a kit convention (docs/edit-semantics.md); RFC 6902 does not fix the position.",
  "operation": {
   "type": "patch",
   "patch": [
@@ -29,5 +26,8 @@
  "expect": {
   "kind": "bytes",
   "file": "expected.yaml"
- }
+ },
+ "tags": [
+  "convention"
+ ]
 }

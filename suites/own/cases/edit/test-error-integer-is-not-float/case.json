@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/test-error-integer-is-not-float",
+ "title": "The integer 1 does not equal the float 1.0",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "131"
+ ],
+ "refs": [
+  "RFC 6902 section 4.6",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "The core schema gives 1 and 1.0 different types (integer and float), so they are not equal.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "test",
+    "path": "/a",
+    "value": 1.0
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-test",
+  "unchanged": true
+ }
+}

@@ -28,6 +28,10 @@ CRITERIA = """\
   the library has none (for example discarding a half-applied patch). They are
   counted in Loose and Strict, and counted again here, so that adapter behaviour is
   never read as library behaviour. A library with a native implementation has none.
+- **Convention cases**: a case tagged `convention` has exact bytes that rest on a rule the
+  kit chose where the specification leaves a choice (for example where a new mapping key
+  goes). Each adapter's section counts them apart, so a loss on one of them can be read as
+  a difference of taste rather than of correctness.
 - **Strict, corrected**: strict, judged against the kit's corrected expectation for
   the cases where the upstream one is wrong. Corrections and their reasons are in
   `suites/yaml-test-suite/corrections.json`.
@@ -53,6 +57,40 @@ def _count(rows: list[dict], mode: str, src=None) -> int:
         v = r if src is None else r.get("corrected", r)
         n += v[mode] == compare.PASS
     return n
+
+
+CONVENTION = "convention"
+
+
+def _convention_section(cases: list[dict]) -> list[str]:
+    """Verdicts on cases whose exact bytes rest on a kit convention, per group.
+
+    The main table counts them with everything else; this one lets a reader subtract them,
+    so a library is never failed on taste unnoticed.
+    """
+    rows = [r for r in cases if CONVENTION in r.get("tags", [])]
+    if not rows:
+        return []
+    groups: "OrderedDict[str, list]" = OrderedDict()
+    for r in sorted(rows, key=lambda r: (group_of(r), r["id"])):
+        groups.setdefault(group_of(r), []).append(r)
+    out = ["Cases whose expected bytes rest on a kit convention (the specification does not decide "
+           "them; see `docs/edit-semantics.md`). They are counted in the table above too.", "",
+           "| Group | Cases | Loose pass | Loose fail | Strict pass | Strict fail | Unsupported |",
+           "|---|---:|---:|---:|---:|---:|---:|"]
+
+    def line(name, rs):
+        c = lambda m, v: sum(1 for r in rs if r[m] == v)
+        unsup = sum(1 for r in rs if r["loose"] == compare.UNSUPPORTED)
+        return (f"| {name} | {len(rs)} | {c('loose', compare.PASS)} | {c('loose', compare.FAIL)} "
+                f"| {c('strict', compare.PASS)} | {c('strict', compare.FAIL)} | {unsup} |")
+
+    for name, rs in groups.items():
+        out.append(line(name, rs))
+    if len(groups) > 1:
+        out.append(line("**all**", rows))
+    out.append("")
+    return out
 
 
 def render_one(res: dict) -> str:
@@ -93,6 +131,7 @@ def render_one(res: dict) -> str:
         lines.append(row("**yaml-test-suite · events · all 402**" if len(yts) == 402
                          else "**yaml-test-suite · events · all**", yts))
     lines.append("")
+    lines += _convention_section(res["cases"])
     d = res["deviations"]
     entries = d.get("entries", [])
     lines.append(f"Known deviations listed: {len(entries)}. "

@@ -5,8 +5,7 @@
  "category": "parse",
  "origin": "spec",
  "productions": [
-  "75",
-  "12"
+  "75"
  ],
  "refs": [
   "YAML 1.2.2 section 6.6",

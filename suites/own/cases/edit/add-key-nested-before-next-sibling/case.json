@@ -5,15 +5,13 @@
  "category": "edit",
  "origin": "spec",
  "productions": [
-  "187",
-  "6",
-  "63"
+  "187"
  ],
  "refs": [
   "RFC 6902 section 4.1",
   "docs/edit-semantics.md"
  ],
- "notes": "RFC 6902 leaves the position of a new member open; the end of its mapping is used.",
+ "notes": "RFC 6902 leaves the position of a new member open; the kit convention is the end of its mapping. The new member goes at the end of its mapping, which is a kit convention (docs/edit-semantics.md); RFC 6902 does not fix the position.",
  "operation": {
   "type": "patch",
   "patch": [
@@ -27,5 +25,8 @@
  "expect": {
   "kind": "bytes",
   "file": "expected.yaml"
- }
+ },
+ "tags": [
+  "convention"
+ ]
 }

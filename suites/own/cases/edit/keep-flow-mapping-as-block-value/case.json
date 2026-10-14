@@ -5,9 +5,7 @@
  "category": "edit",
  "origin": "spec",
  "productions": [
-  "140",
-  "10",
-  "11"
+  "140"
  ],
  "refs": [
   "YAML 1.2.2 section 7.4.2",

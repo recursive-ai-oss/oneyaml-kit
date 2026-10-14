@@ -5,18 +5,16 @@
  "category": "edit",
  "origin": "spec",
  "productions": [
-  "183",
-  "4",
-  "63"
+  "183"
  ],
  "refs": [
   "RFC 6902 section 4.1",
   "docs/edit-semantics.md"
  ],
  "tags": [
-  "judgement"
+  "convention"
  ],
- "notes": "A new sequence under a key copies the indentation of a sibling sequence. The specification allows both layouts, so this follows the document's own habit. ",
+ "notes": "This case rests on a kit convention, not on the specification: a new sequence under a key copies the indentation of a sibling sequence. YAML allows both layouts.  The new member goes at the end of its mapping, which is a kit convention (docs/edit-semantics.md); RFC 6902 does not fix the position.",
  "operation": {
   "type": "patch",
   "patch": [

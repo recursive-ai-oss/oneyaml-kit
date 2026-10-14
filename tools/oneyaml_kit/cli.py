@@ -174,7 +174,8 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(fn=cmd_public_text)
     p = sub.add_parser("list", help="count cases by suite, category and operation")
     p.set_defaults(fn=cmd_list)
-    p = sub.add_parser("coverage", help="which YAML 1.2.2 productions and error paths the own cases cover")
+    p = sub.add_parser("coverage", help="which YAML 1.2.2 productions the own cases name (names, not coverage) "
+                                        "and which error categories they expect")
     p.add_argument("--out")
     p.set_defaults(fn=cmd_coverage)
     p = sub.add_parser("gate", help="the hand-over gate (areas a change touched) or --full")

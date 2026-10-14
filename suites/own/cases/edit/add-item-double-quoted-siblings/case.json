@@ -6,16 +6,13 @@
  "origin": "spec",
  "productions": [
   "183",
-  "109",
-  "4",
-  "63",
-  "19"
+  "109"
  ],
  "refs": [
   "RFC 6902 section 4.1",
   "docs/edit-semantics.md"
  ],
- "notes": "The added value is written in the style of its siblings, which is the kit's rule for inserted content (docs/edit-semantics.md). ",
+ "notes": "The added value is written in the style of its siblings (docs/edit-semantics.md). ",
  "operation": {
   "type": "patch",
   "patch": [

@@ -5,8 +5,7 @@
  "category": "schema",
  "origin": "spec",
  "productions": [
-  "99",
-  "15"
+  "99"
  ],
  "refs": [
   "YAML 1.2.2 section 6.9.1",

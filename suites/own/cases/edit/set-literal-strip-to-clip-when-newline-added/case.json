@@ -6,8 +6,7 @@
  "origin": "spec",
  "productions": [
   "170",
-  "164",
-  "16"
+  "164"
  ],
  "refs": [
   "YAML 1.2.2 section 8.1.1.2",
@@ -26,5 +25,9 @@
  "expect": {
   "kind": "bytes",
   "file": "expected.yaml"
- }
+ },
+ "tags": [
+  "convention"
+ ],
+ "notes": "That a value gaining exactly one final line feed moves strip to clip is a kit convention (docs/edit-semantics.md); the header is the only change."
 }

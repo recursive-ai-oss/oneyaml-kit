@@ -363,14 +363,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Rejects valid input: While scanning a simple key, could not find expected ':'."
+   "reason": "The library refused the patch: While scanning a simple key, could not find expected ':'."
   },
   {
    "case": "own:roundtrip/line-separator-characters-in-content",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Rejects valid input: While scanning a simple key, could not find expected ':'."
+   "reason": "The library refused the patch: While scanning a simple key, could not find expected ':'."
   },
   {
    "case": "own:safety/alias-byte-expansion-bomb",
@@ -3450,14 +3450,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Rejects valid input: '(Lin: 2, Col: 0, Chr: 9) - (Lin: 3, Col: 1, Chr: 15): Did not find expected <document start>.' at 3:1"
+   "reason": "The library refused the patch: '(Lin: 2, Col: 0, Chr: 9) - (Lin: 3, Col: 1, Chr: 15): Did not find expected <document start>.' at 3:1"
   },
   {
    "case": "own:edit/keep-stream-bom-before-second-document",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Rejects valid input: '(Lin: 2, Col: 0, Chr: 9) - (Lin: 3, Col: 1, Chr: 15): Did not find expected <document start>.' at 3:1"
+   "reason": "The library refused the patch: '(Lin: 2, Col: 0, Chr: 9) - (Lin: 3, Col: 1, Chr: 15): Did not find expected <document start>.' at 3:1"
   },
   {
    "case": "own:edit/pointer-error-ambiguous-after-success",
@@ -3520,14 +3520,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Rejects valid input: '(Lin: 0, Col: 9, Chr: 9) - (Lin: 0, Col: 9, Chr: 9): Mapping values are not allowed in this context.' at 1:10"
+   "reason": "The library refused the patch: '(Lin: 0, Col: 9, Chr: 9) - (Lin: 0, Col: 9, Chr: 9): Mapping values are not allowed in this context.' at 1:10"
   },
   {
    "case": "own:edit/set-folded-to-boolean",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Rejects valid input: '(Lin: 0, Col: 9, Chr: 9) - (Lin: 0, Col: 9, Chr: 9): Mapping values are not allowed in this context.' at 1:10"
+   "reason": "The library refused the patch: '(Lin: 0, Col: 9, Chr: 9) - (Lin: 0, Col: 9, Chr: 9): Mapping values are not allowed in this context.' at 1:10"
   },
   {
    "case": "own:edit/set-folded-two-lines-need-an-empty-line",
@@ -3548,14 +3548,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Rejects valid input: '(Lin: 0, Col: 10, Chr: 10) - (Lin: 0, Col: 11, Chr: 11): While parsing a block mapping, did not find expected key.' at 1:11"
+   "reason": "The library refused the patch: '(Lin: 0, Col: 10, Chr: 10) - (Lin: 0, Col: 11, Chr: 11): While parsing a block mapping, did not find expected key.' at 1:11"
   },
   {
    "case": "own:edit/set-literal-indentation-indicator-needed",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Rejects valid input: '(Lin: 0, Col: 10, Chr: 10) - (Lin: 0, Col: 11, Chr: 11): While parsing a block mapping, did not find expected key.' at 1:11"
+   "reason": "The library refused the patch: '(Lin: 0, Col: 10, Chr: 10) - (Lin: 0, Col: 11, Chr: 11): While parsing a block mapping, did not find expected key.' at 1:11"
   },
   {
    "case": "own:edit/set-literal-keep-drops-the-extra-line",
@@ -3576,14 +3576,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Rejects valid input: '(Lin: 0, Col: 5, Chr: 5) - (Lin: 0, Col: 5, Chr: 5): Mapping values are not allowed in this context.' at 1:6"
+   "reason": "The library refused the patch: '(Lin: 0, Col: 5, Chr: 5) - (Lin: 0, Col: 5, Chr: 5): Mapping values are not allowed in this context.' at 1:6"
   },
   {
    "case": "own:edit/set-literal-to-integer",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Rejects valid input: '(Lin: 0, Col: 5, Chr: 5) - (Lin: 0, Col: 5, Chr: 5): Mapping values are not allowed in this context.' at 1:6"
+   "reason": "The library refused the patch: '(Lin: 0, Col: 5, Chr: 5) - (Lin: 0, Col: 5, Chr: 5): Mapping values are not allowed in this context.' at 1:6"
   },
   {
    "case": "own:edit/set-sequence-to-scalar",

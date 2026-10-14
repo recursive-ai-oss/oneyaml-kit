@@ -1,6 +1,7 @@
 """The edit corpus and the specification-coverage report."""
 
 import json
+import re
 import unittest
 
 import support
@@ -52,14 +53,35 @@ class Corpus(unittest.TestCase):
         self.assertTrue({"patch-path", "patch-test", "patch-invalid", "refused-alias",
                          "refused-ambiguous"} <= used)
 
-    def test_cases_resting_on_a_convention_say_so(self):
-        tagged = [c for c in EDIT if {"judgement", "comment-ownership"} & set(c.tags)]
-        self.assertGreaterEqual(len(tagged), 8)
-        self.assertLess(len(tagged), len(EDIT) // 8, "such cases stay few")
-        for c in tagged:
+    def test_cases_resting_on_a_convention_carry_the_tag(self):
+        # A case whose notes call something a convention or leave it open is tagged, so the
+        # reports count it apart. The comment tag is a second, more specific label.
+        said = re.compile(r"kit convention|rests on a convention|left open|leaves [^.]{0,40}open|"
+                          r"not fixed by|does not fix|gives comments no owner", re.I)
+        for c in OWN:
             where = support.ROOT / "suites" / "own" / "cases" / c.id.split(":", 1)[1]
-            meta = json.loads((where / "case.json").read_bytes())
-            self.assertGreater(len(meta.get("notes", "")), 40, c.id)
+            notes = json.loads((where / "case.json").read_bytes()).get("notes", "")
+            if said.search(notes):
+                self.assertIn("convention", c.tags, c.id)
+        tagged = [c for c in EDIT if "convention" in c.tags]
+        self.assertGreaterEqual(len(tagged), 40)
+        for c in EDIT:
+            if "comment-ownership" in c.tags:
+                self.assertIn("convention", c.tags, c.id)
+            self.assertNotIn("judgement", c.tags, c.id)
+
+    def test_convention_cases_name_their_rule_in_the_notes(self):
+        for c in EDIT:
+            if "convention" in c.tags:
+                where = support.ROOT / "suites" / "own" / "cases" / c.id.split(":", 1)[1]
+                notes = json.loads((where / "case.json").read_bytes()).get("notes", "")
+                self.assertIn("convention", notes.lower(), c.id)
+
+    def test_every_rule_of_the_kit_is_stated_in_the_docs(self):
+        doc = (support.ROOT / "docs" / "edit-semantics.md").read_text(encoding="utf-8")
+        self.assertIn("## Kit conventions", doc)
+        for phrase in ("end of its mapping", "Strip becomes clip", "flow collection", "single-quoted"):
+            self.assertIn(phrase, doc)
 
     def test_edits_change_something(self):
         for c in EDIT:
@@ -85,11 +107,34 @@ class Corpus(unittest.TestCase):
             self.assertTrue(c.provenance.get("reference"), c.id)
 
 
+class Tags(unittest.TestCase):
+    def test_tags_reach_the_result_records(self):
+        from oneyaml_kit.runner import execute, validate_result
+        cases = [c for c in EDIT if "convention" in c.tags][:5] + [c for c in EDIT if not c.tags][:3]
+        res = execute(support.OracleAdapter(cases), set(support.ALL_CAPS), cases)
+        by = {r["id"]: r for r in res}
+        for c in cases:
+            if c.tags:
+                self.assertEqual(by[c.id]["tags"], sorted(c.tags), c.id)
+            else:
+                self.assertNotIn("tags", by[c.id], c.id)
+        doc = {"format": "oneyaml-kit-results/2", "kit": {}, "run": {}, "adapter": {
+            "name": "a", "version": "1", "language": "x", "capabilities": [], "protocol": 2},
+            "cases": [dict(res[0], tags="convention")], "deviations": {}}
+        self.assertTrue(any("tags must be a list" in p for p in validate_result(doc)))
+
+    def test_yaml_test_suite_records_carry_no_tags(self):
+        from oneyaml_kit.runner import execute
+        yts = [c for c in ALL if c.suite == "yaml-test-suite"][:3]
+        res = execute(support.OracleAdapter(yts), set(support.ALL_CAPS), yts)
+        self.assertTrue(all("tags" not in r for r in res))
+
+
 class Coverage(unittest.TestCase):
     def test_every_named_production_exists(self):
         prods = coverage.production_numbers(OWN)
         self.assertTrue(all(1 <= p <= coverage.TOTAL for p in prods))
-        self.assertGreaterEqual(len(prods), 50)
+        self.assertGreaterEqual(len(prods), 40)
 
     def test_an_unknown_production_is_rejected(self):
         c = OWN[0]
@@ -109,6 +154,8 @@ class Coverage(unittest.TestCase):
         md = coverage.render(ALL)
         n = len(coverage.production_numbers(OWN))
         self.assertIn(f"**{n} of {coverage.TOTAL}**", md)
+        self.assertIn("Not named by any case", md)
+        self.assertNotIn("With a case", md)
         self.assertIn(f"Own cases: {len(OWN)}", md)
         for cat in coverage.CATEGORIES:
             self.assertIn(f"| {cat} |", md)
@@ -123,6 +170,29 @@ class Coverage(unittest.TestCase):
         n = coverage.error_categories(OWN)
         for cat in coverage.CATEGORIES:
             self.assertGreater(n[cat], 0, cat)
+
+    def test_derived_names_are_reported_apart_from_hand_picked_ones(self):
+        # No case lists an indicator production that a construct only implies.
+        for c in OWN:
+            for p in c.productions:
+                for implied in coverage.DERIVED.get(p, []):
+                    self.assertNotIn(implied, c.productions, c.id)
+        hand = set(coverage.production_numbers(OWN))
+        implied = set(coverage.derived_numbers(OWN)) - hand
+        self.assertTrue(implied)
+        self.assertIn(f"{len(implied)} more", coverage.render(ALL))
+
+    def test_known_label_corrections(self):
+        by = {c.id: c for c in OWN}
+        self.assertEqual(by["own:edit/keep-tab-after-colon"].productions, ["66"])
+        self.assertIn("205", by["own:edit/keep-document-end-marker"].productions)
+        self.assertNotIn("204", by["own:edit/keep-document-end-marker"].productions)
+        self.assertIn("202", by["own:edit/keep-bom-replace"].productions)
+        for c in OWN:
+            if "3" in c.productions:
+                inp = c.input
+                self.assertTrue(inp[:2] in (b"\xff\xfe", b"\xfe\xff") or b"\xef\xbb\xbf" in inp
+                                or b"\xfe\xff" in inp, c.id)
 
     def test_ranges(self):
         self.assertEqual(coverage._ranges([1, 2, 3, 7, 9, 10]), "1-3, 7, 9-10")

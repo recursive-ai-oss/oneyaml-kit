@@ -28,7 +28,7 @@ bin/kit fast                      # every adapter, whole fast set, writes out/
 bin/kit fast --adapter oneyaml-rust --suite own
 bin/kit report out/results/*.json # render a report from result files
 bin/kit list                      # case counts
-bin/kit coverage                  # which YAML 1.2.2 productions and error paths the own cases cover
+bin/kit coverage                  # which YAML 1.2.2 productions the own cases name (names, not coverage)
 bin/gate                          # hand-over gate: the kit core and the areas your change touched
 bin/gate --full                   # everything, every adapter (CI runs this)
 bin/gate --plan                   # show what would run

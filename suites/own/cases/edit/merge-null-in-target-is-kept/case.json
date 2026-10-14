@@ -5,15 +5,13 @@
  "category": "edit",
  "origin": "spec",
  "productions": [
-  "187",
-  "6",
-  "63"
+  "187"
  ],
  "refs": [
   "RFC 7396 section 2",
   "docs/edit-semantics.md"
  ],
- "notes": "RFC 7396 appendix A: a null in the target is data until a patch deletes it.",
+ "notes": "RFC 7396 appendix A: a null in the target is data until a patch deletes it. The new member goes at the end of its mapping, which is a kit convention (docs/edit-semantics.md); RFC 6902 does not fix the position.",
  "operation": {
   "type": "patch",
   "patch": {
@@ -24,5 +22,8 @@
  "expect": {
   "kind": "bytes",
   "file": "expected.yaml"
- }
+ },
+ "tags": [
+  "convention"
+ ]
 }

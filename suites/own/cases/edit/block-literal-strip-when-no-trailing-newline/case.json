@@ -6,8 +6,7 @@
  "origin": "spec",
  "productions": [
   "164",
-  "170",
-  "16"
+  "170"
  ],
  "refs": [
   "RFC 6902 section 4.3",

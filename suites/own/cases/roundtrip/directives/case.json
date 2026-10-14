@@ -5,8 +5,7 @@
  "category": "roundtrip",
  "origin": "spec",
  "productions": [
-  "82",
-  "20"
+  "82"
  ],
  "refs": [
   "YAML 1.2.2 section 6.8"

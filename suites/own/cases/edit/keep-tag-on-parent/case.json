@@ -6,10 +6,7 @@
  "origin": "spec",
  "productions": [
   "97",
-  "187",
-  "15",
-  "6",
-  "63"
+  "187"
  ],
  "refs": [
   "YAML 1.2.2 section 6.9.1",
