@@ -14,6 +14,18 @@ pub enum Verdict {
     Differs(String),
     /// Refused an input the specification accepts.
     Rejects(String),
+    /// The harness could not decide: its two reference parsers disagree about the output.
+    /// Not charged to the library under test.
+    Unjudged(String),
+}
+
+/// Why the referees gave no single reading of some text.
+#[derive(Debug)]
+pub enum RefereeError {
+    /// No reference parser accepts it: the text is not YAML.
+    Rejected(String),
+    /// The reference parsers read it differently, or only one accepts it.
+    Disagree(String),
 }
 
 impl Verdict {
@@ -22,6 +34,7 @@ impl Verdict {
             Verdict::Ok { .. } => "ok",
             Verdict::Differs(_) => "differs",
             Verdict::Rejects(_) => "rejects",
+            Verdict::Unjudged(_) => "unjudged",
         }
     }
 }
@@ -138,7 +151,7 @@ pub fn judge(
     w: &Workload,
     answer: Result<Product, String>,
     failing: Option<FailedPatch>,
-    referee: &dyn Fn(&[u8]) -> Result<Value, String>,
+    referee: &dyn Fn(&[u8]) -> Result<Value, RefereeError>,
 ) -> Verdict {
     let product = match answer {
         Ok(p) => p,
@@ -147,12 +160,15 @@ pub fn judge(
     let v = match (task, product) {
         (Task::TypedLoad | Task::GenericLoad, Product::Value(v)) => match_value(w, &v),
         (Task::Dump, Product::Bytes(b)) => match referee(&b) {
-            Err(e) => Verdict::Differs(format!("the output does not parse: {}", clip(&e))),
-            Ok(v) => match first_diff(&v, w.base_value(), "") {
-                None => Verdict::Ok {
-                    variant: "spec".into(),
-                },
-                Some(d) => Verdict::Differs(format!("read back: {d}")),
+            Err(RefereeError::Rejected(e)) => {
+                Verdict::Differs(format!("the output does not parse: {}", clip(&e)))
+            }
+            Err(RefereeError::Disagree(e)) => Verdict::Unjudged(clip(&e)),
+            // Read back, the output must hold the value, or the merged value when the
+            // library applies merge keys while loading.
+            Ok(v) => match match_value(w, &v) {
+                Verdict::Differs(d) => Verdict::Differs(format!("read back: {d}")),
+                other => other,
             },
         },
         (Task::DocumentParse, Product::Document { value, emitted }) => {
@@ -223,13 +239,13 @@ mod tests {
             edit_expected: vec![("spec".into(), b"a: 2\n")],
             patch_ops: vec![],
             patch_failing_ops: vec![],
-            patch_expected: vec![("spec".into(), b"a: 2\n"), ("restyled".into(), b"a: '2'\n")],
+            patch_expected: vec![("spec".into(), b"a: 2\n")],
             meta: Value::Null,
         }
     }
 
-    fn no_referee(_: &[u8]) -> Result<Value, String> {
-        Err("unused".into())
+    fn no_referee(_: &[u8]) -> Result<Value, RefereeError> {
+        Err(RefereeError::Rejected("unused".into()))
     }
 
     #[test]
@@ -331,6 +347,60 @@ mod tests {
             &no_referee,
         );
         assert_eq!(e.status(), "differs");
+    }
+
+    #[test]
+    fn a_dump_that_the_referees_disagree_on_is_unjudged_not_wrong() {
+        let w = workload(vec![("spec", json!({"a": 1}))], b"");
+        let split = |_: &[u8]| Err(RefereeError::Disagree("they differ".into()));
+        let v = judge(
+            Task::Dump,
+            &w,
+            Ok(Product::Bytes(b"x".to_vec())),
+            None,
+            &split,
+        );
+        assert_eq!(v, Verdict::Unjudged("they differ".into()));
+        // Text no referee reads is the library's fault.
+        let v = judge(
+            Task::Dump,
+            &w,
+            Ok(Product::Bytes(b"x".to_vec())),
+            None,
+            &no_referee,
+        );
+        assert_eq!(v.status(), "differs");
+    }
+
+    #[test]
+    fn a_dump_may_read_back_as_the_merged_value() {
+        let w = workload(
+            vec![("spec", json!({"<<": 1})), ("merged", json!({"a": 1}))],
+            b"",
+        );
+        let merged = |_: &[u8]| Ok(json!({"a": 1}));
+        let v = judge(
+            Task::Dump,
+            &w,
+            Ok(Product::Bytes(b"x".to_vec())),
+            None,
+            &merged,
+        );
+        assert_eq!(
+            v,
+            Verdict::Ok {
+                variant: "merged".into()
+            }
+        );
+        let other = |_: &[u8]| Ok(json!({"a": 2}));
+        let v = judge(
+            Task::Dump,
+            &w,
+            Ok(Product::Bytes(b"x".to_vec())),
+            None,
+            &other,
+        );
+        assert_eq!(v.status(), "differs");
     }
 
     #[test]

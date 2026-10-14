@@ -253,7 +253,7 @@ def openapi(size: int) -> Generated:
             {"op": "remove", "path": "/paths/~1items0/get/responses/default"},
         ],
         "subst": [
-            {"find": "  version: 1.0.0\n", "replace": "  version: 1.1.0\n", "alt_replace": "  version: '1.1.0'\n"},
+            {"find": "  version: 1.0.0\n", "replace": "  version: 1.1.0\n"},
             {"find": "      summary: List items0\n", "replace": "      summary: All items0\n"},
             {"regex": r"(  /items0:\n(?:.*\n)*?)        default:\n          description: unexpected error\n",
              "replace": r"\g<1>"},

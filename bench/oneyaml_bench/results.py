@@ -12,14 +12,16 @@ A cell is one (language, library, task, workload) with a status:
     differs      the library produced a different answer; no numbers
     rejects      the library refused an input the specification accepts; no numbers
     unsupported  the library has no such capability; no numbers
+    unjudged     the harness could not decide whether the answer is right (the reference
+                 parsers disagree about it); no numbers, and not charged to the library
     error        the harness could not measure it (crash, panic); no numbers
 """
 
 from __future__ import annotations
 
 FORMAT = "oneyaml-kit-bench/1"
-STATUSES = ("ok", "differs", "rejects", "unsupported", "error")
-NON_NUMBER = ("differs", "rejects", "unsupported", "error")
+STATUSES = ("ok", "differs", "rejects", "unsupported", "unjudged", "error")
+NON_NUMBER = ("differs", "rejects", "unsupported", "unjudged", "error")
 
 # A difference smaller than this fraction of the time is called a tie whatever the
 # spread says: a single-digit-percent gap on a shared host is not a result.
@@ -41,6 +43,9 @@ PUBLISH_RULE = {
     # single core allowed for.
     "load1_max": 3.0,
     "min_load_samples": 5,
+    # Timings are only comparable between runs on one core at a fixed frequency policy.
+    "pinned": True,
+    "governors": ["performance"],
 }
 
 
@@ -160,7 +165,8 @@ def percentile(values: list[float], p: float) -> float:
 
 
 def assess_publishability(mode: str, samples: list[float], load1_start: float, load1_end: float,
-                          complete: bool, selftest_build: bool = False) -> dict:
+                          complete: bool, selftest_build: bool = False, pinned_cpu: int | None = None,
+                          governor: str = "unknown") -> dict:
     """Decides whether a run may carry numbers into a README.
 
     `samples` are the cores busy with other work, one per sampling tick.
@@ -175,6 +181,12 @@ def assess_publishability(mode: str, samples: list[float], load1_start: float, l
         reasons.append("the run did not finish every cell it set out to measure")
     if len(samples) < rule["min_load_samples"]:
         reasons.append(f"the host load was sampled only {len(samples)} times, fewer than {rule['min_load_samples']}")
+    if rule["pinned"] and pinned_cpu is None:
+        reasons.append("the harness was not pinned to one CPU, so the scheduler may move it between cores "
+                       "(use --pin)")
+    if governor not in rule["governors"]:
+        reasons.append(f"the CPU frequency governor is {governor!r}, not one of {rule['governors']}: "
+                       "clock speed can change during the run")
     p95 = percentile(samples, 0.95)
     worst = max(samples) if samples else 0.0
     if p95 > rule["foreign_busy_cores_p95_max"]:
@@ -192,8 +204,20 @@ def assess_publishability(mode: str, samples: list[float], load1_start: float, l
         "reasons": reasons,
         "rule": dict(rule),
         "measured": {"foreign_busy_cores_p95": round(p95, 2), "foreign_busy_cores_max": round(worst, 2),
-                     "load1_start": load1_start, "load1_end": load1_end, "load_samples": len(samples)},
+                     "load1_start": load1_start, "load1_end": load1_end, "load_samples": len(samples),
+                     "pinned_cpu": pinned_cpu, "governor": governor},
     }
+
+
+def add_reasons(result: dict, reasons: list[str]) -> None:
+    """Marks a result as not publishable for reasons found after the run (a wrong list of
+    known deviations, say). A report built from it says why."""
+    if not reasons:
+        return
+    pub = result["run"]["publishability"]
+    pub["reasons"] = list(pub["reasons"]) + list(reasons)
+    pub["publishable"] = False
+    pub["label"] = "smoke"
 
 
 # ---- validation --------------------------------------------------------------------------
@@ -228,7 +252,8 @@ def validate(result: dict) -> None:
             raise ResultError(f"bad status {c['status']!r} in {ident}")
         has_numbers = "time" in c or "memory" in c
         if c["status"] == "ok":
-            for k, fields in (("time", ("median_ns", "mad_ns", "samples")), ("memory", ("peak_bytes", "allocated_bytes", "allocations"))):
+            for k, fields in (("time", ("median_ns", "mad_ns", "samples")),
+                              ("memory", ("method", "peak_bytes", "allocated_bytes", "allocations"))):
                 if k not in c or any(f not in c[k] for f in fields):
                     raise ResultError(f"ok cell {ident} lacks {k}")
             if c["time"]["median_ns"] <= 0:
@@ -236,7 +261,7 @@ def validate(result: dict) -> None:
         elif has_numbers:
             # The rule that matters most: a wrong or missing answer never carries a number.
             raise ResultError(f"cell {ident} is {c['status']} but carries numbers")
-        elif c["status"] in ("differs", "rejects", "error") and not c.get("detail"):
+        elif c["status"] in ("differs", "rejects", "unjudged", "error") and not c.get("detail"):
             raise ResultError(f"cell {ident} is {c['status']} without a reason")
 
 
@@ -247,9 +272,10 @@ def cell_name(c: dict) -> str:
     return f"{c['library']}/{c['task']}/{c['workload']}"
 
 
-# Variants that are not deviations: the plain expectation, and a document judged on its bytes
-# alone because the library has no data model to read a value from.
-PLAIN_VARIANTS = ("spec", "bytes-only")
+# The only variant that is not a deviation: the plain expectation. `merged` (a library that
+# applies `<<`) and `bytes-only` (a document judged on its bytes because the library gives no
+# value to compare) are accepted but listed.
+PLAIN_VARIANTS = ("spec",)
 
 
 def deviation_of(c: dict) -> tuple[str, str] | None:
@@ -265,27 +291,49 @@ def deviation_of(c: dict) -> tuple[str, str] | None:
     return (c["status"], "")
 
 
-def verify_known(cells: list[dict], known: dict, language: str) -> list[str]:
+def verify_known(cells: list[dict], known: dict, language: str, universe: dict | None = None,
+                 libraries: set[str] | None = None) -> list[str]:
     """Problems between the cells measured and the list of known deviations.
 
     A deviation nobody listed is a new failure; a listed one that no longer happens is a
-    stale entry. Both fail the run, so the list stays true. A listed cell that was not
-    measured in this run (another tier, a filter) is left alone.
+    stale entry. Both fail the run, so the list stays true.
+
+    `universe` maps every workload id (all tiers) to the tasks it defines, and `libraries`
+    is every library of the language. An entry that names a library, task or workload
+    outside them, or a task the workload does not define, is stale whatever was measured.
+    Only an entry for a real cell that this run did not measure (another tier, a filter) is
+    left alone.
     """
     problems = []
-    entries = {e["cell"]: e for e in known.get("entries", [])}
+    entries = {}
+    for e in known.get("entries", []):
+        if e["cell"] in entries:
+            problems.append(f"known deviation {e['cell']} is listed twice")
+        entries[e["cell"]] = e
     for name, e in entries.items():
         if not e.get("reason"):
             problems.append(f"known deviation {name} has no reason")
+        parts = name.split("/", 2)
+        if len(parts) != 3:
+            problems.append(f"known deviation {name} is not library/task/workload")
+        elif universe is not None:
+            lib, task, wl = parts
+            if libraries is not None and lib not in libraries:
+                problems.append(f"stale known deviation {name}: no library {lib!r}")
+            elif wl not in universe:
+                problems.append(f"stale known deviation {name}: no workload {wl!r}")
+            elif task not in universe[wl]:
+                problems.append(f"stale known deviation {name}: workload {wl!r} has no task {task!r}")
     measured = {cell_name(c): c for c in cells if c["language"] == language}
     for name, c in measured.items():
         dev = deviation_of(c)
         e = entries.get(name)
         if dev and not e:
             why = c.get("detail") or dev[1]
-            problems.append(f"unlisted deviation {name}: {dev[0]} {dev[1]} {why}".rstrip()[:200])
+            problems.append(f"unlisted deviation {name}: {dev[0]} {dev[1]} {why}".replace("  ", " ")[:200])
         elif dev and e and (e["status"], e.get("variant", "")) != dev:
-            problems.append(f"{name} is listed as {e['status']} {e.get('variant', '')} but is {dev[0]} {dev[1]}".replace('  ', ' '))
+            problems.append(f"{name} is listed as {e['status']} {e.get('variant', '')} but is "
+                            f"{dev[0]} {dev[1]}".replace("  ", " "))
     for name, e in entries.items():
         c = measured.get(name)
         if c is not None and deviation_of(c) is None:

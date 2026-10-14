@@ -61,6 +61,12 @@ class Provenance(unittest.TestCase):
             self.assertEqual(sha(d / "input.yaml"), pin["input"], f"{d.name} input.yaml")
             self.assertEqual(sha(d / "expected.json"), pin["expected"], f"{d.name} expected.json")
 
+    def test_licence_texts_match_their_pins(self):
+        files = {f.name: sha(f) for f in (W.REAL_DIR / "LICENSES").iterdir()}
+        self.assertEqual(files, PINS["licences"], "a licence text changed, appeared or went missing")
+        # Apache-2.0 asks that a NOTICE file travel with the work.
+        self.assertIn("prometheus-prometheus.NOTICE.txt", files)
+
     def test_real_inputs_are_small_and_text(self):
         for d in self.real():
             data = (d / "input.yaml").read_bytes()
@@ -84,11 +90,6 @@ class Expectations(unittest.TestCase):
         with self.assertRaisesRegex(W.WorkloadError, "matches 0 times"):
             W.apply_subst("a b a", [{"regex": "z+", "replace": "c"}])
         self.assertEqual(W.apply_subst("a b a", [{"find": "a", "replace": "c", "count": 2}]), "c b c")
-
-    def test_the_restyled_variant_uses_the_alternative_text(self):
-        s = [{"find": "v: 1\n", "replace": "v: 2\n", "alt_replace": "v: '2'\n"}]
-        self.assertEqual(W.apply_subst("v: 1\n", s), "v: 2\n")
-        self.assertEqual(W.apply_subst("v: 1\n", s, alt=True), "v: '2'\n")
 
     def test_edit_expectations_change_only_what_the_edit_names(self):
         # The expected bytes are the input with a few lines changed; a wrong substitution
@@ -175,6 +176,31 @@ class Generators(unittest.TestCase):
                     self.assertRegex(m["source"]["url"], r"^https://github\.com/.+/blob/[0-9a-f]{40}/")
             tiers = {m["tier"] for m in metas}
             self.assertEqual(tiers, {"quick"})
+
+    def test_the_universe_is_what_prepare_writes(self):
+        # Known-deviation lists are checked against `universe`, so it must not drift from the
+        # workloads a run really has.
+        u = W.universe(("quick", "full"))
+        with tempfile.TemporaryDirectory() as t:
+            for tiers in (("quick",), ("quick", "full")):
+                got = {m["id"]: m["tasks"] for m in W.prepare(Path(t), tiers)}
+                self.assertEqual(got, {k: u[k] for k in got})
+                self.assertEqual(set(got), set(W.universe(tiers)))
+        self.assertEqual(len(u), len(set(u)))
+
+    def test_no_workload_lists_a_task_every_library_must_skip(self):
+        u = W.universe()
+        self.assertNotIn("dump", u["k8s-multi-16k"])
+        self.assertNotIn("dump", u["k8s-ingress-nginx-multi"])
+        # Merge keys do not hide the dump row: the guard accepts the merged reading.
+        self.assertIn("dump", u["compose-merge-2k"])
+        self.assertIn("dump", u["compose-merge-1m"])
+
+    def test_edits_have_a_single_expected_outcome(self):
+        with tempfile.TemporaryDirectory() as t:
+            W.prepare(Path(t), ("quick",))
+            names = {f.name for d in (Path(t) / "workloads").iterdir() if d.is_dir() for f in d.iterdir()}
+        self.assertFalse([n for n in names if "restyled" in n], "a second accepted outcome for edits")
 
     def test_full_tier_adds_the_large_inputs(self):
         quick = {w["id"] for w in W.generated_workloads(("quick",))}

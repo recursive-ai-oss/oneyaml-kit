@@ -5,6 +5,8 @@
 Why this run is not publishable:
 
 - the run was a quick run; only a full run can be published
+- the harness was not pinned to one CPU, so the scheduler may move it between cores (use --pin)
+- the CPU frequency governor is 'unknown', not one of ['performance']: clock speed can change during the run
 
 ## Environment
 
@@ -37,11 +39,12 @@ Each row of the tables compares our library with the **best competitor in that r
 | Language | Task | Workloads | Time win / tie / loss | Memory win / tie / loss | No number | No rival | Weakest row (our time ÷ best competitor's) |
 |---|---|---|---|---|---|---|---|
 | rust | generic-load | 4 | 2 / 0 / 1 | 0 / 2 / 1 | 1 | 0 | w2 2.00× of rival |
+| rust | dump | 1 | 1 / 0 / 0 | 0 / 1 / 0 | 0 | 0 | w1 0.90× of other |
 | rust | patch | 1 | 0 / 0 / 0 | 0 / 0 / 0 | 1 | 0 | — |
 
 *No number*: our library's answer was wrong, refused or missing. *No rival*: no competitor produced a correct answer for that row, so there is nothing to compare with.
 
-A time in parentheses names the accepted variant of the expected result when it is not the plain one: *merged* means the library applied `<<` merge keys (a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key), *restyled* means an edited value was written in quotes where the original plain style could hold it, and *bytes-only* means the library has no data model, so its document is judged on the bytes it writes back.
+A time in parentheses names the accepted variant of the expected result when it is not the plain one: *merged* means the library applied `<<` merge keys (a YAML 1.1 extension; YAML 1.2 reads `<<` as an ordinary key), and *bytes-only* means the library gives no value to compare, so its document is judged on the bytes it writes back. Both are listed as known deviations.
 
 ## generic-load
 
@@ -69,12 +72,40 @@ Parse into the library's generic value tree; all documents of a stream.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="charts/rust-generic-load-time-dark.svg">
-  <img alt="generic-load (rust): time, ours against the best competitor. Best competitor ÷ ours, time; more than 1.0× is a win, bars left of the dashed line are losses. 3 workloads: 2 faster, 0 level, 1 slower. w1 2.00× (ours 50 ns vs rival 100 ns); w2 0.50× (ours 200 ns vs rival 100 ns, loss); w3 1.25× (ours 80 ns vs rival 100 ns)." src="charts/rust-generic-load-time-light.svg">
+  <img alt="generic-load (rust): time, ours against the best competitor. Time. Ours ÷ best competitor, log scale: left of the 1.0× line is better for us, right of it is a loss. 3 workloads: 2 better, 0 level, 1 worse. w1 0.50× (ours 50 ns vs rival 100 ns); w2 2.00× (ours 200 ns vs rival 100 ns, loss); w3 0.80× (ours 80 ns vs rival 100 ns)." src="charts/rust-generic-load-time-light.svg">
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="charts/rust-generic-load-memory-dark.svg">
-  <img alt="generic-load (rust): peak heap, ours against the best competitor. Best competitor ÷ ours, peak heap; more than 1.0× is a win, bars left of the dashed line are losses. 3 workloads: 0 faster, 2 level, 1 slower. w1 0.44× (ours 900 B vs rival 400 B, loss); w2 1.00× (ours 100 B vs rival 100 B); w3 1.00× (ours 1000 B vs rival 1000 B)." src="charts/rust-generic-load-memory-light.svg">
+  <img alt="generic-load (rust): peak heap, ours against the best competitor. Peak heap. Ours ÷ best competitor, log scale: left of the 1.0× line is better for us, right of it is a loss. 3 workloads: 0 better, 2 level, 1 worse. w1 2.25× (ours 900 B vs rival 400 B, loss); w2 1.00× (ours 100 B vs rival 100 B); w3 1.00× (ours 1000 B vs rival 1000 B)." src="charts/rust-generic-load-memory-light.svg">
+</picture>
+
+## dump
+
+Write a generic value tree back to YAML text.
+
+### dump, rust
+
+**Time per operation**
+
+| Workload | Input | `ours` | `other` | `rival` | Ours vs best competitor |
+|---|---|---|---|---|---|
+| `w1` | 1000 B | 90 ns ±1% | 100 ns ±1% | unjudged | 0.90× of `other` ▲ win |
+
+**Peak / allocated heap per operation**
+
+| Workload | Input | `ours` | `other` | `rival` | Ours vs best competitor |
+|---|---|---|---|---|---|
+| `w1` | 1000 B | 1000 B / 1.95 KiB | 1000 B / 1.95 KiB | unjudged | 1.00× of `other` ● tie |
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="charts/rust-dump-time-dark.svg">
+  <img alt="dump (rust): time, ours against the best competitor. Time. Ours ÷ best competitor, log scale: left of the 1.0× line is better for us, right of it is a loss. 1 workloads: 1 better, 0 level, 0 worse. w1 0.90× (ours 90 ns vs other 100 ns)." src="charts/rust-dump-time-light.svg">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="charts/rust-dump-memory-dark.svg">
+  <img alt="dump (rust): peak heap, ours against the best competitor. Peak heap. Ours ÷ best competitor, log scale: left of the 1.0× line is better for us, right of it is a loss. 1 workloads: 0 better, 1 level, 0 worse. w1 1.00× (ours 1000 B vs other 1000 B)." src="charts/rust-dump-memory-light.svg">
 </picture>
 
 ## patch
@@ -97,12 +128,13 @@ Apply an RFC 6902 patch to a document, atomically, and write the bytes.
 
 ## Cells without a number
 
-A library that gives a wrong answer, refuses a valid input or cannot be measured gets no time. The reason is the first difference the guard found.
+A library that gives a wrong answer, refuses a valid input or cannot be measured gets no time. The reason is the first difference the guard found. *Unjudged* means the harness's two reference parsers disagree about the library's output, so the harness could not decide; it is not a verdict on the library.
 
 | Language | Library | Task | Workload | Status | Reason |
 |---|---|---|---|---|---|
 | rust | `other` | generic-load | `w3` | differs | at /a/b: got 1, expected 2 |
 | rust | `ours` | generic-load | `w4` | differs | byte 3: got x, expected y |
+| rust | `rival` | dump | `w1` | unjudged | the two reference parsers disagree at /a |
 | rust | `rival` | patch | `w1` | rejects | boom \| pipe |
 
 ### Unsupported tasks
