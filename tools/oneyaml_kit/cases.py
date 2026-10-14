@@ -40,6 +40,7 @@ ERROR_CATEGORIES = (
     "patch-invalid",
     "refused-alias",
     "refused-ambiguous",
+    "unresolved-tag",
 )
 PATCH_OPS = ("add", "remove", "replace", "move", "copy", "test")
 PATCH_FORMATS = ("json-patch", "merge-patch")

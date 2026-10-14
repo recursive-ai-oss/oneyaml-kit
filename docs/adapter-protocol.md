@@ -72,7 +72,7 @@ A response may also carry `emulated`: a list of the behaviours (declared in the 
 `emulates`) that this answer depended on. See *Behaviour the adapter supplies*.
 
 An error `category` is one of the kit's names (`syntax`, `encoding`, `limit`,
-`patch-path`, `patch-test`, `patch-invalid`, `refused-alias`, `refused-ambiguous`)
+`patch-path`, `patch-test`, `patch-invalid`, `refused-alias`, `refused-ambiguous`, `unresolved-tag`)
 or `other` for anything the adapter cannot map. `message` is for people and is never
 compared.
 
