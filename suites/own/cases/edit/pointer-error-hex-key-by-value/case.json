@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/pointer-error-hex-key-by-value",
+ "title": "The integer value of a hexadecimal key is not its text",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6901 section 3",
+  "RFC 6901 section 4",
+  "RFC 6902 section 4.3"
+ ],
+ "notes": "Matching is by text, so 16 finds nothing.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/16",
+    "value": "x"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-path",
+  "unchanged": true
+ }
+}

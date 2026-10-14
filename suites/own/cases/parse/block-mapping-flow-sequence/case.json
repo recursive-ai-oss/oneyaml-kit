@@ -6,7 +6,11 @@
  "origin": "spec",
  "productions": [
   "187",
-  "137"
+  "137",
+  "6",
+  "63",
+  "8",
+  "9"
  ],
  "refs": [
   "YAML 1.2.2 section 8.2.2",

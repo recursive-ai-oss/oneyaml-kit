@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-double-quoted-newline",
+ "title": "A line feed inside a double-quoted string is written as an escape",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "109",
+  "19"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.3.1",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "One line stays one line: the escape \\n is the only way to hold the break without folding rules.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "x\ny"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/pointer-numeric-key",
+ "title": "A token that looks like a number matches an integer key by its text",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6901 section 3",
+  "RFC 6901 section 4",
+  "RFC 6902 section 4.3"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/80",
+    "value": "x"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

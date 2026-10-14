@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/keep-directives-and-start-marker",
+ "title": "Directives and the start marker stay",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "82",
+  "203",
+  "20"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.8",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/n",
+    "value": 2
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -4,6 +4,11 @@
  "title": "Without a merge-key extension `<<` in a flow mapping is a key like any other",
  "category": "schema",
  "origin": "spec",
+ "productions": [
+  "140",
+  "10",
+  "11"
+ ],
  "refs": [
   "YAML 1.2.2 section 1.2",
   "YAML 1.2.2 section 10.3.2"

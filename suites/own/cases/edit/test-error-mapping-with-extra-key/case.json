@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/test-error-mapping-with-extra-key",
+ "title": "A mapping with more keys is not equal",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6902 section 4.6",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "test",
+    "path": "/a",
+    "value": {
+     "x": 1
+    }
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-test",
+  "unchanged": true
+ }
+}

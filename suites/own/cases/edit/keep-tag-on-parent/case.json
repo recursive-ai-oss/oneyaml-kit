@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/keep-tag-on-parent",
+ "title": "The tag of the parent collection stays when a child changes",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "97",
+  "187",
+  "15",
+  "6",
+  "63"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.1",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a/y",
+    "value": 9
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

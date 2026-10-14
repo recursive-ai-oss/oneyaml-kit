@@ -4,6 +4,16 @@
  "title": "A workflow-shaped document with comments, blank lines and mixed styles",
  "category": "roundtrip",
  "origin": "spec",
+ "productions": [
+  "137",
+  "170",
+  "187",
+  "8",
+  "9",
+  "16",
+  "6",
+  "63"
+ ],
  "refs": [
   "YAML 1.2.2 section 8.2"
  ],

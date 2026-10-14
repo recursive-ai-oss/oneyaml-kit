@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-single-quoted-to-integer",
+ "title": "An integer cannot be quoted: the quotes go",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "120",
+  "18"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.3.2",
+  "YAML 1.2.2 section 10.3.2",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "A quoted scalar is always a string, so the nearest style that reads back as an integer is plain.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": 5
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

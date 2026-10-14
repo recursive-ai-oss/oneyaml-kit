@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/keep-anchor-and-alias-elsewhere",
+ "title": "Anchors and aliases of other entries are untouched",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "101",
+  "104",
+  "13",
+  "14"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.1",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/c",
+    "value": 4
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

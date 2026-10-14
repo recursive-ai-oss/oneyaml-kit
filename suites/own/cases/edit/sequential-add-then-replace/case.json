@@ -1,0 +1,34 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/sequential-add-then-replace",
+ "title": "A replace sees the key an earlier add created",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
+ "refs": [
+  "RFC 6902 section 5"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/b",
+    "value": 2
+   },
+   {
+    "op": "replace",
+    "path": "/b",
+    "value": 3
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

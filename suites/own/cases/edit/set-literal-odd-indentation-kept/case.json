@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-literal-odd-indentation-kept",
+ "title": "The indentation of the old block content is reused",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "170",
+  "16"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "judgement"
+ ],
+ "notes": "Any indentation of two or more spaces reads back the same. Reusing the old content's indentation is the reading of 'same style' taken here; a library that re-indents to its own default is not wrong by the specification.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "new\nmore\n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

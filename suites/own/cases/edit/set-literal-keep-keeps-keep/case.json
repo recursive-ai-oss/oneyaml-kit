@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-literal-keep-keeps-keep",
+ "title": "A keep scalar takes a value with extra empty lines",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "170",
+  "164",
+  "16"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1.2",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "new\n\n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

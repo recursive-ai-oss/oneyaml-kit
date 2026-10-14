@@ -245,6 +245,356 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Same as the loose verdict: the resolved tag differs"
+  },
+  {
+   "case": "own:edit/alias-refusal-after-successful-edit",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-after-successful-edit",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-alias-as-sequence-item",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-alias-as-sequence-item",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-deep-below-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-deep-below-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-remove-anchored-with-aliases",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected refused-alias, got other"
+  },
+  {
+   "case": "own:edit/alias-refusal-remove-below-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-remove-below-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-remove-container-of-anchor-with-aliases",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected refused-alias, got other"
+  },
+  {
+   "case": "own:edit/alias-refusal-replace-below-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-replace-below-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-sequence-alias-item",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-sequence-alias-item",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/keep-odd-indentation-sequence",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Replacing a sequence item rewrites the white space between the dash and the value to one space"
+  },
+  {
+   "case": "own:edit/keep-odd-indentation-sequence",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: replacing a sequence item rewrites the white space between the dash and the value to one space"
+  },
+  {
+   "case": "own:edit/keep-tab-after-colon",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Replacing a value rewrites a tab between the colon and the value to a space"
+  },
+  {
+   "case": "own:edit/keep-tab-after-colon",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: replacing a value rewrites a tab between the colon and the value to a space"
+  },
+  {
+   "case": "own:edit/pointer-boolean-key-by-text",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Addresses mapping keys as strings only: a key that reads as a boolean is not found by its text"
+  },
+  {
+   "case": "own:edit/pointer-boolean-key-by-text",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: addresses mapping keys as strings only: a key that reads as a boolean is not found by its text"
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-after-success",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-after-success",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-boolean-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-boolean-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-remove",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-remove",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/pointer-hex-key-by-text",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Addresses mapping keys as strings only: a key that reads as an integer is not found by its text"
+  },
+  {
+   "case": "own:edit/pointer-hex-key-by-text",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: addresses mapping keys as strings only: a key that reads as an integer is not found by its text"
+  },
+  {
+   "case": "own:edit/pointer-matches-text-not-value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Addresses mapping keys as strings only: a key that reads as an integer is not found by its text"
+  },
+  {
+   "case": "own:edit/pointer-matches-text-not-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: addresses mapping keys as strings only: a key that reads as an integer is not found by its text"
+  },
+  {
+   "case": "own:edit/pointer-numeric-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Addresses mapping keys as strings only: a key that reads as an integer is not found by its text"
+  },
+  {
+   "case": "own:edit/pointer-numeric-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: addresses mapping keys as strings only: a key that reads as an integer is not found by its text"
+  },
+  {
+   "case": "own:edit/set-double-quoted-newline",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A double-quoted string given a value with a line feed becomes a literal block scalar instead of using the escape \\n"
+  },
+  {
+   "case": "own:edit/set-double-quoted-newline",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: a double-quoted string given a value with a line feed becomes a literal block scalar instead of using the escape \\n"
+  },
+  {
+   "case": "own:edit/set-folded-clip",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A folded block scalar becomes a literal one: the folded style is not kept"
+  },
+  {
+   "case": "own:edit/set-folded-clip",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: a folded block scalar becomes a literal one: the folded style is not kept"
+  },
+  {
+   "case": "own:edit/set-folded-clip-to-strip-no-newline",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A folded block scalar given a value with no final line feed loses its header and becomes plain, which is the case-B gap for folded scalars"
+  },
+  {
+   "case": "own:edit/set-folded-clip-to-strip-no-newline",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: a folded block scalar given a value with no final line feed loses its header and becomes plain, which is the case-B gap for folded scalars"
+  },
+  {
+   "case": "own:edit/set-folded-strip-keeps-strip",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A folded strip scalar given a value with no final line feed loses its header and becomes plain"
+  },
+  {
+   "case": "own:edit/set-folded-strip-keeps-strip",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: a folded strip scalar given a value with no final line feed loses its header and becomes plain"
+  },
+  {
+   "case": "own:edit/set-folded-two-lines-need-an-empty-line",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A folded block scalar becomes a literal one: the folded style is not kept"
+  },
+  {
+   "case": "own:edit/set-folded-two-lines-need-an-empty-line",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: a folded block scalar becomes a literal one: the folded style is not kept"
+  },
+  {
+   "case": "own:edit/set-literal-keep-drops-the-extra-line",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A keep scalar set to a value with one final line feed changes its header to clip instead of keeping the keep indicator"
+  },
+  {
+   "case": "own:edit/set-literal-keep-drops-the-extra-line",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: a keep scalar set to a value with one final line feed changes its header to clip instead of keeping the keep indicator"
+  },
+  {
+   "case": "own:edit/set-literal-odd-indentation-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A literal block scalar is re-indented to two spaces instead of reusing the old content indentation"
+  },
+  {
+   "case": "own:edit/set-literal-odd-indentation-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: a literal block scalar is re-indented to two spaces instead of reusing the old content indentation"
+  },
+  {
+   "case": "own:edit/set-literal-strip-keeps-strip",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A literal strip scalar given a value with no final line feed loses its header and becomes plain: the case-B gap again"
+  },
+  {
+   "case": "own:edit/set-literal-strip-keeps-strip",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: a literal strip scalar given a value with no final line feed loses its header and becomes plain: the case-B gap again"
+  },
+  {
+   "case": "own:edit/set-plain-string-yes-stays-plain-in-core",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Quotes the string yes although it is a string in the core schema"
+  },
+  {
+   "case": "own:edit/set-plain-string-yes-stays-plain-in-core",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: quotes the string yes although it is a string in the core schema"
   }
  ]
 }

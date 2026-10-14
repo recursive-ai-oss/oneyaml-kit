@@ -4,6 +4,12 @@
  "title": "Ten thousand aliases of a hundred-kilobyte scalar must be refused with a limit error",
  "category": "safety",
  "origin": "competitor",
+ "productions": [
+  "101",
+  "104",
+  "13",
+  "14"
+ ],
  "refs": [
   "YAML 1.2.2 section 7.1",
   "YAML 1.2.2 section 3.2.1"

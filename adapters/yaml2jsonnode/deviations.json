@@ -1582,6 +1582,2414 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Loads the python/object tag as a plain value and drops the tag: it neither keeps the tag nor refuses the document"
+  },
+  {
+   "case": "own:edit/add-error-below-null",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 2: expected b'\\nz: 1\\n', got b' null\\nz: 1\\n' (lengths 8 and 13)"
+  },
+  {
+   "case": "own:edit/add-error-index-past-length",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 2: expected b'a\\n', got b'\"a\"\\n' (lengths 4 and 6)"
+  },
+  {
+   "case": "own:edit/add-error-leading-zero-index",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/add-error-leading-zero-index",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/add-error-non-numeric-index",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 2: expected b'a\\n', got b'\"a\"\\n' (lengths 4 and 6)"
+  },
+  {
+   "case": "own:edit/add-item-at-end",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'a\\n- b\\n- c\\n', got b'\"a\"\\n- \"b\"\\n- \"c\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/add-item-at-end",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'a\\n- b\\n- c\\n', got b'\"a\"\\n- \"b\"\\n- \"c\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/add-item-at-length",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'a\\n- b\\n- c\\n', got b'\"a\"\\n- \"b\"\\n- \"c\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/add-item-at-length",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'a\\n- b\\n- c\\n', got b'\"a\"\\n- \"b\"\\n- \"c\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/add-item-at-start",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'z\\n- a\\n- b\\n', got b'\"z\"\\n- \"a\"\\n- \"b\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/add-item-at-start",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'z\\n- a\\n- b\\n', got b'\"z\"\\n- \"a\"\\n- \"b\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/add-item-crlf",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'a\\r\\n- b\\r\\n- c\\r\\n', got b'\"a\"\\n- \"b\"\\n- \"c\"\\n' (lengths 15 and 18)"
+  },
+  {
+   "case": "own:edit/add-item-crlf",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'a\\r\\n- b\\r\\n- c\\r\\n', got b'\"a\"\\n- \"b\"\\n- \"c\"\\n' (lengths 15 and 18)"
+  },
+  {
+   "case": "own:edit/add-item-flow-empty",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [1]\\nb: 1\\n', got b'\\n- 1\\nb: 1\\n' (lengths 12 and 12)"
+  },
+  {
+   "case": "own:edit/add-item-flow-empty",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [1]\\nb: 1\\n', got b'\\n- 1\\nb: 1\\n' (lengths 12 and 12)"
+  },
+  {
+   "case": "own:edit/add-item-flow-end",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [1, 2, 3, 4]\\n', got b'\\n- 1\\n- 2\\n- 3\\n- 4\\n' (lengths 16 and 19)"
+  },
+  {
+   "case": "own:edit/add-item-flow-end",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [1, 2, 3, 4]\\n', got b'\\n- 1\\n- 2\\n- 3\\n- 4\\n' (lengths 16 and 19)"
+  },
+  {
+   "case": "own:edit/add-item-flow-middle",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [1, 9, 2, 3]\\n', got b'\\n- 1\\n- 9\\n- 2\\n- 3\\n' (lengths 16 and 19)"
+  },
+  {
+   "case": "own:edit/add-item-flow-middle",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [1, 9, 2, 3]\\n', got b'\\n- 1\\n- 9\\n- 2\\n- 3\\n' (lengths 16 and 19)"
+  },
+  {
+   "case": "own:edit/add-item-flow-start",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [0, 1, 2, 3]\\n', got b'\\n- 0\\n- 1\\n- 2\\n- 3\\n' (lengths 16 and 19)"
+  },
+  {
+   "case": "own:edit/add-item-flow-start",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [0, 1, 2, 3]\\n', got b'\\n- 0\\n- 1\\n- 2\\n- 3\\n' (lengths 16 and 19)"
+  },
+  {
+   "case": "own:edit/add-item-flow-strings",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [x, y, z]\\n', got b'\\n- \"x\"\\n- \"y\"\\n- \"z\"\\n' (lengths 13 and 21)"
+  },
+  {
+   "case": "own:edit/add-item-flow-strings",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [x, y, z]\\n', got b'\\n- \"x\"\\n- \"y\"\\n- \"z\"\\n' (lengths 13 and 21)"
+  },
+  {
+   "case": "own:edit/add-item-flush-under-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'a\\n- b\\n- c\\nz: 1\\n', got b'\"a\"\\n- \"b\"\\n- \"c\"\\nz: 1\\n' (lengths 20 and 26)"
+  },
+  {
+   "case": "own:edit/add-item-flush-under-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'a\\n- b\\n- c\\nz: 1\\n', got b'\"a\"\\n- \"b\"\\n- \"c\"\\nz: 1\\n' (lengths 20 and 26)"
+  },
+  {
+   "case": "own:edit/add-item-indent-four",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b' - a\\n - b\\n - c\\nz: 1\\n', got b'- \"a\"\\n- \"b\"\\n- \"c\"\\nz: 1\\n' (lengths 32 and 26)"
+  },
+  {
+   "case": "own:edit/add-item-indent-four",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b' - a\\n - b\\n - c\\nz: 1\\n', got b'- \"a\"\\n- \"b\"\\n- \"c\"\\nz: 1\\n' (lengths 32 and 26)"
+  },
+  {
+   "case": "own:edit/add-item-mapping-to-sequence-of-mappings",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 8: expected b'a\\n v: 1\\n- name: b\\n v: 2\\n', got b'\"a\"\\n v: 1\\n- name: \"b\"\\n v: 2\\n' (lengths 34 and 38)"
+  },
+  {
+   "case": "own:edit/add-item-mapping-to-sequence-of-mappings",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 8: expected b'a\\n v: 1\\n- name: b\\n v: 2\\n', got b'\"a\"\\n v: 1\\n- name: \"b\"\\n v: 2\\n' (lengths 34 and 38)"
+  },
+  {
+   "case": "own:edit/add-key-cr-only",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'\\rb: 2\\rc: 3\\r', got b'\\nb: 2\\nc: 3\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/add-key-cr-only",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'\\rb: 2\\rc: 3\\r', got b'\\nb: 2\\nc: 3\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/add-key-crlf",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'\\r\\nb: 2\\r\\nc: 3\\r\\n', got b'\\nb: 2\\nc: 3\\n' (lengths 18 and 15)"
+  },
+  {
+   "case": "own:edit/add-key-crlf",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'\\r\\nb: 2\\r\\nc: 3\\r\\n', got b'\\nb: 2\\nc: 3\\n' (lengths 18 and 15)"
+  },
+  {
+   "case": "own:edit/add-key-flow-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {x: 1, y: 2}\\n', got b'\\n x: 1\\n y: 2\\n' (lengths 16 and 17)"
+  },
+  {
+   "case": "own:edit/add-key-flow-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {x: 1, y: 2}\\n', got b'\\n x: 1\\n y: 2\\n' (lengths 16 and 17)"
+  },
+  {
+   "case": "own:edit/add-key-flow-mapping-empty",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {x: 1}\\nb: 1\\n', got b'\\n x: 1\\nb: 1\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/add-key-flow-mapping-empty",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {x: 1}\\nb: 1\\n', got b'\\n x: 1\\nb: 1\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/add-key-indent-four",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' b: 1\\n x: 9\\nc: 2\\n', got b'b: 1\\n x: 9\\nc: 2\\n' (lengths 26 and 22)"
+  },
+  {
+   "case": "own:edit/add-key-indent-four",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' b: 1\\n x: 9\\nc: 2\\n', got b'b: 1\\n x: 9\\nc: 2\\n' (lengths 26 and 22)"
+  },
+  {
+   "case": "own:edit/add-key-root-flow-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'{a: 1, b: 2}\\n', got b'a: 1\\nb: 2\\n' (lengths 13 and 10)"
+  },
+  {
+   "case": "own:edit/add-key-root-flow-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'{a: 1, b: 2}\\n', got b'a: 1\\nb: 2\\n' (lengths 13 and 10)"
+  },
+  {
+   "case": "own:edit/add-key-single-quoted-siblings",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'x'\\nb: 'y'\\nc: 'z'\\n\", got b'\"x\"\\nb: \"y\"\\nc: \"z\"\\n' (lengths 21 and 21)"
+  },
+  {
+   "case": "own:edit/add-key-single-quoted-siblings",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'x'\\nb: 'y'\\nc: 'z'\\n\", got b'\"x\"\\nb: \"y\"\\nc: \"z\"\\n' (lengths 21 and 21)"
+  },
+  {
+   "case": "own:edit/add-key-to-second-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'---\\nb: 2\\nc: 3\\n', got b'b: 2\\nc: 3\\n' (lengths 19 and 15)"
+  },
+  {
+   "case": "own:edit/add-key-to-second-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'---\\nb: 2\\nc: 3\\n', got b'b: 2\\nc: 3\\n' (lengths 19 and 15)"
+  },
+  {
+   "case": "own:edit/add-mapping-value-indent-four",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' y: 1\\na: 1\\nc:\\n p: 1\\n q: 2\\n', got b'y: 1\\na: 1\\nc:\\n p: 1\\n q: 2\\n' (lengths 38 and 32)"
+  },
+  {
+   "case": "own:edit/add-mapping-value-indent-four",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' y: 1\\na: 1\\nc:\\n p: 1\\n q: 2\\n', got b'y: 1\\na: 1\\nc:\\n p: 1\\n q: 2\\n' (lengths 38 and 32)"
+  },
+  {
+   "case": "own:edit/add-sequence-value-flush",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'a\\nm: x\\nn:\\n- 1\\n- 2\\n', got b'\"a\"\\nm: \"x\"\\nn:\\n- 1\\n- 2\\n' (lengths 23 and 27)"
+  },
+  {
+   "case": "own:edit/add-sequence-value-flush",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'a\\nm: x\\nn:\\n- 1\\n- 2\\n', got b'\"a\"\\nm: \"x\"\\nn:\\n- 1\\n- 2\\n' (lengths 23 and 27)"
+  },
+  {
+   "case": "own:edit/add-sequence-value-indented",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b' - a\\nm: x\\nn:\\n - 1\\n - 2\\n', got b'- \"a\"\\nm: \"x\"\\nn:\\n- 1\\n- 2\\n' (lengths 29 and 27)"
+  },
+  {
+   "case": "own:edit/add-sequence-value-indented",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b' - a\\nm: x\\nn:\\n - 1\\n - 2\\n', got b'- \"a\"\\nm: \"x\"\\nn:\\n- 1\\n- 2\\n' (lengths 29 and 27)"
+  },
+  {
+   "case": "own:edit/alias-read-then-write-elsewhere",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' &b\\n x: 1\\ncopy: *b\\nz: 1\\n', got b'\\n x: 1\\ncopy:\\n x: 1\\nz: 1\\n' (lengths 30 and 31)"
+  },
+  {
+   "case": "own:edit/alias-read-then-write-elsewhere",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' &b\\n x: 1\\ncopy: *b\\nz: 1\\n', got b'\\n x: 1\\ncopy:\\n x: 1\\nz: 1\\n' (lengths 30 and 31)"
+  },
+  {
+   "case": "own:edit/alias-refusal-add-below-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-add-below-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-after-successful-edit",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-after-successful-edit",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-alias-as-sequence-item",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-alias-as-sequence-item",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-deep-below-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-deep-below-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-move-anchored-with-aliases",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-move-anchored-with-aliases",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-remove-anchored-with-aliases",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-remove-anchored-with-aliases",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-remove-below-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-remove-below-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-remove-container-of-anchor-with-aliases",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-remove-container-of-anchor-with-aliases",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-replace-below-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-replace-below-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-sequence-alias-item",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-refusal-sequence-alias-item",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/alias-replace-alias-node-collection",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' &b\\n x: 1\\ncopy: 5\\n', got b'\\n x: 1\\ncopy: 5\\n' (lengths 24 and 21)"
+  },
+  {
+   "case": "own:edit/alias-replace-alias-node-collection",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' &b\\n x: 1\\ncopy: 5\\n', got b'\\n x: 1\\ncopy: 5\\n' (lengths 24 and 21)"
+  },
+  {
+   "case": "own:edit/alias-replace-alias-node-scalar",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'&x 1\\nb: 2\\n', got b'1\\nb: 2\\n' (lengths 13 and 10)"
+  },
+  {
+   "case": "own:edit/alias-replace-alias-node-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'&x 1\\nb: 2\\n', got b'1\\nb: 2\\n' (lengths 13 and 10)"
+  },
+  {
+   "case": "own:edit/alias-replace-source-of-anchor",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' &b\\n x: 2\\ncopy: *b\\n', got b'\\n x: 2\\ncopy:\\n x: 1\\n' (lengths 25 and 26)"
+  },
+  {
+   "case": "own:edit/alias-replace-source-of-anchor",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' &b\\n x: 2\\ncopy: *b\\n', got b'\\n x: 2\\ncopy:\\n x: 1\\n' (lengths 25 and 26)"
+  },
+  {
+   "case": "own:edit/atomic-document-index-out-of-range",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 5: expected b'---\\nb: 2\\n', got b'b: 2\\n' (lengths 14 and 10)"
+  },
+  {
+   "case": "own:edit/atomic-second-document-keeps-whole-stream",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 5: expected b'---\\nb: 2\\nc: 3\\n', got b'b: 2\\nc: 3\\n' (lengths 19 and 15)"
+  },
+  {
+   "case": "own:edit/copy-item-to-end",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'a\\n- b\\n- a\\n', got b'\"a\"\\n- \"b\"\\n- \"a\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/copy-item-to-end",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'a\\n- b\\n- a\\n', got b'\"a\"\\n- \"b\"\\n- \"a\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/copy-keeps-single-quoted-style",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'q'\\nb: 'r'\\nc: 'q'\\n\", got b'\"q\"\\nb: \"r\"\\nc: \"q\"\\n' (lengths 21 and 21)"
+  },
+  {
+   "case": "own:edit/copy-keeps-single-quoted-style",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'q'\\nb: 'r'\\nc: 'q'\\n\", got b'\"q\"\\nb: \"r\"\\nc: \"q\"\\n' (lengths 21 and 21)"
+  },
+  {
+   "case": "own:edit/copy-reads-through-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' &b\\n x: 1\\ncopy: *b\\nd: 1\\n', got b'\\n x: 1\\ncopy:\\n x: 1\\nd: 1\\n' (lengths 30 and 31)"
+  },
+  {
+   "case": "own:edit/copy-reads-through-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' &b\\n x: 1\\ncopy: *b\\nd: 1\\n', got b'\\n x: 1\\ncopy:\\n x: 1\\nd: 1\\n' (lengths 30 and 31)"
+  },
+  {
+   "case": "own:edit/keep-anchor-and-alias-elsewhere",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'&x 1\\nb: *x\\nc: 4\\n', got b'1\\nb: 1\\nc: 4\\n' (lengths 19 and 15)"
+  },
+  {
+   "case": "own:edit/keep-anchor-and-alias-elsewhere",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'&x 1\\nb: *x\\nc: 4\\n', got b'1\\nb: 1\\nc: 4\\n' (lengths 19 and 15)"
+  },
+  {
+   "case": "own:edit/keep-anchor-on-parent",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' &b\\n x: 9\\n y: 2\\nother: 3\\n', got b'\\n x: 9\\n y: 2\\nother: 3\\n' (lengths 32 and 29)"
+  },
+  {
+   "case": "own:edit/keep-anchor-on-parent",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' &b\\n x: 9\\n y: 2\\nother: 3\\n', got b'\\n x: 9\\n y: 2\\nother: 3\\n' (lengths 32 and 29)"
+  },
+  {
+   "case": "own:edit/keep-blank-lines-and-trailing-spaces",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b' \\n\\n\\nb: 9 \\n \\nc: 3\\n', got b'\\nb: 9\\nc: 3\\n' (lengths 25 and 15)"
+  },
+  {
+   "case": "own:edit/keep-blank-lines-and-trailing-spaces",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b' \\n\\n\\nb: 9 \\n \\nc: 3\\n', got b'\\nb: 9\\nc: 3\\n' (lengths 25 and 15)"
+  },
+  {
+   "case": "own:edit/keep-bom-add-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\xef\\xbb\\xbfa: 1\\nb: 2\\nz: 1\\n', got b'a: 1\\nb: 2\\nz: 1\\n' (lengths 18 and 15)"
+  },
+  {
+   "case": "own:edit/keep-bom-add-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\xef\\xbb\\xbfa: 1\\nb: 2\\nz: 1\\n', got b'a: 1\\nb: 2\\nz: 1\\n' (lengths 18 and 15)"
+  },
+  {
+   "case": "own:edit/keep-bom-add-sequence-item",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\xef\\xbb\\xbf- a\\n- b\\n- 7\\n', got b'- \"a\"\\n- \"b\"\\n- 7\\n' (lengths 15 and 16)"
+  },
+  {
+   "case": "own:edit/keep-bom-add-sequence-item",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\xef\\xbb\\xbf- a\\n- b\\n- 7\\n', got b'- \"a\"\\n- \"b\"\\n- 7\\n' (lengths 15 and 16)"
+  },
+  {
+   "case": "own:edit/keep-bom-remove-first-entry",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\xef\\xbb\\xbfb: 2\\n', got b'b: 2\\n' (lengths 8 and 5)"
+  },
+  {
+   "case": "own:edit/keep-bom-remove-first-entry",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\xef\\xbb\\xbfb: 2\\n', got b'b: 2\\n' (lengths 8 and 5)"
+  },
+  {
+   "case": "own:edit/keep-bom-replace",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\xef\\xbb\\xbfa: 9\\nb: 2\\n', got b'a: 9\\nb: 2\\n' (lengths 13 and 10)"
+  },
+  {
+   "case": "own:edit/keep-bom-replace",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\xef\\xbb\\xbfa: 9\\nb: 2\\n', got b'a: 9\\nb: 2\\n' (lengths 13 and 10)"
+  },
+  {
+   "case": "own:edit/keep-comment-above-entry",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'# about a\\na: 9\\nb: 2\\n', got b'a: 9\\nb: 2\\n' (lengths 20 and 10)"
+  },
+  {
+   "case": "own:edit/keep-comment-above-entry",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'# about a\\na: 9\\nb: 2\\n', got b'a: 9\\nb: 2\\n' (lengths 20 and 10)"
+  },
+  {
+   "case": "own:edit/keep-comment-after-edited-literal",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\n new\\n# next\\nb: 1\\n', got b'\"new\\\\n\"\\nb: 1\\n' (lengths 23 and 16)"
+  },
+  {
+   "case": "own:edit/keep-comment-after-edited-literal",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\n new\\n# next\\nb: 1\\n', got b'\"new\\\\n\"\\nb: 1\\n' (lengths 23 and 16)"
+  },
+  {
+   "case": "own:edit/keep-comment-after-value-spacing",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' # one\\nb: 20\\t# two\\n', got b'\\nb: 20\\n' (lengths 26 and 12)"
+  },
+  {
+   "case": "own:edit/keep-comment-after-value-spacing",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' # one\\nb: 20\\t# two\\n', got b'\\nb: 20\\n' (lengths 26 and 12)"
+  },
+  {
+   "case": "own:edit/keep-comment-at-end-of-collection",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b' - a\\n - c\\n # end of list\\nz: 1\\n', got b'- \"a\"\\n- \"c\"\\nz: 1\\n' (lengths 36 and 20)"
+  },
+  {
+   "case": "own:edit/keep-comment-at-end-of-collection",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b' - a\\n - c\\n # end of list\\nz: 1\\n', got b'- \"a\"\\n- \"c\"\\nz: 1\\n' (lengths 36 and 20)"
+  },
+  {
+   "case": "own:edit/keep-comment-before-document-start",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'# top\\n---\\na: 2\\n', got b'a: 2\\n' (lengths 15 and 5)"
+  },
+  {
+   "case": "own:edit/keep-comment-before-document-start",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'# top\\n---\\na: 2\\n', got b'a: 2\\n' (lengths 15 and 5)"
+  },
+  {
+   "case": "own:edit/keep-comment-between-entries",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'\\n# between\\n\\nb: 9\\n\\nc: 3\\n', got b'b: 9\\nc: 3\\n' (lengths 28 and 15)"
+  },
+  {
+   "case": "own:edit/keep-comment-between-entries",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'\\n# between\\n\\nb: 9\\n\\nc: 3\\n', got b'b: 9\\nc: 3\\n' (lengths 28 and 15)"
+  },
+  {
+   "case": "own:edit/keep-comment-hash-inside-quotes-is-not-a-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'x # y' # real\\nb: 2\\n\", got b'\"x # y\"\\nb: 2\\n' (lengths 23 and 16)"
+  },
+  {
+   "case": "own:edit/keep-comment-hash-inside-quotes-is-not-a-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'x # y' # real\\nb: 2\\n\", got b'\"x # y\"\\nb: 2\\n' (lengths 23 and 16)"
+  },
+  {
+   "case": "own:edit/keep-comment-inside-value-block",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' # why\\n b: 5\\nc: 2\\n', got b'\\n b: 5\\nc: 2\\n' (lengths 21 and 15)"
+  },
+  {
+   "case": "own:edit/keep-comment-inside-value-block",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' # why\\n b: 5\\nc: 2\\n', got b'\\n b: 5\\nc: 2\\n' (lengths 21 and 15)"
+  },
+  {
+   "case": "own:edit/keep-cr-only-replace",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'\\rb: 9\\rc: 3\\r', got b'\\nb: 9\\nc: 3\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/keep-cr-only-replace",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'\\rb: 9\\rc: 3\\r', got b'\\nb: 9\\nc: 3\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/keep-crlf-new-literal-uses-crlf",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\r\\n x\\r\\n y\\r\\nc: 1\\r\\n', got b'\"x\\\\ny\\\\n\"\\nc: 1\\n' (lengths 22 and 17)"
+  },
+  {
+   "case": "own:edit/keep-crlf-new-literal-uses-crlf",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\r\\n x\\r\\n y\\r\\nc: 1\\r\\n', got b'\"x\\\\ny\\\\n\"\\nc: 1\\n' (lengths 22 and 17)"
+  },
+  {
+   "case": "own:edit/keep-crlf-replace",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'\\r\\nb:\\r\\n - z\\r\\n - y\\r\\nc: 3\\r\\n', got b'\\nb:\\n- \"z\"\\n- \"y\"\\nc: 3\\n' (lengths 30 and 25)"
+  },
+  {
+   "case": "own:edit/keep-crlf-replace",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'\\r\\nb:\\r\\n - z\\r\\n - y\\r\\nc: 3\\r\\n', got b'\\nb:\\n- \"z\"\\n- \"y\"\\nc: 3\\n' (lengths 30 and 25)"
+  },
+  {
+   "case": "own:edit/keep-directives-and-start-marker",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'%YAML 1.2\\n%TAG !e! tag:example.com,2000:', got b'k: \"v\"\\nn: 2\\n' (lengths 60 and 12)"
+  },
+  {
+   "case": "own:edit/keep-directives-and-start-marker",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'%YAML 1.2\\n%TAG !e! tag:example.com,2000:', got b'k: \"v\"\\nn: 2\\n' (lengths 60 and 12)"
+  },
+  {
+   "case": "own:edit/keep-document-end-marker",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'... # done\\n', got b'' (lengths 16 and 5)"
+  },
+  {
+   "case": "own:edit/keep-document-end-marker",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'... # done\\n', got b'' (lengths 16 and 5)"
+  },
+  {
+   "case": "own:edit/keep-document-header-and-footer",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'# header\\n\\na: 5\\nb: 2\\n\\n# footer\\n', got b'a: 5\\nb: 2\\n' (lengths 30 and 10)"
+  },
+  {
+   "case": "own:edit/keep-document-header-and-footer",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'# header\\n\\na: 5\\nb: 2\\n\\n# footer\\n', got b'a: 5\\nb: 2\\n' (lengths 30 and 10)"
+  },
+  {
+   "case": "own:edit/keep-explicit-key-entry",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'? a\\n: 5\\nb: 2\\n', got b'a: 5\\nb: 2\\n' (lengths 13 and 10)"
+  },
+  {
+   "case": "own:edit/keep-explicit-key-entry",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'? a\\n: 5\\nb: 2\\n', got b'a: 5\\nb: 2\\n' (lengths 13 and 10)"
+  },
+  {
+   "case": "own:edit/keep-flow-mapping-as-block-value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {x: 1}\\nb:\\n y: 3\\n', got b'\\n x: 1\\nb:\\n y: 3\\n' (lengths 20 and 20)"
+  },
+  {
+   "case": "own:edit/keep-flow-mapping-as-block-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {x: 1}\\nb:\\n y: 3\\n', got b'\\n x: 1\\nb:\\n y: 3\\n' (lengths 20 and 20)"
+  },
+  {
+   "case": "own:edit/keep-flow-mapping-spacing",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' { x : 1 ,y: 9, z: 3 }\\n', got b'\\n x: 1\\n y: 9\\n z: 3\\n' (lengths 27 and 24)"
+  },
+  {
+   "case": "own:edit/keep-flow-mapping-spacing",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' { x : 1 ,y: 9, z: 3 }\\n', got b'\\n x: 1\\n y: 9\\n z: 3\\n' (lengths 27 and 24)"
+  },
+  {
+   "case": "own:edit/keep-flow-sequence-over-several-lines",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [1,\\n 9,\\n 3]\\n', got b'\\n- 1\\n- 9\\n- 3\\n' (lengths 17 and 15)"
+  },
+  {
+   "case": "own:edit/keep-flow-sequence-over-several-lines",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [1,\\n 9,\\n 3]\\n', got b'\\n- 1\\n- 9\\n- 3\\n' (lengths 17 and 15)"
+  },
+  {
+   "case": "own:edit/keep-flow-sequence-quotes",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [\"x\", \\'y\\', w]\\n', got b'\\n- \"x\"\\n- \"y\"\\n- \"w\"\\n' (lengths 17 and 21)"
+  },
+  {
+   "case": "own:edit/keep-flow-sequence-quotes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [\"x\", \\'y\\', w]\\n', got b'\\n- \"x\"\\n- \"y\"\\n- \"w\"\\n' (lengths 17 and 21)"
+  },
+  {
+   "case": "own:edit/keep-flow-sequence-spacing",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [ 1 ,9, 3 ]\\n', got b'\\n- 1\\n- 9\\n- 3\\n' (lengths 17 and 15)"
+  },
+  {
+   "case": "own:edit/keep-flow-sequence-spacing",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [ 1 ,9, 3 ]\\n', got b'\\n- 1\\n- 9\\n- 3\\n' (lengths 17 and 15)"
+  },
+  {
+   "case": "own:edit/keep-key-styles",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\'a\\': 1\\n\"b\": 9\\nc: 3\\n', got b'a: 1\\nb: 9\\nc: 3\\n' (lengths 19 and 15)"
+  },
+  {
+   "case": "own:edit/keep-key-styles",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\'a\\': 1\\n\"b\": 9\\nc: 3\\n', got b'a: 1\\nb: 9\\nc: 3\\n' (lengths 19 and 15)"
+  },
+  {
+   "case": "own:edit/keep-mixed-line-breaks",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 9: expected b'\\r\\nc: 9\\rd: 4\\n', got b'\\nc: 9\\nd: 4\\n' (lengths 21 and 20)"
+  },
+  {
+   "case": "own:edit/keep-mixed-line-breaks",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 9: expected b'\\r\\nc: 9\\rd: 4\\n', got b'\\nc: 9\\nd: 4\\n' (lengths 21 and 20)"
+  },
+  {
+   "case": "own:edit/keep-multiline-plain-sibling",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'one\\n two\\nb: 2\\n', got b'\"one two\"\\nb: 2\\n' (lengths 18 and 18)"
+  },
+  {
+   "case": "own:edit/keep-multiline-plain-sibling",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'one\\n two\\nb: 2\\n', got b'\"one two\"\\nb: 2\\n' (lengths 18 and 18)"
+  },
+  {
+   "case": "own:edit/keep-no-final-line-break",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 9: expected b'', got b'\\n' (lengths 9 and 10)"
+  },
+  {
+   "case": "own:edit/keep-no-final-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 9: expected b'', got b'\\n' (lengths 9 and 10)"
+  },
+  {
+   "case": "own:edit/keep-non-ascii-text",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 6: expected b'\\xe6\\x97\\xa5\\xe6\\x9c\\xac\\xe8\\xaa\\x9e\\nemoji: \\xf0\\x9f\\x98\\x80\\nn: 2\\n', got b'\"\\xe6\\x97\\xa5\\xe6\\x9c\\xac\\xe8\\xaa\\x9e\"\\nemoji: \"\\\\U0001F600\"\\nn: 2\\n' (lengths 33 an..."
+  },
+  {
+   "case": "own:edit/keep-non-ascii-text",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 6: expected b'\\xe6\\x97\\xa5\\xe6\\x9c\\xac\\xe8\\xaa\\x9e\\nemoji: \\xf0\\x9f\\x98\\x80\\nn: 2\\n', got b'\"\\xe6\\x97\\xa5\\xe6\\x9c\\xac\\xe8\\xaa\\x9e\"\\nemoji: \"\\\\U0001F600\"\\nn: 2\\n' (lengths 33 an..."
+  },
+  {
+   "case": "own:edit/keep-odd-indentation-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' b: 1\\n c: 9\\nd: 3\\n', got b'b: 1\\n c: 9\\nd: 3\\n' (lengths 30 and 22)"
+  },
+  {
+   "case": "own:edit/keep-odd-indentation-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' b: 1\\n c: 9\\nd: 3\\n', got b'b: 1\\n c: 9\\nd: 3\\n' (lengths 30 and 22)"
+  },
+  {
+   "case": "own:edit/keep-odd-indentation-sequence",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b' - x\\n - z\\n', got b'- \"x\"\\n- \"z\"\\n' (lengths 21 and 15)"
+  },
+  {
+   "case": "own:edit/keep-odd-indentation-sequence",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b' - x\\n - z\\n', got b'- \"x\"\\n- \"z\"\\n' (lengths 21 and 15)"
+  },
+  {
+   "case": "own:edit/keep-sequence-not-indented-under-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'c\\n- b\\nz: 1\\n', got b'\"c\"\\n- \"b\"\\nz: 1\\n' (lengths 16 and 20)"
+  },
+  {
+   "case": "own:edit/keep-sequence-not-indented-under-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'c\\n- b\\nz: 1\\n', got b'\"c\"\\n- \"b\"\\nz: 1\\n' (lengths 16 and 20)"
+  },
+  {
+   "case": "own:edit/keep-stream-bom-before-second-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'Did not find expected <document start>.' at 4:2"
+  },
+  {
+   "case": "own:edit/keep-stream-bom-before-second-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'Did not find expected <document start>.' at 4:2"
+  },
+  {
+   "case": "own:edit/keep-stream-document-after-empty-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'---\\n---\\na: 2\\n', got b'null\\na: 2\\n' (lengths 13 and 10)"
+  },
+  {
+   "case": "own:edit/keep-stream-document-after-empty-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'---\\n---\\na: 2\\n', got b'null\\na: 2\\n' (lengths 13 and 10)"
+  },
+  {
+   "case": "own:edit/keep-stream-first-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'---\\nb: 2\\n---\\nc: 3\\n', got b'b: 2\\nc: 3\\n' (lengths 23 and 15)"
+  },
+  {
+   "case": "own:edit/keep-stream-first-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'---\\nb: 2\\n---\\nc: 3\\n', got b'b: 2\\nc: 3\\n' (lengths 23 and 15)"
+  },
+  {
+   "case": "own:edit/keep-stream-root-block-scalar-sibling",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'--- |\\n root\\n--- \\na: 2\\n', got b'\"root\\\\n\"\\na: 2\\n' (lengths 23 and 14)"
+  },
+  {
+   "case": "own:edit/keep-stream-root-block-scalar-sibling",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'--- |\\n root\\n--- \\na: 2\\n', got b'\"root\\\\n\"\\na: 2\\n' (lengths 23 and 14)"
+  },
+  {
+   "case": "own:edit/keep-stream-second-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'---\\nb: 9\\n---\\nc: 3\\n', got b'b: 9\\nc: 3\\n' (lengths 23 and 15)"
+  },
+  {
+   "case": "own:edit/keep-stream-second-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'---\\nb: 9\\n---\\nc: 3\\n', got b'b: 9\\nc: 3\\n' (lengths 23 and 15)"
+  },
+  {
+   "case": "own:edit/keep-stream-third-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'---\\nb: 2\\n---\\nc: 9\\n', got b'b: 2\\nc: 9\\n' (lengths 23 and 15)"
+  },
+  {
+   "case": "own:edit/keep-stream-third-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'---\\nb: 2\\n---\\nc: 9\\n', got b'b: 2\\nc: 9\\n' (lengths 23 and 15)"
+  },
+  {
+   "case": "own:edit/keep-stream-with-markers-and-comments",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'%YAML 1.2\\n---\\na: 1\\n...\\n# between\\n--- # s', got b'a: 1\\nb: 9\\n' (lengths 55 and 10)"
+  },
+  {
+   "case": "own:edit/keep-stream-with-markers-and-comments",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'%YAML 1.2\\n---\\na: 1\\n...\\n# between\\n--- # s', got b'a: 1\\nb: 9\\n' (lengths 55 and 10)"
+  },
+  {
+   "case": "own:edit/keep-tab-after-colon",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'\\t1\\nb:\\t9\\n', got b' 1\\nb: 9\\n' (lengths 10 and 10)"
+  },
+  {
+   "case": "own:edit/keep-tab-after-colon",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'\\t1\\nb:\\t9\\n', got b' 1\\nb: 9\\n' (lengths 10 and 10)"
+  },
+  {
+   "case": "own:edit/keep-tag-on-parent",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' !point\\n x: 1\\n y: 9\\n', got b'\\n x: 1\\n y: 9\\n' (lengths 24 and 17)"
+  },
+  {
+   "case": "own:edit/keep-tag-on-parent",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' !point\\n x: 1\\n y: 9\\n', got b'\\n x: 1\\n y: 9\\n' (lengths 24 and 17)"
+  },
+  {
+   "case": "own:edit/keep-utf-16be-without-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\x00a\\x00:\\x00 \\x005\\x00\\n\\x00b\\x00:\\x00 \\x002\\x00\\n', got b'a: 5\\nb: 2\\n' (lengths 20 and 10)"
+  },
+  {
+   "case": "own:edit/keep-utf-16be-without-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\x00a\\x00:\\x00 \\x005\\x00\\n\\x00b\\x00:\\x00 \\x002\\x00\\n', got b'a: 5\\nb: 2\\n' (lengths 20 and 10)"
+  },
+  {
+   "case": "own:edit/keep-utf-16le-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\xff\\xfea\\x00:\\x00 \\x00\\xe9\\x00\\n\\x00b\\x00:\\x00 \\x00[\\x001\\x00,\\x00 \\x009\\x00]\\x00\\n\\x00', got b'a: \"\\xc3\\xa9\"\\nb:\\n- 1\\n- 9\\n' (lengths 32 and 19)"
+  },
+  {
+   "case": "own:edit/keep-utf-16le-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\xff\\xfea\\x00:\\x00 \\x00\\xe9\\x00\\n\\x00b\\x00:\\x00 \\x00[\\x001\\x00,\\x00 \\x009\\x00]\\x00\\n\\x00', got b'a: \"\\xc3\\xa9\"\\nb:\\n- 1\\n- 9\\n' (lengths 32 and 19)"
+  },
+  {
+   "case": "own:edit/keep-utf-32le-bom-add-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\xff\\xfe\\x00\\x00a\\x00\\x00\\x00:\\x00\\x00\\x00 \\x00\\x00\\x001\\x00\\x00\\x00\\n\\x00\\x00\\x00b\\x00\\x00\\x00:\\x00\\x00\\x00 \\x00\\x00\\x002\\x00\\x00\\x00', got b'a: 1\\nb: 2\\n' (leng..."
+  },
+  {
+   "case": "own:edit/keep-utf-32le-bom-add-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\\xff\\xfe\\x00\\x00a\\x00\\x00\\x00:\\x00\\x00\\x00 \\x00\\x00\\x001\\x00\\x00\\x00\\n\\x00\\x00\\x00b\\x00\\x00\\x00:\\x00\\x00\\x00 \\x00\\x00\\x002\\x00\\x00\\x00', got b'a: 1\\nb: 2\\n' (leng..."
+  },
+  {
+   "case": "own:edit/move-error-into-own-child",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/move-error-into-own-child",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/move-item-to-end",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'b\\n- c\\n- a\\n', got b'\"b\"\\n- \"c\"\\n- \"a\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/move-item-to-end",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'b\\n- c\\n- a\\n', got b'\"b\"\\n- \"c\"\\n- \"a\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/move-item-to-start",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'c\\n- a\\n- b\\n', got b'\"c\"\\n- \"a\"\\n- \"b\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/move-item-to-start",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'c\\n- a\\n- b\\n', got b'\"c\"\\n- \"a\"\\n- \"b\"\\n' (lengths 12 and 18)"
+  },
+  {
+   "case": "own:edit/move-onto-existing-key-replaces",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [2]\\nm: 1\\n', got b'\\n- 2\\nm: 1\\n' (lengths 12 and 12)"
+  },
+  {
+   "case": "own:edit/move-onto-existing-key-replaces",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [2]\\nm: 1\\n', got b'\\n- 2\\nm: 1\\n' (lengths 12 and 12)"
+  },
+  {
+   "case": "own:edit/pointer-boolean-key-by-text",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 6: expected b'x\\nb: c\\n', got b'\"x\"\\nb: \"c\"\\n' (lengths 13 and 17)"
+  },
+  {
+   "case": "own:edit/pointer-boolean-key-by-text",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 6: expected b'x\\nb: c\\n', got b'\"x\"\\nb: \"c\"\\n' (lengths 13 and 17)"
+  },
+  {
+   "case": "own:edit/pointer-empty-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\"\": 9\\nb: 2\\n', got b\"'': 9\\nb: 2\\n\" (lengths 11 and 11)"
+  },
+  {
+   "case": "own:edit/pointer-empty-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\"\": 9\\nb: 2\\n', got b\"'': 9\\nb: 2\\n\" (lengths 11 and 11)"
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-after-success",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected refused-ambiguous, got other"
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-boolean-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected refused-ambiguous, got other"
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-remove",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected refused-ambiguous, got other"
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-test",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected refused-ambiguous, got other"
+  },
+  {
+   "case": "own:edit/pointer-error-dash-index-on-replace",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/pointer-error-dash-index-on-replace",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/pointer-error-hex-key-by-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 6: expected b'a\\n', got b'\"a\"\\n' (lengths 8 and 10)"
+  },
+  {
+   "case": "own:edit/pointer-error-index-out-of-range",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 2: expected b'a\\n- b\\n', got b'\"a\"\\n- \"b\"\\n' (lengths 8 and 12)"
+  },
+  {
+   "case": "own:edit/pointer-error-index-with-leading-zero",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 2: expected b'a\\n- b\\n', got b'\"a\"\\n- \"b\"\\n' (lengths 8 and 12)"
+  },
+  {
+   "case": "own:edit/pointer-error-negative-index",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 2: expected b'a\\n- b\\n', got b'\"a\"\\n- \"b\"\\n' (lengths 8 and 12)"
+  },
+  {
+   "case": "own:edit/pointer-error-word-index",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 2: expected b'a\\n- b\\n', got b'\"a\"\\n- \"b\"\\n' (lengths 8 and 12)"
+  },
+  {
+   "case": "own:edit/pointer-escape-order",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\"~1\": x\\n\"/\": b\\n', got b'~1: \"a\"\\n/: \"b\"\\n~01: \"x\"\\n' (lengths 15 and 24)"
+  },
+  {
+   "case": "own:edit/pointer-escape-order",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\"~1\": x\\n\"/\": b\\n', got b'~1: \"a\"\\n/: \"b\"\\n~01: \"x\"\\n' (lengths 15 and 24)"
+  },
+  {
+   "case": "own:edit/pointer-hex-key-by-text",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 6: expected b'x\\nb: c\\n', got b'\"x\"\\nb: \"c\"\\n' (lengths 13 and 17)"
+  },
+  {
+   "case": "own:edit/pointer-hex-key-by-text",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 6: expected b'x\\nb: c\\n', got b'\"x\"\\nb: \"c\"\\n' (lengths 13 and 17)"
+  },
+  {
+   "case": "own:edit/pointer-matches-text-not-value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'x\\n1.0: b\\n', got b'\"x\"\\n1.0: \"b\"\\n' (lengths 12 and 16)"
+  },
+  {
+   "case": "own:edit/pointer-matches-text-not-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'x\\n1.0: b\\n', got b'\"x\"\\n1.0: \"b\"\\n' (lengths 12 and 16)"
+  },
+  {
+   "case": "own:edit/pointer-numeric-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'x\\nb: c\\n', got b'\"x\"\\nb: \"c\"\\n' (lengths 11 and 15)"
+  },
+  {
+   "case": "own:edit/pointer-numeric-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'x\\nb: c\\n', got b'\"x\"\\nb: \"c\"\\n' (lengths 11 and 15)"
+  },
+  {
+   "case": "own:edit/pointer-quoted-numeric-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\"80\": x\\nb: c\\n', got b'80: \"x\"\\nb: \"c\"\\n' (lengths 13 and 15)"
+  },
+  {
+   "case": "own:edit/pointer-quoted-numeric-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\"80\": x\\nb: c\\n', got b'80: \"x\"\\nb: \"c\"\\n' (lengths 13 and 15)"
+  },
+  {
+   "case": "own:edit/pointer-slash-in-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\"a/b\": 9\\nc: 2\\n', got b'a/b: 1\\nc: 2\\na~1b: 9\\n' (lengths 14 and 20)"
+  },
+  {
+   "case": "own:edit/pointer-slash-in-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'\"a/b\": 9\\nc: 2\\n', got b'a/b: 1\\nc: 2\\na~1b: 9\\n' (lengths 14 and 20)"
+  },
+  {
+   "case": "own:edit/pointer-tilde-in-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'9\\nc: 2\\n', got b'1\\nc: 2\\nm~0n: 9\\n' (lengths 12 and 20)"
+  },
+  {
+   "case": "own:edit/pointer-tilde-in-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'9\\nc: 2\\n', got b'1\\nc: 2\\nm~0n: 9\\n' (lengths 12 and 20)"
+  },
+  {
+   "case": "own:edit/remove-error-dash-index",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/remove-error-dash-index",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/remove-error-index-out-of-range",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 2: expected b'a\\n- b\\n', got b'\"a\"\\n- \"b\"\\n' (lengths 8 and 12)"
+  },
+  {
+   "case": "own:edit/remove-first-key-keeps-document-header",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'# header\\n\\nb: 2\\n', got b'b: 2\\n' (lengths 15 and 5)"
+  },
+  {
+   "case": "own:edit/remove-first-key-keeps-document-header",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'# header\\n\\nb: 2\\n', got b'b: 2\\n' (lengths 15 and 5)"
+  },
+  {
+   "case": "own:edit/remove-flow-item-first",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [2, 3]\\n', got b'\\n- 2\\n- 3\\n' (lengths 10 and 11)"
+  },
+  {
+   "case": "own:edit/remove-flow-item-first",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [2, 3]\\n', got b'\\n- 2\\n- 3\\n' (lengths 10 and 11)"
+  },
+  {
+   "case": "own:edit/remove-flow-item-last",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [1, 2]\\n', got b'\\n- 1\\n- 2\\n' (lengths 10 and 11)"
+  },
+  {
+   "case": "own:edit/remove-flow-item-last",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [1, 2]\\n', got b'\\n- 1\\n- 2\\n' (lengths 10 and 11)"
+  },
+  {
+   "case": "own:edit/remove-flow-item-middle",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [1, 3]\\n', got b'\\n- 1\\n- 3\\n' (lengths 10 and 11)"
+  },
+  {
+   "case": "own:edit/remove-flow-item-middle",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [1, 3]\\n', got b'\\n- 1\\n- 3\\n' (lengths 10 and 11)"
+  },
+  {
+   "case": "own:edit/remove-flow-key-first",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {y: 2}\\n', got b'\\n y: 2\\n' (lengths 10 and 10)"
+  },
+  {
+   "case": "own:edit/remove-flow-key-first",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {y: 2}\\n', got b'\\n y: 2\\n' (lengths 10 and 10)"
+  },
+  {
+   "case": "own:edit/remove-flow-key-last",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {x: 1}\\n', got b'\\n x: 1\\n' (lengths 10 and 10)"
+  },
+  {
+   "case": "own:edit/remove-flow-key-last",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {x: 1}\\n', got b'\\n x: 1\\n' (lengths 10 and 10)"
+  },
+  {
+   "case": "own:edit/remove-item-first",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'b\\n- c\\n', got b'\"b\"\\n- \"c\"\\n' (lengths 8 and 12)"
+  },
+  {
+   "case": "own:edit/remove-item-first",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'b\\n- c\\n', got b'\"b\"\\n- \"c\"\\n' (lengths 8 and 12)"
+  },
+  {
+   "case": "own:edit/remove-item-last",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'a\\n- b\\n', got b'\"a\"\\n- \"b\"\\n' (lengths 8 and 12)"
+  },
+  {
+   "case": "own:edit/remove-item-last",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'a\\n- b\\n', got b'\"a\"\\n- \"b\"\\n' (lengths 8 and 12)"
+  },
+  {
+   "case": "own:edit/remove-item-middle",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'a\\n- c\\n', got b'\"a\"\\n- \"c\"\\n' (lengths 8 and 12)"
+  },
+  {
+   "case": "own:edit/remove-item-middle",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'a\\n- c\\n', got b'\"a\"\\n- \"c\"\\n' (lengths 8 and 12)"
+  },
+  {
+   "case": "own:edit/remove-key-crlf",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'\\r\\nc: 3\\r\\n', got b'\\nc: 3\\n' (lengths 12 and 10)"
+  },
+  {
+   "case": "own:edit/remove-key-crlf",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'\\r\\nc: 3\\r\\n', got b'\\nc: 3\\n' (lengths 12 and 10)"
+  },
+  {
+   "case": "own:edit/remove-key-in-second-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'---\\nc: 3\\n', got b'c: 3\\n' (lengths 14 and 10)"
+  },
+  {
+   "case": "own:edit/remove-key-in-second-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'---\\nc: 3\\n', got b'c: 3\\n' (lengths 14 and 10)"
+  },
+  {
+   "case": "own:edit/remove-key-keeps-comment-for-next-entry",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'# about c\\nc: 3\\n', got b'c: 3\\n' (lengths 20 and 10)"
+  },
+  {
+   "case": "own:edit/remove-key-keeps-comment-for-next-entry",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'# about c\\nc: 3\\n', got b'c: 3\\n' (lengths 20 and 10)"
+  },
+  {
+   "case": "own:edit/remove-last-key-keeps-footer-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'# end\\n', got b'' (lengths 11 and 5)"
+  },
+  {
+   "case": "own:edit/remove-last-key-keeps-footer-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'# end\\n', got b'' (lengths 11 and 5)"
+  },
+  {
+   "case": "own:edit/sequential-removals-see-each-other",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'c\\n', got b'\"c\"\\n' (lengths 4 and 6)"
+  },
+  {
+   "case": "own:edit/sequential-removals-see-each-other",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'c\\n', got b'\"c\"\\n' (lengths 4 and 6)"
+  },
+  {
+   "case": "own:edit/set-double-quoted-inner-quotes",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'\"say \\\\\"hi\\\\\"\"\\n', got b'\\'say \"hi\"\\'\\n' (lengths 16 and 14)"
+  },
+  {
+   "case": "own:edit/set-double-quoted-inner-quotes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'\"say \\\\\"hi\\\\\"\"\\n', got b'\\'say \"hi\"\\'\\n' (lengths 16 and 14)"
+  },
+  {
+   "case": "own:edit/set-folded-clip",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'>\\n new text\\nb: 1\\n', got b'\"new text\\\\n\"\\nb: 1\\n' (lengths 21 and 21)"
+  },
+  {
+   "case": "own:edit/set-folded-clip",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'>\\n new text\\nb: 1\\n', got b'\"new text\\\\n\"\\nb: 1\\n' (lengths 21 and 21)"
+  },
+  {
+   "case": "own:edit/set-folded-clip-to-strip-no-newline",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'>-\\n short\\nb: 1\\n', got b'\"short\"\\nb: 1\\n' (lengths 19 and 16)"
+  },
+  {
+   "case": "own:edit/set-folded-clip-to-strip-no-newline",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'>-\\n short\\nb: 1\\n', got b'\"short\"\\nb: 1\\n' (lengths 19 and 16)"
+  },
+  {
+   "case": "own:edit/set-folded-strip-keeps-strip",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'>-\\n short\\nb: 1\\n', got b'\"short\"\\nb: 1\\n' (lengths 19 and 16)"
+  },
+  {
+   "case": "own:edit/set-folded-strip-keeps-strip",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'>-\\n short\\nb: 1\\n', got b'\"short\"\\nb: 1\\n' (lengths 19 and 16)"
+  },
+  {
+   "case": "own:edit/set-folded-two-lines-need-an-empty-line",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'>\\n one\\n\\n two\\nb: 1\\n', got b'\"one\\\\ntwo\\\\n\"\\nb: 1\\n' (lengths 23 and 21)"
+  },
+  {
+   "case": "own:edit/set-folded-two-lines-need-an-empty-line",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'>\\n one\\n\\n two\\nb: 1\\n', got b'\"one\\\\ntwo\\\\n\"\\nb: 1\\n' (lengths 23 and 21)"
+  },
+  {
+   "case": "own:edit/set-literal-clip-blank-line-inside",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\n x\\n\\n y\\nb: 1\\n', got b'\"x\\\\n\\\\ny\\\\n\"\\nb: 1\\n' (lengths 19 and 19)"
+  },
+  {
+   "case": "own:edit/set-literal-clip-blank-line-inside",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\n x\\n\\n y\\nb: 1\\n', got b'\"x\\\\n\\\\ny\\\\n\"\\nb: 1\\n' (lengths 19 and 19)"
+  },
+  {
+   "case": "own:edit/set-literal-clip-multiline",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\n x\\n y\\n z\\nb: 1\\n', got b'\"x\\\\ny\\\\nz\\\\n\"\\nb: 1\\n' (lengths 22 and 20)"
+  },
+  {
+   "case": "own:edit/set-literal-clip-multiline",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\n x\\n y\\n z\\nb: 1\\n', got b'\"x\\\\ny\\\\nz\\\\n\"\\nb: 1\\n' (lengths 22 and 20)"
+  },
+  {
+   "case": "own:edit/set-literal-clip-to-keep-for-two-newlines",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|+\\n x\\n\\nb: 1\\n', got b'\"x\\\\n\\\\n\"\\nb: 1\\n' (lengths 16 and 16)"
+  },
+  {
+   "case": "own:edit/set-literal-clip-to-keep-for-two-newlines",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|+\\n x\\n\\nb: 1\\n', got b'\"x\\\\n\\\\n\"\\nb: 1\\n' (lengths 16 and 16)"
+  },
+  {
+   "case": "own:edit/set-literal-clip-to-strip-no-newline",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|-\\n x\\n y\\nb: 1\\n', got b'\"x\\\\ny\"\\nb: 1\\n' (lengths 19 and 15)"
+  },
+  {
+   "case": "own:edit/set-literal-clip-to-strip-no-newline",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|-\\n x\\n y\\nb: 1\\n', got b'\"x\\\\ny\"\\nb: 1\\n' (lengths 19 and 15)"
+  },
+  {
+   "case": "own:edit/set-literal-in-sequence",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'|\\n new\\n- x\\n', got b'\"new\\\\n\"\\n- \"x\"\\n' (lengths 14 and 16)"
+  },
+  {
+   "case": "own:edit/set-literal-in-sequence",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'|\\n new\\n- x\\n', got b'\"new\\\\n\"\\n- \"x\"\\n' (lengths 14 and 16)"
+  },
+  {
+   "case": "own:edit/set-literal-indentation-indicator-needed",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|2\\n y\\nb: 1\\n', got b'\" y\\\\n\"\\nb: 1\\n' (lengths 17 and 16)"
+  },
+  {
+   "case": "own:edit/set-literal-indentation-indicator-needed",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|2\\n y\\nb: 1\\n', got b'\" y\\\\n\"\\nb: 1\\n' (lengths 17 and 16)"
+  },
+  {
+   "case": "own:edit/set-literal-keep-drops-the-extra-line",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|+\\n new\\nb: 1\\n', got b'\"new\\\\n\"\\nb: 1\\n' (lengths 17 and 16)"
+  },
+  {
+   "case": "own:edit/set-literal-keep-drops-the-extra-line",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|+\\n new\\nb: 1\\n', got b'\"new\\\\n\"\\nb: 1\\n' (lengths 17 and 16)"
+  },
+  {
+   "case": "own:edit/set-literal-keep-keeps-keep",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|+\\n new\\n\\nb: 1\\n', got b'\"new\\\\n\\\\n\"\\nb: 1\\n' (lengths 18 and 18)"
+  },
+  {
+   "case": "own:edit/set-literal-keep-keeps-keep",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|+\\n new\\n\\nb: 1\\n', got b'\"new\\\\n\\\\n\"\\nb: 1\\n' (lengths 18 and 18)"
+  },
+  {
+   "case": "own:edit/set-literal-nested-indentation",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 8: expected b'|\\n x\\n y\\n b: 1\\n', got b'\"x\\\\ny\\\\n\"\\n b: 1\\n' (lengths 29 and 24)"
+  },
+  {
+   "case": "own:edit/set-literal-nested-indentation",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 8: expected b'|\\n x\\n y\\n b: 1\\n', got b'\"x\\\\ny\\\\n\"\\n b: 1\\n' (lengths 29 and 24)"
+  },
+  {
+   "case": "own:edit/set-literal-odd-indentation-kept",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\n new\\n more\\nb: 1\\n', got b'\"new\\\\nmore\\\\n\"\\nb: 1\\n' (lengths 31 and 22)"
+  },
+  {
+   "case": "own:edit/set-literal-odd-indentation-kept",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\n new\\n more\\nb: 1\\n', got b'\"new\\\\nmore\\\\n\"\\nb: 1\\n' (lengths 31 and 22)"
+  },
+  {
+   "case": "own:edit/set-literal-strip-keeps-strip",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|-\\n x\\nb: 1\\n', got b'\"x\"\\nb: 1\\n' (lengths 15 and 12)"
+  },
+  {
+   "case": "own:edit/set-literal-strip-keeps-strip",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|-\\n x\\nb: 1\\n', got b'\"x\"\\nb: 1\\n' (lengths 15 and 12)"
+  },
+  {
+   "case": "own:edit/set-literal-strip-to-clip-when-newline-added",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\n x\\nb: 1\\n', got b'\"x\\\\n\"\\nb: 1\\n' (lengths 14 and 14)"
+  },
+  {
+   "case": "own:edit/set-literal-strip-to-clip-when-newline-added",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\n x\\nb: 1\\n', got b'\"x\\\\n\"\\nb: 1\\n' (lengths 14 and 14)"
+  },
+  {
+   "case": "own:edit/set-plain-integer",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 6: expected b'x\\nport: 8080\\n', got b'\"x\"\\nport: 8080\\n' (lengths 19 and 21)"
+  },
+  {
+   "case": "own:edit/set-plain-integer",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 6: expected b'x\\nport: 8080\\n', got b'\"x\"\\nport: 8080\\n' (lengths 19 and 21)"
+  },
+  {
+   "case": "own:edit/set-plain-string-that-looks-like-text",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'hello world\\nb: 2\\n', got b'\"hello world\"\\nb: 2\\n' (lengths 20 and 22)"
+  },
+  {
+   "case": "own:edit/set-plain-string-that-looks-like-text",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'hello world\\nb: 2\\n', got b'\"hello world\"\\nb: 2\\n' (lengths 20 and 22)"
+  },
+  {
+   "case": "own:edit/set-plain-string-yes-stays-plain-in-core",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'yes\\n', got b'\"yes\"\\n' (lengths 7 and 9)"
+  },
+  {
+   "case": "own:edit/set-plain-string-yes-stays-plain-in-core",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'yes\\n', got b'\"yes\"\\n' (lengths 7 and 9)"
+  },
+  {
+   "case": "own:edit/set-plain-text",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 6: expected b'new\\nport: 80\\n', got b'\"new\"\\nport: 80\\n' (lengths 19 and 21)"
+  },
+  {
+   "case": "own:edit/set-plain-text",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 6: expected b'new\\nport: 80\\n', got b'\"new\"\\nport: 80\\n' (lengths 19 and 21)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-colon-space",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'k: v'\\nb: 1\\n\", got b'\"k: v\"\\nb: 1\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-colon-space",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'k: v'\\nb: 1\\n\", got b'\"k: v\"\\nb: 1\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-empty-string",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"''\\nb: 1\\n\", got b'\"\"\\nb: 1\\n' (lengths 11 and 11)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-empty-string",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"''\\nb: 1\\n\", got b'\"\"\\nb: 1\\n' (lengths 11 and 11)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-float-string",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'1.0'\\nb: 1\\n\", got b'\"1.0\"\\nb: 1\\n' (lengths 14 and 14)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-float-string",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'1.0'\\nb: 1\\n\", got b'\"1.0\"\\nb: 1\\n' (lengths 14 and 14)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-hash",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'# x'\\nb: 1\\n\", got b'\"# x\"\\nb: 1\\n' (lengths 14 and 14)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-hash",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'# x'\\nb: 1\\n\", got b'\"# x\"\\nb: 1\\n' (lengths 14 and 14)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-leading-space",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"' x'\\nb: 1\\n\", got b'\" x\"\\nb: 1\\n' (lengths 13 and 13)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-leading-space",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"' x'\\nb: 1\\n\", got b'\" x\"\\nb: 1\\n' (lengths 13 and 13)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-null-string",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'null'\\nb: 1\\n\", got b'\"null\"\\nb: 1\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-null-string",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'null'\\nb: 1\\n\", got b'\"null\"\\nb: 1\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-numeric-string",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'12'\\nb: 1\\n\", got b'\"12\"\\nb: 1\\n' (lengths 13 and 13)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-numeric-string",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'12'\\nb: 1\\n\", got b'\"12\"\\nb: 1\\n' (lengths 13 and 13)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-trailing-space",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'x '\\nb: 1\\n\", got b'\"x \"\\nb: 1\\n' (lengths 13 and 13)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-trailing-space",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'x '\\nb: 1\\n\", got b'\"x \"\\nb: 1\\n' (lengths 13 and 13)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-true-string",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'true'\\nb: 1\\n\", got b'\"true\"\\nb: 1\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/set-plain-to-quoted-true-string",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'true'\\nb: 1\\n\", got b'\"true\"\\nb: 1\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/set-sequence-item-single-quoted",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b\"'a'\\n- 'true'\\n\", got b'\"a\"\\n- \"true\"\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/set-sequence-item-single-quoted",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b\"'a'\\n- 'true'\\n\", got b'\"a\"\\n- \"true\"\\n' (lengths 15 and 15)"
+  },
+  {
+   "case": "own:edit/set-sequence-to-scalar",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'x\\nb: 3\\n', got b'\"x\"\\nb: 3\\n' (lengths 10 and 12)"
+  },
+  {
+   "case": "own:edit/set-sequence-to-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'x\\nb: 3\\n', got b'\"x\"\\nb: 3\\n' (lengths 10 and 12)"
+  },
+  {
+   "case": "own:edit/set-single-quoted-ambiguous-text",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'true'\\n\", got b'\"true\"\\n' (lengths 10 and 10)"
+  },
+  {
+   "case": "own:edit/set-single-quoted-ambiguous-text",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'true'\\n\", got b'\"true\"\\n' (lengths 10 and 10)"
+  },
+  {
+   "case": "own:edit/set-single-quoted-apostrophe",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'it''s'\\n\", got b'\"it\\'s\"\\n' (lengths 11 and 10)"
+  },
+  {
+   "case": "own:edit/set-single-quoted-apostrophe",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'it''s'\\n\", got b'\"it\\'s\"\\n' (lengths 11 and 10)"
+  },
+  {
+   "case": "own:edit/set-single-quoted-colon-hash-spaces",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"' k: #v '\\n\", got b'\" k: #v \"\\n' (lengths 13 and 13)"
+  },
+  {
+   "case": "own:edit/set-single-quoted-colon-hash-spaces",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"' k: #v '\\n\", got b'\" k: #v \"\\n' (lengths 13 and 13)"
+  },
+  {
+   "case": "own:edit/set-single-quoted-empty",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"''\\n\", got b'\"\"\\n' (lengths 6 and 6)"
+  },
+  {
+   "case": "own:edit/set-single-quoted-empty",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"''\\n\", got b'\"\"\\n' (lengths 6 and 6)"
+  },
+  {
+   "case": "own:edit/set-single-quoted-text",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'new'\\nb: 1\\n\", got b'\"new\"\\nb: 1\\n' (lengths 14 and 14)"
+  },
+  {
+   "case": "own:edit/set-single-quoted-text",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b\"'new'\\nb: 1\\n\", got b'\"new\"\\nb: 1\\n' (lengths 14 and 14)"
+  },
+  {
+   "case": "own:edit/test-core-yes-is-a-string",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'yes\\nb: 2\\n', got b'\"yes\"\\nb: 2\\n' (lengths 12 and 14)"
+  },
+  {
+   "case": "own:edit/test-core-yes-is-a-string",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'yes\\nb: 2\\n', got b'\"yes\"\\nb: 2\\n' (lengths 12 and 14)"
+  },
+  {
+   "case": "own:edit/test-error-mapping-with-extra-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 2: expected b' {x: 1, y: 2}\\n', got b'\\n x: 1\\n y: 2\\n' (lengths 16 and 17)"
+  },
+  {
+   "case": "own:edit/test-error-sequence-order-matters",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 2: expected b' [1, 2]\\n', got b'\\n- 1\\n- 2\\n' (lengths 10 and 11)"
+  },
+  {
+   "case": "own:edit/test-error-str-tag-is-not-integer",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/test-error-str-tag-is-not-integer",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/test-error-yes-is-not-boolean",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 3: expected b'yes\\n', got b'\"yes\"\\n' (lengths 7 and 9)"
+  },
+  {
+   "case": "own:edit/test-explicit-str-tag",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'Path `/a` is not equal to the indicated value.'"
+  },
+  {
+   "case": "own:edit/test-explicit-str-tag",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'Path `/a` is not equal to the indicated value.'"
+  },
+  {
+   "case": "own:edit/test-follows-alias",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' &b\\n x: 1\\ncopy: *b\\nz: 5\\n', got b'\\n x: 1\\ncopy:\\n x: 1\\nz: 5\\n' (lengths 30 and 31)"
+  },
+  {
+   "case": "own:edit/test-follows-alias",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b' &b\\n x: 1\\ncopy: *b\\nz: 5\\n', got b'\\n x: 1\\ncopy:\\n x: 1\\nz: 5\\n' (lengths 30 and 31)"
+  },
+  {
+   "case": "own:edit/test-integer-written-in-hex",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'Path `/a` is not equal to the indicated value.'"
+  },
+  {
+   "case": "own:edit/test-integer-written-in-hex",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'Path `/a` is not equal to the indicated value.'"
+  },
+  {
+   "case": "own:edit/test-mapping-order-does-not-matter",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {x: 1, y: 2}\\nb: 1\\n', got b'\\n x: 1\\n y: 2\\nb: 1\\n' (lengths 21 and 22)"
+  },
+  {
+   "case": "own:edit/test-mapping-order-does-not-matter",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {x: 1, y: 2}\\nb: 1\\n', got b'\\n x: 1\\n y: 2\\nb: 1\\n' (lengths 21 and 22)"
+  },
+  {
+   "case": "own:edit/test-null-matches-empty-value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'\\nb: 1\\n', got b' null\\nb: 1\\n' (lengths 8 and 13)"
+  },
+  {
+   "case": "own:edit/test-null-matches-empty-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b'\\nb: 1\\n', got b' null\\nb: 1\\n' (lengths 8 and 13)"
+  },
+  {
+   "case": "own:edit/test-sequence-of-mappings",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b' - n: a\\n v: 1\\n - n: b\\n v: 2\\nz: 1', got b'- n: \"a\"\\n v: 1\\n- n: \"b\"\\n v: 2\\nz: 1\\n' (lengths 44 and 40)"
+  },
+  {
+   "case": "own:edit/test-sequence-of-mappings",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b' - n: a\\n v: 1\\n - n: b\\n v: 2\\nz: 1', got b'- n: \"a\"\\n v: 1\\n- n: \"b\"\\n v: 2\\nz: 1\\n' (lengths 44 and 40)"
+  },
+  {
+   "case": "own:edit/test-string-matches-quoted-and-plain",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 10: expected b'y\\nc: 2\\n', got b'\"y\"\\nc: 2\\n' (lengths 17 and 19)"
+  },
+  {
+   "case": "own:edit/test-string-matches-quoted-and-plain",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 10: expected b'y\\nc: 2\\n', got b'\"y\"\\nc: 2\\n' (lengths 17 and 19)"
   }
  ]
 }

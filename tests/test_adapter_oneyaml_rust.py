@@ -63,8 +63,13 @@ class OneyamlRust(unittest.TestCase):
     def test_adapter_made_behaviour_is_marked(self):
         self.assertEqual(self.res["adapter"]["emulates"], ["error", "unchanged"])
         marked = sorted(r["id"] for r in self.res["cases"] if r.get("emulated"))
-        self.assertEqual(marked, ["own:edit/atomic-failure", "own:edit/pointer-without-leading-slash",
-                                  "own:edit/replace-missing-path", "own:edit/unknown-operation"])
+        self.assertTrue({"own:edit/atomic-failure", "own:edit/pointer-without-leading-slash",
+                         "own:edit/replace-missing-path", "own:edit/unknown-operation"} <= set(marked))
+        # Only refusals are ever the adapter's: no edit that succeeded is credited to it.
+        for r in self.res["cases"]:
+            if r.get("emulated"):
+                self.assertEqual((r["suite"], r["op"]), ("own", "patch"), r["id"])
+                self.assertTrue(r["expect"] == "error" or r["loose"] == "fail", r["id"])
         # A failure that the library itself reports is not marked as the adapter's.
         self.assertEqual(self.by_id["own:edit/failed-test-changes-nothing"].get("emulated"), None)
 

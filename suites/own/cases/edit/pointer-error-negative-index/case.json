@@ -1,0 +1,25 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/pointer-error-negative-index",
+ "title": "A negative index finds no item",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6901 section 4"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/-1",
+    "value": "x"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-path",
+  "unchanged": true
+ }
+}

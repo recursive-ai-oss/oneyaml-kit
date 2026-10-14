@@ -4,6 +4,11 @@
  "title": "A mapping with a non-string key",
  "category": "schema",
  "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
  "refs": [
   "YAML 1.2.2 section 10.3.2"
  ],

@@ -1,0 +1,24 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-error-index-out-of-range",
+ "title": "Removing an index past the end is refused",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6902 section 4.2"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/2"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-path",
+  "unchanged": true
+ }
+}

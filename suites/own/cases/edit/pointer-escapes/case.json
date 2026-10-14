@@ -4,6 +4,11 @@
  "title": "Pointer tokens use ~1 for / and ~0 for ~, and ~01 is the two characters ~1",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
  "refs": [
   "RFC 6901 section 3",
   "RFC 6902 section 4.3"

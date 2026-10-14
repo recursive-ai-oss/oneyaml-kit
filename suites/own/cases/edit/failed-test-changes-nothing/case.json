@@ -4,6 +4,11 @@
  "title": "A failing test refuses the whole patch",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "187",
+  "6",
+  "63"
+ ],
  "refs": [
   "RFC 6902 section 4.6",
   "RFC 6902 section 5"

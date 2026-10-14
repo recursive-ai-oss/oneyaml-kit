@@ -1,0 +1,4 @@
+base: &b
+  x: 1
+copy: *b
+z: 1

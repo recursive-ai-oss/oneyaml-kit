@@ -4,6 +4,11 @@
  "title": "Replacing an item inside a flow sequence",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "137",
+  "8",
+  "9"
+ ],
  "refs": [
   "RFC 6902 section 4.3",
   "docs/edit-semantics.md"

@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/alias-refusal-replace-below-alias",
+ "title": "A replace below an alias would change the anchored node for everyone",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "104",
+  "101",
+  "14",
+  "13"
+ ],
+ "refs": [
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/copy/x",
+    "value": 2
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "refused-alias",
+  "unchanged": true
+ }
+}

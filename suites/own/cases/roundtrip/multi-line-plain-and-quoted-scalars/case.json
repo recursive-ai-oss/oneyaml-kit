@@ -4,6 +4,13 @@
  "title": "Multi-line flow scalars keep their line structure",
  "category": "roundtrip",
  "origin": "spec",
+ "productions": [
+  "109",
+  "120",
+  "131",
+  "19",
+  "18"
+ ],
  "refs": [
   "YAML 1.2.2 section 7.3"
  ],

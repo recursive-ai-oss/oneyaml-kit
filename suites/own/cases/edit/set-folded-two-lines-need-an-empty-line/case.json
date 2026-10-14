@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-folded-two-lines-need-an-empty-line",
+ "title": "Two lines of a folded scalar need an empty line between them",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "174",
+  "17"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.3",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "In a folded scalar a single line break between text lines folds to a space; an empty line stands for one line feed. The value keeps its folded style because folded can hold it.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "one\ntwo\n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

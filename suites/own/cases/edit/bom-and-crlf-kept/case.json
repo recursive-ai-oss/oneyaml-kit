@@ -4,6 +4,10 @@
  "title": "A byte order mark and CRLF line breaks survive an edit",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "3",
+  "28"
+ ],
  "refs": [
   "RFC 6902 section 4.3",
   "docs/edit-semantics.md"

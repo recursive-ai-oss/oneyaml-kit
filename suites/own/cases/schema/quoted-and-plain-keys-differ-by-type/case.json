@@ -4,6 +4,10 @@
  "title": "A quoted \"1\" and a plain 1 are different keys",
  "category": "schema",
  "origin": "spec",
+ "productions": [
+  "109",
+  "19"
+ ],
  "refs": [
   "YAML 1.2.2 section 3.2.1.3",
   "YAML 1.2.2 section 10.3.2"

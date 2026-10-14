@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-literal-indentation-indicator-needed",
+ "title": "A leading space needs the indentation indicator, which stays",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "170",
+  "163",
+  "16"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1.1",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "With the indicator 2 the content starts two columns in, so four spaces before the text read back as two leading spaces in the value.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "  y\n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

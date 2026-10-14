@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-literal-clip-to-keep-for-two-newlines",
+ "title": "A value ending in two line feeds needs the keep header",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "170",
+  "164",
+  "16"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1.2",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "Clip keeps exactly one final line break; keep (+) keeps all of them, so only the header changes and the empty line holds the second break.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "x\n\n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

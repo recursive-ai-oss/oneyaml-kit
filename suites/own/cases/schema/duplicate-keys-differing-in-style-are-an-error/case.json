@@ -4,6 +4,13 @@
  "title": "A plain and a quoted key with the same text are equal keys",
  "category": "schema",
  "origin": "spec",
+ "productions": [
+  "109",
+  "187",
+  "19",
+  "6",
+  "63"
+ ],
  "refs": [
   "YAML 1.2.2 section 3.2.1.3"
  ],

@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-literal-to-integer",
+ "title": "An integer cannot be a block scalar: the header goes",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "170",
+  "16"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.2",
+  "YAML 1.2.2 section 10.3.2",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": 7
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

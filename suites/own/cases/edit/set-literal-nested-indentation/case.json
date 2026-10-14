@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-literal-nested-indentation",
+ "title": "A literal block scalar nested in a mapping is indented under its key",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "170",
+  "16"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.2",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/k/a",
+    "value": "x\ny\n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

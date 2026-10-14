@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-plain-to-quoted-true-string",
+ "title": "The string true cannot stay plain: it would read back as a boolean",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "120",
+  "131",
+  "18"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.3.3",
+  "YAML 1.2.2 section 10.3.2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "judgement"
+ ],
+ "notes": "This case rests on a convention the specification does not fix: the nearest style when a plain scalar cannot hold the value is taken to be single quotes, the one that needs no escapes. It is tagged so that a library is not failed on taste unnoticed.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "true"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -4,6 +4,11 @@
  "title": "Adding at an index inserts before the item there",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "183",
+  "4",
+  "63"
+ ],
  "refs": [
   "RFC 6902 section 4.1",
   "docs/edit-semantics.md"

@@ -38,10 +38,43 @@ for example a plain scalar that would read back as a different type becomes quot
 Only that value's text changes. Cases state exact bytes only where one style is the
 clear nearest choice.
 
+Where the existing style can hold the new value, it stays, and a block scalar's header
+changes only as far as the value needs:
+
+- an integer, float, boolean or null cannot be written as a quoted or block scalar, so
+  the quotes or the header go and the value is written plain;
+- a literal or folded scalar moves between clip (no indicator), strip (`-`) and keep
+  (`+`) only when the value's final line breaks require it: none gives strip, exactly
+  one gives clip, more give keep. A keep scalar set to one final line break stays keep
+  and loses the empty line the old value ended with;
+- an indentation indicator that is still needed stays;
+- in a folded scalar, one line break between lines of text is written as an empty line,
+  because a single break folds to a space;
+- a double-quoted scalar escapes what it must (`\"`, `\\`, `\n`), and a single-quoted one
+  doubles its quote.
+
+When a plain scalar cannot hold a string (it would read back as another type, as a
+comment, as a key, or lose its edge spaces) it becomes quoted. Which quote is the nearest
+is not fixed by the specification; the cases that state it use single quotes and carry
+the tag `judgement`.
+
+## Collections left empty
+
+Removing the last entry of a block mapping or the last item of a block sequence that is
+nested in another node leaves `{}` or `[]` (`a: {}`), never an empty value, which would
+read back as null.
+
+## Line breaks and encoding
+
+New lines use the document's own line break (LF, CRLF or lone CR). A byte order mark and
+the document's encoding (UTF-8, UTF-16, UTF-32) are kept.
+
 ## Inserted content copies its siblings
 
 A value added by `add` (or the target of `copy` and `move`) is written in the style of
-its siblings: block or flow, indentation, quoting.
+its siblings: block or flow, indentation, quoting. A new mapping key goes at the end of its
+mapping and a new item at its index; the specification leaves the position of a member
+open. A value that is not a string is never quoted, whatever its siblings do.
 
 ## Refusals
 
@@ -55,6 +88,14 @@ A refused edit changes nothing and reports an error with a stable category:
 
 A pointer token matches a mapping key by the key's scalar text. Mappings or sequences
 used as keys cannot be addressed by a pointer.
+
+## Comments
+
+Edits to a value never touch comments. When an entry is removed, a comment on its own
+line, a comment inside its value and a comment at the end of its line go with it; a
+comment about the next entry, a comment after the last entry and a header comment
+separated by a blank line stay. The specification does not define comment ownership, so
+the cases that depend on it carry the tag `comment-ownership` and are few.
 
 ## Atomicity
 

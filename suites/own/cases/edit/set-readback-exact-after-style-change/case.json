@@ -1,0 +1,36 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-readback-exact-after-style-change",
+ "title": "Setting an integer where a quoted string was reads back as an integer",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "109",
+  "19"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "RFC 6902 section 4.6",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "The test after the replace sees the value that was set: the integer, not the string.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": 1
+   },
+   {
+    "op": "test",
+    "path": "/a",
+    "value": 1
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

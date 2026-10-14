@@ -5,7 +5,9 @@
  "category": "safety",
  "origin": "spec",
  "productions": [
-  "183"
+  "183",
+  "4",
+  "63"
  ],
  "refs": [
   "YAML 1.2.2 section 8.2.1"

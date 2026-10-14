@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-error-non-numeric-index",
+ "title": "Adding at a non-numeric index of a sequence is refused",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6902 section 4.1",
+  "RFC 6901 section 4"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/x",
+    "value": "y"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-path",
+  "unchanged": true
+ }
+}

@@ -1,0 +1,8 @@
+%YAML 1.2
+---
+a: 1
+...
+# between
+--- # second
+b: 2
+...

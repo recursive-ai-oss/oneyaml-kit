@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-sequence-value-indented",
+ "title": "A sequence added next to an indented sequence is indented",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "183",
+  "4",
+  "63"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "judgement"
+ ],
+ "notes": "A new sequence under a key copies the indentation of a sibling sequence. The specification allows both layouts, so this follows the document's own habit. ",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/n",
+    "value": [
+     1,
+     2
+    ]
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

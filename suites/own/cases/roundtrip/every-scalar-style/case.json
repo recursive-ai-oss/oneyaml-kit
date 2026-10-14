@@ -4,6 +4,17 @@
  "title": "Plain, single, double, literal and folded scalars are kept",
  "category": "roundtrip",
  "origin": "spec",
+ "productions": [
+  "109",
+  "120",
+  "131",
+  "170",
+  "174",
+  "19",
+  "18",
+  "16",
+  "17"
+ ],
  "refs": [
   "YAML 1.2.2 section 7.3",
   "YAML 1.2.2 section 8.1"

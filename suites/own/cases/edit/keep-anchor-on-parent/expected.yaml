@@ -1,0 +1,4 @@
+base: &b
+  x: 9
+  y: 2
+other: 3

@@ -4,6 +4,11 @@
  "title": "A tag the core schema does not resolve stays attached to its value",
  "category": "schema",
  "origin": "spec",
+ "productions": [
+  "97",
+  "99",
+  "15"
+ ],
  "refs": [
   "YAML 1.2.2 section 6.9.1",
   "YAML 1.2.2 section 3.3.2"

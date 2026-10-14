@@ -4,6 +4,10 @@
  "title": "A double-quoted value stays double-quoted",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "109",
+  "19"
+ ],
  "refs": [
   "RFC 6902 section 4.3",
   "docs/edit-semantics.md"

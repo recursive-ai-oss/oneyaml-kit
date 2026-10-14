@@ -1,0 +1,25 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/pointer-error-trailing-slash",
+ "title": "A trailing slash names the empty key, which is absent",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6901 section 3"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a/",
+    "value": 1
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-path",
+  "unchanged": true
+ }
+}

@@ -4,6 +4,11 @@
  "title": "Replacing a sequence item by index",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "183",
+  "4",
+  "63"
+ ],
  "refs": [
   "RFC 6902 section 4.3",
   "RFC 6901 section 3"

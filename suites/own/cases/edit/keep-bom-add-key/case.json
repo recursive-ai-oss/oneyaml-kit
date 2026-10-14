@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/keep-bom-add-key",
+ "title": "A key added to a document behind a byte order mark leaves the mark first",
+ "category": "edit",
+ "origin": "fuzz",
+ "productions": [
+  "3"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "RFC 6902 section 4.1",
+  "docs/edit-semantics.md"
+ ],
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/fuzz/regressions/edit/f2-bom-set-root; crates/oneyaml/tests/fuzz_findings.rs (f2_documents_behind_a_bom_are_editable)"
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/z",
+    "value": 1
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

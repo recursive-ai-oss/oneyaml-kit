@@ -4,6 +4,10 @@
  "title": "A comment after the value stays",
  "category": "edit",
  "origin": "spec",
+ "productions": [
+  "75",
+  "12"
+ ],
  "refs": [
   "RFC 6902 section 4.3",
   "docs/edit-semantics.md"

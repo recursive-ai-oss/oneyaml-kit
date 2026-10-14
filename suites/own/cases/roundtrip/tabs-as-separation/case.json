@@ -4,6 +4,9 @@
  "title": "Tabs between a key and its value are kept",
  "category": "roundtrip",
  "origin": "spec",
+ "productions": [
+  "66"
+ ],
  "refs": [
   "YAML 1.2.2 section 6.2",
   "YAML 1.2.2 section 6.3"

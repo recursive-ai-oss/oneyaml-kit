@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/keep-explicit-key-entry",
+ "title": "An entry written with an explicit key keeps that form",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "188",
+  "5"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.2.2",
+  "docs/edit-semantics.md"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": 5
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

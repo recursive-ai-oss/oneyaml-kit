@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-key-double-quoted-siblings",
+ "title": "A string added next to double-quoted values is double-quoted",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "109",
+  "6",
+  "63",
+  "19"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "The added value is written in the style of its siblings, which is the kit's rule for inserted content (docs/edit-semantics.md). ",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/c",
+    "value": "z"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

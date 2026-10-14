@@ -4,6 +4,11 @@
  "title": "Twenty thousand nested flow sequences give exactly the events, or a limit error, within bounds",
  "category": "safety",
  "origin": "spec",
+ "productions": [
+  "137",
+  "8",
+  "9"
+ ],
  "refs": [
   "YAML 1.2.2 section 7.4.1",
   "YAML 1.2.2 section 3.2.1"

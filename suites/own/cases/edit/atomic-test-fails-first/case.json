@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/atomic-test-fails-first",
+ "title": "A failing test at the start stops the patch",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6902 section 4.6",
+  "RFC 6902 section 5"
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "test",
+    "path": "/a",
+    "value": 2
+   },
+   {
+    "op": "replace",
+    "path": "/b",
+    "value": 9
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-test",
+  "unchanged": true
+ }
+}
