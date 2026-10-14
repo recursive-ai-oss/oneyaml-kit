@@ -55,6 +55,14 @@ having got YAML wrong.
 - **Comments of a removed entry.** See *Comments* below.
 - **The layout of a new nested sequence** copies the indentation of a sibling sequence.
 - **Indentation of a rewritten block scalar** reuses the old content's indentation.
+- **An anchor stays on a replaced node**, including while aliases use it, so the aliases
+  now read the new value. The new value is separated from the anchor by a space.
+- **A tag on a replaced node stays only if reading the new value back under that tag gives
+  exactly the value that was set**; otherwise it is dropped. A custom tag on a scalar stays
+  while the new value is a scalar; `!`, `!!binary` and the like go when the new value is, say,
+  an integer.
+- **An empty key is addressed by the empty pointer token.** A token matches a key by its
+  scalar text, and a key with no content has the empty text.
 
 ## The value keeps its style, and what follows from exactness
 
@@ -75,8 +83,8 @@ not conventions:
   nested in another node leaves `{}` or `[]` (`a: {}`), never an empty value, which would
   read back as null.
 
-What happens to a tag or an anchor on a node that is replaced, and to an anchor on a node
-that is copied, is not pinned by the cases beyond what a case states.
+What happens to a tag or an anchor on a node that is copied is not pinned by the cases
+beyond what a case states.
 
 ## Line breaks and encoding
 

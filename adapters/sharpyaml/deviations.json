@@ -3794,6 +3794,13 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Error category differs: expected one of limit, syntax, got other"
+  },
+  {
+   "case": "own:safety/shallow-flow-mappings-then-many-lines-unclosed",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected one of limit, syntax, got other"
   }
 ]
 }

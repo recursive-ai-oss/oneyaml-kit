@@ -13,7 +13,10 @@
   "YAML 1.2.2 section 3.3.2",
   "docs/edit-semantics.md"
  ],
- "notes": "The non-specific tag `!` makes a scalar a string (Example 6.28). Left in place it would make the new `7` the string \"7\"; setters are exact, so the tag goes.",
+ "tags": [
+  "convention"
+ ],
+ "notes": "The non-specific tag `!` makes a scalar a string (Example 6.28). Left in place it would make the new `7` the string \"7\"; setters are exact, so the tag goes. Dropping a tag that contradicts the new value is a kit convention.",
  "provenance": {
   "reference": "A writer that kept the non-specific tag, so the edited value read back as the string \"7\" instead of the integer 7."
  },
