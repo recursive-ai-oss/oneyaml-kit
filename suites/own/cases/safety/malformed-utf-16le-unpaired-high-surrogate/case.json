@@ -1,0 +1,24 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/malformed-utf-16le-unpaired-high-surrogate",
+ "title": "An unpaired high surrogate in UTF-16LE",
+ "category": "safety",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 5.2"
+ ],
+ "notes": "A high surrogate must be followed by a low surrogate.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml-syntax/tests/decode.rs (malformed input)"
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "encoding"
+ }
+}

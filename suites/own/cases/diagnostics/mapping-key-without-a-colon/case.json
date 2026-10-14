@@ -1,0 +1,21 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/mapping-key-without-a-colon",
+ "title": "A line in a block mapping with no colon",
+ "category": "diagnostics",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 8.2.2",
+  "YAML 1.2.2 section 7.4.2"
+ ],
+ "notes": "An implicit key must be followed by a colon on the same line, so the line break after `b` is the first character that cannot belong.",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 2
+ }
+}

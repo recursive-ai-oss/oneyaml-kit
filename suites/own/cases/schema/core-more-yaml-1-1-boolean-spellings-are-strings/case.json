@@ -1,0 +1,41 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/core-more-yaml-1-1-boolean-spellings-are-strings",
+ "title": "YAML 1.1 boolean words that the core schema leaves as strings",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 1.2"
+ ],
+ "notes": "A default reading is the core schema. Reproducing the 1.1 words is a compat matter.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "docs/conformance.md (opt-in departures: yaml11_booleans)"
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": "Yes",
+    "b": "YES",
+    "c": "no",
+    "d": "NO",
+    "e": "On",
+    "f": "ON",
+    "g": "off",
+    "h": "Off",
+    "i": "OFF",
+    "j": "n",
+    "k": "N",
+    "l": "Y",
+    "m": "yEs"
+   }
+  ]
+ }
+}

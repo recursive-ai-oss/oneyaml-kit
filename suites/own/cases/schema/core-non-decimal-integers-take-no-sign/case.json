@@ -1,0 +1,36 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/core-non-decimal-integers-take-no-sign",
+ "title": "Hexadecimal and octal forms with a sign, or without digits, are strings",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "notes": "The patterns are 0o[0-7]+ and 0x[0-9a-fA-F]+ in lower case, with no sign. A signed hexadecimal integer is a YAML 1.1 form.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "docs/conformance.md (opt-in departures: yaml11_int_forms)"
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": "-0x1F",
+    "b": "+0x1F",
+    "c": "-0o17",
+    "d": "0x",
+    "e": "0o",
+    "f": "0o8",
+    "g": "0xG",
+    "h": "0X1F",
+    "i": "0O17"
+   }
+  ]
+ }
+}

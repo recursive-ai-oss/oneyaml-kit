@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/comment-needs-a-space-before-the-hash",
+ "title": "A hash right after a scalar is part of it, a spaced hash is a comment",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "75"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.6",
+  "YAML 1.2.2 section 7.3.3"
+ ],
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": "x#y",
+    "b": "x"
+   }
+  ]
+ }
+}

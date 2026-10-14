@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/core-float-forms",
+ "title": "Float spellings of the core schema",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "notes": "[-+]? ( \\. [0-9]+ | [0-9]+ ( \\. [0-9]* )? ) ( [eE] [-+]? [0-9]+ )?; `10` has no point or exponent and stays an integer.",
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": 1.0,
+    "b": 0.5,
+    "c": -0.5,
+    "d": 0.5,
+    "e": 1.5,
+    "f": 1000.0,
+    "g": 0.001,
+    "h": 10.0,
+    "i": -0.015,
+    "j": 0.0,
+    "k": 10
+   }
+  ]
+ }
+}

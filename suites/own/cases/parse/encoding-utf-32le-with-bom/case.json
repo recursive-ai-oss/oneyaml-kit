@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/encoding-utf-32le-with-bom",
+ "title": "A two-document stream in UTF-32LE with byte order mark, CRLF, astral characters and a second mark",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "3",
+  "207",
+  "208"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 9.1.1"
+ ],
+ "notes": "Detection without a mark relies on the first character being ASCII (the null-byte patterns of section 5.2). The second document starts with its own byte order mark, which section 9.1.1 allows after a document end marker.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml-syntax/tests/decode.rs (every_encoding_round_trips_byte_for_byte)"
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

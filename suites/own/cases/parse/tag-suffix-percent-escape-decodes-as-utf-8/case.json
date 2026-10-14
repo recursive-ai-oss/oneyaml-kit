@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/tag-suffix-percent-escape-decodes-as-utf-8",
+ "title": "A multi-byte percent-escaped tag suffix resolves to the decoded character",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "88",
+  "99"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.8.2.2",
+  "YAML 1.2.2 section 6.9.1"
+ ],
+ "notes": "Shorthand suffixes are URI characters; the escape sequence %C3%A9 is the UTF-8 encoding of U+00E9 and the resolved tag carries the character.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml-syntax/tests/tag_prefix.rs (multibyte_escapes_split_across_prefix_and_suffix)"
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

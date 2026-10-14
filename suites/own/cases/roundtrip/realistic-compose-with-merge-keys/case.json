@@ -1,0 +1,19 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "roundtrip/realistic-compose-with-merge-keys",
+ "title": "A compose-shaped document with anchors and merge keys",
+ "category": "roundtrip",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 7.1"
+ ],
+ "notes": "An empty patch changes nothing, so the output must equal the input byte for byte.",
+ "operation": {
+  "type": "patch",
+  "patch": []
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

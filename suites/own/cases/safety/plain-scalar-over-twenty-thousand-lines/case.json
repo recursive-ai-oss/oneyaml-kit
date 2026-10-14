@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/plain-scalar-over-twenty-thousand-lines",
+ "title": "A plain scalar folded over twenty thousand lines",
+ "category": "safety",
+ "origin": "spec",
+ "productions": [
+  "126"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.3.3"
+ ],
+ "notes": "The input is valid. A library that reads it gives exactly the expected result; one that refuses it says so with a limit error. A crash, a hang, a wrong result, or more than the stated time or memory fails. The resource bounds are the robustness requirement of the kit, not a rule of the specification. Folding must take time linear in the input.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/test-suite/src/adversarial.rs (giant folded multi-line scalar)"
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "value",
+   "file": "expected.json"
+  }
+ }
+}

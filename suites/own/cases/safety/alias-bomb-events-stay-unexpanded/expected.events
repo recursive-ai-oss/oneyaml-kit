@@ -1,0 +1,127 @@
++STR
++DOC
++MAP
+=VAL :l0
++SEQ [] &l0
+=VAL :lol
+-SEQ
+=VAL :l1
++SEQ [] &l1
+=ALI *l0
+=ALI *l0
+=ALI *l0
+=ALI *l0
+=ALI *l0
+=ALI *l0
+=ALI *l0
+=ALI *l0
+=ALI *l0
+=ALI *l0
+-SEQ
+=VAL :l2
++SEQ [] &l2
+=ALI *l1
+=ALI *l1
+=ALI *l1
+=ALI *l1
+=ALI *l1
+=ALI *l1
+=ALI *l1
+=ALI *l1
+=ALI *l1
+=ALI *l1
+-SEQ
+=VAL :l3
++SEQ [] &l3
+=ALI *l2
+=ALI *l2
+=ALI *l2
+=ALI *l2
+=ALI *l2
+=ALI *l2
+=ALI *l2
+=ALI *l2
+=ALI *l2
+=ALI *l2
+-SEQ
+=VAL :l4
++SEQ [] &l4
+=ALI *l3
+=ALI *l3
+=ALI *l3
+=ALI *l3
+=ALI *l3
+=ALI *l3
+=ALI *l3
+=ALI *l3
+=ALI *l3
+=ALI *l3
+-SEQ
+=VAL :l5
++SEQ [] &l5
+=ALI *l4
+=ALI *l4
+=ALI *l4
+=ALI *l4
+=ALI *l4
+=ALI *l4
+=ALI *l4
+=ALI *l4
+=ALI *l4
+=ALI *l4
+-SEQ
+=VAL :l6
++SEQ [] &l6
+=ALI *l5
+=ALI *l5
+=ALI *l5
+=ALI *l5
+=ALI *l5
+=ALI *l5
+=ALI *l5
+=ALI *l5
+=ALI *l5
+=ALI *l5
+-SEQ
+=VAL :l7
++SEQ [] &l7
+=ALI *l6
+=ALI *l6
+=ALI *l6
+=ALI *l6
+=ALI *l6
+=ALI *l6
+=ALI *l6
+=ALI *l6
+=ALI *l6
+=ALI *l6
+-SEQ
+=VAL :l8
++SEQ [] &l8
+=ALI *l7
+=ALI *l7
+=ALI *l7
+=ALI *l7
+=ALI *l7
+=ALI *l7
+=ALI *l7
+=ALI *l7
+=ALI *l7
+=ALI *l7
+-SEQ
+=VAL :l9
++SEQ [] &l9
+=ALI *l8
+=ALI *l8
+=ALI *l8
+=ALI *l8
+=ALI *l8
+=ALI *l8
+=ALI *l8
+=ALI *l8
+=ALI *l8
+=ALI *l8
+-SEQ
+-MAP
+-DOC
+-STR

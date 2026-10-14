@@ -161,6 +161,76 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The error is reported at 1:4, the start of the scalar that turns out to be a two-line key, not on line 2"
+  },
+  {
+   "case": "own:diagnostics/hex-escape-with-a-non-hex-digit",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the opening quote, the invalid digit is at 1:7"
+  },
+  {
+   "case": "own:diagnostics/invalid-escape-in-double-quotes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the opening quote, the unknown escape letter is at 1:7"
+  },
+  {
+   "case": "own:diagnostics/short-unicode-escape",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the opening quote, the closing quote that ends the escape too early is at 1:9"
+  },
+  {
+   "case": "own:diagnostics/unclosed-double-quote",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the opening quote, the input ends at 2:1"
+  },
+  {
+   "case": "own:diagnostics/unclosed-single-quote-without-final-newline",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the opening quote, the input ends at 1:8"
+  },
+  {
+   "case": "own:diagnostics/zero-block-scalar-indentation-indicator",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the block scalar header, the digit 0 is at 1:5"
+  },
+  {
+   "case": "own:diagnostics/second-colon-in-a-plain-scalar-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the start of the value, the space after the second colon is at 1:6"
+  },
+  {
+   "case": "own:diagnostics/implicit-key-of-1025-characters-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the position where the construct starts, not the offending character: 1:1 is the start of the key, the space after the colon is at 1:1027"
+  },
+  {
+   "case": "own:diagnostics/mapping-key-without-a-colon",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the position where the construct starts, not the offending character: 2:1 is the start of the line, the line break after the key is at 2:2"
+  },
+  {
+   "case": "own:diagnostics/sequence-entry-after-a-block-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the position where the construct starts, not the offending character: 2:1 is the dash, the space after it (the first character that rules out a key such as -x) is at 2:2"
   }
  ]
 }

@@ -1,0 +1,5 @@
+a: !!map {b: 1}
+c: !!seq [1, 2]
+d: !!map
+  e: !!seq
+  - x

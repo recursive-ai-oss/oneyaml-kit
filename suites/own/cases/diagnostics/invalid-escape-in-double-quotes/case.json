@@ -1,0 +1,23 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/invalid-escape-in-double-quotes",
+ "title": "An unknown escape letter in a double-quoted scalar",
+ "category": "diagnostics",
+ "origin": "spec",
+ "productions": [
+  "41"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.7"
+ ],
+ "notes": "The backslash is acceptable; the letter q is the first character that cannot belong.",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 7
+ }
+}

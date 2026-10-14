@@ -224,7 +224,8 @@ between libraries (how far ahead a parser reads) are not corrected and not claim
 The runner works out what an adapter must support from the case: `events`, `value`,
 `patch:<op>` for every RFC 6902 operation in the patch (`patch:merge` for a merge patch),
 and `profile:<name>`. An operation name outside RFC 6902 can only be refused, so it
-needs just some `patch:*` capability. In strict mode an expected category needs `error-category` and an
+needs just some `patch:*` capability, and so does an empty patch (the way a round trip is
+asked for: the document must come back byte for byte). In strict mode an expected category needs `error-category` and an
 expected position needs `error-position`. A case an adapter cannot do is reported as
 unsupported, counted apart from passes and failures.
 

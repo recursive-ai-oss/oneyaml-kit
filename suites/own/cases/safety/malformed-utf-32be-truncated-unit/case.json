@@ -1,0 +1,24 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/malformed-utf-32be-truncated-unit",
+ "title": "A UTF-32BE stream whose last unit is cut off",
+ "category": "safety",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 5.2"
+ ],
+ "notes": "Two bytes remain where four are needed.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml-syntax/tests/decode.rs (malformed input)"
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "encoding"
+ }
+}

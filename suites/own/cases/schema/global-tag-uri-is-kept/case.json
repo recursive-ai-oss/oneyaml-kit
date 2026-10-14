@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/global-tag-uri-is-kept",
+ "title": "A verbatim global tag that the schema does not know is kept",
+ "category": "schema",
+ "origin": "spec",
+ "productions": [
+  "98"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.1"
+ ],
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "$tagged": {
+     "tag": "tag:example.com,2000:shape",
+     "value": [
+      1,
+      2
+     ]
+    }
+   }
+  ]
+ }
+}

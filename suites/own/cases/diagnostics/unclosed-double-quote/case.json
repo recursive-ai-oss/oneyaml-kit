@@ -1,0 +1,23 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/unclosed-double-quote",
+ "title": "A double-quoted scalar that never ends",
+ "category": "diagnostics",
+ "origin": "spec",
+ "productions": [
+  "109"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.3.1"
+ ],
+ "notes": "Every character is acceptable; the input ends too soon, so the position is the end of the input.",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 1
+ }
+}

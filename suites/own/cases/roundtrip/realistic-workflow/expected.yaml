@@ -1,0 +1,22 @@
+# CI
+name: build
+
+on:
+  push:
+    branches: [ main ]   # only main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run
+        run: |
+          echo one
+          echo two
+        env:
+          TOKEN: "${{ secrets.TOKEN }}"

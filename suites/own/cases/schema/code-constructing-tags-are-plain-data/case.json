@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/code-constructing-tags-are-plain-data",
+ "title": "A tag that names code to run is kept as a tag and nothing is constructed",
+ "category": "schema",
+ "origin": "competitor",
+ "refs": [
+  "YAML 1.2.2 section 6.9.1",
+  "YAML 1.2.2 section 3.3.2"
+ ],
+ "notes": "An unrecognised tag is not an error: the node keeps its tag, and a reader must not interpret it. Readers that construct objects from such tags let a document execute code.",
+ "provenance": {
+  "reference": "CVE-2017-18342: PyYAML load() constructed arbitrary Python objects from python/ tags"
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "$tagged": {
+     "tag": "tag:yaml.org,2002:python/object/apply:os.system",
+     "value": [
+      "echo hi"
+     ]
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/merge-key-in-a-flow-mapping-is-an-ordinary-key",
+ "title": "Without a merge-key extension `<<` in a flow mapping is a key like any other",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 1.2",
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "notes": "The merge key is a YAML 1.1 type that is not part of the 1.2 core schema.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "docs/conformance.md (opt-in departures: merge_keys)"
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": {
+     "k": 1
+    },
+    "c": {
+     "<<": {
+      "k": 1
+     },
+     "z": 2
+    }
+   }
+  ]
+ }
+}

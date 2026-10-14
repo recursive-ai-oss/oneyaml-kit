@@ -1,0 +1,19 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/duplicate-keys-equal-after-resolution-are-an-error",
+ "title": "Integer keys spelled differently but equal in value are equal keys",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 3.2.1.3",
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "notes": "Node equality compares tag and canonical content; both keys resolve to the integer 1.",
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "any"
+ }
+}

@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/core-legacy-numbers-are-strings",
+ "title": "Sexagesimal, binary, digit-separated and legacy forms stay strings",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "docs/conformance.md (opt-in departures: sexagesimal, digit_separators)"
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": "190:20:30",
+    "b": "0b1010",
+    "c": "1_000",
+    "d": "0x_1F",
+    "e": "1_000.5",
+    "f": "685230:15"
+   }
+  ]
+ }
+}

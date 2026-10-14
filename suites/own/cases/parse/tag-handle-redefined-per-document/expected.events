@@ -1,0 +1,8 @@
++STR
++DOC ---
+=VAL <tag:one,1:a> :x
+-DOC ...
++DOC ---
+=VAL <tag:two,2:a> :y
+-DOC
+-STR

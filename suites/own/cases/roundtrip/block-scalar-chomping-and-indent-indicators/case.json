@@ -1,0 +1,24 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "roundtrip/block-scalar-chomping-and-indent-indicators",
+ "title": "Strip, keep and explicit indentation indicators are kept",
+ "category": "roundtrip",
+ "origin": "spec",
+ "productions": [
+  "162",
+  "163",
+  "164"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1"
+ ],
+ "notes": "An empty patch changes nothing, so the output must equal the input byte for byte.",
+ "operation": {
+  "type": "patch",
+  "patch": []
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

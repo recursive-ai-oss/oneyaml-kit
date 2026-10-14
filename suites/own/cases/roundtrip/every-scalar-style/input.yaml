@@ -1,0 +1,13 @@
+p: plain text
+s: 'single ''quoted'''
+d: "double \"quoted\" \u00e9"
+l: |
+  literal
+   indented
+
+  more
+f: >
+  folded
+  text
+
+  para

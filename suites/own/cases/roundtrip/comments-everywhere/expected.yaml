@@ -1,0 +1,12 @@
+# header
+
+# second header
+a: 1 # trailing
+# between
+b:
+  # inside
+  - x # item
+  # before last
+  - y
+
+# footer

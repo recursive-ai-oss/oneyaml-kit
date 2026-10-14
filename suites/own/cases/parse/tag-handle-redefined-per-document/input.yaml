@@ -1,0 +1,5 @@
+%TAG !e! tag:one,1:
+--- !e!a x
+...
+%TAG !e! tag:two,2:
+--- !e!a y
