@@ -226,7 +226,8 @@ class Pipeline(unittest.TestCase):
         _, cells, _ = self.harness(self.wl, ["reference-a", "reference-b"], ["sharpyaml-syntax", "yaml2jsonnode"],
                                    ["edit-script", "patch"], name="refs")
         by = {(c["library"], c["task"], c["workload"]): c for c in cells}
-        # The syntax tree keeps every byte; the spans and the new text are worked out outside the clock.
+        # The syntax tree keeps every byte; the lookup of the node and the new text are worked out by the harness
+        # inside the clock (the cells are `harness-rendered`), and the edit is applied to the exact bytes.
         for w in ("reference-a", "reference-b"):
             self.assertEqual(by[("sharpyaml-syntax", "edit-script", w)]["status"], "ok", w)
         # The patch baseline writes the data again: comments and layout are gone, and it says so.

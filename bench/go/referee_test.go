@@ -104,3 +104,32 @@ func TestCoreResolverEdges(t *testing.T) {
 func TestRefereesKeepATabInsideAPlainScalar(t *testing.T) {
 	expect(t, "a: tab\there\nb: x\t y\n", `{"a": "tab\there", "b": "x\t y"}`)
 }
+
+// A plain integer key is the key's text: JSON, the form expectations are written in, has only
+// string keys. A correct dump of `200: ok` must not be judged as an error.
+func TestRefereesReadAnIntegerKeyAsItsText(t *testing.T) {
+	expect(t, "200: ok\n", `{"200": "ok"}`)
+	expect(t, "responses:\n  200:\n    d: x\n", `{"responses": {"200": {"d": "x"}}}`)
+	expect(t, "0x1F: a\n-3: b\ntrue: c\n1.5: d\n", `{"31": "a", "-3": "b", "true": "c", "1.5": "d"}`)
+	if s, err := keyString(Int("200")); err != nil || s != "200" {
+		t.Errorf("keyString(Int) = %q, %v", s, err)
+	}
+}
+
+// An explicit core-schema tag decides the type, or the text is not valid under it.
+func TestRefereesObeyAnExplicitCoreTag(t *testing.T) {
+	// `!!float 1` is the float 1.0, not the integer 1.
+	if d := firstDiff(read(t, "a: !!float 1\n"), mustJSON(t, `{"a": 1.0}`), ""); d != "" {
+		t.Errorf("!!float 1: %s", d)
+	}
+	expect(t, "a: !!int 0x1F\nc: !!null ''\nd: !!bool true\ne: !!str 7\n", `{"a": 31, "c": null, "d": true, "e": "7"}`)
+	if m, ok := read(t, "b: !!float .inf\n").(map[string]any); !ok || !math.IsInf(m["b"].(float64), 1) {
+		t.Errorf("!!float .inf: %v", m)
+	}
+	// A tagged text that the tag cannot hold is not read as a string: nothing reads it.
+	for _, bad := range []string{"a: !!int x\n", "a: !!float x\n", "a: !!bool maybe\n", "a: !!null x\n", "a: !!int 1.5\n"} {
+		if _, e := twoReferees([]byte(bad)); e == nil || !e.rejected {
+			t.Errorf("%q: want both readings to refuse it, got %v", bad, e)
+		}
+	}
+}

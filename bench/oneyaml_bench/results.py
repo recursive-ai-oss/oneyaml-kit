@@ -99,24 +99,29 @@ def ok_cells(cells: list[dict]) -> list[dict]:
     return [c for c in cells if c["status"] == "ok"]
 
 
-# ---- what may define "the best" ---------------------------------------------------------------
+# ---- what is compared with, and what may be called "the best" ---------------------------------
 
-# Only a cell that did the full task, as the task table in docs/benchmarks.md specifies it, may set
-# the reference that other cells are compared with. A cell can fail that in two ways. Its variant says
-# the answer was judged more loosely than the plain one (`bytes-only`: no value to compare;
-# `value-only`: the text could not be kept; `harness-rendered`: the harness, not the library, wrote
-# the text), or its library does not start from the specified state (`state` is `text`: it takes and
-# returns text, so parsing and writing are inside the timed work). Such cells are shown, marked,
-# and never the best.
+# A row is always compared with the strongest competitor in it: the fastest for time, the smallest
+# peak for memory, whatever that competitor did. A cell that did not do the full task as the task table
+# in docs/benchmarks.md specifies it carries a mark and a reason. It can fail that in two ways. Its
+# variant says the answer was judged more loosely than the plain one (`bytes-only`: no value to
+# compare; `value-only`: the text could not be kept; `harness-rendered`: the harness, not the library,
+# wrote the lookup and the new text), or its library does not start from the specified state (`state` is
+# `text`: it takes and returns text, so parsing and writing are inside the timed work).
+#
+# The mark changes what is said, never whether a loss is shown. A marked cell is never called "the
+# best" (that would flatter it: it did less), but when it is faster than ours, or is the only
+# competitor, the verdict is against it and names it with its mark and reason, and a loss to it is
+# a loss in the tally and in the weakest row. A loss is never "no rival".
 #
 # `merged` is a library reading YAML 1.1 merge keys while it loads. The value is otherwise the
-# expected one and the work is the work of loading the document, so it may set the reference; the
-# report labels it wherever it appears.
+# expected one and the work is the work of loading the document, so it is unmarked and may be called
+# the best on every task it appears in; the report labels it wherever it appears.
 REFERENCE_VARIANTS = ("spec", "merged")
 
 
 def non_reference_label(c: dict) -> str:
-    """Why a cell may not set the best of its row; "" when it may."""
+    """Why a cell carries the mark (and is never called the best of its row); "" when it is plain."""
     why = []
     if c.get("state") == "text":
         why.append("text API")
@@ -127,17 +132,41 @@ def non_reference_label(c: dict) -> str:
 
 
 def sets_reference(c: dict) -> bool:
+    """True when the cell may be called the best of its row (it did the full task)."""
     return c["status"] == "ok" and not non_reference_label(c)
 
 
+def strongest(cells: list[dict], metric: str) -> dict | None:
+    """The strongest competitor among the cells with a number, marked or not. A tie goes to the
+    unmarked cell, so a marked one is named only when it is really ahead."""
+    key = ("time", "median_ns") if metric == "time" else ("memory", "peak_bytes")
+    comp = [c for c in cells if c["role"] == "competitor" and c["status"] == "ok"]
+    if not comp:
+        return None
+    return min(comp, key=lambda c: (c[key[0]][key[1]], bool(non_reference_label(c))))
+
+
+def baseline_reference(row: dict, metric: str) -> dict | None:
+    """The cell that ratios are taken against in a language without a library of ours: the strongest
+    cell that did the full task, so a library's mean is not measured against work it did not do. A row
+    in which only marked cells answered is compared with the strongest of them. The faster marked
+    cells are not dropped: the report counts them and shows them."""
+    key = ("time", "median_ns") if metric == "time" else ("memory", "peak_bytes")
+    ok = [c for c in row["cells"] if c["role"] != "control" and c["status"] == "ok"]
+    plain = [c for c in ok if not non_reference_label(c)]
+    pool = plain or ok
+    return min(pool, key=lambda c: c[key[0]][key[1]]) if pool else None
+
+
 def compare_rows(cells: list[dict]) -> list[dict]:
-    """One row per (task, workload) with every library's cell, the best competitor and the
+    """One row per (task, workload) with every library's cell, the strongest competitor and the
     verdicts of each oneyaml library against it.
 
-    The reference for ratios is the best competitor in that row, on that metric: the
-    fastest for time, the smallest peak for memory, whoever they are, among the cells that did
-    the full task (see `sets_reference`). A row where no competitor did has no reference and
-    says so.
+    The reference for ratios and verdicts is the strongest competitor in that row, on that metric,
+    marked or not (see the note above `strongest`). `best_time_mark` and `best_memory_mark` hold the
+    mark of that competitor ("" when it did the full task), and each verdict says whom it is against
+    (`vs`) and the mark (`vs_mark`). A row has no reference only when no competitor produced a
+    correct answer.
     """
     rows: dict[tuple, dict] = {}
     for c in cells:
@@ -145,9 +174,10 @@ def compare_rows(cells: list[dict]) -> list[dict]:
     out = []
     for row in rows.values():
         cs = row["cells"]
-        comp = [c for c in cs if c["role"] == "competitor" and sets_reference(c)]
-        row["best_time"] = min(comp, key=lambda c: c["time"]["median_ns"]) if comp else None
-        row["best_memory"] = min(comp, key=lambda c: c["memory"]["peak_bytes"]) if comp else None
+        row["best_time"] = strongest(cs, "time")
+        row["best_memory"] = strongest(cs, "memory")
+        row["best_time_mark"] = "" if row["best_time"] is None else non_reference_label(row["best_time"])
+        row["best_memory_mark"] = "" if row["best_memory"] is None else non_reference_label(row["best_memory"])
         row["own"] = []
         for c in cs:
             if c["role"] != "own":
@@ -160,12 +190,12 @@ def compare_rows(cells: list[dict]) -> list[dict]:
                 bt, bm = row["best_time"], row["best_memory"]
                 entry["time"] = None if bt is None else {
                     "ratio": ratio(t["median_ns"], bt["time"]["median_ns"]),
-                    "vs": bt["library"],
+                    "vs": bt["library"], "vs_mark": row["best_time_mark"],
                     "verdict": time_verdict(t["median_ns"], t["mad_ns"], bt["time"]["median_ns"], bt["time"]["mad_ns"]),
                 }
                 entry["memory"] = None if bm is None else {
                     "ratio": ratio(max(m["peak_bytes"], 1), max(bm["memory"]["peak_bytes"], 1)),
-                    "vs": bm["library"],
+                    "vs": bm["library"], "vs_mark": row["best_memory_mark"],
                     "verdict": memory_verdict(max(m["peak_bytes"], 1), max(bm["memory"]["peak_bytes"], 1)),
                 }
             row["own"].append(entry)
@@ -174,7 +204,8 @@ def compare_rows(cells: list[dict]) -> list[dict]:
 
 
 def tally(rows: list[dict], metric: str) -> dict:
-    """Counts of wins, ties, losses, and rows the own library has no number or no rival for."""
+    """Counts of wins, ties, losses, and rows the own library has no number or no rival for. A loss to
+    a marked competitor is a loss; a row has no rival only when no competitor answered correctly."""
     t = {"win": 0, "tie": 0, "loss": 0, "no-number": 0, "no-rival": 0}
     for r in rows:
         for e in r["own"]:
@@ -253,6 +284,20 @@ def add_reasons(result: dict, reasons: list[str]) -> None:
     pub["reasons"] = list(pub["reasons"]) + list(reasons)
     pub["publishable"] = False
     pub["label"] = "smoke"
+
+
+def unsettled_reasons(mode: str, cells: list[dict]) -> list[str]:
+    """Why a full run cannot be published when some cell's warm-up did not settle: a harness that
+    warms the JIT up until it stops compiling records `warmup_settled`, and a cell that hit the
+    limit first was timed on code that was still changing. Quick mode is a smoke run and does not mind."""
+    if mode != "full":
+        return []
+    bad = sorted(cell_name(c) for c in cells
+                 if c["status"] == "ok" and c.get("time", {}).get("warmup_settled") is False)
+    if not bad:
+        return []
+    shown = ", ".join(bad[:5]) + (f" and {len(bad) - 5} more" if len(bad) > 5 else "")
+    return [f"{len(bad)} cell(s) were timed before their warm-up settled ({shown})"]
 
 
 def attach_known(result: dict, known: dict[str, dict]) -> None:

@@ -30,6 +30,11 @@ def assemble(cells, expected):
     return run.assemble("full", {"rust": harness()}, {"rust": cells}, metas, [0.1] * 10, 0.5, 0.5, 1.0, 0, expected, 2, False)
 
 
+def unsettled(lib, wl):
+    c = ok(lib, wl)
+    c["time"] = dict(c["time"], warmup_settled=False)
+    return c
+
 class Complete(unittest.TestCase):
     def reasons(self, res):
         return res["run"]["publishability"]["reasons"]
@@ -68,6 +73,13 @@ class TextApi(unittest.TestCase):
         self.assertNotIn("state", by["rival"])
         [row] = results.compare_rows(res["cells"])
         self.assertEqual(row["best_time"]["library"], "rival")
+
+    def test_an_unsettled_warmup_makes_a_full_run_unpublishable(self):
+        res = assemble([ok("ours", "w"), unsettled("rival", "w")], 2)
+        pub = res["run"]["publishability"]
+        self.assertFalse(pub["publishable"])
+        self.assertTrue([r for r in pub["reasons"] if "warm-up settled" in r])
+        results.validate(res)
 
 
 if __name__ == "__main__":

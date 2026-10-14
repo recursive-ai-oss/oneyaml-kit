@@ -50,7 +50,8 @@ def fmt_size(n: int | None) -> str:
 
 
 MARK = {"win": "▲ win", "tie": "● tie", "loss": "▼ loss"}
-# A cell that did not do the full task as specified is shown but is never the best of its row.
+# A cell that did not do the full task as specified carries this mark. It is never called the best of its
+# row, but a row is still compared with it when it is the strongest competitor in the row.
 MARK_NOT_BEST = " †"
 
 
@@ -103,8 +104,9 @@ def workload_order(result: dict) -> dict[str, int]:
 
 
 def ratios(rows: list[dict], metric: str) -> list[dict]:
-    """Chart rows. The ratio is ours ÷ best competitor, the same number the tables show, so
-    below 1.0 is better for our library on both time and memory."""
+    """Chart rows. The ratio is ours ÷ strongest competitor, the same number the tables show, so
+    below 1.0 is better for our library on both time and memory. A strongest competitor that did
+    less than the full task carries its mark in `vs`."""
     out = []
     for r in rows:
         for e in r["own"]:
@@ -115,7 +117,8 @@ def ratios(rows: list[dict], metric: str) -> list[dict]:
             own = next(c for c in r["cells"] if c["library"] == e["library"])
             key = ("time", "median_ns") if metric == "time" else ("memory", "peak_bytes")
             out.append({
-                "workload": r["workload"], "library": e["library"], "vs": m["vs"], "verdict": m["verdict"],
+                "workload": r["workload"], "library": e["library"],
+                "vs": m["vs"] + (MARK_NOT_BEST if m.get("vs_mark") else ""), "verdict": m["verdict"],
                 "ratio": m["ratio"],
                 "own": own[key[0]][key[1]], "rival": best[key[0]][key[1]],
             })
@@ -137,7 +140,7 @@ THEMES = {
 # long. Bars grow from the 1.0x line: left is better for us, right is worse.
 AXIS_OCTAVES = 3
 TICKS = [1 / 8, 1 / 4, 1 / 2, 1.0, 2.0, 4.0, 8.0]
-CHART_NOTE = ("Ours ÷ best competitor, log scale: left of the 1.0× line is better for us, "
+CHART_NOTE = ("Ours ÷ strongest competitor (a † names one that did less than the full task), log scale: left of the 1.0× line is better for us, "
               "right of it is a loss.")
 
 
@@ -219,9 +222,11 @@ def baseline_stats(rows: list[dict], metric: str) -> list[dict]:
     best library's in the same row (1.0 is the best in every row it has a number), over the rows where
     it has one, and the number of rows where it is the best.
 
-    The best of a row is set only by cells that did the full task (`results.sets_reference`). A cell
-    that did not is still listed with its ratio, and its library carries a `label` saying why it
-    never sets the best.
+    Ratios are against the strongest library that did the full task in the row (a row in which none
+    did is compared with the strongest marked one). A faster cell that did less than the full task is
+    not hidden: it is listed with its own ratio, below 1.0 in that row, its library carries a `label`
+    saying why it is never called the best, and `behind_marked` counts the rows in which such a cell
+    was ahead of each library.
 
     `common_ratio` is the same mean over the rows in which every library that can set a reference
     has a number, so a library that fails its slow rows is not flattered by the rows it did pass;
@@ -230,11 +235,12 @@ def baseline_stats(rows: list[dict], metric: str) -> list[dict]:
     best_key = "best_time" if metric == "time" else "best_memory"
     acc: dict[str, dict] = {}
     for r in rows:
-        best = r[best_key]
+        best = results.baseline_reference(r, metric)
+        fastest = r[best_key]  # the strongest cell, marked or not
         for c in r["cells"]:
             if c["role"] == "control":
                 continue
-            a = acc.setdefault(c["library"], {"logs": [], "best": 0, "rows": 0, "labels": set(), "ref": False})
+            a = acc.setdefault(c["library"], {"logs": [], "best": 0, "rows": 0, "labels": set(), "ref": False, "behind": 0})
             if c["status"] != "ok":
                 continue
             a["rows"] += 1
@@ -245,12 +251,15 @@ def baseline_stats(rows: list[dict], metric: str) -> list[dict]:
                 a["ref"] = True
             if best is not None:
                 a["logs"].append(math.log(max(c[key[0]][key[1]], 1) / max(best[key[0]][key[1]], 1)))
-                a["best"] += 1 if c["library"] == best["library"] else 0
+                a["best"] += 1 if c["library"] == best["library"] and not results.non_reference_label(best) else 0
+                if (fastest is not None and results.non_reference_label(fastest)
+                        and c["library"] != fastest["library"] and c[key[0]][key[1]] > fastest[key[0]][key[1]]):
+                    a["behind"] += 1
     shared = []
     refs = {lib for lib, a in acc.items() if a["ref"]}
     for r in rows:
         ok = {c["library"] for c in r["cells"] if c["status"] == "ok" and c["role"] != "control"}
-        if refs and refs <= ok and r[best_key] is not None:
+        if refs and refs <= ok and results.baseline_reference(r, metric) is not None:
             shared.append(r)
     out = []
     for lib, a in sorted(acc.items()):
@@ -263,13 +272,13 @@ def baseline_stats(rows: list[dict], metric: str) -> list[dict]:
             if c is None:
                 common = None
                 break
-            best = r[best_key]
+            best = results.baseline_reference(r, metric)
             common.append(math.log(max(c[key[0]][key[1]], 1) / max(best[key[0]][key[1]], 1)))
         out.append({"library": lib, "rows": a["rows"], "best": a["best"],
                     "ratio": math.exp(sum(logs) / len(logs)) if logs else None,
                     "common_rows": len(shared) if common is not None else 0,
                     "common_ratio": math.exp(sum(common) / len(common)) if common else None,
-                    "labels": sorted(a["labels"]), "can_set_reference": a["ref"]})
+                    "labels": sorted(a["labels"]), "can_set_reference": a["ref"], "behind_marked": a["behind"]})
     return out
 
 
@@ -285,13 +294,14 @@ def common_text(x: dict, what: str) -> str:
 
 def baseline_chart_data(stats: list[dict]) -> list[dict]:
     return [{"workload": s["library"] + (" †" if s["labels"] else ""), "library": s["library"],
-             "vs": "the best in each row", "verdict": "tie",
+             "vs": "the strongest full-task library in each row", "verdict": "tie",
              "ratio": s["ratio"], "own": s["ratio"], "rival": 1.0,
              "note": f"{s['rows']} rows, best in {s['best']}"} for s in stats if s["ratio"] is not None]
 
 
-BASELINE_NOTE = ("Each library's value ÷ the best library's in the same row, geometric mean over its rows, "
-                 "log scale: the line at 1.0× is the best library in every row.")
+BASELINE_NOTE = ("Each library's value ÷ the strongest full-task library's in the same row, geometric mean over its rows, "
+                 "log scale: the line at 1.0× is the strongest library that did the full task in every row (a † "
+                 "names one that did less, which can sit left of the line).")
 
 
 def baseline_alt(title: str, stats: list[dict]) -> str:
@@ -363,8 +373,10 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
 
     # Summary
     L.append("## Summary\n")
-    L.append("Each row of the tables compares our library with the **best competitor in that row** "
-             "(the fastest for time, the smallest peak for memory). A gap inside the measurement noise "
+    L.append("Each row of the tables compares our library with the **strongest competitor in that row** "
+             "(the fastest for time, the smallest peak for memory). A competitor that did less than the full "
+             "task is still the one compared with when it is ahead: it is named with a † and its reason, and "
+             "a loss to it is a loss. A gap inside the measurement noise "
              "(at least 2% for time, 1% for memory) is a tie. Cells without a number say why.\n")
     summ = []
     own_langs = own_languages(cells)
@@ -384,15 +396,18 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                          "—" if worst is None else f"{worst['workload']} {fmt_ratio(worst['ratio'])} of {worst['vs']}"])
     if summ:
         L.append(md_table(["Language", "Task", "Workloads", "Time win / tie / loss", "Memory win / tie / loss",
-                           "No number", "No rival", "Weakest row (our time ÷ best competitor's)"], summ))
+                           "No number", "No rival", "Weakest row (our time ÷ strongest competitor's)"], summ))
         L.append("")
         L.append("*No number*: our library's answer was wrong, refused or missing. *No rival*: no competitor "
-                 "produced a correct answer for that row, so there is nothing to compare with.\n")
+                 "produced a correct answer for that row, so there is nothing to compare with. A competitor "
+                 "that answered correctly but did less than the full task (†) is a rival.\n")
     if base_langs:
         L.append("**Languages without a library of ours** (" + ", ".join(base_langs) + "): the competitors are "
                  "measured against each other, the baseline a library of ours has to beat. For each task, a "
-                 "library's ratio is its value ÷ the best library's in the same row (1.0× is the best), as a "
-                 "geometric mean over the rows where it has a number.\n")
+                 "library's ratio is its value ÷ the strongest library's that did the full task in the same row (1.0× is the strongest), as a "
+                 "geometric mean over the rows where it has a number. A library marked † did less than the full task, "
+                 "so it is never the reference; it is shown with its own ratio (below 1.0× where it is faster), and "
+                 "*Behind a †* counts the rows in which such a cell was ahead of a library.\n")
         bsum = []
         for lang in base_langs:
             lang_rows = [r for r in rows_all if r["cells"][0]["language"] == lang]
@@ -408,10 +423,12 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                                  str(x["best"]), ratio_text(x["ratio"]), common_text(x, "time"),
                                  "—" if m is None else str(m["best"]), "—" if m is None else ratio_text(m["ratio"]),
                                  "—" if m is None else common_text(m, "peak"),
-                                 ", ".join(x["labels"]) or "—"])
+                                 ", ".join(x["labels"]) or "—",
+                                 f"{x['behind_marked']} / {m['behind_marked']}" if m else f"{x['behind_marked']} / —"])
         L.append(md_table(["Language", "Task", "Library", "Rows with a number", "Fastest in", "Time ratio",
                            "Time ratio, rows every library has", "Smallest peak in", "Peak ratio",
-                           "Peak ratio, rows every library has", "Never the best because"], bsum))
+                           "Peak ratio, rows every library has", "Never the best because",
+                           "Behind a † cell in (time / peak rows)"], bsum))
         L.append("")
         L.append("*Rows every library has*: the ratio over only the rows where every library that can set the "
                  "best has a number, with the count in brackets. The first ratio averages over each library's "
@@ -427,16 +444,18 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                  "baseline for the cost of patching without keeping the text, and is listed as a known deviation.\n")
 
     if any(c.get("variant") == "harness-rendered" for c in cells):
-        L.append("*harness-rendered* means the library edits a tree but cannot write it back keeping the text, so "
-                 "the harness rendered the edited tree to text itself; the bytes are judged, and the cell is "
-                 "listed as a known deviation.\n")
+        L.append("*harness-rendered* means the library only replaces a range of characters, so the lookup of the "
+                 "edited node and the text of the new value are the harness's own code; the bytes are judged, the "
+                 "work is timed, and the cell is listed as a known deviation.\n")
     if any(results.non_reference_label(c) for c in cells if c["status"] == "ok"):
         L.append("† marks a cell that did not do the full task as specified: its variant was judged more loosely "
                  "than the plain one (*bytes-only*, *value-only*, *harness-rendered*), or its library takes and "
                  "returns text (a *text API*), so parsing and writing are inside its timed work. These cells are "
-                 "shown and measured, but they are never the best of a row and never set the reference that "
-                 "other cells are compared with. A *merged* cell may set it: the value is otherwise the expected "
-                 "one, and it is labelled wherever it appears.\n")
+                 "shown and measured, and a row is still compared with the strongest competitor in it, a † cell "
+                 "included: when one is ahead of ours (or is the only competitor) the verdict names it with its "
+                 "mark and reason, and a loss to it counts as a loss. A † cell is never called the best of a row. "
+                 "A *merged* cell may be called the best: the value is otherwise the expected one, and it is "
+                 "labelled wherever it appears.\n")
     if any(c.get("status") == "ok" and c["memory"].get("retained_bytes") is not None for c in cells):
         L.append("Where a memory cell has three figures they are the peak heap during one run, the bytes the "
                  "run requested, and the *retained* bytes: the heap that is still live one collection after "
@@ -465,7 +484,7 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                 title = title.replace("allocated heap", "allocated / retained heap") if has_kept and metric == "memory" else title
                 header = ["Workload", "Input"] + [f"`{l[1]}`" + (" (text API)" if l[1] in text_libs else "")
                                                   for l in lib_cols] + \
-                    ["Ours vs best competitor" if has_own else "Best in the row"]
+                    ["Ours vs strongest competitor" if has_own else "Best in the row"]
                 body = []
                 for r in lang_rows:
                     by = {c["library"]: c for c in r["cells"]}
@@ -475,8 +494,14 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                         row.append("—" if c is None else (time_cell(c) if metric == "time" else memory_cell(c)))
                     verdicts = []
                     if not has_own:
-                        best = r["best_time" if metric == "time" else "best_memory"]
-                        verdicts.append("—" if best is None else f"`{best['library']}`")
+                        ref = results.baseline_reference(r, metric)
+                        fast = r["best_time" if metric == "time" else "best_memory"]
+                        text = "—" if ref is None else f"`{ref['library']}`" + (
+                            f"{MARK_NOT_BEST} ({results.non_reference_label(ref)})" if results.non_reference_label(ref) else "")
+                        # A faster cell that did less than the full task is named, marked, never called the best.
+                        if ref is not None and fast is not None and fast is not ref:
+                            text += f"; ahead of it: `{fast['library']}`{MARK_NOT_BEST} ({results.non_reference_label(fast)})"
+                        verdicts.append(text)
                     for e in r["own"]:
                         if e["status"] != "ok":
                             verdicts.append(f"no number ({e['status']})")
@@ -484,7 +509,8 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                             verdicts.append("no rival")
                         else:
                             m = e[metric]
-                            verdicts.append(f"{fmt_ratio(m['ratio'])} of `{m['vs']}` {MARK[m['verdict']]}")
+                            who = f"`{m['vs']}`" + (f"{MARK_NOT_BEST} ({m['vs_mark']})" if m.get("vs_mark") else "")
+                            verdicts.append(f"{fmt_ratio(m['ratio'])} of {who} {MARK[m['verdict']]}")
                     row.append("<br>".join(verdicts) or "—")
                     body.append(row)
                 L.append(f"**{title}**\n")
@@ -496,7 +522,7 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                     if not baseline_chart_data(stats):
                         continue
                     name = f"{lang}-{task}-{metric}"
-                    title = f"{task} ({lang}): {unit}, each library against the best in the row"
+                    title = f"{task} ({lang}): {unit}, each library against the strongest full-task library in the row"
                     alt = baseline_alt(title, stats)
                     data = baseline_chart_data(stats)
                     for theme in THEMES:
@@ -510,7 +536,7 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                     continue
                 name = f"{lang}-{task}-{metric}"
                 note = f"{unit.capitalize()}. {CHART_NOTE}"
-                title = f"{task} ({lang}): {unit}, ours against the best competitor"
+                title = f"{task} ({lang}): {unit}, ours against the strongest competitor"
                 alt = chart_alt(title, note, data, fmt)
                 for theme in THEMES:
                     (chart_dir / f"{name}-{theme}.svg").write_text(svg_chart(title, note, data, theme, fmt, alt), encoding="utf-8")

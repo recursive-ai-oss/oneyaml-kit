@@ -38,7 +38,8 @@ DERIVED = {
     "109": ["19"],           # double-quoted scalar: the " indicator
     "82": ["20"],            # directive: the % indicator
     "183": ["4", "63", "184"],   # block sequence: the - indicator, indentation, its entries
-    "188": ["5"],            # block mapping entry written with ?
+    "189": ["5"],            # explicit block mapping entry: the ? indicator
+    "190": ["5"],            # explicit block mapping key: the ? indicator
     "187": ["6", "63", "188"],   # block mapping: the : indicator, indentation, its entries
     "137": ["8", "9"],       # flow sequence: [ and ]
     "140": ["10", "11"],     # flow mapping: { and }

@@ -143,8 +143,8 @@ public sealed class SharpYamlSyntaxLib : ILibrary
     static readonly YamlSyntaxOptions Options = new() { IncludeTrivia = true };
 
     /// <summary>The variant of an edit whose lookup and new text are the harness's code, not the library's: the
-    /// library only replaces a range of characters. Such a cell is shown apart and never sets the reference that
-    /// others are compared with.</summary>
+    /// library only replaces a range of characters. Such a cell is shown marked and is never called the best of
+    /// a row; a row is still compared with it when it is ahead.</summary>
     public const string HarnessRendered = "harness-rendered";
 
     public Runner Runner(BenchTask task, Workload w)

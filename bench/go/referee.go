@@ -92,6 +92,55 @@ func resolveCore(s string) any {
 	return s
 }
 
+// coreTag is the short name of a YAML 1.2 core-schema tag (`!!int` or its long form), or "".
+func coreTag(tag string) string {
+	switch {
+	case strings.HasPrefix(tag, "!!"):
+		return tag[2:]
+	case strings.HasPrefix(tag, "tag:yaml.org,2002:"):
+		return strings.TrimPrefix(tag, "tag:yaml.org,2002:")
+	}
+	return ""
+}
+
+// resolveTagged reads a scalar that carries an explicit core-schema tag (section 10.3.2): the
+// tag fixes the type, so `!!float 1` is the float 1.0 and `!!int x` is an error. Any other tag is
+// one the reference reading does not know, and it says so.
+func resolveTagged(tag, s string) (any, error) {
+	switch coreTag(tag) {
+	case "null":
+		if resolveCore(s) == nil { // only the null forms resolve to nil
+			return nil, nil
+		}
+	case "bool":
+		if b, ok := resolveCore(s).(bool); ok {
+			return b, nil
+		}
+	case "int":
+		if i, ok := resolveCore(s).(Int); ok {
+			return i, nil
+		}
+	case "float":
+		switch x := resolveCore(s).(type) {
+		case float64:
+			return x, nil
+		case Int:
+			f, err := strconv.ParseFloat(string(x), 64)
+			if err == nil || errors.Is(err, strconv.ErrRange) {
+				return f, nil
+			}
+		}
+	case "str":
+		return s, nil
+	default:
+		if tag == "!" {
+			return s, nil
+		}
+		return nil, fmt.Errorf("explicit tag %s", tag)
+	}
+	return nil, fmt.Errorf("%q is not a valid %s", s, tag)
+}
+
 // build turns the nodes of one document into the common form. Anchors are kept by name; an
 // alias is the value its anchor had. Mappings are plain mappings: `<<` is an ordinary key.
 type builder struct{ anchors map[string]any }
@@ -112,9 +161,15 @@ func (b *builder) value(n *rnode) (any, error) {
 		switch {
 		case n.tag == "!" || n.tag == "!!str" || n.tag == "tag:yaml.org,2002:str":
 			v = n.value
-		case n.tag != "" && n.tag != "!!null" && n.tag != "!!bool" && n.tag != "!!int" && n.tag != "!!float":
-			return nil, fmt.Errorf("explicit tag %s", n.tag)
-		case !n.plain && n.tag == "":
+		case n.tag != "":
+			// An explicit core-schema tag decides the type, whatever the text looks like, and a
+			// text that the tag cannot hold is not valid: it is refused, never read as a string.
+			t, err := resolveTagged(n.tag, n.value)
+			if err != nil {
+				return nil, err
+			}
+			v = t
+		case !n.plain:
 			v = n.value
 		default:
 			v = resolveCore(n.value)

@@ -186,7 +186,7 @@ def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[st
             cell["language"] = lang
             cell["role"] = roles.get(c["library"], "competitor")
             # A library whose API takes and returns text has no parsed document to start from, so
-            # its cells do not do the task as specified (see results.sets_reference).
+            # its cells do not do the task as specified (see results.non_reference_label).
             if ((libs.get(c["library"]) or {}).get("settings") or {}).get("state") == "the text":
                 cell["state"] = "text"
             cells.append(cell)
@@ -196,7 +196,7 @@ def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[st
     env = environment.describe(environment.git_revision(ROOT), pinned_cpu)
     pub = results.assess_publishability(mode, samples, load_start, load_end, complete, selftest,
                                         pinned_cpu, env["governor"])
-    return {
+    res = {
         "format": results.FORMAT,
         "run": {
             "date": env["date"], "mode": mode, "seconds": round(seconds, 1), "restarts": restarts,
@@ -209,6 +209,9 @@ def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[st
                       for m in metas],
         "cells": cells,
     }
+    # A cell timed before its warm-up settled is a number nobody should publish.
+    results.add_reasons(res, results.unsettled_reasons(mode, cells))
+    return res
 
 
 def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries: list[str] = (),
