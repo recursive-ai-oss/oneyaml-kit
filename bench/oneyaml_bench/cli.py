@@ -67,6 +67,26 @@ def known_problems(result: dict) -> list[str]:
     return problems
 
 
+def known_counts(result: dict, problems: list[str]) -> dict[str, int]:
+    """How the measured cells stand against the lists of known deviations: `listed` cells are
+    deviations that a list names with the status they have, `unlisted` ones are deviations no list
+    names, `stale` entries name a deviation that no longer happens (or a cell that does not exist),
+    and `other` problems are the rest (an entry with the wrong status, a repeated entry)."""
+    entries = {}
+    for lang, known in known_lists(result).items():
+        for e in known.get("entries", []):
+            entries[e["cell"]] = e
+    listed = 0
+    for c in result["cells"]:
+        dev = results.deviation_of(c)
+        e = entries.get(results.cell_name(c))
+        if dev and e and (e["status"], e.get("variant", "")) == dev:
+            listed += 1
+    unlisted = sum(p.split(": ", 1)[-1].startswith("unlisted deviation") for p in problems)
+    stale = sum(p.split(": ", 1)[-1].startswith("stale known deviation") for p in problems)
+    return {"listed": listed, "unlisted": unlisted, "stale": stale, "other": len(problems) - unlisted - stale}
+
+
 def cmd_run(a: argparse.Namespace) -> int:
     out = Path(a.out) if a.out else default_out()
     t0 = time.monotonic()
@@ -94,6 +114,13 @@ def cmd_run(a: argparse.Namespace) -> int:
           f"in {time.monotonic() - t0:.1f} s; label: {pub['label']}")
     for r in pub["reasons"]:
         print(f"  not publishable: {r}")
+    k = known_counts(result, problems)
+    print(f"known deviations: {k['listed']} listed, {k['unlisted']} unlisted, {k['stale']} stale, "
+          f"{k['other']} other problems: {'ok' if not problems else 'MISMATCH'}")
+    for p in problems[:5]:
+        print(f"  {p}")
+    if len(problems) > 5:
+        print(f"  ... and {len(problems) - 5} more")
     print(f"results: {out / 'results.json'}\nreport:  {out / 'report.md'}")
     if hits:
         print("public-text check failed on generated output:\n  " + "\n  ".join(hits), file=sys.stderr)
