@@ -310,19 +310,67 @@ public static class SelfTests
             // The same cell measured twice agrees to the byte.
             Equal(Measure.Memory(alloc).AllocatedBytes, u1.AllocatedBytes, "repeatable");
         }),
-        ("a runner may share one state only if the task leaves it alone", () =>
+        ("a runner shares one state only if the task leaves it alone", () =>
         {
             int built = 0;
-            var honest = new FnRunner<int[], byte[]>(() => { built++; return [7]; }, s => [(byte)s[0]], b => new Product.Bytes(b), sharedState: true);
+            // Allocates the same on every run, as a library that reads its input does.
+            var honest = new FnRunner<int[], byte[]>(() => { built++; return [7]; },
+                s => { Sink = new byte[4096]; return [(byte)s[0]]; }, b => new Product.Bytes(b), sharedState: true);
             honest.Check();
+            Equal(honest.SharedState, true, "a task that only reads its state shares it");
+            Equal(honest.SharedStateRefusal, null, "and is not refused");
+            int before = built;
             var batch = honest.Prepare(5);
-            Equal(built, 2, "one state for the check (both of its runs), one for the whole batch");
+            Equal(built, before + 1, "one state for the whole batch");
             batch.Run();
-            var mutating = new FnRunner<int[], byte[]>(() => [0], s => [(byte)(++s[0])], b => new Product.Bytes(b), sharedState: true);
-            try { mutating.Check(); Check(false, "a task that changes its state was allowed to share it"); }
-            catch (InvalidOperationException e) { Check(e.Message.Contains("starting state"), e.Message); }
             var own = new FnRunner<int[], byte[]>(() => [0], s => [(byte)(++s[0])], b => new Product.Bytes(b));
             Equal(own.Check() is Product.Bytes, true, "a runner with a state per task may change it");
+            Equal(own.SharedState, false, "and never asks to share");
+        }),
+        ("a task whose second answer differs falls back to fresh states and keeps its cell", () =>
+        {
+            int built = 0;
+            var mutating = new FnRunner<int[], byte[]>(() => { built++; return [0]; }, s => [(byte)(++s[0])], b => new Product.Bytes(b), sharedState: true);
+            Check(mutating.Check() is Product.Bytes, "the check gives the first answer, not an error");
+            Equal(mutating.SharedState, false, "a task that changes its state does not share it");
+            Check(mutating.SharedStateRefusal!.Contains("another answer"), mutating.SharedStateRefusal);
+            int before = built;
+            mutating.Prepare(5);
+            Equal(built, before + 5, "each run gets a state of its own");
+        }),
+        ("a task that remembers its result is not given a shared state, though every answer is right", () =>
+        {
+            // The second run returns what the first computed: same answer, almost no work.
+            var memo = new FnRunner<byte[][], byte[]>(() => new byte[1][],
+                s => s[0] ??= new byte[50_000], b => new Product.Bytes(b), sharedState: true);
+            memo.Check();
+            Equal(memo.SharedState, false, "a memoising runner does not share");
+            Check(memo.SharedStateRefusal!.Contains("allocates"), memo.SharedStateRefusal);
+        }),
+        ("a task that rewrites a buffer it owns is not given a shared state", () =>
+        {
+            // Both answers are the same array, so comparing the second with the first compares it with itself.
+            var buffer = new FnRunner<(byte[] Buf, int[] N), byte[]>(() => (new byte[8], new int[1]),
+                s => { s.Buf[0] = (byte)(++s.N[0]); return s.Buf; }, b => new Product.Bytes(b), sharedState: true);
+            buffer.Check();
+            Equal(buffer.SharedState, false, "an in-place buffer does not share");
+            Check(buffer.SharedStateRefusal!.Contains("another answer"), buffer.SharedStateRefusal);
+        }),
+        ("a task that wears its state away with an identical answer is not given a shared state", () =>
+        {
+            // Like a dump that strips parts of the tree it is given: the output never changes, later runs do less.
+            var wearing = new FnRunner<List<int>, byte[]>(() => Enumerable.Range(0, 2000).ToList(),
+                s =>
+                {
+                    Sink = new byte[s.Count * 100];
+                    if (s.Count > 1) s.RemoveRange(0, s.Count / 2);
+                    return [1];
+                }, b => new Product.Bytes(b), sharedState: true);
+            wearing.Check();
+            Equal(wearing.SharedState, false, "a runner whose later runs cost less does not share");
+            Check(wearing.SharedStateRefusal!.Contains("allocates"), wearing.SharedStateRefusal);
+            Check(FnRunner<int, int>.CostsAgree(100_000, 100_900), "a difference of under a hundredth is the same cost");
+            Check(!FnRunner<int, int>.CostsAgree(100_000, 102_000), "two hundredths is not");
         }),
         ("a batch is never smaller than the sample target asks for, however slow its states are to build", () =>
         {

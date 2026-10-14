@@ -271,8 +271,12 @@ is the optimised code the profile produced. The cell records how long that took 
 `flags.warmup`. Switching quick JIT or PGO off would measure a program nobody runs.
 
 A batch is always as large as the sample target needs. A task that only reads its starting state runs the
-whole batch over one shared state (the guard runs it twice over one state and fails a runner whose second
-answer differs, which is the check the contract asks of every harness that shares a state); other tasks build one state each, and a cell whose states are slow to build takes longer
+whole batch over one shared state, but only after the harness has checked that it may: it copies the first
+answer before the second run (a task that rewrites a buffer it owns would otherwise be compared with itself),
+requires the second answer to equal the copy, and requires a run over a used state to allocate what a run over a fresh
+one does, within one hundredth and a few bytes (a task that remembers its result, or wears its state away, gives the
+same answers for less work). A runner that fails either check is measured over fresh states and keeps its cell, with
+the reason in the cell's detail, because the library's answers are right; other tasks build one state each, and a cell whose states are slow to build takes longer
 (a full run never takes fewer than 30 samples), never fewer tasks per sample, because a batch of one measures the fixed cost of an invocation.
 
 Every library is handed UTF-8 bytes and returns UTF-8 bytes, which is the form of a file: a library that works

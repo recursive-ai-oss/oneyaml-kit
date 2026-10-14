@@ -255,8 +255,11 @@ public static class Program
         catch (Exception e) { return new Cell("error", "while judging: " + Describe(e)); }
 
         if (verdict is not Verdict.Ok ok) return new Cell(verdict.Status, verdict.Detail);
+        // A runner that asked to share a starting state and was refused is measured over fresh states. The answers
+        // are right and the cell keeps its number; the detail says why its set-up is not shared.
+        var note = runner.SharedStateRefusal is { } refused ? "fresh starting states: " + refused : "";
         // Only the verdicts are wanted when the known deviations are being recorded.
-        if (a.GuardOnly) return new Cell("ok", "", runner.Variant ?? ok.Variant);
+        if (a.GuardOnly) return new Cell("ok", note, runner.Variant ?? ok.Variant);
         try
         {
             // Time first, which warms the cell: the memory pass then sees the optimised code a user's program runs.
@@ -264,7 +267,7 @@ public static class Program
             // figure taken before the warm-up would depend on how much the cell had already run.
             var t = Measure.Time(runner, cfg);
             var m = Measure.Memory(runner);
-            return new Cell("ok", "", runner.Variant ?? ok.Variant, t, m);
+            return new Cell("ok", note, runner.Variant ?? ok.Variant, t, m);
         }
         catch (Exception e) { return new Cell("error", "while measuring: " + Describe(e)); }
     }
