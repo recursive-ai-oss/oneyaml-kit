@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/quoted-and-plain-keys-differ-by-type",
+ "title": "A quoted \"1\" and a plain 1 are different keys",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 3.2.1.3",
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "$map": [
+     [
+      "1",
+      "a"
+     ],
+     [
+      1,
+      "b"
+     ]
+    ]
+   }
+  ]
+ }
+}

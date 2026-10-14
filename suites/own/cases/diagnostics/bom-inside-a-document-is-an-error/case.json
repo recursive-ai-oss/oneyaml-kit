@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/bom-inside-a-document-is-an-error",
+ "title": "A byte order mark in the middle of a document, after content",
+ "category": "diagnostics",
+ "origin": "spec",
+ "productions": [
+  "3"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 9.1.1"
+ ],
+ "notes": "A byte order mark may only start a stream or a document. Elsewhere it is not a content character. Whether it is counted or not, the error is at column 1 of line 2.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml/tests/bom_prefix.rs (the_location_counts_no_invisible_mark)"
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 1
+ }
+}

@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/directive-then-document-end-is-an-error",
+ "title": "A directive followed by a document end marker instead of a document start marker",
+ "category": "diagnostics",
+ "origin": "fuzz",
+ "productions": [
+  "209"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 9.1.3",
+  "YAML 1.2.2 section 6.8"
+ ],
+ "notes": "Directives belong to a directive document, which must continue with `---`. The `...` on line 4 cannot start `---`, so it is the first character that cannot belong to any valid document.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/fuzz/regressions/consistency/f1-stray-document-end-after-directive"
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 4,
+  "column": 1
+ }
+}

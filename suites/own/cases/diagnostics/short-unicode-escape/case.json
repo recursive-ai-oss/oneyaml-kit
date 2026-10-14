@@ -1,0 +1,23 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/short-unicode-escape",
+ "title": "A \\u escape with fewer than four hexadecimal digits",
+ "category": "diagnostics",
+ "origin": "spec",
+ "productions": [
+  "41"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.7"
+ ],
+ "notes": "The closing quote at column 9 cannot be the third hexadecimal digit.",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 9
+ }
+}

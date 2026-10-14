@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/implicit-key-of-1025-characters-is-an-error",
+ "title": "A block mapping key of 1025 characters",
+ "category": "diagnostics",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 7.4.2"
+ ],
+ "notes": "The plain scalar alone is a valid document, and so is `key:` followed by more text (it is then a longer scalar). The space after the colon is the first character that settles it as an implicit key of 1025 characters, column 1027 (1025 characters, the colon, then the space).",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml-syntax/tests/parser_robustness.rs (deep_flow_collections)"
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 1027
+ }
+}

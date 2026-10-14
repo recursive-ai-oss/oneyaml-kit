@@ -1,0 +1,8 @@
+- !!float 1
+- !!int "3"
+- !!int 0x10
+- !!null ""
+- !!bool "true"
+- !!str 0o10
+- !!float .inf
+- !!int -7

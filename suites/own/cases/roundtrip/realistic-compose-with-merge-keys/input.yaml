@@ -1,0 +1,14 @@
+x-common: &common
+  restart: always
+  logging:
+    driver: json-file
+
+services:
+  web:
+    <<: *common
+    image: "nginx:1.25"
+    ports:
+      - "80:80"
+  db:
+    <<: *common
+    image: postgres

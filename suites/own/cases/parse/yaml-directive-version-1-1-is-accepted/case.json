@@ -1,0 +1,22 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/yaml-directive-version-1-1-is-accepted",
+ "title": "A %YAML 1.1 directive is accepted by a 1.2 processor",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "86",
+  "87"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.8.1"
+ ],
+ "notes": "A 1.2 processor must accept 1.1 documents and should process a higher minor version with a warning. Neither changes the events.",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

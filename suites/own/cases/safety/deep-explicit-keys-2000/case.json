@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/deep-explicit-keys-2000",
+ "title": "Two thousand explicit keys, each the key of the next",
+ "category": "safety",
+ "origin": "spec",
+ "productions": [
+  "188"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.2.2"
+ ],
+ "notes": "The input is valid. A library that reads it gives exactly the expected result; one that refuses it says so with a limit error. A crash, a hang, a wrong result, or more than the stated time or memory fails. The resource bounds are the robustness requirement of the kit, not a rule of the specification.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml-syntax/tests/parser_robustness.rs (deep_explicit_keys)"
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "events",
+   "file": "expected.events"
+  }
+ }
+}

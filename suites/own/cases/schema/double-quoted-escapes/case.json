@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/double-quoted-escapes",
+ "title": "Every escape sequence of the double-quoted style",
+ "category": "schema",
+ "origin": "spec",
+ "productions": [
+  "41",
+  "109"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.7",
+  "YAML 1.2.2 section 7.3.1"
+ ],
+ "notes": "Escapes: \\0 \\a \\b \\t (and a backslash before a tab) \\n \\v \\f \\r \\e (backslash space) \\\" \\/ \\\\ \\N \\_ \\L \\P and the hexadecimal forms.",
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": "\u0000\u0007\b\t\tx\n\u000b\f\r\u001b \"/\\\u0085\u00a0\u2028\u2029A\u00e9\ud83d\ude00"
+   }
+  ]
+ }
+}

@@ -1,0 +1,45 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/core-infinity-and-nan-spellings",
+ "title": "Only the listed spellings of infinity and not-a-number are floats",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "notes": "Infinity is [-+]? \\. (inf|Inf|INF) and not-a-number is \\. (nan|NaN|NAN) with no sign.",
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": {
+     "$float": "inf"
+    },
+    "b": {
+     "$float": "inf"
+    },
+    "c": {
+     "$float": "inf"
+    },
+    "d": {
+     "$float": "-inf"
+    },
+    "e": {
+     "$float": "nan"
+    },
+    "f": {
+     "$float": "nan"
+    },
+    "g": ".iNf",
+    "h": "nan",
+    "i": "inf",
+    "j": ".nAn",
+    "k": "-.nan",
+    "l": "+.nan"
+   }
+  ]
+ }
+}

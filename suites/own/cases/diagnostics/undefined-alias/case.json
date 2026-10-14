@@ -1,0 +1,24 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/undefined-alias",
+ "title": "An alias with no anchor of that name",
+ "category": "diagnostics",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 7.1"
+ ],
+ "notes": "The error is a semantic one (no anchor named y), so no position is stated.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml/tests/fuzz_findings.rs (default policy duplicates)"
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "any"
+ }
+}

@@ -1,0 +1,24 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/core-timestamps-are-strings",
+ "title": "Timestamp-looking scalars are strings: the core schema has no timestamp type",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 1.2"
+ ],
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": "2001-12-14",
+    "b": "2001-12-14t21:59:43.10-05:00",
+    "c": "2001-12-14 21:59:43.10 -5"
+   }
+  ]
+ }
+}

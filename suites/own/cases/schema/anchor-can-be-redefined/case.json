@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/anchor-can-be-redefined",
+ "title": "An alias refers to the closest earlier anchor of its name",
+ "category": "schema",
+ "origin": "spec",
+ "productions": [
+  "104"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.2.2",
+  "YAML 1.2.2 section 7.1"
+ ],
+ "notes": "Anchors are not required to be unique; an alias takes the most recent one.",
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   [
+    1,
+    2,
+    2
+   ]
+  ]
+ }
+}

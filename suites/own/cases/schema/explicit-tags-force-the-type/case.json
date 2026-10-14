@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/explicit-tags-force-the-type",
+ "title": "Explicit core tags select the type of a scalar that would resolve differently",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 6.9.1"
+ ],
+ "notes": "A tag takes precedence over the resolution of the plain text. The text must still match the type's pattern: `1` matches the float pattern, and the null tag accepts the empty string.",
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   [
+    1.0,
+    3,
+    16,
+    null,
+    true,
+    "0o10",
+    {
+     "$float": "inf"
+    },
+    -7
+   ]
+  ]
+ }
+}

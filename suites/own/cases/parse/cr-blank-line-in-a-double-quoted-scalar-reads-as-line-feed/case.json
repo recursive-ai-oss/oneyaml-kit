@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/cr-blank-line-in-a-double-quoted-scalar-reads-as-line-feed",
+ "title": "A blank line inside a double-quoted scalar is one line feed (CR)",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "28",
+  "29"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.4",
+  "YAML 1.2.2 section 7.3.1"
+ ],
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": "x\ny"
+   }
+  ]
+ }
+}

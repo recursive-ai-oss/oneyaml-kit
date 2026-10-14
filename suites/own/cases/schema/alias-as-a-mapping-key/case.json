@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/alias-as-a-mapping-key",
+ "title": "An alias can be a mapping key",
+ "category": "schema",
+ "origin": "spec",
+ "productions": [
+  "104"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.1"
+ ],
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   [
+    "name",
+    {
+     "name": "v"
+    }
+   ]
+  ]
+ }
+}

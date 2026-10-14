@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/crlf-in-a-folded-plain-scalar-reads-as-space",
+ "title": "A line break between plain scalar lines folds to one space (CRLF)",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "28",
+  "29"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.4",
+  "YAML 1.2.2 section 7.3.3"
+ ],
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml-syntax/tests/line_end.rs (documents over LF, CRLF and CR)"
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": "x y",
+    "b": "z"
+   }
+  ]
+ }
+}

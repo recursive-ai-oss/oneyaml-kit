@@ -1,0 +1,20 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "roundtrip/document-start-with-block-scalar-root",
+ "title": "A root block scalar after a document start marker",
+ "category": "roundtrip",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 9.1.3",
+  "YAML 1.2.2 section 8.1"
+ ],
+ "notes": "An empty patch changes nothing, so the output must equal the input byte for byte.",
+ "operation": {
+  "type": "patch",
+  "patch": []
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

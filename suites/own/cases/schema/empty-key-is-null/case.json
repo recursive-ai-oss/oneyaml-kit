@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/empty-key-is-null",
+ "title": "A block mapping entry with an empty key has a null key",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 8.2.2",
+  "YAML 1.2.2 section 7.2"
+ ],
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "$map": [
+     [
+      null,
+      "v"
+     ]
+    ]
+   }
+  ]
+ }
+}

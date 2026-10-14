@@ -1,0 +1,24 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/double-quoted-escaped-line-break",
+ "title": "A backslash before a line break joins the lines without a space",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 7.3.1",
+  "YAML 1.2.2 section 6.5"
+ ],
+ "notes": "The escaped break is removed with the leading white space of the next line; white space before the backslash is kept.",
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": "onetwo",
+    "b": "x y"
+   }
+  ]
+ }
+}

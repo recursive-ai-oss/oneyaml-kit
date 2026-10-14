@@ -1,0 +1,22 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "roundtrip/directives",
+ "title": "Directives and their spacing are kept",
+ "category": "roundtrip",
+ "origin": "spec",
+ "productions": [
+  "82"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.8"
+ ],
+ "notes": "An empty patch changes nothing, so the output must equal the input byte for byte.",
+ "operation": {
+  "type": "patch",
+  "patch": []
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

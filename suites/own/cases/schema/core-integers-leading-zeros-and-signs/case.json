@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/core-integers-leading-zeros-and-signs",
+ "title": "Leading zeros are decimal, and a sign is allowed on decimal integers only",
+ "category": "schema",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "notes": "Integer pattern [-+]?[0-9]+: 1.2 has no legacy octal.",
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": 7,
+    "b": 0,
+    "c": 0,
+    "d": 0,
+    "e": -12
+   }
+  ]
+ }
+}

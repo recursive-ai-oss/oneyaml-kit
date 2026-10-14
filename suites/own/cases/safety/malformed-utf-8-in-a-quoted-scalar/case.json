@@ -1,0 +1,24 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/malformed-utf-8-in-a-quoted-scalar",
+ "title": "Invalid UTF-8 inside a double-quoted scalar",
+ "category": "safety",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 5.2"
+ ],
+ "notes": "C3 needs a continuation byte; 0x28 is not one.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml-syntax/tests/decode.rs (malformed input)"
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "encoding"
+ }
+}

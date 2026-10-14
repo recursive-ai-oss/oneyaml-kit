@@ -1,0 +1,6 @@
+base: &b {x: 1}
+use: *b
+tagged: !!str 12
+local: !thing
+  k: v
+list: [&e 1, *e]

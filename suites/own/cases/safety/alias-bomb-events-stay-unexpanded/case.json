@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/alias-bomb-events-stay-unexpanded",
+ "title": "The events of an alias bomb are small: aliases are not expanded",
+ "category": "safety",
+ "origin": "competitor",
+ "refs": [
+  "YAML 1.2.2 section 7.1",
+  "YAML 1.2.2 section 3.2.2.2"
+ ],
+ "notes": "An event stream carries `=ALI` for each alias. Expanding them while parsing would exhaust memory; the exact events are the only acceptable result.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/test-suite/src/adversarial.rs (billion laughs)"
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "accept": {
+   "kind": "events",
+   "file": "expected.events"
+  }
+ }
+}

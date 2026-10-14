@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/second-colon-in-a-plain-scalar-value",
+ "title": "A mapping value cannot start another mapping on the same line",
+ "category": "diagnostics",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 7.3.3",
+  "YAML 1.2.2 section 8.2.2"
+ ],
+ "notes": "`a: b:` can still be the scalar `b:x`; the space after the second colon makes it an implicit key in a value position, which is not allowed.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "docs/conformance.md (opt-in departures: lenient_inline_colons)"
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 6
+ }
+}

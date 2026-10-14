@@ -1,0 +1,16 @@
++STR
++DOC
++MAP
+=VAL :a
+=VAL :é
+=VAL :b
++SEQ []
+=VAL "😀
+=VAL 'ü
+-SEQ
+-MAP
+-DOC ...
++DOC ---
+=VAL |x􏿿\n
+-DOC
+-STR

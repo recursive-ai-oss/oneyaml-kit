@@ -1,0 +1,14 @@
+a: |-
+  strip
+b: |+
+  keep
+
+c: |2
+    two extra
+d: >-
+  folded
+  strip
+e: >+
+  keep
+
+f: end

@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/alias-byte-expansion-bomb",
+ "title": "Ten thousand aliases of a hundred-kilobyte scalar must be refused with a limit error",
+ "category": "safety",
+ "origin": "competitor",
+ "refs": [
+  "YAML 1.2.2 section 7.1",
+  "YAML 1.2.2 section 3.2.1"
+ ],
+ "notes": "The value is valid but holds a billion characters: no result can be stated. A small input whose expansion is large in bytes rather than in nodes.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/test-suite/src/adversarial.rs (copies of a large scalar)"
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "error": "limit"
+ }
+}

@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/encoding-utf-16le-first-character-not-ascii",
+ "title": "UTF-16LE without a mark is detected from the null byte, whatever the first character",
+ "category": "parse",
+ "origin": "spec",
+ "refs": [
+  "YAML 1.2.2 section 5.2"
+ ],
+ "notes": "The pattern for UTF-16LE is any byte followed by a null byte.",
+ "provenance": {
+  "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
+  "revision": "93e9e30",
+  "licence": "MIT OR Apache-2.0",
+  "reference": "crates/oneyaml-syntax/tests/decode.rs (detection_follows_the_spec_table)"
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "\u00e9": "x"
+   }
+  ]
+ }
+}

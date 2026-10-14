@@ -38,6 +38,10 @@ def required_caps(case, expect: dict) -> tuple[set, set]:
         if case.args.get("format", "json-patch") == "merge-patch":
             base.add("patch:merge")
         else:
+            # An empty patch is how a round trip is asked for: it names no operation, but a
+            # library that cannot write a document back must not be sent it.
+            if not case.args["patch"]:
+                base.add(ANY_PATCH)
             for o in case.args["patch"]:
                 name = o.get("op")
                 # An operation name outside RFC 6902 can only be refused; any patch-capable
