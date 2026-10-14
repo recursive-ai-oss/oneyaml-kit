@@ -1,0 +1,15 @@
+{"format": "oneyaml-kit-deviations/1",
+ "entries": [
+  {"case": "own:edit/block-literal-strip-when-no-trailing-newline", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 26: expected b'|-\\n this is a test2\\nc: 13\\n', got b'this is a test2\\nc: 13\\n' (lengths 53 and 48)"},
+  {"case": "own:edit/block-literal-strip-when-no-trailing-newline", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 26: expected b'|-\\n this is a test2\\nc: 13\\n', got b'this is a test2\\nc: 13\\n' (lengths 53 and 48)"},
+  {"case": "own:edit/bom-and-crlf-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'op replace /a: key a does not exist and can not be replaced'"},
+  {"case": "own:edit/bom-and-crlf-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'op replace /a: key a does not exist and can not be replaced'"},
+  {"case": "own:edit/double-quoted-style-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 3: expected b'\"new\"\\nb: \\'x\\'\\n', got b\"new\\nb: 'x'\\n\" (lengths 16 and 14)"},
+  {"case": "own:edit/double-quoted-style-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 3: expected b'\"new\"\\nb: \\'x\\'\\n', got b\"new\\nb: 'x'\\n\" (lengths 16 and 14)"},
+  {"case": "own:edit/second-document", "expectation": "primary", "mode": "loose", "verdict": "unsupported", "reason": "Declined by the adapter: the library patches the first document only"},
+  {"case": "own:edit/second-document", "expectation": "primary", "mode": "strict", "verdict": "unsupported", "reason": "Declined by the adapter: the library patches the first document only"},
+  {"case": "own:edit/sequence-item", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 7: expected b' # keep\\n- c\\n', got b'\\n- c\\n' (lengths 19 and 12)"},
+  {"case": "own:edit/sequence-item", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 7: expected b' # keep\\n- c\\n', got b'\\n- c\\n' (lengths 19 and 12)"},
+  {"case": "own:edit/trailing-comment-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 10: expected b' # dev\\nname: web\\n', got b'\\nname: web\\n' (lengths 28 and 21)"},
+  {"case": "own:edit/trailing-comment-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 10: expected b' # dev\\nname: web\\n', got b'\\nname: web\\n' (lengths 28 and 21)"}
+ ]}

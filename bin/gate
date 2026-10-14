@@ -1,7 +1,7 @@
 #!/bin/sh
 # The kit's own gate: its tests, the fast set through every adapter, the checks.
-# Set KIT_OUT to move the output directory (default ./out) and CARGO_TARGET_DIR to
-# keep Rust build output out of the checkout.
+# Set KIT_OUT to move the output directory (default ./out), CARGO_TARGET_DIR to keep Rust
+# build output out of the checkout and KIT_GO_BIN to do the same for Go adapter binaries.
 set -eu
 cd "$(dirname "$0")/.."
 export PYTHONDONTWRITEBYTECODE=1
@@ -17,6 +17,11 @@ echo "== adapter checks"
 for d in adapters/*/; do
   if [ -f "$d/Cargo.toml" ]; then
     (cd "$d" && cargo fmt --check && cargo clippy --release --locked --quiet -- -D warnings)
+  fi
+done
+for d in adapters/*/; do
+  if [ -f "$d/go.mod" ]; then
+    (cd "$d" && test -z "$(gofmt -l .)" && go vet ./... && go test -short ./...)
   fi
 done
 echo "== public text"

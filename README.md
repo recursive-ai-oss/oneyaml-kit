@@ -19,7 +19,8 @@ from the results.
 ## Running it
 
 Python 3.10 or newer and each adapter's own toolchain (the oneyaml-rust adapter needs
-a Rust toolchain).
+a Rust toolchain; the Go adapters, described in [adapters/gokit](adapters/gokit/README.md),
+need Go).
 
 ```sh
 bin/kit fast                      # every adapter, whole fast set, writes out/
