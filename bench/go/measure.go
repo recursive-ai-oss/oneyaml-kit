@@ -42,6 +42,9 @@ func fullConfig() Config {
 // Timing is the result of the timed runs.
 type Timing struct {
 	ItersPerSample int
+	// Chunk is how many starting states one timed call builds at once; the heap is collected
+	// between chunks, so a chunk is the longest stretch of runs that shares one cold start.
+	Chunk int
 	// SamplesNS is the per-iteration time of each sample, sorted.
 	SamplesNS []float64
 	// AllocsPerOp and BytesPerOp are what testing.B counted over all samples, for the
@@ -147,7 +150,7 @@ func timeRunner(r Runner, cfg Config) Timing {
 		n = int(math.Max(1, math.Min(float64(cfg.MaxIters), math.Round(float64(cfg.SampleTarget.Nanoseconds())/per))))
 	}
 	setBenchtime(fmt.Sprintf("%dx", n))
-	t := Timing{}
+	t := Timing{Chunk: chunk}
 	var totalN, totalAllocs, totalBytes uint64
 	for i := 0; i < cfg.Samples && panicked == nil; i++ {
 		res := testing.Benchmark(fn)
@@ -204,7 +207,14 @@ func avgRunsFor(t Timing, cfg Config) int {
 // Allocation: the bytes and calls are the average of a batch of runs, because a library that
 // keeps buffers in a pool allocates more in one cold run than in the steady state the timed
 // runs measure. For a library without pools the average is the single run.
-func memoryPass(r Runner, runs int) Memory {
+//
+// The batch is split into groups of `group` runs, each with its own starting states and a
+// collection before it, as the timed samples are. A library whose pools and caches are emptied by
+// a collection allocates a few extra times in the first run after one. testing.B spreads that
+// cost over the few runs of a sample, so a pass that spread it over all of its runs would read
+// lower on a cell with few allocations and the two would disagree for no real reason.
+func memoryPass(r Runner, runs, group int) Memory {
+	group = max(1, min(group, runs))
 	// One unmeasured run first, so that what a library keeps in pools and caches is in the
 	// state it has in the timed runs; one collection then leaves those pools usable.
 	warm := r.Prepare(1)
@@ -260,16 +270,23 @@ func memoryPass(r Runner, runs int) Memory {
 	runtime.KeepAlive(batch)
 	batch = nil
 
-	avg := r.Prepare(runs)
-	runtime.GC()
-	runtime.ReadMemStats(&before)
-	avg.Run()
-	runtime.ReadMemStats(&after)
-	runtime.KeepAlive(avg)
-	n := uint64(runs)
+	var allocBytes, mallocs, total uint64
+	for left := runs; left > 0; {
+		k := min(left, group)
+		avg := r.Prepare(k)
+		runtime.GC()
+		runtime.ReadMemStats(&before)
+		avg.Run()
+		runtime.ReadMemStats(&after)
+		runtime.KeepAlive(avg)
+		allocBytes += after.TotalAlloc - before.TotalAlloc
+		mallocs += after.Mallocs - before.Mallocs
+		total += uint64(k)
+		left -= k
+	}
 	return Memory{RetainedBytes: retained, PeakBytes: peak,
-		AllocatedBytes: (after.TotalAlloc - before.TotalAlloc + n/2) / n,
-		Allocations:    (after.Mallocs - before.Mallocs + n/2) / n}
+		AllocatedBytes: (allocBytes + total/2) / total,
+		Allocations:    (mallocs + total/2) / total}
 }
 
 // agree checks the memory pass against the allocation counts testing.B took in the timed

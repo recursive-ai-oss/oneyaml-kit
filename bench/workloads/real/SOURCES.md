@@ -20,4 +20,6 @@ project that ships one (Prometheus); `bench/tests/pins.json` pins their digests.
 one library: it was frozen from two independent YAML 1.2 parsers that agree on every
 value, and checked against PyYAML (YAML 1.1) so that no scalar whose meaning differs
 between 1.1 and 1.2 is left unexamined. `bin/bench freeze` reproduces the check.
+A third reader, the `yaml` package for JavaScript (`bench/referee-js`, YAML 1.2 core schema),
+reads every file again in the benchmark tests; a value it reads differently fails them.
 A digest of each input and expectation is pinned in `bench/tests/pins.json`.
