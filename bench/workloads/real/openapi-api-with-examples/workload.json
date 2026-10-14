@@ -1,0 +1,13 @@
+{
+ "id": "openapi-api-with-examples",
+ "description": "An OpenAPI example with embedded JSON-style flow values.",
+ "documents": 1,
+ "tier": "quick",
+ "source": {
+  "origin": "upstream",
+  "repository": "https://github.com/OAI/learn.openapis.org",
+  "revision": "82b82f372aa185a07ea11bc158619895ab21f741",
+  "path": "examples/v3.0/api-with-examples.yaml",
+  "licence": "CC-BY-4.0"
+ }
+}

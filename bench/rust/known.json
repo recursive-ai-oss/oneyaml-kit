@@ -1,0 +1,86 @@
+{
+ "format": "oneyaml-kit-bench-known/1",
+ "language": "rust",
+ "entries": [
+  {
+   "cell": "oneyaml/edit-script/compose-wordpress",
+   "status": "ok",
+   "variant": "restyled",
+   "reason": "A string such as `1.1.0` or `8080:80`, which plain style holds in YAML 1.2, is written in single quotes."
+  },
+  {
+   "cell": "oneyaml/edit-script/openapi-100k",
+   "status": "ok",
+   "variant": "restyled",
+   "reason": "A string such as `1.1.0` or `8080:80`, which plain style holds in YAML 1.2, is written in single quotes."
+  },
+  {
+   "cell": "oneyaml/edit-script/openapi-8m",
+   "status": "ok",
+   "variant": "restyled",
+   "reason": "A string such as `1.1.0` or `8080:80`, which plain style holds in YAML 1.2, is written in single quotes."
+  },
+  {
+   "cell": "oneyaml/edit-script/openapi-api-with-examples",
+   "status": "ok",
+   "variant": "restyled",
+   "reason": "A string such as `1.1.0` or `8080:80`, which plain style holds in YAML 1.2, is written in single quotes."
+  },
+  {
+   "cell": "oneyaml/edit-script/openapi-petstore",
+   "status": "ok",
+   "variant": "restyled",
+   "reason": "A string such as `1.1.0` or `8080:80`, which plain style holds in YAML 1.2, is written in single quotes."
+  },
+  {
+   "cell": "oneyaml/edit-script/reference-b",
+   "status": "differs",
+   "reason": "A block literal set to text with no final newline is rewritten as a plain scalar; the header should become `|-` and the layout stay."
+  },
+  {
+   "cell": "yaml-edit/edit-script/gha-workflow",
+   "status": "rejects",
+   "reason": "Removing a sequence item by path fails: the path segment is reported as not a container."
+  },
+  {
+   "cell": "yaml-edit/edit-script/openapi-petstore",
+   "status": "differs",
+   "reason": "Replacing the text of a block literal drops the line break that follows it, joining the next key to the text."
+  },
+  {
+   "cell": "yaml-edit/edit-script/prometheus-config",
+   "status": "differs",
+   "reason": "Replacing a double-quoted string writes it without its quotes."
+  },
+  {
+   "cell": "yaml-edit/edit-script/records-1m",
+   "status": "rejects",
+   "reason": "Edits by path need a mapping at the document root; this document is a sequence."
+  },
+  {
+   "cell": "yaml-edit/edit-script/records-4k",
+   "status": "rejects",
+   "reason": "Edits by path need a mapping at the document root; this document is a sequence."
+  },
+  {
+   "cell": "yaml-edit/edit-script/records-64k",
+   "status": "rejects",
+   "reason": "Edits by path need a mapping at the document root; this document is a sequence."
+  },
+  {
+   "cell": "yaml-edit/edit-script/records-8m",
+   "status": "rejects",
+   "reason": "Edits by path need a mapping at the document root; this document is a sequence."
+  },
+  {
+   "cell": "yaml-edit/edit-script/reference-a",
+   "status": "differs",
+   "reason": "Replacing the text of a block literal drops its final line break."
+  },
+  {
+   "cell": "yaml-edit/edit-script/reference-b",
+   "status": "differs",
+   "reason": "Replacing the text of a block literal drops its final line break and keeps the `|` header."
+  }
+ ]
+}

@@ -1,0 +1,254 @@
+"""Drives a language's harness: build it, run it under watch, survive its crashes, and
+assemble the result file.
+
+A harness is a program with a fixed command line and output (docs/benchmarks.md):
+
+    <command> run --workloads DIR --out FILE --mode quick|full
+              [--library ID]... [--task ID]... [--workload ID]... [--skip LIB/TASK/WORKLOAD]...
+    <command> once --workloads DIR --library ID --task ID --workload ID
+
+`run` writes JSON lines: one `harness` record, then for each cell a `begin` mark followed
+by a `cell` record. The mark lets this driver name the cell that killed the process.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import resource
+import shutil
+import subprocess
+import time
+from pathlib import Path
+
+from . import environment, results, workloads
+
+ROOT = Path(__file__).resolve().parents[1]
+STALL_SECONDS = {"quick": 120, "full": 1800}
+ADDRESS_SPACE_LIMIT = 24 * 1024 ** 3
+
+
+class HarnessError(Exception):
+    pass
+
+
+def discover() -> dict[str, dict]:
+    """Every language directory with a harness.json."""
+    found = {}
+    for p in sorted(ROOT.glob("*/harness.json")):
+        h = json.loads(p.read_text(encoding="utf-8"))
+        h["_dir"] = p.parent
+        found[h["language"]] = h
+    return found
+
+
+def _subst(arg: str, build_dir: Path) -> str:
+    return arg.replace("{build}", str(build_dir))
+
+
+def build(h: dict, build_dir: Path) -> None:
+    env = dict(os.environ)
+    for k, v in h.get("build_env", {}).items():
+        env[k] = _subst(v, build_dir)
+    cmd = [_subst(a, build_dir) for a in h["build"]]
+    r = subprocess.run(cmd, cwd=h["_dir"], env=env, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise HarnessError(f"building the {h['language']} harness failed:\n{r.stderr[-2000:]}")
+
+
+def command(h: dict, build_dir: Path, pin_cpu: int | None) -> list[str]:
+    cmd = [_subst(a, build_dir) for a in h["command"]]
+    if pin_cpu is not None and shutil.which("taskset"):
+        cmd = ["taskset", "-c", str(pin_cpu)] + cmd
+    return cmd
+
+
+def _limits() -> None:
+    resource.setrlimit(resource.RLIMIT_AS, (ADDRESS_SPACE_LIMIT, ADDRESS_SPACE_LIMIT))
+
+
+def parse_lines(path: Path) -> tuple[dict | None, list[dict], list[str]]:
+    """(harness record, cell records, names of begun cells) from a harness output file."""
+    harness, cells, begun = None, [], []
+    if not path.exists():
+        return harness, cells, begun
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue  # a line cut short by a crash
+        t = rec.get("type")
+        if t == "harness":
+            harness = harness or rec
+        elif t == "begin":
+            begun.append(rec["cell"])
+        elif t == "cell":
+            cells.append(rec)
+    return harness, cells, begun
+
+
+def run_harness(h: dict, build_dir: Path, workloads_dir: Path, mode: str, out_dir: Path,
+                sampler: environment.Sampler | None, pin_cpu: int | None = None,
+                libraries: list[str] = (), tasks: list[str] = (), only: list[str] = (),
+                log=print) -> tuple[dict, list[dict], int]:
+    """Runs the harness to completion, restarting past any cell that kills it.
+
+    Returns the harness record, every cell, and the number of restarts.
+    """
+    lang = h["language"]
+    harness, cells, restarts = None, [], 0
+    skip: list[str] = []
+    part = 0
+    while True:
+        out = out_dir / f"{lang}.part{part}.jsonl"
+        out.unlink(missing_ok=True)
+        cmd = command(h, build_dir, pin_cpu) + ["run", "--workloads", str(workloads_dir), "--out", str(out), "--mode", mode]
+        for kind, vals in (("--library", libraries), ("--task", tasks), ("--workload", only), ("--skip", skip)):
+            for v in vals:
+                cmd += [kind, v]
+        proc = subprocess.Popen(cmd, cwd=h["_dir"], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                                text=True, preexec_fn=_limits)
+        if sampler is not None:
+            sampler.watch(proc.pid)
+        last_size, last_change = -1, time.monotonic()
+        stalled = False
+        while proc.poll() is None:
+            time.sleep(0.25)
+            size = out.stat().st_size if out.exists() else 0
+            if size != last_size:
+                last_size, last_change = size, time.monotonic()
+            elif time.monotonic() - last_change > STALL_SECONDS[mode]:
+                proc.kill()
+                stalled = True
+        stderr = ""
+        if proc.stderr:
+            stderr = proc.stderr.read()
+            proc.stderr.close()
+        h_rec, got, begun = parse_lines(out)
+        harness = harness or h_rec
+        cells += got
+        if proc.returncode == 0 and not stalled:
+            return harness or {}, cells, restarts
+        if proc.returncode == 2 and not begun:
+            raise HarnessError(f"the {lang} harness refused to start: {stderr.strip()[-500:]}")
+        # Find the cell that was in flight.
+        done = {f"{c['library']}/{c['task']}/{c['workload']}" for c in got}
+        in_flight = [b for b in begun if b not in done]
+        why = "no output for too long" if stalled else f"the process died (exit status {proc.returncode})"
+        if not in_flight:
+            raise HarnessError(f"the {lang} harness stopped between cells: {why}\n{stderr.strip()[-500:]}")
+        name = in_flight[-1]
+        lib, task, wl = name.split("/", 2)
+        log(f"  {name}: {why}; continuing without it")
+        cells.append({"type": "cell", "library": lib, "task": task, "workload": wl, "status": "error",
+                      "detail": why, "input_bytes": None})
+        skip += list(begun)
+        skip.append(name)
+        restarts += 1
+        part += 1
+        if restarts > 50:
+            raise HarnessError("too many harness restarts")
+
+
+CALLGRIND_TOTAL = re.compile(r"Collected\s*:\s*(\d+)")
+
+
+def count_instructions(h: dict, build_dir: Path, workloads_dir: Path, cell: dict, tmp: Path) -> int | None:
+    """Instructions executed by one iteration of a cell, via callgrind restricted to the
+    measured region. None when the tool is missing or the run fails."""
+    if not shutil.which("valgrind"):
+        return None
+    region = h.get("counters", {}).get("region")
+    if not region:
+        return None
+    cmd = ["valgrind", "--tool=callgrind", f"--toggle-collect={region}", "--collect-atstart=no",
+           f"--callgrind-out-file={tmp / 'callgrind.out'}"] + command(h, build_dir, None) + [
+        "once", "--workloads", str(workloads_dir), "--library", cell["library"],
+        "--task", cell["task"], "--workload", cell["workload"]]
+    r = subprocess.run(cmd, capture_output=True, text=True, cwd=h["_dir"])
+    m = CALLGRIND_TOTAL.search(r.stderr)
+    return int(m.group(1)) if r.returncode == 0 and m else None
+
+
+def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[str, list[dict]],
+             metas: list[dict], samples: list[float], load_start: float, load_end: float,
+             seconds: float, restarts: int, expected_cells: int, pinned_cpu: int | None,
+             counters: bool) -> dict:
+    cells = []
+    for lang, recs in cells_by_lang.items():
+        roles = {l["id"]: l["role"] for l in harness_records[lang].get("libraries", [])}
+        for c in recs:
+            cell = {k: v for k, v in c.items() if k != "type"}
+            cell["language"] = lang
+            cell["role"] = roles.get(c["library"], "competitor")
+            cells.append(cell)
+    selftest = any(h.get("selftest_build") for h in harness_records.values())
+    complete = len(cells) >= expected_cells
+    pub = results.assess_publishability(mode, samples, load_start, load_end, complete, selftest)
+    env = environment.describe(environment.git_revision(ROOT), pinned_cpu)
+    return {
+        "format": results.FORMAT,
+        "run": {
+            "date": env["date"], "mode": mode, "seconds": round(seconds, 1), "restarts": restarts,
+            "counters": counters, "environment": env, "publishability": pub,
+            "load": {"before": load_start, "after": load_end},
+        },
+        "harnesses": {lang: {k: v for k, v in rec.items() if k != "type"} for lang, rec in harness_records.items()},
+        "workloads": [{k: m[k] for k in ("id", "kind", "tier", "description", "source", "documents",
+                                         "input_bytes", "input_sha256", "tasks", "notes") if k in m}
+                      for m in metas],
+        "cells": cells,
+    }
+
+
+def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries: list[str] = (),
+        tasks: list[str] = (), only: list[str] = (), pin_cpu: int | None = None,
+        counters: bool = False, build_dir: Path | None = None, log=print) -> dict:
+    """The whole pipeline up to the result dict."""
+    t0 = time.monotonic()
+    harnesses = discover()
+    langs = languages or sorted(harnesses)
+    for l in langs:
+        if l not in harnesses:
+            raise HarnessError(f"no harness for {l!r}; have {sorted(harnesses)}")
+    tiers = ("quick",) if mode == "quick" else ("quick", "full")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    log(f"preparing workloads ({', '.join(tiers)})")
+    metas = workloads.prepare(out_dir, tiers)
+    wl_dir = out_dir / "workloads"
+    build_dir = build_dir or Path(os.environ.get("CARGO_TARGET_DIR") or out_dir / "target")
+    if only:
+        metas = [m for m in metas if m["id"] in only]
+    sampler = environment.Sampler()
+    load_start = environment.loadavg()[0]
+    sampler.start()
+    records, cells_by_lang, restarts, n_libs = {}, {}, 0, 0
+    try:
+        for l in langs:
+            h = harnesses[l]
+            log(f"building the {l} harness")
+            build(h, build_dir)
+            log(f"measuring ({mode})")
+            rec, cells, r = run_harness(h, build_dir, wl_dir, mode, out_dir, sampler, pin_cpu,
+                                        libraries, tasks, only, log)
+            records[l], cells_by_lang[l], restarts = rec, cells, restarts + r
+            n_libs += len([x for x in rec.get("libraries", []) if not libraries or x["id"] in libraries])
+            if counters:
+                log("counting instructions")
+                for c in cells:
+                    if c["status"] == "ok" and (c.get("input_bytes") or 0) <= 200_000:
+                        c["instructions"] = count_instructions(h, build_dir, wl_dir, c, out_dir)
+    finally:
+        samples = sampler.stop()
+    load_end = environment.loadavg()[0]
+    wanted = sum(len([t for t in m["tasks"] if not tasks or t in tasks]) for m in metas) * max(n_libs, 1)
+    return assemble(mode, records, cells_by_lang, metas, samples, load_start, load_end,
+                    time.monotonic() - t0, restarts, wanted, pin_cpu, counters)
+
+
+def write(result: dict, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(result, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")

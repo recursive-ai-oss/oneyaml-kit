@@ -1,0 +1,13 @@
+{
+ "id": "gha-workflow",
+ "description": "GitHub Actions workflow: matrix, many steps, `with` maps, containers and services.",
+ "documents": 1,
+ "tier": "quick",
+ "source": {
+  "origin": "upstream",
+  "repository": "https://github.com/actions/checkout",
+  "revision": "f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a",
+  "path": ".github/workflows/test.yml",
+  "licence": "MIT"
+ }
+}

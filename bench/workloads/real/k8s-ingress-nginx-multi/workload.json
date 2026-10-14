@@ -1,0 +1,13 @@
+{
+ "id": "k8s-ingress-nginx-multi",
+ "description": "A multi-document Kubernetes install manifest (19 documents).",
+ "documents": 19,
+ "tier": "quick",
+ "source": {
+  "origin": "upstream",
+  "repository": "https://github.com/kubernetes/ingress-nginx",
+  "revision": "dbb11b92ddb77bee9c35e462479129354c84f939",
+  "path": "deploy/static/provider/cloud/deploy.yaml",
+  "licence": "Apache-2.0"
+ }
+}

@@ -1,0 +1,31 @@
+[package]
+name = "oneyaml-bench-rust"
+description = "In-process benchmark harness for Rust YAML libraries (wall-clock, memory, counters)."
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "oneyaml-bench-rust"
+path = "src/main.rs"
+
+[dependencies]
+# Every library under measurement is pinned to an exact release; moving a pin is a
+# deliberate change and shows up in the results (each result records the versions).
+oneyaml = { version = "=1.1.0", default-features = false }
+serde_yaml_ng = "=0.10.0"
+saphyr = "=0.2.1"
+saphyr-parser = "=0.2.1"
+yaml-edit = "=0.3.2"
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"
+
+[profile.release]
+opt-level = 3
+debug = false
+lto = "thin"
+codegen-units = 1
+
+[features]
+# Adds the control libraries the harness's own tests use. Never enabled for a measurement.
+selftest = []
