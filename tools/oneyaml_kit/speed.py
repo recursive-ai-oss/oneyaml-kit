@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import statistics
+import threading
 import time
 
 # Seconds the probe takes on the reference machine. It is a little above what a fast desktop
@@ -27,6 +28,10 @@ STEPS = (1, 2, 4, 8)
 FRESH_SECONDS = 3.0
 
 _cache: tuple[float, float] | None = None
+# One thread measures when the cache has expired and the others reuse the result. Probes taken at
+# the same moment share the interpreter lock, so each would measure a longer time than the machine
+# needs and stretch the bound for everyone.
+_lock = threading.Lock()
 
 
 def probe() -> float:
@@ -68,7 +73,8 @@ def time_scale() -> float:
     f = fixed()
     if f is not None:
         return f
-    now = time.monotonic()
-    if _cache is None or now - _cache[0] > FRESH_SECONDS:
-        _cache = (now, factor_for(probe()))
-    return _cache[1]
+    with _lock:
+        now = time.monotonic()
+        if _cache is None or now - _cache[0] > FRESH_SECONDS:
+            _cache = (now, factor_for(probe()))
+        return _cache[1]

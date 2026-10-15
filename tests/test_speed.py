@@ -46,6 +46,27 @@ class Factor(unittest.TestCase):
                     self.assertEqual(speed.time_scale(), 4.0)
                     self.assertEqual(p.call_count, 1)
 
+    def test_runs_that_need_the_factor_together_measure_it_once(self):
+        # Probes that overlap share the interpreter lock and each measure too long, which would
+        # stretch the bound for every run; one thread must measure and the rest reuse it.
+        import threading
+        import time as _t
+        calls = []
+
+        def slow_probe():
+            calls.append(1)
+            _t.sleep(0.2)
+            return speed.REFERENCE_SECONDS
+        env = {k: v for k, v in os.environ.items() if k != "KIT_TIME_SCALE"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            with mock.patch.object(speed, "_cache", None), mock.patch.object(speed, "probe", slow_probe):
+                got = []
+                ts = [threading.Thread(target=lambda: got.append(speed.time_scale())) for _ in range(4)]
+                [t.start() for t in ts]
+                [t.join() for t in ts]
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(got, [1.0] * 4)
+
     def test_the_real_probe_is_a_plain_positive_time(self):
         self.assertGreater(speed.probe(), 0)
 
