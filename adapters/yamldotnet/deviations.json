@@ -1784,14 +1784,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: no answer within 10 s"
+   "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: it needs about 64 MB of growth and about 10 s, so it is stopped by whichever bound it reaches first (in a session of its own: memory growth passed the 64 MB bound at 9.7 s; after other cases: no answer within 10 s)"
   },
   {
    "case": "own:safety/deep-flow-mappings-999999",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: no answer within 10 s"
+   "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: it needs about 64 MB of growth and about 10 s, so it is stopped by whichever bound it reaches first (in a session of its own: memory growth passed the 64 MB bound at 9.7 s; after other cases: no answer within 10 s)"
   }
  ]
 }

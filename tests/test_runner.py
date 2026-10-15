@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import support  # noqa: F401
 from oneyaml_kit import runner as R
@@ -111,10 +112,64 @@ class Subprocess(unittest.TestCase):
     def test_a_fresh_session_that_cannot_start_fails_that_case_only(self):
         a = self.adapter({})
         h = a.start()
+        caps = set(h["capabilities"])
+        # Answers something that is not a hello.
         a.command = [sys.executable, "-c", "print('not a hello')"]
-        res = R.execute(a, set(h["capabilities"]), [self.bounded(cid="first"), mk("a")])
+        res = R.execute(a, caps, [self.bounded(cid="first"), mk("a")])
         self.assertEqual((res[0]["loose"], res[1]["loose"]), ("fail", "pass"))
         self.assertIn("did not start", res[0]["detail"])
+        # Dies before it reads the hello: writing the hello fails. Run it for real a few times,
+        # because whether the write or the read notices first is a race, and once on purpose.
+        for cmd in (["/bin/true"], ["/bin/sh", "-c", "exec 0<&- 1>&-"]):
+            a.command = cmd
+            for _ in range(10):
+                res = R.execute(a, caps, [self.bounded(cid="first"), mk("a")])
+                self.assertEqual((res[0]["loose"], res[1]["loose"]), ("fail", "pass"), cmd)
+                self.assertIn("did not start", res[0]["detail"])
+        a.command = [sys.executable, FAKE]
+        real_send = SubprocessAdapter._send
+
+        def broken_pipe_on_hello(self_, obj):
+            if obj.get("type") == "hello":
+                raise BrokenPipeError(32, "Broken pipe")
+            return real_send(self_, obj)
+
+        with mock.patch.object(SubprocessAdapter, "_send", broken_pipe_on_hello):
+            res = R.execute(a, caps, [self.bounded(cid="first"), mk("a")])
+        self.assertEqual((res[0]["loose"], res[1]["loose"]), ("fail", "pass"))
+        self.assertIn("did not start", res[0]["detail"])
+        # The process cannot be launched at all (a failing pre-exec step raises SubprocessError).
+        with mock.patch.object(P.subprocess, "Popen", side_effect=P.subprocess.SubprocessError("preexec")):
+            res = R.execute(a, caps, [self.bounded(cid="first"), mk("a")])
+        self.assertEqual((res[0]["loose"], res[1]["loose"]), ("fail", "pass"))
+        self.assertIn("did not start", res[0]["detail"])
+
+    def test_a_fresh_session_answers_a_trivial_request_before_the_case(self):
+        pidlog = self.t / "pids"
+        a = self.adapter({})
+        a.env["FAKE_PIDLOG"] = str(pidlog)
+        h = a.start()
+        R.execute(a, set(h["capabilities"]), [self.bounded(cid="first")])
+        rows = [line.split() for line in pidlog.read_text().splitlines()]
+        self.assertEqual([r[0] for r in rows], ["warm-up", "first"])
+        self.assertEqual(rows[0][1], rows[1][1])  # the same process serves both
+
+    @unittest.skipUnless(os.path.exists("/proc/self/clear_refs"), "needs Linux /proc")
+    def test_first_use_cost_is_not_counted_against_a_bounded_case(self):
+        # The adapter fills its pool on the first request of that kind. Done by the trivial
+        # request, the case itself shows no growth; done by the case, it would show 200 MB.
+        a = self.adapter({"warm-up": "pool", "first": "pool"}, timeout=30)
+        h = a.start()
+        res = R.execute(a, set(h["capabilities"]), [self.bounded(seconds=20, mb=50, cid="first")])
+        self.assertEqual(res[0]["loose"], "pass")
+        self.assertLess(res[0]["measured"]["peak_mb"], 50)
+
+    def test_a_fresh_session_that_dies_on_the_trivial_request_fails_that_case_only(self):
+        a = self.adapter({"warm-up": "crash"})
+        h = a.start()
+        res = R.execute(a, set(h["capabilities"]), [self.bounded(cid="first"), mk("a")])
+        self.assertEqual((res[0]["loose"], res[1]["loose"]), ("fail", "pass"))
+        self.assertIn("warm-up", res[0]["detail"])
 
     def test_a_case_states_its_own_time_bound_whatever_the_manifest_says(self):
         a = self.adapter({"b": "hang"}, timeout=30)  # the manifest would wait half a minute
@@ -184,7 +239,7 @@ class Subprocess(unittest.TestCase):
         h = a.start()
         res = R.execute(a, set(h["capabilities"]), [self.bounded(seconds=20, mb=50)])
         self.assertEqual(res[0]["loose"], "fail")
-        _, pid, session = pidlog.read_text().split()
+        _, pid, session = pidlog.read_text().splitlines()[-1].split()
         self.assertNotEqual(int(session), a.proc.pid)  # not the shared session
         self.assertEqual(P.tree_pids(int(session)), [])
 
