@@ -36,7 +36,7 @@ class DotnetAdapters(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cases = C.load_all()
-        cls.res = {n: run_adapter(n, cases, complete=True) for n in NAMES}
+        cls.res = support.run_adapters(NAMES, cases, workers=3, slowest=("yaml2jsonnode",))
         cls.by_id = {n: {r["id"]: r for r in cls.res[n]["cases"]} for n in NAMES}
 
     def test_results_are_well_formed_and_every_deviation_list_holds(self):

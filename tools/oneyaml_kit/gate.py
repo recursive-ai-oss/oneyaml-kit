@@ -46,6 +46,10 @@ BENCH_DEPENDS_ON = ("tools/",)
 # The adapter test module of each language.
 LANG_TESTS = {"rust": "test_adapter_oneyaml_rust.py", "go": "test_adapters_go.py",
               "csharp": "test_adapter_dotnet.py"}
+# Checks every project given (the .NET SDK is $0) at the same time and fails if any of them does.
+DOTNET_FORMAT_ALL = (
+    'pids=; for p in "$@"; do "$0" format whitespace "$p" --verify-no-changes & pids="$pids $!"; done; '
+    'rc=0; for pid in $pids; do wait "$pid" || rc=1; done; exit $rc')
 GO_CHECK = ["sh", "-c", 'test -z "$(gofmt -l .)" && go vet ./... && go test -short ./...']
 REFERENCE = "rust"  # the quick adapter that stands in for the rest on a core change
 # The benchmark harness languages. Each has an area of its own, `bench-<language>`.
@@ -352,6 +356,7 @@ def _all_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[S
                 for n in sel_names:
                     steps.append(Step(area, f"{n}: kit run", [py(), "bin/kit", "fast", "--adapter", n,
                                                               "--out", str(out / "gate" / n)]))
+            projects: list[str] = []
             for n in sel_names:
                 d = f"adapters/{n}"
                 if area == "rust":
@@ -361,10 +366,11 @@ def _all_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[S
                 elif area == "go":
                     steps.append(Step(area, f"{n}: gofmt, vet, test", GO_CHECK, d))
                 elif area == "csharp":
-                    for proj in sorted((ads[n]["dir"]).glob("*.csproj")):
-                        steps.append(Step(area, f"{n}: format",
-                                          [dotnet, "format", "whitespace", f"{d}/{proj.name}",
-                                           "--verify-no-changes"]))
+                    projects += [f"{d}/{proj.name}" for proj in sorted((ads[n]["dir"]).glob("*.csproj"))]
+            if projects:
+                # One step for all projects, checked side by side: each check is mostly the start-up
+                # of the SDK, so five in a row cost five times what the slowest does.
+                steps.append(Step(area, "dotnet format", ["sh", "-c", DOTNET_FORMAT_ALL, dotnet, *projects]))
             # Shared Go code has its own tests and is not an adapter.
             if area == "go" and only is None and (root / "adapters" / "gokit" / "go.mod").is_file():
                 steps.append(Step(area, "gokit: gofmt, vet, test", GO_CHECK, "adapters/gokit"))
