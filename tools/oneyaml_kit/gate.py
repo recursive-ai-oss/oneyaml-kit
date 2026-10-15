@@ -225,6 +225,11 @@ def select_areas(files: list[str], root: Path, full: bool) -> tuple[list[str], d
         areas.add(REFERENCE)
         touched[REFERENCE] = None
         why += f"; kit code or cases changed, so the reference adapter ({REFERENCE}) runs too"
+    # The oneyaml-csharp adapter shares its linked-build mechanics with the C# harness, and the harness's
+    # tests build both, so a change to that adapter runs them.
+    if "oneyaml-csharp" in (touched.get("csharp") or ()):
+        areas.add("bench-csharp")
+        why += "; the oneyaml-csharp adapter changed, so the C# harness's linked builds run"
     if driver and BENCH_REFERENCE in BENCH_LANGS:
         areas.add(f"bench-{BENCH_REFERENCE}")
         why += f"; the benchmark driver changed, so the {BENCH_REFERENCE} harness runs a smoke test"
@@ -306,6 +311,10 @@ def bench_lang_steps(area: str, root: Path, out: Path, target: str, dotnet: str)
         # The harness's files are checked without an SDK; the class that builds it is the pipeline test.
         Step(area, "benchmark .NET harness files",
              [py(), "-m", "unittest", "-q", "test_csharp.Files"], "bench/tests", tier="hand-over"),
+        # The linked builds (the harness and the oneyaml-csharp adapter against an empty stand-in
+        # library) take seconds; a project change that breaks them is found here, not in CI.
+        Step(area, "benchmark .NET linked builds",
+             [py(), "-m", "unittest", "-q", "test_csharp.LinkedBuildStandIns"], "bench/tests", tier="hand-over"),
         smoke, pipe,
     ]
 

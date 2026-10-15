@@ -490,6 +490,12 @@ class LinkedLockCheck(unittest.TestCase):
         self.assertIn('-p:OneYamlSrc="$src"', adapter)
 
 
+# The stand-ins hold no library code, so the sources that call the library are left out of these builds
+# (the csproj files read this variable). The project reference, its restore and the lock check stay, and
+# those are what the tests are about. This also means a change to the library's API never breaks them.
+STAND_IN_ENV = {"KIT_LINK_WITHOUT_LIBRARY_SOURCES": "1"}
+
+
 @unittest.skipUnless(DOTNET, "the .NET SDK is not available (set DOTNET)")
 class LinkedBuildStandIns(unittest.TestCase):
     """Stand-in libraries, in a folder whose name contains a space, through the real build script."""
@@ -515,7 +521,7 @@ class LinkedBuildStandIns(unittest.TestCase):
         cls._tmp.cleanup()
 
     def build(self, name):
-        e = dict(os.environ, KIT_ONEYAML_CSHARP_SRC=str(self.root / name), DOTNET=DOTNET)
+        e = dict(os.environ, KIT_ONEYAML_CSHARP_SRC=str(self.root / name), DOTNET=DOTNET, **STAND_IN_ENV)
         e.pop("KIT_DOTNET_ARTIFACTS", None)
         return subprocess.run(["sh", str(CSHARP / "build.sh"), str(self.root / ("out " + name))], env=e,
                               capture_output=True, text=True, timeout=250)
@@ -535,7 +541,7 @@ class LinkedBuildStandIns(unittest.TestCase):
 
     def test_the_adapter_build_accepts_a_checkout_and_output_under_paths_with_spaces(self):
         e = dict(os.environ, KIT_ONEYAML_CSHARP_SRC=str(self.root / "ordinary"), DOTNET=DOTNET,
-                 KIT_DOTNET_ARTIFACTS=str(self.root / "adapter out"))
+                 KIT_DOTNET_ARTIFACTS=str(self.root / "adapter out"), **STAND_IN_ENV)
         script = run.ROOT.parent / "adapters" / "oneyaml-csharp" / "build.sh"
         r = subprocess.run(["sh", str(script)], env=e, capture_output=True, text=True, timeout=250)
         self.assertEqual(r.returncode, 0, r.stdout[-1500:] + r.stderr[-800:])
