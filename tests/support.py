@@ -16,6 +16,29 @@ if os.environ.get("KIT_ADAPTER_TESTS") != "1":
 from oneyaml_kit.cases import b64  # noqa: E402
 
 
+def run_adapters(names, cases, workers=1, slowest=()):
+    """Build each adapter one after the other, then run them side by side: name -> result.
+
+    The builds share a language's output folder and its restore cache, so they never overlap. A run
+    only talks to a process of its own (every bounded case starts a fresh one), so the runs do not
+    depend on each other, and the slowest adapter sets the time instead of the sum of all of them.
+    The speed probe behind the time bounds sees the extra load and stretches the bounds, never
+    shrinks them; the memory bounds are measured per process and are not affected. Bounded cases
+    can each grow a process by up to a gigabyte, and adapters reach them at the same point of the
+    run, so `workers` is kept small to stay inside the memory the gate is given. The adapters named in
+    `slowest` start first, so the longest run does not begin after the others have filled the workers.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    from oneyaml_kit import runner
+    for n in names:
+        runner.build(runner.load_manifest(n), dict(os.environ))
+    with ThreadPoolExecutor(max_workers=max(1, min(workers, len(names)))) as ex:
+        order = [n for n in slowest if n in names] + [n for n in names if n not in slowest]
+        futures = {n: ex.submit(runner.run_adapter, n, cases, complete=True, skip_build=True) for n in order}
+        return {n: futures[n].result() for n in names}
+
+
 def _quote(s):
     """A double-quoted scalar that reads back as `s` under every reading the kit applies: printable
     characters are written as they are, the rest as escapes."""
