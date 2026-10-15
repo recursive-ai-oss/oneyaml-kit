@@ -153,6 +153,10 @@ A position is a 1-based `line` and `column`.
   flow collection or quote), no character is at fault and the position is the end of
   the input: the point just after the last character. After a final line break that
   is column 1 of the following line.
+- When the input is not validly encoded, the position is that of the first byte of
+  the ill-formed sequence; its column counts the characters decoded before it, plus
+  one. A sequence that is merely incomplete at that byte is not counted as a
+  character.
 
 ## Expectations
 

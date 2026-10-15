@@ -625,5 +625,8 @@
   {"case": "own:edit/set-value-of-explicit-null-key-at-end-of-large-mapping", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rewrites the document and writes the explicit null key as the empty string '' with the comment dropped, so the key is no longer null: first difference at byte 600"},
   {"case": "own:edit/set-value-of-explicit-null-key-at-end-of-large-mapping", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rewrites the document and writes the explicit null key as the empty string '' with the comment dropped, so the key is no longer null: first difference at byte 600"},
   {"case": "own:edit/refuse-ambiguous-empty-token", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The patch was applied; the case expects it to be refused."},
-  {"case": "own:edit/refuse-ambiguous-empty-token", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The patch was applied; the case expects it to be refused."}
+  {"case": "own:edit/refuse-ambiguous-empty-token", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The patch was applied; the case expects it to be refused."},
+  {"case": "own:parse/invalid-utf8-after-c1-in-quoted-scalar", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error position differs: expected 1:6, no position reported for the malformed bytes"},
+  {"case": "own:parse/invalid-utf8-after-del-in-quoted-scalar", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error position differs: expected 1:6, no position reported for the malformed bytes"},
+  {"case": "own:parse/invalid-utf8-after-noncharacter-in-double-quoted-scalar", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error position differs: expected 1:5, no position reported for the malformed bytes"}
 ]}
