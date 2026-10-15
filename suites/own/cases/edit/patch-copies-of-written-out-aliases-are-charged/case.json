@@ -1,0 +1,232 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/patch-copies-of-written-out-aliases-are-charged",
+ "title": "Forty copies of a value whose aliases are written out must be refused with a limit error, with the written-out bytes charged",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "101",
+  "104",
+  "137"
+ ],
+ "refs": [
+  "RFC 6902 section 4.5",
+  "YAML 1.2.2 section 7.1",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "The destination, the first item of the first member, comes before every anchor, so each copy of the last value must write its aliases out as the scalars they stand for. That value is four levels of ten aliases of a scalar of three thousand bytes: thirty megabytes and about eleven thousand nodes per copy, from an input of about three kilobytes. Every copy is valid on its own (RFC 6902 allows it), and the alias text copied is tiny, so a library that charges only the alias text to its budget lets the copies pile up. The family rule is that copied bytes, aliases written out included, are charged to the alias-expansion byte budget, so the patch fails with a limit error within a few copies and changes nothing. A library that does not charge the written-out bytes grows past the memory bound of the case.",
+ "provenance": {
+  "reference": "A patch engine that wrote aliases out when copying them ahead of their anchors but charged only the alias text, not the bytes written, to its budget, so repeated copies grew the document without a limit error."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   },
+   {
+    "op": "copy",
+    "from": "/e",
+    "path": "/s/0"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "error": "limit"
+ }
+}
