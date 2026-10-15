@@ -160,7 +160,7 @@ A position is a 1-based `line` and `column`.
 |---|---|---|
 | `events` | `file` (event lines) or `recipe` (see *Generated inputs*) | no error, and the event lines are equal |
 | `value` | `value` (list of documents) or `file` (JSON) | no error, and the documents are equal |
-| `bytes` | `file` | no error, and every output byte is equal |
+| `bytes` | `file` or `recipe` (see *Generated inputs*) | no error, and every output byte is equal |
 | `error` | `category`, `line`, `column`, `events_file`, `unchanged` | an error is reported (see below) |
 | `bounded` | `time_seconds`, `memory_mb`, `accept`, `error`, `unchanged` | see below |
 | `readback` | none (`dump` operations only) | the written text reads back as the value, see *Written values* |
@@ -363,17 +363,31 @@ A recipe has at most 64 parts and builds at most 64 MiB; the size is worked out 
 before a byte is built, so a recipe that is too large is refused when the case loads. The parts
 are written one after another; counts and repeats are integers of 0 or more.
 
-An expected event list may use a recipe in the same way (`{"kind": "events", "recipe": [...]}`,
-also inside `accept`), for a result that is as large as the input. The recipe builds the text of
-an events file, lines ending in `\n`.
+An expected result may use a recipe in the same way, for a result that is as large as the input
+or larger: `{"kind": "events", "recipe": [...]}` builds the text of an events file, lines ending
+in `\n`, and `{"kind": "bytes", "recipe": [...]}` builds the exact bytes a patch must produce.
+Both also work inside `accept`. A result has a file or a recipe, never both, and the same limits
+and parts apply as for an input; the error messages call it `recipe`. A patch whose output is
+larger than a stored file may be (1 MB) is expressed this way. For example, an output of one
+key, a value and a flow sequence of four thousand copies of that value:
+
+```json
+"accept": {"kind": "bytes", "recipe": [
+  {"text": "a: 1\nv: <value>\nf: ["},
+  {"text": "<value>, ", "repeat": 3999},
+  {"text": "<value>]\n"}
+]}
+```
 
 The runner sends a generated input like a stored one: the bytes, base64, in the request. Nothing
 is written to disk. `tests/pins.json` pins the size and the SHA-256 of every generated input
-(`generated_inputs`), besides the digest of the case directory that holds the recipe, so a
-change to the recipe, or to what a recipe builds, fails the kit's tests until the pins are
-regenerated and the diff is checked.
+(`generated_inputs`) and of every expected result built from a recipe (`generated_results`),
+besides the digest of the case directory that holds the recipe, so a change to a recipe, or to
+what a recipe builds, fails the kit's tests until the pins are regenerated and the diff is
+checked.
 
-The large generated cases carry the tag `slow`. A run leaves them out, without building their
+The large generated cases carry the tag `slow`: a case whose input, or whose expected result,
+is larger than 1 MB must. A run leaves them out, without building their
 inputs or expected results, unless `--slow` is given or the environment variable `KIT_SLOW` is
 set (to anything but empty or `0`). The full gate sets it, so the large cases run there and not in
 the hand-over tier. A run without them skips deviation entries that name them instead of calling

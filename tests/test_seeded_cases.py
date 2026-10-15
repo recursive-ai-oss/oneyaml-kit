@@ -55,6 +55,13 @@ class Safety(unittest.TestCase):
             if len(c.input) > 1_000_000:
                 self.assertIn("slow", c.tags, c.id)
 
+    def test_every_large_generated_result_is_slow(self):
+        # The same for an expected result a recipe builds: it is megabytes to build and to compare.
+        for c in ALL:
+            acc = c.expect.get("accept") if c.expect["kind"] == "bounded" else c.expect
+            if acc and acc["kind"] == "bytes" and len(acc["bytes"]) > 1_000_000:
+                self.assertIn("slow", c.tags, c.id)
+
 
 class Provenance(unittest.TestCase):
     def test_fuzz_cases_point_at_their_regression_file(self):
