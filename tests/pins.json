@@ -474,6 +474,8 @@
    "safety/deep-flow-sequences-100000-value": "23a45de7c68270e2bb5fd7a05bccab9a678b03e112c8c75086b991112d63ce4a",
    "safety/deep-indented-mappings-600": "f00a831cff266da52505d6b3f8b0012fc03aaa2dcea069f7912e2bcf747453b1",
    "safety/deeply-nested-flow-sequences": "1099f73774b234e1af45b428dced8c1680415af5627bcd0a1332c6a74adc1de7",
+   "safety/early-error-in-first-line-then-64-mebibytes": "71689e2889a76250d06b04dfae785d96957d50db457a664eb060a685fcfeb6c7",
+   "safety/early-error-open-brackets-64-mebibytes": "0925b8aeb90067038f569dd2478ed91da371a3cadb8341301ca436d0b0fb603b",
    "safety/implicit-key-window-rescan": "637281ec42ef9fe7c9e3f92c9a270140489ec89bfac6cf16ad2506966e21902b",
    "safety/integer-of-4300-digits-is-exact-or-refused": "b432a70a34470bb909640ccc340ac56aa7ee5f74fd569de9ec2cc162dd9b0f2b",
    "safety/invalid-utf-8-byte": "d1f288d229ee85d8dd0bd15a272e3769358e8174b3e47b350077ca9b8588d461",
@@ -558,6 +560,14 @@
    "schema/unresolved-tag-is-kept": "184bfc2ec2a1fe67dfdae3a475802134a4a6c61af87909c5fcc81646c9e1e2d0"
   },
   "generated_inputs": {
+   "safety/early-error-in-first-line-then-64-mebibytes": {
+    "bytes": 67108862,
+    "sha256": "e80d1c26459bbb67219e893e1881bb5ed1d2d26d947c2ac16cfa82fbcf31c89d"
+   },
+   "safety/early-error-open-brackets-64-mebibytes": {
+    "bytes": 67108864,
+    "sha256": "be94544d3a566d7a31d57ac42feb5093d192bdd42e98297314426112194b2e7a"
+   },
    "safety/implicit-key-window-rescan": {
     "bytes": 24002201,
     "sha256": "7caa99ebf42e730a4e32eac92ac555861956acc96e696c39574ce46e3e8009d8"

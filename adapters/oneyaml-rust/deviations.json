@@ -812,6 +812,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Error position differs: expected 1:5, no position reported for the malformed bytes"
+  },
+  {
+   "case": "own:safety/early-error-in-first-line-then-64-mebibytes",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
+  },
+  {
+   "case": "own:safety/early-error-in-first-line-then-64-mebibytes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
   }
 ]
 }

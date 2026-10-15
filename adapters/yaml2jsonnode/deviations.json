@@ -800,6 +800,20 @@
    "reason": "The process died with a stack overflow"
   },
   {
+   "case": "own:safety/early-error-open-brackets-64-mebibytes",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "adapter exited (code -6)"
+  },
+  {
+   "case": "own:safety/early-error-open-brackets-64-mebibytes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "adapter exited (code -6)"
+  },
+  {
    "case": "own:schema/core-float-forms",
    "expectation": "primary",
    "mode": "loose",

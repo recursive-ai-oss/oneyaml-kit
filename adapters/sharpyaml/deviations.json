@@ -457,6 +457,13 @@
    "reason": "The error carries no distinct type for this class, so it is reported as other instead of limit"
   },
   {
+   "case": "own:safety/early-error-open-brackets-64-mebibytes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected one of limit, syntax, got other"
+  },
+  {
    "case": "own:schema/core-infinity-and-nan-spellings",
    "expectation": "primary",
    "mode": "loose",
