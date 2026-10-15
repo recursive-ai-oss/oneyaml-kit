@@ -1,0 +1,56 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/duplicate-key-float-with-borrowed-exponent-of-a-million-digits",
+ "title": "Float keys that are equal only after the mantissa's point is moved into an exponent of a million digits are duplicates or a limit error",
+ "category": "schema",
+ "origin": "bug",
+ "productions": [
+  "187",
+  "189"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.1.1",
+  "YAML 1.2.2 section 3.2.1.3",
+  "YAML 1.2.2 section 10.2.1.4",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention",
+  "slow"
+ ],
+ "notes": "Both keys are explicit (`?`), because an implicit key is limited to 1,024 characters (section 7.4.2, production 154). The first key is `0.01e-1` followed by 999,999 zeros: 0.01 times ten to the power of minus ten to the 999,999. The second is `1e-1`, 999,998 zeros and a `2`: one times ten to the power of minus (ten to the 999,999 plus 2). Moving the point two places in the first mantissa lowers its exponent by 2, which carries through a million digits, and both stand for exactly the same value, so by the kit's rule (docs/edit-semantics.md, Refusals: equal exact decimal values are the same key) the mapping holds a duplicate key (YAML 1.2.2 section 3.2.1.1). A library that cannot hold the keys exactly may refuse the document with a `limit` error. It must not accept it as two keys, and a library that compares the exponents digit by digit, or rounds them alike, ends in one of the two errors. The exponent arithmetic is the point of the case: a key identity that does not carry the adjustment into the exponent calls the keys different, and one that parses the exponent as a number takes quadratic time, hence the time bound. The tag `convention` marks the exact-value rule; the input is about 2 MB, built from the recipe in case.json, hence `slow`.",
+ "provenance": {
+  "reference": "A float key identity that adjusted the exponent for the point of the mantissa without carrying, so equal keys with a long exponent were not found equal."
+ },
+ "input_recipe": [
+  {
+   "text": "? 0.01e-1"
+  },
+  {
+   "text": "0",
+   "repeat": 999999
+  },
+  {
+   "text": "\n: a\n? 1e-1"
+  },
+  {
+   "text": "0",
+   "repeat": 999998
+  },
+  {
+   "text": "2\n: b\n"
+  }
+ ],
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "error": [
+   "duplicate-key",
+   "limit"
+  ]
+ }
+}

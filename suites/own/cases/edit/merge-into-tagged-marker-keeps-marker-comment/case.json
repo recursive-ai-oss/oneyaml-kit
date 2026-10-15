@@ -1,0 +1,36 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/merge-into-tagged-marker-keeps-marker-comment",
+ "title": "A merge patch on an empty document with a tagged start marker keeps the comment on the marker line",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "203",
+  "207",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 9.1.4",
+  "YAML 1.2.2 section 6.6",
+  "RFC 7396 section 2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The document has a start marker, the tag `!!null` and a comment, and no content: its root is the empty node, which the tag resolves to null (a tag such as `!!seq` on an empty node is not used, because an empty node is a scalar and the tag would not fit it). A merge patch on a root that is not a mapping treats the root as an empty mapping (RFC 7396 section 2), so the result is the mapping of the patch. The tag stays only when reading the new value back under it gives that value (docs/edit-semantics.md): a mapping is not null, so the tag goes; the comment is on the marker line, outside the node, and stays (docs/edit-semantics.md, Comments). The mapping is written after the marker line as in edit/replace-empty-document-keeps-marker-comment; the specification also allows a flow mapping on the marker line, so the placement is a convention.",
+ "provenance": {
+  "reference": "A merge that moved the comment of a tagged start marker, or left a blank line after it, when the empty root became a mapping."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": {
+   "a": 1
+  },
+  "format": "merge-patch"
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -1,0 +1,82 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/float-keys-with-million-digit-exponents",
+ "title": "Two float keys whose exponents have a million digits are two keys or a limit error, in bounded time",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "187",
+  "189"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.1.1",
+  "YAML 1.2.2 section 3.2.1.3",
+  "YAML 1.2.2 section 10.2.1.4",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention",
+  "slow"
+ ],
+ "notes": "The input is a mapping with the explicit keys `1e` and a million sevens, `2e` and the same million sevens (explicit, because an implicit key is limited to 1,024 characters, section 7.4.2 / production 154), and the plain key `k`. Both keys match the Core float expression (section 10.2.1.4). They stand for 1 and 2 times ten to the power of a number with a million digits, two different values, so by the kit's rule for floats outside the range of a double (docs/edit-semantics.md, Refusals) they are two keys; a library that does not hold such a value may refuse the document with a `limit` error; it must not call them duplicates. What the case bounds is the cost of deciding that: comparing the two keys by exact value must not work through the exponent more than a constant number of times per key (parsing a million digits into a big integer digit by digit is quadratic work), and the cost of one comparison must stay far below the quadratic bound. The case is a patch with a small pointer because the kit has no value for such a float and a pointer cannot hold a million digits; the edit replaces `k` and nothing else. The tag `convention` marks the exact-value rule; the input is about 2 MB and built from the recipe in case.json (docs/case-format.md), hence `slow`.",
+ "provenance": {
+  "reference": "A key identity that parsed the exponent of every float key as a big number, so two keys with a million-digit exponent took tens of seconds."
+ },
+ "input_recipe": [
+  {
+   "text": "? 1e"
+  },
+  {
+   "text": "7",
+   "repeat": 1000000
+  },
+  {
+   "text": "\n: a\n? 2e"
+  },
+  {
+   "text": "7",
+   "repeat": 1000000
+  },
+  {
+   "text": "\n: b\nk: old\n"
+  }
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/k",
+    "value": "new"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "bytes",
+   "recipe": [
+    {
+     "text": "? 1e"
+    },
+    {
+     "text": "7",
+     "repeat": 1000000
+    },
+    {
+     "text": "\n: a\n? 2e"
+    },
+    {
+     "text": "7",
+     "repeat": 1000000
+    },
+    {
+     "text": "\n: b\nk: new\n"
+    }
+   ]
+  }
+ }
+}

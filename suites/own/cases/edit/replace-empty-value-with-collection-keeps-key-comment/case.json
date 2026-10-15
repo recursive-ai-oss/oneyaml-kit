@@ -1,0 +1,43 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-empty-value-with-collection-keeps-key-comment",
+ "title": "A comment after a key with no value stays on the key's line when the value becomes a block collection",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "187",
+  "193",
+  "194"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.6",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "`a:` has no value, so it reads as null, and `# c` is a comment on its line (section 6.6). Replacing the null with a mapping holding a sequence writes the new collection below the key. The comment is outside the value and edits do not touch comments outside the value (docs/edit-semantics.md, Comments), so it stays after `a:`. The specification allows flow collections as well, and no sibling gives a layout to copy, so the layout rests on the kit's rule for a new nested block collection: the mapping is indented by the document's block indentation step, two spaces when no nested mapping gives another, and the sequence under `k` by the same step again. Tag `convention`.",
+ "provenance": {
+  "reference": "A patch engine that moved the comment of a key with no value below the new collection, or dropped it."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": {
+     "k": [
+      1,
+      2
+     ]
+    }
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -868,6 +868,34 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
+  },
+  {
+   "case": "own:edit/remove-last-entry-after-literal-with-blank-indented-line",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library refused the patch: 'the edit at top.key2 would not read back as the edited tree'"
+  },
+  {
+   "case": "own:edit/remove-last-entry-after-literal-with-blank-indented-line",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library refused the patch: 'the edit at top.key2 would not read back as the edited tree'"
+  },
+  {
+   "case": "own:safety/float-keys-with-million-digit-exponents",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected one of limit, got duplicate-key"
+  },
+  {
+   "case": "own:safety/flow-mapping-of-16000-float-keys-beyond-the-double-range",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected one of limit, got duplicate-key"
   }
 ]
 }

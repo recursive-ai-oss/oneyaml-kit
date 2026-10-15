@@ -174,6 +174,7 @@
    "edit/merge-array-replaced-by-scalar": "bd7cde14d5fc68e9448270fe26932145f35cd54f3c77033464032b55a67c6da2",
    "edit/merge-array-replaced-whole": "7d0e6d88d071d427be88d4c33852f6fc8a052fc64e6a80ce401dca42a00e70fd",
    "edit/merge-crlf": "67f0ae4fd418eaf037d8731c95a142645891a46466c81af408ac63f561166187",
+   "edit/merge-into-tagged-marker-keeps-marker-comment": "346c39de837a6961ca9b2f1df43783a0892b6a9fce9ec59ed2bdc704ced1b2eb",
    "edit/merge-keeps-comments-and-layout": "dd3b214b12bacf2beec14277be58a63ce32482327c142311412e5f94d90edae4",
    "edit/merge-nested-flow-mapping": "935f4404016f895206cc2dbad3d3ad27274489db1c1746d42fcca918bbf67109",
    "edit/merge-nested-members": "a6c56bd63d1c5b5e64f18b3c451e366d8ae51dd9327f05371716379a4ad60f94",
@@ -258,6 +259,7 @@
    "edit/remove-key-with-literal-block": "2c54bed937ec1f41a489024d6a153189f02e450cde366df0857b018aa883bb2c",
    "edit/remove-key-with-nested-mapping": "551a2a4d9fa40a616d0591f7762ab7084fa7ea0ff9caa4fa3a443fbacbc286cc",
    "edit/remove-key-with-trailing-comment": "f3b09294efee2cb7992b2ca2a0ad2406d2927a060fb8ab15cfb389dbf00949ad",
+   "edit/remove-last-entry-after-literal-with-blank-indented-line": "28661a30b0c7c87d92df5c2f1f0495c35b9ddb4daac8136320940da1820ec6cd",
    "edit/remove-last-entry-of-flow-single-pair": "b3f9391a3509d862857b00a6aa6d8e90b1bad77189cfb068eb4b3f91c89191e6",
    "edit/remove-last-key": "ca54ddef46464bb2dc6625b02c3a84c1704c6b57a61ce5d543162c5318b339c6",
    "edit/remove-last-key-keeps-footer-comment": "f7d990fda9c8e1301174e103037e7de84142bc0a65e458252670760ad49290d3",
@@ -269,6 +271,8 @@
    "edit/replace-binary-tagged-scalar-with-integer": "cd3a2b5d895e2cdbe1421df4ec9139b6d854951f64e62e1761e7a4c87f7581c6",
    "edit/replace-custom-tagged-scalar-then-edit-neighbour": "0e070bb6792ffb68333ce892acdc4c6b9b92c18e71e8f668d749e7c21a8a71fa",
    "edit/replace-empty-document-keeps-marker-comment": "b2216b401abf4ffda234651bcace12a651a400b101e656135cd64f09707159b8",
+   "edit/replace-empty-item-with-collection-keeps-item-comment": "c3a3676cb64cc92e0ed25418c9f719b362352b52557cfc9cc54254e1bf60f406",
+   "edit/replace-empty-value-with-collection-keeps-key-comment": "5b589be17f5f86f7eca2c283fb9ce7210455ad837eff20fdbc83e110c9d557dd",
    "edit/replace-literal-followed-by-blank-line-with-list-keeps-literal": "97a4060a9ab405b0b6b1bfae902ae6470bc6f715e0b472ec90d1786b7d9073eb",
    "edit/replace-missing-path": "c2c945b9b892f78d606a407531bcaa685cbb27ba9ad58863b383e0402f77caef",
    "edit/replace-nonspecific-tag-scalar-with-integer": "e95863f23ccd19730c2565f99335cd9d03305d50feaa1375236bd7275155dd08",
@@ -483,6 +487,8 @@
    "safety/deep-indented-mappings-600": "f00a831cff266da52505d6b3f8b0012fc03aaa2dcea069f7912e2bcf747453b1",
    "safety/deeply-nested-flow-sequences": "1099f73774b234e1af45b428dced8c1680415af5627bcd0a1332c6a74adc1de7",
    "safety/early-error-in-first-line-then-64-mebibytes": "5beb033b7558f323d21ce03695af8170f9183be7b29056bafe8e576de0323a1f",
+   "safety/float-keys-with-million-digit-exponents": "2d47d8d9d7ae7428561cf2e4ef2ab6e2f49499a5507d0028b30fbb0a82ae3bde",
+   "safety/flow-mapping-of-16000-float-keys-beyond-the-double-range": "a91d11cd02fdfe8d81ef6cec731979257d716f630ce35cf356eec1d5a51607bc",
    "safety/implicit-key-window-rescan": "637281ec42ef9fe7c9e3f92c9a270140489ec89bfac6cf16ad2506966e21902b",
    "safety/integer-of-4300-digits-is-exact-or-refused": "b432a70a34470bb909640ccc340ac56aa7ee5f74fd569de9ec2cc162dd9b0f2b",
    "safety/invalid-utf-8-byte": "d1f288d229ee85d8dd0bd15a272e3769358e8174b3e47b350077ca9b8588d461",
@@ -544,6 +550,7 @@
    "schema/dollar-keys-use-the-map-form": "d7b5eaf37e728c38c5fd9c5c618c5902b3c32c5e7208dd0ddd9e68fbe4a378cf",
    "schema/double-quoted-escaped-line-break": "8d4763bc73014a8069ed3c766799892ba322af2d1e82ca849bfa36a0c4c01988",
    "schema/double-quoted-escapes": "f168947c21a8320dbc16bc88f0d118571202fb5a97dd6b74366ae95139157a26",
+   "schema/duplicate-key-float-with-borrowed-exponent-of-a-million-digits": "afd56b07b12baef07e0b7fac64a48d60d9ace1c8de7f2112d6d2408223925db7",
    "schema/duplicate-key-overflowing-float-same-value": "68453968baf3ffc377479374dd6c0581592c7ad68241a77213ed01d526afa84d",
    "schema/duplicate-keys-differing-in-style-are-an-error": "47fac83699af62c743e62d0c3915bf60f3ecff317a77c5f4919aec16b0c66b0a",
    "schema/duplicate-keys-equal-after-resolution-are-an-error": "191a0252a3d49a77d8baa8117f5c3a0d8d2e453030a57b7f9b528c37f70cd800",
@@ -574,6 +581,14 @@
     "bytes": 67108862,
     "sha256": "e80d1c26459bbb67219e893e1881bb5ed1d2d26d947c2ac16cfa82fbcf31c89d"
    },
+   "safety/float-keys-with-million-digit-exponents": {
+    "bytes": 2000025,
+    "sha256": "5614b0d96d85a75534635c9e6ef4d35537010cad9214ae0376c26bf948ffa581"
+   },
+   "safety/flow-mapping-of-16000-float-keys-beyond-the-double-range": {
+    "bytes": 212895,
+    "sha256": "b07d8316f13f48ce9fe0574f76e72fd92ce920d9a7b8db001f74cdc520cf1e5c"
+   },
    "safety/implicit-key-window-rescan": {
     "bytes": 24002201,
     "sha256": "7caa99ebf42e730a4e32eac92ac555861956acc96e696c39574ce46e3e8009d8"
@@ -593,9 +608,21 @@
    "safety/ten-million-digit-plain-scalar-events": {
     "bytes": 10000001,
     "sha256": "3f294670b34e468cb7cdce79381fdc27dd5aad383c06918a1246e10ca2dd0260"
+   },
+   "schema/duplicate-key-float-with-borrowed-exponent-of-a-million-digits": {
+    "bytes": 2000023,
+    "sha256": "9f3c7b6d1f823ef163963e45d96cfedd69ff75ad0bdc483c3f9693cbb700328c"
    }
   },
   "generated_results": {
+   "safety/float-keys-with-million-digit-exponents": {
+    "bytes": 2000025,
+    "sha256": "4cb94158e13093acb4f720679cf16edd3fff0ae5ecdb49b8916ddbb1a3fe6c15"
+   },
+   "safety/flow-mapping-of-16000-float-keys-beyond-the-double-range": {
+    "bytes": 212895,
+    "sha256": "07ace033508921265808b4120276db8db5b6e3d0f37ee5d6a9a948e89603ca65"
+   },
    "safety/implicit-key-window-rescan": {
     "bytes": 24014327,
     "sha256": "225792848119600f48dbf9dd254d2e5199ee496fff1dfd0708bd3688463f7a85"
