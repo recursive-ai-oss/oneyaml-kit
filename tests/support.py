@@ -22,8 +22,11 @@ def run_adapters(names, cases, workers=1, slowest=()):
     The builds share a language's output folder and its restore cache, so they never overlap. A run
     only talks to a process of its own (every bounded case starts a fresh one), so the runs do not
     depend on each other, and the slowest adapter sets the time instead of the sum of all of them.
-    The speed probe behind the time bounds sees the extra load and stretches the bounds, never
-    shrinks them; the memory bounds are measured per process and are not affected. Bounded cases
+    The time-bound factor is never below 1, so running side by side cannot tighten a bound; the
+    probe is a single-threaded loop, so it sees the extra load only when cores are saturated, and
+    probes taken by two runs at the same moment must not stretch each other's bound (they share one
+    interpreter lock, so the factor is measured under a lock);
+    the memory bounds are measured per process and are not affected. Bounded cases
     can each grow a process by up to a gigabyte, and adapters reach them at the same point of the
     run, so `workers` is kept small to stay inside the memory the gate is given. The adapters named in
     `slowest` start first, so the longest run does not begin after the others have filled the workers.
@@ -31,8 +34,22 @@ def run_adapters(names, cases, workers=1, slowest=()):
     from concurrent.futures import ThreadPoolExecutor
 
     from oneyaml_kit import runner
-    for n in names:
-        runner.build(runner.load_manifest(n), dict(os.environ))
+    manifests = {n: runner.load_manifest(n) for n in names}
+    for n, m in manifests.items():
+        # Same order as a single run: an adapter that cannot run here is reported as unavailable,
+        # not as a failed build.
+        why = runner.unavailable_reason(m, dict(os.environ))
+        if why:
+            raise runner.AdapterUnavailable(f"adapter {n}: not available: {why}")
+    if workers > 1:
+        # A start-up hook that sets an address-space limit runs between fork and exec, which is
+        # not safe to do from several threads at once.
+        limited = [n for n, m in manifests.items() if m.get("memory_limit_mb")]
+        if limited:
+            raise ValueError(f"adapters {limited} set memory_limit_mb, which starts them with a "
+                             "pre-exec hook that is unsafe from several threads: run them with workers=1")
+    for n, m in manifests.items():
+        runner.build(m, dict(os.environ))
     with ThreadPoolExecutor(max_workers=max(1, min(workers, len(names)))) as ex:
         order = [n for n in slowest if n in names] + [n for n in names if n not in slowest]
         futures = {n: ex.submit(runner.run_adapter, n, cases, complete=True, skip_build=True) for n in order}
