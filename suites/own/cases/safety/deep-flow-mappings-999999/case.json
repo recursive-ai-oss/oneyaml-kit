@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/deep-flow-mappings-999999",
+ "title": "Nearly a million open flow mappings and nothing else",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "140"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2"
+ ],
+ "notes": "The input is 999,999 opening braces and is never closed, so it is an error: a syntax error at the end of the input, or a limit error if the reader refuses the nesting first. No result is allowed. A reader that keeps a full node for every open collection takes memory in proportion to the depth, so a reader with no depth limit goes over 64 MB just returning a million events before the error, and the memory bound separates a reader with a depth limit or a compact stack from one that builds the whole chain before it fails. The bounds are the robustness requirement of the kit, not a rule of the specification.",
+ "provenance": {
+  "reference": "A reader that allocated about 200 MB before failing on this input."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 64,
+  "error": [
+   "limit",
+   "syntax"
+  ]
+ }
+}

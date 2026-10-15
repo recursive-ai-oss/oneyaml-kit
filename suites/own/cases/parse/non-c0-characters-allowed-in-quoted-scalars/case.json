@@ -1,0 +1,39 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/non-c0-characters-allowed-in-quoted-scalars",
+ "title": "DEL, U+0080 and U+FFFE are kept inside quoted scalars",
+ "category": "parse",
+ "origin": "bug",
+ "productions": [
+  "1",
+  "2",
+  "107",
+  "118"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.1",
+  "YAML 1.2.2 section 7.3.1",
+  "YAML 1.2.2 section 7.3.2"
+ ],
+ "notes": "The stream has three documents: a double-quoted scalar holding DEL (U+007F), a single-quoted scalar holding U+0080, and a double-quoted scalar in a flow sequence holding U+FFFE. None of them is a printable character (production 1), but quoted scalars are built from nb-json (production 2), which is every character from U+0020 up, and productions 107 and 118 subtract only the quote and the backslash. Section 5.1 says processors must allow all non-C0 characters inside quoted scalars, for JSON compatibility. All three characters are valid in UTF-8, so no encoding error applies. The values keep the characters unchanged.",
+ "provenance": {
+  "reference": "A reader that refused characters outside the printable set inside quoted scalars."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": "xy"
+   },
+   {
+    "a": "xy"
+   },
+   [
+    "￾"
+   ]
+  ]
+ }
+}

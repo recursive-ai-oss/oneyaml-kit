@@ -55,6 +55,10 @@ having got YAML wrong.
 - **Comments of a removed entry.** See *Comments* below.
 - **The layout of a new nested sequence** copies the indentation of a sibling sequence.
 - **Indentation of a rewritten block scalar** reuses the old content's indentation.
+- **A multi-line string replacing an inline scalar is double-quoted.** A plain or quoted
+  scalar that is set to text with a line break keeps its place on the key's line and is
+  written in double quotes with `\n` escapes. The specification also allows single quotes
+  with blank lines and block scalars; the family writes double quotes.
 - **An anchor stays on a replaced node**, including while aliases use it, so the aliases
   now read the new value. The new value is separated from the anchor by a space.
 - **A tag on a replaced node stays only if reading the new value back under that tag gives

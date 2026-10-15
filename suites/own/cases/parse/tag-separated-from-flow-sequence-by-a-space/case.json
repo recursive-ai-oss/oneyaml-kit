@@ -1,0 +1,25 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/tag-separated-from-flow-sequence-by-a-space",
+ "title": "A tag followed by a space marks the flow sequence",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "96",
+  "97",
+  "161",
+  "137"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9",
+  "YAML 1.2.2 section 7.4.1"
+ ],
+ "notes": "Control for parse/properties-need-separation-before-flow-collection: with white space after the properties the same text is valid, and the tag applies to the sequence.",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

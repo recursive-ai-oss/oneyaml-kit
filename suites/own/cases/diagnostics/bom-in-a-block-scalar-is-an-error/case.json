@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/bom-in-a-block-scalar-is-an-error",
+ "title": "A byte order mark inside a literal block scalar",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "27",
+  "170"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 8.1.2"
+ ],
+ "notes": "The content of a literal scalar is made of non-break characters, and production 27 excludes the byte order mark, so a mark in the middle of a content line is an error. It is the first character that cannot belong: line 2, column 4 (two spaces, `x`, then the mark). The comment form is diagnostics/bom-in-a-comment-is-an-error.",
+ "provenance": {
+  "reference": "A reader that accepted a byte order mark in the text of a block scalar."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 4
+ }
+}

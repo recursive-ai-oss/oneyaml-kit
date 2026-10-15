@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/bom-in-a-comment-is-an-error",
+ "title": "A byte order mark inside a comment",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "27",
+  "75"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 6.6"
+ ],
+ "notes": "Comment text is `#` followed by non-break characters (production 75), and production 27 excludes the byte order mark, so a mark inside a comment is an error. It is not at the start of the stream, where a mark is allowed. The mark is the first character that cannot belong: line 1, column 4 (`#`, a space, `c`, then the mark).",
+ "provenance": {
+  "reference": "A reader that accepted a byte order mark in a comment."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 4
+ }
+}

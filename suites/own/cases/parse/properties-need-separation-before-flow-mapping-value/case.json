@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/properties-need-separation-before-flow-mapping-value",
+ "title": "A tag must be separated from the flow mapping it marks, as a mapping value",
+ "category": "parse",
+ "origin": "bug",
+ "productions": [
+  "40",
+  "96",
+  "97",
+  "140",
+  "160",
+  "161"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9",
+  "YAML 1.2.2 section 7.4"
+ ],
+ "notes": "Same rule as parse/properties-need-separation-before-flow-collection, with a flow mapping inside a block mapping. The tag `!a` ends at `{` (a flow indicator is not a tag character), and the node that follows would have to be an empty one, which a collection cannot follow. `{` is the first character that cannot belong, column 6.",
+ "provenance": {
+  "reference": "A reader that accepted a tag written directly against the opening brace of a flow mapping."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 6
+ }
+}

@@ -1715,6 +1715,83 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The library accepts the mapping with its repeated keys instead of refusing it as invalid"
+  },
+  {
+   "case": "own:diagnostics/bom-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a comment: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:diagnostics/bom-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a comment: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:diagnostics/bom-in-a-block-scalar-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a literal block scalar: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:diagnostics/bom-in-a-block-scalar-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a literal block scalar: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-collection",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a tag written directly against the opening bracket of a flow sequence: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-collection",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a tag written directly against the opening bracket of a flow sequence: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-mapping-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects the input but reports the error at a position other than the first character that cannot belong: position: expected 1:6, got 1:4"
+  },
+  {
+   "case": "own:parse/top-level-literal-with-indentation-indicator",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the indentation indicator of a top-level block scalar as an absolute column and drops the leading space: $[0]: expected ' foo\\n', got 'foo\\n'"
+  },
+  {
+   "case": "own:parse/top-level-literal-with-indentation-indicator",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the indentation indicator of a top-level block scalar as an absolute column and drops the leading space: $[0]: expected ' foo\\n', got 'foo\\n'"
+  },
+  {
+   "case": "own:safety/deep-flow-mappings-999999",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: no answer within 10 s"
+  },
+  {
+   "case": "own:safety/deep-flow-mappings-999999",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: no answer within 10 s"
   }
-]
+ ]
 }
