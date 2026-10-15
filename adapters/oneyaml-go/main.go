@@ -222,12 +222,22 @@ func patch(in []byte, args gokit.PatchArgs) gokit.Result {
 	return gokit.OKOutput(d.Bytes())
 }
 
+// dump writes the value with the library's ordinary Marshal and default settings; the text is
+// returned as it is.
+func dump(v any) gokit.Result {
+	b, err := oneyaml.Marshal(v)
+	if err != nil {
+		return fail(err)
+	}
+	return gokit.OKOutput(b)
+}
+
 func main() {
 	a := gokit.Adapter{
 		Hello: gokit.Hello{
 			Name: "oneyaml-go", Version: version,
 			Capabilities: []string{"events", "value", "error-category", "error-position",
-				"patch:add", "patch:remove", "patch:replace", "patch:move", "patch:copy", "patch:test", "patch:merge"},
+				"patch:add", "patch:remove", "patch:replace", "patch:move", "patch:copy", "patch:test", "patch:merge", "dump"},
 			Emulates: []string{},
 			Info: map[string]string{
 				"module": "oneyaml.dev/go " + version,
@@ -235,10 +245,12 @@ func main() {
 				"events": "Parse, then a walk of the Node tree; an error answer carries no events because Parse returns no partial document",
 				"value":  "Decoder.Decode into any, every document",
 				"errors": "SyntaxError (category, line, column), LimitError",
+				"dump":   "Marshal on the native value, default settings",
 				"patch":  "Document.ApplyPatch and ApplyMergePatch; the library is atomic and keeps the bytes",
 			},
 		},
-		Events: events, Value: value, Patch: patch,
+		Events: events, Value: value, Patch: patch, Dump: dump,
+		Binary: func(data []byte) (any, error) { return data, nil },
 	}
 	a.Serve()
 }
