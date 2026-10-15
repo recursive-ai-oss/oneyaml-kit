@@ -9,6 +9,7 @@ import math
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -16,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 
 from oneyaml_bench import cli  # noqa: E402
 from oneyaml_bench import readme as M  # noqa: E402
+from oneyaml_bench import report as P  # noqa: E402
 from test_report import synthetic  # noqa: E402
 from test_results import cell  # noqa: E402
 
@@ -30,11 +32,13 @@ CONF = f"# Conformance\n\n{DEV}\nold\n{END}\n"
 
 CONFORMANCE = {
     "adapter": {"name": "ours"},
-    "kit": {"suites": {"yaml-test-suite": {"release": "data-2022-01-17"}}},
+    "kit": {"version": "0.9.0", "suites": {"yaml-test-suite": {"release": "data-2022-01-17"}, "own": {"cases": 2}}},
+    "run": {"complete": True},
     "cases": [{"suite": "yaml-test-suite", "loose": "pass", "strict": "pass"},
-              {"suite": "yaml-test-suite", "loose": "pass", "strict": "fail"},
+              {"suite": "yaml-test-suite", "loose": "pass", "strict": "fail",
+               "corrected": {"loose": "pass", "strict": "pass"}},
               {"suite": "own", "loose": "pass", "strict": "fail"}],
-    "deviations": {"entries": [{"case": "yts:XXXX", "expectation": "primary", "mode": "strict",
+    "deviations": {"ok": True, "entries": [{"case": "yts:XXXX", "expectation": "primary", "mode": "strict",
                                 "verdict": "fail", "reason": "reads | as text"}]},
 }
 
@@ -57,6 +61,10 @@ def publishable(result: dict) -> dict:
 
 class Base(unittest.TestCase):
     def setUp(self):
+        # The vendored suite has hundreds of cases; the fixtures have two.
+        p = mock.patch.object(M, "pinned_yts", return_value=("data-2022-01-17", 2))
+        p.start()
+        self.addCleanup(p.stop)
         self._tmp = tempfile.TemporaryDirectory()
         self.dir = Path(self._tmp.name)
         self.addCleanup(self._tmp.cleanup)
@@ -163,7 +171,8 @@ class Hero(Base):
         self.run_cmd()
         line = self.hero_line("generic load")
         self.assertIn("1.00×", line)
-        self.assertIn("● tie", line)
+        self.assertIn("◆ mixed", line)
+        self.assertNotIn("▲ win", line)
         self.assertIn("1 better, 0 level, 1 worse of 2", line)
         self.assertIn("`rival 2.0`", line)
         self.assertIn("real-world workloads", self.block(self.readme, "bench-hero"))
@@ -227,7 +236,7 @@ class Hero(Base):
     def test_method_strip(self):
         self.run_cmd()
         hero = self.block(self.readme, "bench-hero")
-        for needle in ("2026-01-01", "Kit 0.1.0", "revision abc", "`ours 1.0`", "`rival 2.0`", "`other 3.0`",
+        for needle in ("2026-01-01", "Kit 0.9.0", "revision abc", "`ours 1.0`", "`rival 2.0`", "`other 3.0`",
                        "rustc x", "opt=3", "Test CPU", "Linux", "governor performance", "0.5 before"):
             self.assertIn(needle, hero)
 
@@ -266,7 +275,8 @@ class Other(Base):
         self.run_cmd()
         line = self.block(self.readme, "conformance-line")
         self.assertIn("yaml-test-suite data-2022-01-17: 2/2 loose, 1/2 strict.", line)
-        self.assertIn("own cases: 1/1 loose, 0/1 strict", line)
+        self.assertIn("the fast set: 1 of 2, the slow ones were not run: 1/1 loose, 0/1 strict", line)
+        self.assertIn("corrected expectations for 1 of them: 1/1 loose, 1/1 strict", line)
         self.assertIn("(docs/conformance.md)", line)
 
     def test_conformance_of_another_library_is_refused(self):
@@ -294,6 +304,192 @@ class Other(Base):
         before = self.files()
         self.assertEqual(self.run_cmd(conf=bad), 1)
         self.assertEqual(before, self.files())
+
+
+
+def probe_result(cells):
+    r = synthetic()
+    r["cells"] = cells
+    r["workloads"] = [{"id": w, "kind": "real-world", "tier": "quick", "description": "d", "documents": 1,
+                       "input_bytes": 1000, "tasks": ["generic-load"],
+                       "source": {"origin": "g", "generator": "g", "licence": "CC0-1.0"}}
+                      for w in sorted({c["workload"] for c in cells})]
+    return r
+
+
+class Marks(Base):
+    """A row is never marked better than its workloads allow, for time and for memory, and the chart
+    and its alt text carry the same marks and every task."""
+
+    def alt(self):
+        hero = self.block(self.readme, "bench-hero")
+        alt = hero[hero.index('alt="') + 5:]
+        return alt[:alt.index('"')]
+
+    def test_all_workloads_level_is_not_a_win(self):
+        c = []
+        for w in "abc":
+            c += [cell("ours", "own", workload=w, t=94.0, mad=3.0), cell("rival", workload=w, t=100.0, mad=3.0)]
+        self.run_cmd(probe_result(c))
+        line = self.hero_line("generic load")
+        self.assertIn("● tie", line)
+        self.assertNotIn("▲ win", line)
+        self.assertIn("0 better, 3 level, 0 worse of 3", line)
+
+    def test_a_losing_workload_makes_the_row_mixed_in_table_chart_and_alt(self):
+        c = [cell("ours", "own", workload="a", t=190.0), cell("rival", workload="a", t=100.0),
+             cell("ours", "own", workload="b", t=60.0), cell("rival", workload="b", t=100.0),
+             cell("ours", "own", workload="c", t=80.0), cell("rival", workload="c", t=100.0)]
+        self.run_cmd(probe_result(c))
+        line = self.hero_line("generic load")
+        self.assertIn("◆ mixed", line)
+        self.assertNotIn("▲ win", line)
+        self.assertIn("2 better, 0 level, 1 worse of 3", line)
+        alt = self.alt()
+        self.assertIn("1 tasks: 0 better, 0 level, 1 mixed, 0 worse", alt)
+        self.assertNotIn("1 workloads", alt)
+        self.assertIn("mixed", alt)
+        svg = (self.dir / "docs" / "img" / "ours-hero-light.svg").read_text()
+        self.assertIn(f'fill="{P.THEMES["light"]["mixed"]}"', svg)
+        self.assertNotIn(f'fill="{P.THEMES["light"]["win"]}"', svg)
+        self.assertIn("◆ mixed", svg)
+
+    def memory_cells(self):
+        c = []
+        for w, op, rp, xp in (("a", 1000, 4000, 3000), ("b", 1000, 4000, 3000), ("c", 3000, 4000, 1000)):
+            c += [cell("ours", "own", workload=w, t=90.0, peak=op), cell("rival", workload=w, t=100.0, peak=rp),
+                  cell("other", workload=w, t=200.0, peak=xp)]
+        return c
+
+    def test_memory_mark_counts_workloads_and_names_the_memory_competitor(self):
+        self.run_cmd(probe_result(self.memory_cells()))
+        line = self.hero_line("generic load")
+        mem = line.split("|")[6]
+        self.assertIn("`rival 2.0`", line.split("|")[3])  # the time winner
+        self.assertIn("smallest peak: `other`", mem)
+        self.assertNotIn("`rival`", mem)
+        self.assertIn("2 better, 0 level, 1 worse of 3", mem)
+        self.assertIn("◆ mixed", mem)
+        self.assertNotIn("▲ win", mem)
+
+    def test_incomplete_memory_processes_are_a_tie_as_in_the_kit(self):
+        r = probe_result(self.memory_cells())
+        for x in r["cells"]:
+            if x["library"] == "ours":
+                x["memory"]["processes_declared"] = 3
+        self.run_cmd(r)
+        mem = self.hero_line("generic load").split("|")[6]
+        self.assertIn("0 better, 3 level, 0 worse of 3", mem)
+        self.assertNotIn("▲ win", mem)
+
+    def p4_result(self):
+        return probe_result([
+            cell("ours", "own", workload="a", t=50.0), cell("rival", workload="a", t=100.0),
+            cell("ours", "own", workload="b", status="differs", detail="x"), cell("rival", workload="b", t=100.0),
+            cell("ours", "own", task="dump", workload="a", status="rejects", detail="x"),
+            cell("rival", task="dump", workload="a", t=100.0)])
+
+    def test_every_task_is_in_the_chart_and_the_alt_text(self):
+        self.run_cmd(self.p4_result())
+        alt = self.alt()
+        self.assertIn("2 tasks:", alt)
+        self.assertIn("1 not comparable", alt)
+        self.assertIn("dump NOT COMPARABLE (a rejects)", alt)
+        self.assertIn("partial, no number for b (differs)", alt)
+        for theme in ("light", "dark"):
+            svg = (self.dir / "docs" / "img" / f"ours-hero-{theme}.svg").read_text()
+            self.assertIn("dump", svg)
+            self.assertIn("NOT COMPARABLE (a rejects)", svg)
+            self.assertIn("partial: b differs", svg)
+
+
+class Conformance(Base):
+    def refused(self, conf):
+        before = self.files()
+        self.assertEqual(self.run_cmd(conf=conf), 1)
+        self.assertEqual(before, self.files())
+
+    def test_a_filtered_run_is_refused(self):
+        self.refused({**CONFORMANCE, "run": {"complete": False}})
+
+    def test_unlisted_or_stale_deviations_are_refused(self):
+        self.refused({**CONFORMANCE, "deviations": {**CONFORMANCE["deviations"], "ok": False}})
+
+    def test_a_partial_suite_is_refused(self):
+        self.refused({**CONFORMANCE, "cases": CONFORMANCE["cases"][1:]})
+
+    def test_another_release_is_refused(self):
+        kit = {**CONFORMANCE["kit"], "suites": {**CONFORMANCE["kit"]["suites"],
+                                                "yaml-test-suite": {"release": "main"}}}
+        self.refused({**CONFORMANCE, "kit": kit})
+
+    def test_the_deviations_block_alone_is_refused_too(self):
+        (self.docs / "performance.md").unlink()
+        self.readme.write_bytes(f"{HERO}\n{END}\n".encode())
+        (self.docs / "conformance.md").write_bytes(CONF.encode())
+        self.refused({**CONFORMANCE, "run": {"complete": False}})
+
+    def test_the_real_pin_is_checked_by_default(self):
+        mock.patch.stopall()  # the fixture has two cases; the vendored suite has hundreds
+        before = self.files()
+        self.assertEqual(self.run_cmd(), 1)
+        self.assertEqual(before, self.files())
+
+    def test_slow_own_cases_are_named(self):
+        self.run_cmd()
+        self.assertIn("the slow ones were not run", self.block(self.readme, "conformance-line"))
+        kit = {**CONFORMANCE["kit"], "suites": {**CONFORMANCE["kit"]["suites"], "own": {"cases": 1}}}
+        self.run_cmd(conf={**CONFORMANCE, "kit": kit})
+        self.assertIn("all of them including the slow ones", self.block(self.readme, "conformance-line"))
+
+
+class Details(Base):
+    def test_no_merge_patch_task_until_a_harness_has_one(self):
+        self.assertFalse([t for t in M.TASK_LABEL if "merge" in t])
+
+    def test_rows_with_no_cell_of_ours_are_shown_as_not_run(self):
+        r = real_world(synthetic(), "w1", "w2")
+        r["cells"].append(cell("rival", task="document-parse", workload="w1", t=10.0))
+        r["cells"].append(cell("rival", workload="w3", task="dump", t=10.0))
+        self.run_cmd(r)
+        hero = self.block(self.readme, "bench-hero")
+        self.assertIn("document parse `w1`", hero)
+        self.assertIn("dump `w3`", hero)
+        self.assertTrue(any(l.startswith("| document parse") and "NOT RUN" in l for l in hero.split("\n")))
+        self.assertIn("Not run by", self.block(self.docs / "performance.md", "bench-full"))
+
+    def test_method_strip_discloses_how_it_was_measured_and_where_the_kit_version_comes_from(self):
+        self.run_cmd()
+        hero = self.block(self.readme, "bench-hero")
+        for needle in ("Kit 0.9.0", "warm-up 1 ms", "5 samples", "median", "Memory: mm"):
+            self.assertIn(needle, hero)
+        self.readme.write_bytes(f"{HERO}\n{END}\n".encode())
+        for name in ("performance.md", "conformance.md"):
+            (self.docs / name).unlink()
+        (self.dir / "res" / "conformance" / "ours.json").unlink()
+        self.assertEqual(self.run_cmd(conf=None), 0)
+        self.assertIn("rendered with kit version", self.block(self.readme, "bench-hero"))
+
+    def test_competitor_time_column_says_what_it_is(self):
+        self.run_cmd()
+        self.assertIn("Strongest competitors' time (geometric mean)", self.block(self.readme, "bench-hero"))
+
+    def test_a_failed_write_leaves_every_file_whole(self):
+        before = self.files()
+        real = M.os.replace
+        calls = []
+
+        def flaky(a, b):
+            calls.append(b)
+            if len(calls) == 2:
+                raise OSError("disk full")
+            real(a, b)
+        with mock.patch.object(M.os, "replace", flaky):
+            self.assertEqual(self.run_cmd(), 1)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual([p for p in self.dir.rglob("*.new")], [])
+        for p, data in self.files().items():
+            self.assertTrue(data == before.get(p, data) or b"generated" in data or b"<svg" in data)
 
 
 if __name__ == "__main__":

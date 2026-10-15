@@ -297,7 +297,7 @@ A block is the text between a begin marker that names its kind and an end marker
 
 | Kind | Content |
 |---|---|
-| `bench-hero` | Chart (light and dark SVG, alt text with every number), one row per task, method strip |
+| `bench-hero` | Chart (light and dark SVG; a row and alt text for every task), one row per task, method strip |
 | `bench-full` | Every task × every workload, every competitor as a column, time and memory, method strip |
 | `conformance-line` | `yaml-test-suite <release>: n/total` loose and strict, the kit's own cases, link to `conformance.md` |
 | `conformance-deviations` | Every known deviation of the library with its reason |
@@ -310,21 +310,44 @@ leaves every file byte-identical, so a docs-sync test can run it and compare.
 **The hero row.** A row aggregates the real-world workloads the task has (all of its workloads
 when it has none, and the block says so). For each workload the ratio is ours ÷ that workload's
 strongest competitor, as everywhere else; the row shows the geometric mean of our times and of
-those competitors' times, whose ratio equals the geometric mean of the per-workload ratios. The
-competitor named is the one that was strongest in the most workloads (the split is shown when
-there are several). A workload where our cell is `differs`, `rejects`, `error` or `unsupported`
-is listed in the row and the row is marked partial; a row with no workload that has a number is
-`NOT COMPARABLE`. Nothing is dropped silently. A column counts workloads better, level and worse,
-so an average cannot hide a loss. The verdict is the kit's, with its noise floor. A † names
-a competitor that did less than the full task.
+those competitors' times, whose ratio equals the geometric mean of the per-workload ratios. Where
+several competitors were strongest, the column names them all with how often, and the time next to
+them is a geometric mean across them. A workload where our cell is `differs`, `rejects`, `error` or
+`unsupported` is listed in the row and the row is marked partial; a row with no workload that has
+a number is `NOT COMPARABLE`. A task that competitors have cells for and our library has none for
+is listed as not run. Nothing is dropped silently.
 
-The method strip gives the date, kit version and revision, library and competitor versions,
-runtime, CPU, OS, governor and host load, and the run's publishability label. A result that is
-not publishable is refused unless `--allow-smoke` is given, because a README is public and a
-smoke number is easily quoted as a claim; with the flag every block opens with a "SMOKE RESULT,
-NOT PUBLISHABLE" notice and the reasons. Generated text and charts pass the kit's public-text
-check or nothing is written. The layout of each block is in the `render_*` functions of
-`bench/oneyaml_bench/readme.py`.
+The verdict is never better than the per-workload verdicts allow: a row with a losing workload is
+marked mixed or loss, and a row with no winning workload is never marked a win. The mark comes from
+the kit's verdict on each workload (its noise floor, and for memory its observed ranges and the
+tie it gives when fewer processes measured than declared), not from the mean. Time and memory each
+show a count of better, level and worse workloads, and the memory cell names the competitor(s)
+that had the smallest peak, which need not be the time winner. The chart has a row for every
+task, in the same colour and words as the table: `mixed` is amber, a partial task says which
+workload has no number, and a task without a number is a labelled row with no bar. The alt text
+counts tasks and gives each task's ratio, mark, workload counts and gaps. A † names a competitor
+that did less than the full task.
+
+The method strip gives the date, the kit version and revision, library and competitor versions,
+runtime, flags, warm-up, sample count and statistic (each time is a median), the memory method,
+CPU, OS, governor and host load, and the run's publishability label. A benchmark result records
+the kit revision but not its version, so the version is read from the conformance result when
+there is one, and otherwise from the checkout that renders the block, and the block says so.
+
+A result that is not publishable is refused unless `--allow-smoke` is given, because a README is
+public and a smoke number is easily quoted as a claim; with the flag every block opens with a
+"SMOKE RESULT, NOT PUBLISHABLE" notice and the reasons.
+
+**Conformance blocks** are refused (exit 1, nothing written) unless the result is for the library,
+comes from a complete run (`run.complete`, so not a filtered one), has no unlisted, stale or unknown
+deviation (`deviations.ok`), is at the pinned yaml-test-suite release, and holds every case of the
+pinned set. The line gives the loose and strict counts, the counts against the corrected
+expectations where the result carries them, and the kit's own cases. It says whether those are the
+fast set (slow cases not run, with the numbers) or all of them.
+
+Generated text and charts pass the kit's public-text check or nothing is written. Files are written
+beside their targets and renamed over them, so a failed write leaves each file whole, old or new.
+The layout of each block is in the `render_*` functions of `bench/oneyaml_bench/readme.py`.
 
 ## Adding a library or a language
 
