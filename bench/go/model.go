@@ -4,15 +4,12 @@ package main
 // interfaces a library implements (see docs/benchmark-adapters.md).
 
 import (
-	"bytes"
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 )
 
 // Task is one of the seven tasks, by the id used in the results.
@@ -257,29 +254,15 @@ type Runner interface {
 	Prepare(n int) Batch
 }
 
-// SharedState is implemented by a runner that can run a batch over one starting state. Only a
-// task that leaves its state unchanged may do that, and the harness does not take the library's
-// word for it: VerifyShared checks that a run on a used state is the same work as a run on a new one.
-// ShareState then switches the runner over; from then on Prepare(n) builds one state, not n.
-type SharedState interface {
-	VerifyShared() error
-	ShareState()
-	// SharesState reports whether ShareState was called.
-	SharesState() bool
-}
-
 type fnRunner[S, O any] struct {
 	setup   func() S
 	run     func(*S) (O, error)
 	product func(O) Product
 	failing func() FailedPatch
-	shared  bool
 }
 
 type fnBatch[S, O any] struct {
 	states []S
-	// reps is how many runs the batch makes: one per state, or all of them over the one shared state.
-	reps   int
 	run    func(*S) (O, error)
 	panicV any
 }
@@ -290,15 +273,10 @@ func (b *fnBatch[S, O]) Run() {
 			b.panicV = r
 		}
 	}()
-	shared := len(b.states) == 1
-	for i := 0; i < b.reps; i++ {
+	for i := range b.states {
 		// The result is dropped inside the clock, as a caller's would be. The starting state is
 		// not: it stays in the batch and is released after the clock stops.
-		st := &b.states[0]
-		if !shared {
-			st = &b.states[i]
-		}
-		out, _ := b.run(st)
+		out, _ := b.run(&b.states[i])
 		runtime.KeepAlive(out)
 	}
 }
@@ -322,111 +300,8 @@ func (r *fnRunner[S, O]) CheckFailing() *FailedPatch {
 	return &f
 }
 
-func (r *fnRunner[S, O]) ShareState()       { r.shared = true }
-func (r *fnRunner[S, O]) SharesState() bool { return r.shared }
-
-// VerifyShared decides whether a batch may run over one starting state. Sharing is right only when
-// a run on a state that has been run before is the same work as a run on a new state, which is what
-// a user's first call is. So it checks two things, and any failure means "do not share" (the library
-// is not wrong, it simply is not read-only in the way the batch needs):
-//
-//   - the second answer over one state equals the first. The first is copied before the second run,
-//     because an answer that is a buffer the state owns and rewrites would otherwise be compared
-//     with itself;
-//   - a run on a used state costs what a run on a new state costs: the same allocations, and not far
-//     less time. A task that clears a field of its input, or remembers its answer in the state,
-//     returns the same bytes and still does less work the second time.
-func (r *fnRunner[S, O]) VerifyShared() (err error) {
-	defer func() {
-		if p := recover(); p != nil {
-			err = fmt.Errorf("panic while checking the shared state: %v", p)
-		}
-	}()
-	st := r.setup()
-	first, err := r.run(&st)
-	if err != nil {
-		return err
-	}
-	a := r.product(first)
-	a.Bytes = append([]byte(nil), a.Bytes...)
-	a.Value = copyValue(a.Value)
-	second, err := r.run(&st)
-	if err != nil {
-		return fmt.Errorf("the second run over the same state failed: %v", err)
-	}
-	b := r.product(second)
-	if a.Kind != b.Kind || !bytes.Equal(a.Bytes, b.Bytes) || a.HasValue != b.HasValue {
-		return fmt.Errorf("the second run over the same state gave different bytes")
-	}
-	if a.HasValue {
-		if d := firstDiff(b.Value, a.Value, ""); d != "" {
-			return fmt.Errorf("the second run over the same state gave a different value: %s", d)
-		}
-	}
-	return r.sameCost()
-}
-
-// sameCost compares the first run on a new state with the second run on that state, after a
-// collection and an unmeasured run, as the timed runs are. Allocations must agree within the
-// tolerance of the memory cross-check; the second run may not take less than a quarter of the time.
-func (r *fnRunner[S, O]) sameCost() error {
-	const reps = 8
-	runtime.GC()
-	w := r.setup()
-	r.run(&w) //nolint:errcheck // a warm-up: pools and caches are full when counting starts
-	var firstAllocs, secondAllocs uint64
-	var firstTime, secondTime time.Duration
-	measure := func(st *S) (uint64, time.Duration) {
-		var m0, m1 runtime.MemStats
-		runtime.ReadMemStats(&m0)
-		t0 := time.Now()
-		out, _ := r.run(st)
-		d := time.Since(t0)
-		runtime.ReadMemStats(&m1)
-		runtime.KeepAlive(out)
-		return m1.Mallocs - m0.Mallocs, d
-	}
-	for i := 0; i < reps; i++ {
-		st := r.setup()
-		n, d := measure(&st)
-		firstAllocs, firstTime = firstAllocs+n, firstTime+d
-		n, d = measure(&st)
-		secondAllocs, secondTime = secondAllocs+n, secondTime+d
-	}
-	f, s := float64(firstAllocs)/reps, float64(secondAllocs)/reps
-	if math.Abs(f-s) > math.Max(0.05*math.Max(f, s), 2) {
-		return fmt.Errorf("a run on a used state makes %.1f allocations, on a new state %.1f", s, f)
-	}
-	if secondTime*4 < firstTime && firstTime-secondTime > 100*time.Microsecond {
-		return fmt.Errorf("a run on a used state takes %v, on a new state %v", secondTime/reps, firstTime/reps)
-	}
-	return nil
-}
-
-// copyValue copies a value in the common form, so a later run cannot change what was recorded.
-func copyValue(v any) any {
-	switch x := v.(type) {
-	case map[string]any:
-		out := make(map[string]any, len(x))
-		for k, e := range x {
-			out[k] = copyValue(e)
-		}
-		return out
-	case []any:
-		out := make([]any, len(x))
-		for i, e := range x {
-			out[i] = copyValue(e)
-		}
-		return out
-	}
-	return v
-}
-
 func (r *fnRunner[S, O]) Prepare(n int) Batch {
-	if r.shared {
-		return &fnBatch[S, O]{states: []S{r.setup()}, reps: n, run: r.run}
-	}
-	b := &fnBatch[S, O]{states: make([]S, n), reps: n, run: r.run}
+	b := &fnBatch[S, O]{states: make([]S, n), run: r.run}
 	for i := range b.states {
 		b.states[i] = r.setup()
 	}

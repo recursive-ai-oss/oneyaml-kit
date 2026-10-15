@@ -58,10 +58,11 @@ BENCH_REFERENCE = "rust"  # the harness that stands in for the rest on a driver 
 # Test modules of the benchmark harness that build and run a real harness end to end. They are
 # full-tier work; the rest of bench/tests is quick enough for the hand-over tier. Each entry is a
 # fragment of a file name, and each must match a file, so a renamed module cannot slip through.
-BENCH_SLOW_TESTS = ("pipeline", "csharp")
-# The module that holds each harness's end-to-end tests; the full tier runs them in that
+BENCH_SLOW_TESTS = ("pipeline",)
+# The test class that holds each harness's end-to-end tests; the full tier runs them in that
 # harness's area.
-BENCH_PIPELINE_TESTS = {"rust": "test_pipeline.py", "go": "test_pipeline_go.py", "csharp": "test_csharp.py"}
+BENCH_PIPELINE_TESTS = {"rust": "test_pipeline.RustPipeline", "go": "test_pipeline.GoPipeline",
+                        "csharp": "test_pipeline.CSharpPipeline"}
 # The smoke run: a few small workloads, one of them typed, through one harness.
 SMOKE_WORKLOADS = ("reference-a", "reference-b", "gha-workflow")
 # The hand-over tier's wall-clock budget in seconds. The hard limit is three minutes; the margin
@@ -248,19 +249,13 @@ def bench_test_modules(root: Path) -> list[str]:
 
 def bench_steps(root: Path, out: Path, target: str) -> list[Step]:
     """The benchmark driver, report and workloads. The hand-over tier runs their unit tests,
-    which need no compiler but do need node and npm, in both tiers: the independent reader of the
-    real files installs its one pinned package with `npm ci` on first use, which needs the network
-    once. The full tier then runs a quick run of every harness over every workload and checks
-    the instruction counters against their baseline; the
-    end-to-end tests of each harness are in its own area."""
+    which need no compiler, in both tiers. The full tier then runs a quick run of every harness over
+    every workload; the end-to-end tests of each harness are in its own area."""
     own = {"CARGO_TARGET_DIR": f"{target}-bench"}
     return [
         Step("bench", "benchmark unit tests", [py(), "-m", "unittest", "-q", *bench_test_modules(root)],
              "bench/tests"),
         Step("bench", "benchmark quick run", [py(), "bin/bench", "run"], env=own, tier="full"),
-        Step("bench", "benchmark counters",
-             [py(), "bin/bench", "check", str(out / "bench" / "results.json"),
-              "--baseline", "bench/rust/counters.json"], tier="full"),
     ]
 
 
@@ -279,8 +274,7 @@ def bench_lang_steps(area: str, root: Path, out: Path, target: str, dotnet: str)
                  tier="hand-over")  # the full tier's quick run covers every workload
     pipeline = BENCH_PIPELINE_TESTS[lang]
     pipe = Step(area, f"benchmark {lang} pipeline tests",
-                [py(), "-m", "unittest", "discover", "-s", "bench/tests", "-p", pipeline, "-q"], env=own,
-                tier="full")
+                [py(), "-m", "unittest", "-q", pipeline], "bench/tests", own, tier="full")
     if lang == "rust":
         sel = f"{target}-selftest"
         return [
@@ -308,13 +302,6 @@ def bench_lang_steps(area: str, root: Path, out: Path, target: str, dotnet: str)
     return [
         Step(area, "benchmark .NET harness format",
              [dotnet, "format", "whitespace", "bench/csharp/Bench.csproj", "--verify-no-changes"]),
-        # The harness's files are checked without an SDK; the class that builds it is the pipeline test.
-        Step(area, "benchmark .NET harness files",
-             [py(), "-m", "unittest", "-q", "test_csharp.Files"], "bench/tests", tier="hand-over"),
-        # The linked builds (the harness and the oneyaml-csharp adapter against an empty stand-in
-        # library) take seconds; a project change that breaks them is found here, not in CI.
-        Step(area, "benchmark .NET linked builds",
-             [py(), "-m", "unittest", "-q", "test_csharp.LinkedBuildStandIns"], "bench/tests", tier="hand-over"),
         smoke, pipe,
     ]
 

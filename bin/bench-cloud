@@ -1,12 +1,237 @@
 #!/usr/bin/env python3
-"""Launcher: bin/bench-cloud <command>. Standard library only; Python 3.10 or newer; needs the AWS command line tool."""
+"""bin/bench-cloud quick|full [--here]: run the whole benchmark on one rented machine.
+
+Launches ONE on-demand instance from a stock Ubuntu image. Its start-up script clones the public
+kit and library repositories at the revisions given, installs the toolchains, runs `bin/bench`
+and uploads one results tarball to a presigned S3 URL. This script waits for the tarball,
+downloads it, writes the report and terminates the instance. The instance has no SSH key, no
+inbound port and no credentials, and it shuts itself down (terminating) after KIT_CLOUD_LIMIT_MIN
+minutes whatever happens. `--here` ships this checkout's files instead of cloning the kit, to try
+changes that are not pushed yet.
+
+Needs the AWS command line tool and credentials in the environment. Standard library only.
+Settings come from the file named by KIT_CLOUD_CONFIG (default ~/.config/oneyaml-kit/cloud.env),
+lines of NAME=value; the environment overrides it:
+
+  KIT_CLOUD_REGION, KIT_CLOUD_BUCKET        where the instance runs and where its tarball goes
+  KIT_CLOUD_INSTANCE_TYPE                   one instance type, for example c7i.4xlarge
+  KIT_CLOUD_LIMIT_MIN                       minutes before the instance shuts itself down (full run)
+  KIT_CLOUD_PRICE_PER_HOUR                  optional: on-demand price, to print the cost of the run
+  KIT_CLOUD_IMAGE_PARAM                     optional: the SSM parameter naming the Ubuntu image
+  KIT_CLOUD_{KIT,GO,CSHARP}_{REPO,REV}      the repositories and revisions to clone
+  KIT_CLOUD_{GO,RUST,DOTNET}_VERSION        toolchain versions to install
+"""
+import datetime
+import hashlib
+import hmac
+import json
+import os
+import signal
+import subprocess
 import sys
+import tarfile
+import tempfile
+import time
+import urllib.parse
 from pathlib import Path
 
-root = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(root / "bench"))
-sys.dont_write_bytecode = True
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULTS = {
+    "KIT_CLOUD_INSTANCE_TYPE": "c7i.4xlarge",
+    "KIT_CLOUD_LIMIT_MIN": "480",
+    "KIT_CLOUD_IMAGE_PARAM": "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id",
+    "KIT_CLOUD_KIT_REPO": "https://github.com/recursive-ai-oss/oneyaml-kit",
+    "KIT_CLOUD_GO_REPO": "https://github.com/recursive-ai-oss/oneyaml-go",
+    "KIT_CLOUD_CSHARP_REPO": "https://github.com/recursive-ai-oss/oneyaml-csharp",
+    "KIT_CLOUD_KIT_REV": "main", "KIT_CLOUD_GO_REV": "main", "KIT_CLOUD_CSHARP_REV": "main",
+    "KIT_CLOUD_GO_VERSION": "1.26.0", "KIT_CLOUD_RUST_VERSION": "1.97.1", "KIT_CLOUD_DOTNET_VERSION": "10.0.400",
+}
+TAG = "oneyaml-kit-bench"
 
-from oneyaml_bench.cloud.cli import main  # noqa: E402
 
-sys.exit(main())
+def config() -> dict:
+    cfg = dict(DEFAULTS)
+    path = Path(os.environ.get("KIT_CLOUD_CONFIG", Path.home() / ".config/oneyaml-kit/cloud.env"))
+    if path.is_file():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if "=" in line and not line.lstrip().startswith("#"):
+                k, v = line.split("=", 1)
+                cfg[k.strip()] = v.strip()
+    cfg.update({k: v for k, v in os.environ.items() if k.startswith("KIT_CLOUD_")})
+    for need in ("KIT_CLOUD_REGION", "KIT_CLOUD_BUCKET"):
+        if not cfg.get(need):
+            sys.exit(f"bench-cloud: {need} is not set (see the head of this file)")
+    return cfg
+
+
+def aws(*args: str, check: bool = True) -> str:
+    r = subprocess.run(["aws", *args], capture_output=True, text=True)
+    if check and r.returncode:
+        sys.exit(f"bench-cloud: aws {' '.join(args[:2])} failed: {r.stderr.strip()[-400:]}")
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
+def credentials() -> tuple[str, str, str]:
+    env = os.environ
+    if env.get("AWS_ACCESS_KEY_ID") and env.get("AWS_SECRET_ACCESS_KEY"):
+        return env["AWS_ACCESS_KEY_ID"], env["AWS_SECRET_ACCESS_KEY"], env.get("AWS_SESSION_TOKEN", "")
+    c = json.loads(aws("configure", "export-credentials"))
+    return c["AccessKeyId"], c["SecretAccessKey"], c.get("SessionToken", "")
+
+
+def presign(method: str, bucket: str, region: str, key: str, seconds: int) -> str:
+    """A SigV4 query-string URL for one object and one method; `aws s3 presign` can only do GET."""
+    access, secret, token = credentials()
+    host = f"{bucket}.s3.{region}.amazonaws.com"
+    now = datetime.datetime.now(datetime.timezone.utc)
+    stamp, day = now.strftime("%Y%m%dT%H%M%SZ"), now.strftime("%Y%m%d")
+    scope = f"{day}/{region}/s3/aws4_request"
+    q = {"X-Amz-Algorithm": "AWS4-HMAC-SHA256", "X-Amz-Credential": f"{access}/{scope}", "X-Amz-Date": stamp,
+         "X-Amz-Expires": str(seconds), "X-Amz-SignedHeaders": "host"}
+    if token:
+        q["X-Amz-Security-Token"] = token
+    query = "&".join(f"{urllib.parse.quote(k, safe='')}={urllib.parse.quote(v, safe='')}" for k, v in sorted(q.items()))
+    path = "/" + urllib.parse.quote(key, safe="/")
+    canonical = "\n".join([method, path, query, f"host:{host}\n", "host", "UNSIGNED-PAYLOAD"])
+    to_sign = "\n".join(["AWS4-HMAC-SHA256", stamp, scope, hashlib.sha256(canonical.encode()).hexdigest()])
+    k = ("AWS4" + secret).encode()
+    for part in (day, region, "s3", "aws4_request"):
+        k = hmac.new(k, part.encode(), hashlib.sha256).digest()
+    sig = hmac.new(k, to_sign.encode(), hashlib.sha256).hexdigest()
+    return f"https://{host}{path}?{query}&X-Amz-Signature={sig}"
+
+
+def user_data(cfg: dict, mode: str, put_url: str, log_url: str, archive_url: str | None, limit: int) -> str:
+    kit = (f'mkdir kit && curl -fsSL "{archive_url}" | tar -xz -C kit' if archive_url else
+           f'git clone {cfg["KIT_CLOUD_KIT_REPO"]} kit && git -C kit checkout {cfg["KIT_CLOUD_KIT_REV"]}')
+    # The kit has no history when it was shipped as files, so the launcher names its revision.
+    smoke = "export KIT_SMOKE=1\n" if archive_url else ""
+    rev = "shipped-checkout" if archive_url else '$(git -C kit rev-parse --short=12 HEAD)'
+    return f"""#!/bin/bash
+# Whatever happens, the machine is gone after the limit.
+shutdown -h +{limit}
+export HOME=/root DEBIAN_FRONTEND=noninteractive DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 DOTNET_ROOT=/root/.dotnet
+export PATH=/usr/local/go/bin:/root/.cargo/bin:/root/.dotnet:$PATH
+cd /root
+# Copy the log out every minute: a run that hangs or dies still leaves something to read.
+( while sleep 60; do curl -fsS -X PUT --upload-file /root/run.log "{log_url}" >/dev/null 2>&1; done ) &
+{{
+apt-get update -y && apt-get install -y git curl ca-certificates build-essential pkg-config python3
+curl -fsSL https://go.dev/dl/go{cfg["KIT_CLOUD_GO_VERSION"]}.linux-amd64.tar.gz | tar -C /usr/local -xz
+curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain {cfg["KIT_CLOUD_RUST_VERSION"]}
+curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --version {cfg["KIT_CLOUD_DOTNET_VERSION"]}
+{kit}
+git clone {cfg["KIT_CLOUD_GO_REPO"]} oneyaml-go && git -C oneyaml-go checkout {cfg["KIT_CLOUD_GO_REV"]}
+git clone {cfg["KIT_CLOUD_CSHARP_REPO"]} oneyaml-csharp && git -C oneyaml-csharp checkout {cfg["KIT_CLOUD_CSHARP_REV"]}
+export KIT_ONEYAML_GO_SRC=/root/oneyaml-go KIT_ONEYAML_CSHARP_SRC=/root/oneyaml-csharp
+{smoke}export KIT_REVISION="{rev}" KIT_INSTANCE_TYPE="{cfg["KIT_CLOUD_INSTANCE_TYPE"]}"
+export KIT_ONEYAML_GO_REV=$(git -C oneyaml-go rev-parse --short=12 HEAD) KIT_ONEYAML_CSHARP_REV=$(git -C oneyaml-csharp rev-parse --short=12 HEAD)
+cd kit && timeout {max(limit - 8, 5)}m python3 bin/bench run --mode {mode} --out /root/out/bench
+}} > /root/run.log 2>&1
+cd /root && mkdir -p out/bench && cp run.log out/ && tar -czf results.tgz out
+curl -fsS -X PUT --upload-file run.log "{log_url}" >> /root/upload.log 2>&1
+curl -fsS -X PUT --upload-file results.tgz "{put_url}" >> /root/upload.log 2>&1
+shutdown -h now
+"""
+
+
+def main() -> int:
+    args = sys.argv[1:]
+    if not args or args[0] not in ("quick", "full") or set(args[1:]) - {"--here"}:
+        print(__doc__)
+        return 2
+    mode, here = args[0], "--here" in args
+    cfg = config()
+    region, bucket = cfg["KIT_CLOUD_REGION"], cfg["KIT_CLOUD_BUCKET"]
+    limit = min(int(cfg["KIT_CLOUD_LIMIT_MIN"]), 30) if mode == "quick" else int(cfg["KIT_CLOUD_LIMIT_MIN"])
+    run_id = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    prefix = f"runs/{run_id}"
+    out = Path(os.environ.get("KIT_OUT", ROOT / "out")) / "cloud" / run_id
+    out.mkdir(parents=True)
+    ttl = (limit + 30) * 60
+
+    archive_url = None
+    if here:
+        # The tracked and new files of this checkout, without history or build output.
+        names = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard"], cwd=ROOT,
+                               capture_output=True, text=True, check=True).stdout.split("\n")
+        with tempfile.TemporaryDirectory() as t:
+            archive = Path(t) / "kit.tgz"
+            with tarfile.open(archive, "w:gz") as tar:
+                for n in filter(None, names):
+                    if (ROOT / n).is_file():
+                        tar.add(ROOT / n, arcname=n)
+            aws("s3", "cp", str(archive), f"s3://{bucket}/{prefix}/kit.tgz", "--region", region, "--only-show-errors")
+        archive_url = presign("GET", bucket, region, f"{prefix}/kit.tgz", ttl)
+    put_url = presign("PUT", bucket, region, f"{prefix}/results.tgz", ttl)
+    log_url = presign("PUT", bucket, region, f"{prefix}/run.log", ttl)
+
+    image = aws("ssm", "get-parameter", "--region", region, "--name", cfg["KIT_CLOUD_IMAGE_PARAM"],
+                "--query", "Parameter.Value", "--output", "text")
+    data = out / "user-data.sh"
+    data.write_text(user_data(cfg, mode, put_url, log_url, archive_url, limit), encoding="utf-8")
+    spec = json.dumps([{"ResourceType": t, "Tags": [{"Key": "Name", "Value": TAG}, {"Key": "Project", "Value": TAG}]}
+                       for t in ("instance", "volume")])
+    disk = json.dumps([{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 40, "VolumeType": "gp3", "DeleteOnTermination": True}}])
+    instance = aws("ec2", "run-instances", "--region", region, "--image-id", image,
+                   "--instance-type", cfg["KIT_CLOUD_INSTANCE_TYPE"], "--count", "1",
+                   "--instance-initiated-shutdown-behavior", "terminate", "--metadata-options", "HttpTokens=required",
+                   "--block-device-mappings", disk, "--tag-specifications", spec,
+                   "--user-data", f"file://{data}", "--query", "Instances[0].InstanceId", "--output", "text")
+    started = time.time()
+    print(f"instance {instance} ({cfg['KIT_CLOUD_INSTANCE_TYPE']}) launched; results go to s3://{bucket}/{prefix}/")
+
+    def state() -> str:
+        return aws("ec2", "describe-instances", "--region", region, "--instance-ids", instance,
+                   "--query", "Reservations[0].Instances[0].State.Name", "--output", "text", check=False) or "unknown"
+
+    tarball = out / "results.tgz"
+    ok = False
+    terminate_failed = False
+    # Ending the script by a signal still runs the clean-up below.
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, lambda n, _f: sys.exit(128 + n))
+    try:
+        while time.time() - started < (limit + 5) * 60:
+            time.sleep(30)
+            if aws("s3api", "head-object", "--region", region, "--bucket", bucket, "--key", f"{prefix}/results.tgz",
+                   check=False):
+                aws("s3", "cp", f"s3://{bucket}/{prefix}/results.tgz", str(tarball), "--region", region,
+                    "--only-show-errors")
+                ok = True
+                break
+            if state() in ("terminated", "shutting-down"):
+                print("the instance stopped without uploading results", file=sys.stderr)
+                break
+    finally:
+        # A machine that stays up keeps costing money, so a failed terminate is said loudly.
+        r = subprocess.run(["aws", "ec2", "terminate-instances", "--region", region, "--instance-ids", instance],
+                           capture_output=True, text=True)
+        if r.returncode:
+            print(f"bench-cloud: FAILED TO TERMINATE {instance}; terminate it by hand in {region}: "
+                  f"{r.stderr.strip()[-300:]}", file=sys.stderr)
+            terminate_failed = True
+    aws("s3", "cp", f"s3://{bucket}/{prefix}/run.log", str(out / "run.log"), "--region", region, "--only-show-errors", check=False)
+    minutes = (time.time() - started) / 60
+    price = cfg.get("KIT_CLOUD_PRICE_PER_HOUR")
+    print(f"ran {minutes:.1f} minutes" + (f", about ${minutes / 60 * float(price):.2f} at ${price}/hour" if price else ""))
+    if terminate_failed:
+        return 3
+    if not ok:
+        return 1
+    with tarfile.open(tarball) as tar:
+        tar.extractall(out, filter="data")
+    log = out / "out" / "run.log"
+    print(f"build and run log: {log}")
+    results = out / "out" / "bench" / "results.json"
+    if not results.is_file():
+        print("the run produced no results.json; see the log", file=sys.stderr)
+        return 1
+    subprocess.run([sys.executable, str(ROOT / "bin" / "bench"), "report", str(results)], check=True)
+    print(f"results: {results}\nreport:  {results.parent / 'report.md'}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

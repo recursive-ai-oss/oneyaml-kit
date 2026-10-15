@@ -81,19 +81,14 @@ class Choosing(unittest.TestCase):
     def test_a_harness_change_selects_that_harness_alone(self):
         self.assertEqual(areas(["bench/go/measure.go"])[0], ["core", "bench-go"])
         self.assertEqual(areas(["bench/rust/src/main.rs"])[0], ["core", "bench-rust"])
-        self.assertEqual(areas(["bench/rust/counters.json"])[0], ["core", "bench-rust"])
+        self.assertEqual(areas(["bench/rust/Cargo.lock"])[0], ["core", "bench-rust"])
         self.assertEqual(areas(["bench/csharp/Bench.csproj"])[0], ["core", "bench-csharp"])
-        self.assertEqual(areas(["bench/tests/test_pipeline_go.py"])[0], ["core", "bench-go"])
         self.assertEqual(areas(["bench/tests/test_pipeline.py"])[0], ["core", "bench-rust"])
-        self.assertEqual(areas(["bench/tests/test_csharp.py"])[0], ["core", "bench-csharp"])
 
     def test_a_change_to_the_oneyaml_csharp_adapter_also_runs_the_csharp_harness_area(self):
         got, _, _ = areas(["adapters/oneyaml-csharp/Lib.cs"])
         self.assertEqual(got, ["core", "csharp", "bench-csharp"])
         self.assertEqual(areas(["adapters/vyaml/Program.cs"])[0], ["core", "csharp"])
-
-    def test_the_linked_build_tests_run_in_the_hand_over_tier(self):
-        self.assertIn("benchmark .NET linked builds", {s.name for s in plan(False)})
 
     def test_several_changes_add_up_in_a_stable_order(self):
         got, touched, _ = areas(["adapters/vyaml/Program.cs", "adapters/go-yaml-v2/main.go", "bench/x.py"])
@@ -116,7 +111,7 @@ class Choosing(unittest.TestCase):
             elif a["language"] == "rust":
                 self.assertIn(f"{name}: clippy", text, name)
         self.assertIn("benchmark quick run", text)
-        for step in ("benchmark counters", "benchmark clippy", "benchmark self-test clippy", "benchmark self-test",
+        for step in ("benchmark clippy", "benchmark self-test clippy", "benchmark self-test",
                      "benchmark unit tests", "benchmark fmt", "benchmark go: gofmt, vet, test",
                      "benchmark go self-test", "benchmark .NET harness format"):
             self.assertIn(step, text)
@@ -305,25 +300,24 @@ def ident(s):
 class Tiers(unittest.TestCase):
     def test_the_hand_over_tier_leaves_the_slow_steps_to_the_full_tier(self):
         fast = {s.name for s in plan(False)}
-        for slow in ("benchmark quick run", "benchmark counters", "benchmark clippy",
+        for slow in ("benchmark quick run", "benchmark clippy",
                      "benchmark rust pipeline tests", "benchmark go pipeline tests",
                      "benchmark csharp pipeline tests"):
             self.assertNotIn(slow, fast)
         for quick in ("benchmark unit tests", "benchmark rust smoke run", "benchmark self-test",
-                      "benchmark go smoke run", "benchmark csharp smoke run", "benchmark .NET harness files"):
+                      "benchmark go smoke run", "benchmark csharp smoke run"):
             self.assertIn(quick, fast)
 
     def test_every_moved_step_still_runs_in_the_full_tier(self):
         full = {s.name for s in plan(True)}
-        for moved in ("benchmark quick run", "benchmark counters", "benchmark clippy",
+        for moved in ("benchmark quick run", "benchmark clippy",
                       "benchmark rust pipeline tests", "benchmark go pipeline tests",
                       "benchmark csharp pipeline tests", "benchmark self-test clippy", "benchmark self-test"):
             self.assertIn(moved, full)
         # The hand-over tier's only extras are quick stand-ins that the full tier's slow steps subsume.
         extra = {s.name for s in plan(False)} - full
         self.assertEqual(extra, {"benchmark rust smoke run", "benchmark go smoke run",
-                                 "benchmark csharp smoke run", "benchmark .NET harness files",
-                                 "benchmark .NET linked builds"})
+                                 "benchmark csharp smoke run"})
 
     def test_only_the_full_tier_runs_the_slow_cases(self):
         langs = [s for s in plan(True) if s.area not in ("core",) and not s.area.startswith("bench")]
@@ -351,7 +345,7 @@ class Tiers(unittest.TestCase):
         run_files = {m + ".py" for m in unit.argv[unit.argv.index("-q") + 1:]}
         for s in steps:
             if s.name.endswith("pipeline tests"):
-                run_files.add(s.argv[s.argv.index("-p") + 1])
+                run_files.add(s.argv[s.argv.index("-q") + 1].split(".")[0] + ".py")
         self.assertEqual(run_files, {m + ".py" for m in mods})
 
     def test_the_slow_test_rule_matches_files_and_pipeline_modules(self):
@@ -359,7 +353,7 @@ class Tiers(unittest.TestCase):
         for frag in gate.BENCH_SLOW_TESTS:
             self.assertTrue(any(frag in m for m in mods), f"stale entry {frag!r}")
         slow = {m + ".py" for m in mods if any(f in m for f in gate.BENCH_SLOW_TESTS)}
-        self.assertEqual(slow, set(gate.BENCH_PIPELINE_TESTS.values()))
+        self.assertEqual(slow, {v.split(".")[0] + ".py" for v in gate.BENCH_PIPELINE_TESTS.values()})
         self.assertEqual(set(gate.BENCH_PIPELINE_TESTS), set(gate.BENCH_LANGS))
 
     def test_a_harness_area_builds_only_its_own_language(self):

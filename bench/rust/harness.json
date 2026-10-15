@@ -3,6 +3,5 @@
  "language": "rust",
  "build": ["cargo", "build", "--release", "--locked", "--quiet"],
  "build_env": {"CARGO_TARGET_DIR": "{build}"},
- "command": ["{build}/release/oneyaml-bench-rust"],
- "counters": {"tool": "callgrind", "region": "oneyaml_bench_region"}
+ "command": ["{build}/release/oneyaml-bench-rust"]
 }

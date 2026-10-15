@@ -65,7 +65,7 @@ public sealed class YamlDotNetLib : ILibrary
             case BenchTask.Dump:
                 if (!single) throw Support.No("dump is defined for one document");
                 return new FnRunner<object?, byte[]>(() => D.Deserialize<object>(text), tree => Support.Utf8.GetBytes(S.Serialize(tree!)),
-                    b => new Product.Bytes(b), sharedState: true);
+                    b => new Product.Bytes(b));
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
                 throw Support.No("no lossless document: comments and layout are discarded");
             default:

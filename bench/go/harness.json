@@ -1,7 +1,12 @@
 {
  "format": "oneyaml-kit-bench-harness/1",
  "language": "go",
- "build": ["sh", "build.sh", "{build}"],
- "command": ["{build}/oneyaml-bench-go"],
- "optional_libraries": {"KIT_ONEYAML_GO_SRC": ["oneyaml-go"]}
+ "build": [
+  "sh",
+  "build.sh",
+  "{build}"
+ ],
+ "command": [
+  "{build}/oneyaml-bench-go"
+ ]
 }

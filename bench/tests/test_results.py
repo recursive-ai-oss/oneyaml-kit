@@ -1,6 +1,5 @@
-"""Self-tests for the benchmark logic: ratios, verdicts, rows, tallies, publishability,
-result validation and the known-deviation check. Each rule is pinned by a case that
-fails if the rule is changed."""
+"""Self-tests for the benchmark logic: ratios, verdicts, rows, tallies and result validation.
+Each rule is pinned by a case that fails if the rule is changed."""
 
 import sys
 import unittest
@@ -11,14 +10,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from oneyaml_bench import results as R  # noqa: E402
 
 
-def cell(lib, role="competitor", task="generic-load", workload="w", status="ok", t=100.0, mad=1.0,
+def cell(lib, role="competitor", task="generic-load", workload="w", status="ok", t=100.0,
          peak=1000, language="rust", variant="spec", detail=""):
     c = {"language": language, "library": lib, "role": role, "task": task, "workload": workload,
          "status": status, "input_bytes": 10}
     if status == "ok":
         c["variant"] = variant
-        c["time"] = {"median_ns": t, "mad_ns": mad, "samples": 5, "min_ns": t, "max_ns": t}
-        c["memory"] = {"method": "test", "peak_bytes": peak, "allocated_bytes": peak * 2, "allocations": 3}
+        c["time"] = {"ns": t, "stat": "mean"}
+        c["memory"] = {"allocated_bytes": peak, "allocations": 3}
     else:
         c["detail"] = detail or ("unsupported" if status == "unsupported" else "why")
     return c
@@ -32,30 +31,23 @@ class RatioAndVerdict(unittest.TestCase):
             R.ratio(1.0, 0.0)
 
     def test_time_verdict_thresholds(self):
-        # Lower is better. Spread 0 leaves only the 2% floor.
-        self.assertEqual(R.time_verdict(97.0, 0, 100.0, 0), "win")
-        self.assertEqual(R.time_verdict(103.0, 0, 100.0, 0), "loss")
-        self.assertEqual(R.time_verdict(101.0, 0, 100.0, 0), "tie")
-        self.assertEqual(R.time_verdict(99.0, 0, 100.0, 0), "tie")
-
-    def test_time_verdict_widens_with_noise(self):
-        # 10% apart is a win when quiet, a tie when the spread is 5% (3 x 5% = 15%).
-        self.assertEqual(R.time_verdict(90.0, 1.0, 100.0, 1.0), "win")
-        self.assertEqual(R.time_verdict(90.0, 4.5, 100.0, 5.0), "tie")
-        # The noisier of the two sides decides.
-        self.assertEqual(R.time_verdict(90.0, 0.0, 100.0, 5.0), "tie")
+        # Lower is better; a gap under 5% is a tie.
+        self.assertEqual(R.verdict(90.0, 100.0, R.TIME_BAND), "win")
+        self.assertEqual(R.verdict(110.0, 100.0, R.TIME_BAND), "loss")
+        self.assertEqual(R.verdict(103.0, 100.0, R.TIME_BAND), "tie")
+        self.assertEqual(R.verdict(97.0, 100.0, R.TIME_BAND), "tie")
 
     def test_memory_verdict_is_nearly_exact(self):
-        self.assertEqual(R.memory_verdict(98, 100), "win")
-        self.assertEqual(R.memory_verdict(102, 100), "loss")
-        self.assertEqual(R.memory_verdict(1000, 1005), "tie")
+        self.assertEqual(R.verdict(95, 100, R.MEMORY_BAND), "win")
+        self.assertEqual(R.verdict(105, 100, R.MEMORY_BAND), "loss")
+        self.assertEqual(R.verdict(1000, 1010, R.MEMORY_BAND), "tie")
 
 
 class Rows(unittest.TestCase):
     def test_reference_is_the_best_competitor_not_the_first_or_ours(self):
         cells = [cell("ours", "own", t=120), cell("slow", t=300), cell("fast", t=100), cell("mid", t=110)]
         [row] = R.compare_rows(cells)
-        self.assertEqual(row["best_time"]["library"], "fast")
+        self.assertEqual(row["best"]["time"]["library"], "fast")
         e = row["own"][0]["time"]
         self.assertEqual(e["vs"], "fast")
         self.assertAlmostEqual(e["ratio"], 1.2)
@@ -71,7 +63,7 @@ class Rows(unittest.TestCase):
         # The fastest "competitor" gave a wrong answer, so it has no number to compare with.
         cells = [cell("ours", "own", t=100), cell("fake", status="differs", detail="x"), cell("real", t=200)]
         [row] = R.compare_rows(cells)
-        self.assertEqual(row["best_time"]["library"], "real")
+        self.assertEqual(row["best"]["time"]["library"], "real")
         self.assertEqual(row["own"][0]["time"]["verdict"], "win")
 
     def test_no_competitor_means_no_rival(self):
@@ -104,7 +96,7 @@ class Rows(unittest.TestCase):
     def test_controls_never_become_a_reference(self):
         cells = [cell("ours", "own", t=100), cell("control-correct", "control", t=1), cell("rival", t=90)]
         [row] = R.compare_rows(cells)
-        self.assertEqual(row["best_time"]["library"], "rival")
+        self.assertEqual(row["best"]["time"]["library"], "rival")
 
 
 class WhatMaySetTheReference(unittest.TestCase):
@@ -115,8 +107,8 @@ class WhatMaySetTheReference(unittest.TestCase):
         for variant in ("bytes-only", "value-only", "harness-rendered", "something-new"):
             fast = cell("loose", t=10, variant=variant)
             [row] = R.compare_rows([cell("ours", "own", t=100), fast, cell("real", t=200)])
-            self.assertEqual(row["best_time"]["library"], "loose", variant)
-            self.assertEqual(row["best_time_mark"], variant)
+            self.assertEqual(row["best"]["time"]["library"], "loose", variant)
+            self.assertEqual(row["own"][0]["time"]["vs_mark"], variant)
             e = row["own"][0]["time"]
             self.assertEqual((e["vs"], e["vs_mark"], e["verdict"]), ("loose", variant, "loss"), variant)
             self.assertEqual(R.non_reference_label(fast), variant)
@@ -133,13 +125,13 @@ class WhatMaySetTheReference(unittest.TestCase):
     def test_a_marked_cell_that_is_slower_does_not_change_the_comparison(self):
         slow = cell("loose", t=1000, variant="bytes-only")
         [row] = R.compare_rows([cell("ours", "own", t=100), slow, cell("real", t=200)])
-        self.assertEqual(row["best_time"]["library"], "real")
-        self.assertEqual(row["best_time_mark"], "")
+        self.assertEqual(row["best"]["time"]["library"], "real")
+        self.assertEqual(row["own"][0]["time"]["vs_mark"], "")
         self.assertEqual(row["own"][0]["time"]["verdict"], "win")
 
     def test_a_tie_goes_to_the_unmarked_cell(self):
         [row] = R.compare_rows([cell("ours", "own", t=100), cell("loose", t=50, variant="bytes-only"), cell("real", t=50)])
-        self.assertEqual(row["best_time"]["library"], "real")
+        self.assertEqual(row["best"]["time"]["library"], "real")
 
     def test_memory_is_compared_with_a_marked_cell_too(self):
         [row] = R.compare_rows([cell("ours", "own", t=100, peak=1000), cell("loose", t=500, peak=100, variant="value-only"),
@@ -150,13 +142,13 @@ class WhatMaySetTheReference(unittest.TestCase):
 
     def test_a_merged_cell_may_set_the_reference(self):
         [row] = R.compare_rows([cell("ours", "own", t=100), cell("merger", t=10, variant="merged"), cell("real", t=200)])
-        self.assertEqual(row["best_time"]["library"], "merger")
+        self.assertEqual(row["best"]["time"]["library"], "merger")
         self.assertEqual(R.non_reference_label(cell("merger", variant="merged")), "")
 
     def test_a_row_of_only_marked_cells_is_compared_with_the_strongest_of_them_and_a_loss_is_a_loss(self):
         # The only lossless competitor of a task is often a bytes-only one. Ours losing to it is a loss.
         [row] = R.compare_rows([cell("ours", "own", t=100, peak=1000), cell("loose", t=10, peak=100, variant="bytes-only")])
-        self.assertEqual(row["best_time"]["library"], "loose")
+        self.assertEqual(row["best"]["time"]["library"], "loose")
         e = row["own"][0]
         self.assertEqual((e["time"]["verdict"], e["time"]["vs_mark"]), ("loss", "bytes-only"))
         self.assertEqual(e["memory"]["verdict"], "loss")
@@ -167,119 +159,21 @@ class WhatMaySetTheReference(unittest.TestCase):
     def test_a_row_is_no_rival_only_when_no_competitor_answered(self):
         [row] = R.compare_rows([cell("ours", "own", t=100), cell("bad", status="differs", detail="x"),
                                 cell("loose", status="unsupported")])
-        self.assertIsNone(row["best_time"])
+        self.assertIsNone(row["best"]["time"])
         self.assertIsNone(row["own"][0]["time"])
         self.assertEqual(R.tally([row], "time")["no-rival"], 1)
 
-    def test_the_baseline_reference_is_a_full_task_cell_when_there_is_one(self):
+    def test_the_best_in_a_row_is_a_full_task_cell_when_there_is_one(self):
         c = [cell("a", t=100), cell("loose", t=10, variant="bytes-only"), cell("b", t=300)]
         [row] = R.compare_rows(c)
-        self.assertEqual(R.baseline_reference(row, "time")["library"], "a")
+        self.assertEqual(R.best_in_row(row, "time")["library"], "a")
         [row] = R.compare_rows([cell("loose", t=10, variant="bytes-only"), cell("l2", t=20, variant="value-only")])
-        self.assertEqual(R.baseline_reference(row, "time")["library"], "loose")
+        self.assertEqual(R.best_in_row(row, "time")["library"], "loose")
 
 
-class KnownReasonsReachTheCells(unittest.TestCase):
-    def test_attach_known_copies_the_reason_by_language_and_cell(self):
-        a = cell("lib", status="differs", detail="x", language="go")
-        b = cell("lib", status="differs", detail="x", language="csharp")
-        res = {"cells": [a, b]}
-        R.attach_known(res, {"go": {"entries": [{"cell": "lib/generic-load/w", "status": "differs",
-                                                   "reason": "default limit, not raised"}]}})
-        self.assertEqual(a["known"], "default limit, not raised")
-        self.assertNotIn("known", b)
-
-
-class Publishability(unittest.TestCase):
-    QUIET = [0.1] * 20
-
-    def assess(self, **kw):
-        args = dict(mode="full", samples=self.QUIET, load1_start=1.0, load1_end=1.2, complete=True,
-                    pinned_cpu=3, governor="performance")
-        args.update(kw)
-        return R.assess_publishability(**args)
-
-    def test_a_quiet_complete_full_run_is_publishable(self):
-        a = self.assess()
-        self.assertTrue(a["publishable"])
-        self.assertEqual((a["label"], a["reasons"]), ("publishable", []))
-
-    def test_each_condition_alone_blocks(self):
-        cases = {
-            "mode": dict(mode="quick"),
-            "complete": dict(complete=False),
-            "selftest": dict(selftest_build=True),
-            "few samples": dict(samples=[0.0] * 4),
-            "p95": dict(samples=[0.1] * 10 + [2.0] * 10),
-            "worst sample": dict(samples=[0.1] * 99 + [5.0]),
-            "load at start": dict(load1_start=3.5),
-            "load at end": dict(load1_end=3.5),
-            "not pinned": dict(pinned_cpu=None),
-            "powersave governor": dict(governor="powersave"),
-            "unknown governor": dict(governor="unknown"),
-        }
-        for name, kw in cases.items():
-            a = self.assess(**kw)
-            self.assertFalse(a["publishable"], name)
-            self.assertEqual(len(a["reasons"]), 1, f"{name}: {a['reasons']}")
-            self.assertEqual(a["label"], "smoke")
-
-    def test_thresholds_are_inclusive(self):
-        self.assertTrue(self.assess(samples=[1.0] * 20)["publishable"])
-        self.assertTrue(self.assess(load1_start=3.0, load1_end=3.0)["publishable"])
-        self.assertTrue(self.assess(samples=[0.1] * 19 + [4.0])["publishable"])
-
-    def test_the_measured_values_and_the_rule_are_recorded(self):
-        a = self.assess(samples=[0.5] * 10)
-        self.assertEqual(a["measured"]["foreign_busy_cores_max"], 0.5)
-        self.assertEqual(a["rule"], R.PUBLISH_RULE)
-
-    def test_pinning_and_governor_are_stated_in_the_reasons_and_recorded(self):
-        a = self.assess(pinned_cpu=None, governor="powersave")
-        self.assertEqual(len(a["reasons"]), 2)
-        self.assertTrue(any("not pinned" in r for r in a["reasons"]))
-        self.assertTrue(any("'powersave'" in r for r in a["reasons"]))
-        self.assertEqual((a["measured"]["pinned_cpu"], a["measured"]["governor"]), (None, "powersave"))
-
-    def test_a_cell_timed_before_its_warmup_settled_blocks_publication_in_full_mode_only(self):
-        ok = cell("a")
-        ok["time"]["warmup_settled"] = True
-        bad = cell("b", workload="w2")
-        bad["time"]["warmup_settled"] = False
-        self.assertEqual(R.unsettled_reasons("full", [ok]), [])
-        [why] = R.unsettled_reasons("full", [ok, bad])
-        self.assertIn("b/generic-load/w2", why)
-        self.assertEqual(R.unsettled_reasons("quick", [ok, bad]), [])
-        # A harness that does not record the field (Rust, Go) is not affected.
-        self.assertEqual(R.unsettled_reasons("full", [cell("c")]), [])
-        r = result([ok], mode="full", publishable=True, reasons=())
-        R.add_reasons(r, R.unsettled_reasons("full", [ok, bad]))
-        self.assertFalse(r["run"]["publishability"]["publishable"])
-
-    def test_reasons_found_after_the_run_make_it_a_smoke_result(self):
-        r = result([cell("a")], mode="full", publishable=True, reasons=())
-        R.add_reasons(r, [])
-        self.assertTrue(r["run"]["publishability"]["publishable"])
-        R.add_reasons(r, ["the list of known deviations does not match"])
-        pub = r["run"]["publishability"]
-        self.assertEqual((pub["publishable"], pub["label"]), (False, "smoke"))
-        self.assertEqual(pub["reasons"], ["the list of known deviations does not match"])
-        R.validate(r)
-
-    def test_percentile(self):
-        self.assertEqual(R.percentile([1, 2, 3, 4, 5], 0.5), 3)
-        self.assertEqual(R.percentile([], 0.9), 0.0)
-        self.assertAlmostEqual(R.percentile(list(range(101)), 0.95), 95)
-
-
-def result(cells, mode="quick", publishable=False, reasons=("quick",)):
-    if mode == "full":
-        # A full run takes at least 30 samples in every cell; the quick-sized fixture cells are widened.
-        cells = [dict(c, time=dict(c["time"], samples=max(c["time"]["samples"], 31))) if "time" in c else c
-                 for c in cells]
+def result(cells, mode="quick", smoke=True):
     return {"format": R.FORMAT, "harnesses": {}, "workloads": [],
-            "run": {"date": "d", "mode": mode, "environment": {},
-                    "publishability": {"publishable": publishable, "reasons": list(reasons)}},
+            "run": {"date": "d", "mode": mode, "smoke": smoke, "environment": {}, "load": {}},
             "cells": cells}
 
 
@@ -288,15 +182,20 @@ class Validation(unittest.TestCase):
         R.validate(result([cell("a", "own"), cell("b", status="differs"), cell("c", status="unsupported")]))
 
     def test_a_wrong_answer_may_not_carry_a_number(self):
-        bad = cell("a", "own", status="differs")
-        bad["time"] = {"median_ns": 1.0, "mad_ns": 0, "samples": 1}
-        with self.assertRaisesRegex(R.ResultError, "carries numbers"):
-            R.validate(result([bad]))
+        for status in ("differs", "rejects", "unjudged", "error"):
+            bad = cell("a", "own", status=status)
+            bad["time"] = {"ns": 1.0}
+            with self.assertRaisesRegex(R.ResultError, "carries numbers"):
+                R.validate(result([bad]))
 
     def test_an_ok_cell_needs_both_figures(self):
         bad = cell("a", "own")
         del bad["memory"]
         with self.assertRaisesRegex(R.ResultError, "lacks memory"):
+            R.validate(result([bad]))
+        bad = cell("a", "own")
+        bad["time"]["ns"] = 0
+        with self.assertRaisesRegex(R.ResultError, "positive time"):
             R.validate(result([bad]))
 
     def test_a_failure_needs_a_reason(self):
@@ -311,187 +210,13 @@ class Validation(unittest.TestCase):
         with self.assertRaisesRegex(R.ResultError, "bad status"):
             R.validate(result([cell("a", status="maybe")]))
 
-    def test_publishable_needs_a_full_run_without_reasons(self):
-        with self.assertRaisesRegex(R.ResultError, "cannot be publishable"):
-            R.validate(result([cell("a")], mode="quick", publishable=True, reasons=()))
-        with self.assertRaisesRegex(R.ResultError, "cannot be publishable"):
-            R.validate(result([cell("a")], mode="full", publishable=True, reasons=("busy",)))
-        R.validate(result([cell("a")], mode="full", publishable=True, reasons=()))
-
-    def test_a_full_run_needs_thirty_samples_in_every_cell_and_a_quick_run_does_not(self):
-        few = cell("a", "own")
-        few["time"]["samples"] = 29
-        res = result([few])
-        R.validate(res)  # quick mode is the smoke tier
-        res["run"]["mode"] = "full"
-        with self.assertRaisesRegex(R.ResultError, "29 samples in a full run"):
-            R.validate(res)
-        few["time"]["samples"] = 30
-        R.validate(res)
-
-    def test_an_unjudged_cell_has_no_numbers_and_needs_a_reason(self):
-        R.validate(result([cell("a", status="unjudged", detail="the referees disagree")]))
-        bad = cell("a", status="unjudged", detail="x")
-        bad["time"] = {"median_ns": 1.0, "mad_ns": 0, "samples": 1}
-        with self.assertRaisesRegex(R.ResultError, "carries numbers"):
-            R.validate(result([bad]))
-        silent = cell("a", status="unjudged")
-        silent["detail"] = ""
-        with self.assertRaisesRegex(R.ResultError, "without a reason"):
-            R.validate(result([silent]))
-
-    def test_the_memory_method_is_required(self):
-        bad = cell("a", "own")
-        del bad["memory"]["method"]
-        with self.assertRaisesRegex(R.ResultError, "lacks memory"):
-            R.validate(result([bad]))
+    def test_a_quick_run_is_a_smoke_run(self):
+        with self.assertRaisesRegex(R.ResultError, "smoke"):
+            R.validate(result([cell("a")], mode="quick", smoke=False))
+        R.validate(result([cell("a")], mode="full", smoke=False))
 
     def test_wrong_format_is_refused(self):
         r = result([])
         r["format"] = "other/1"
         with self.assertRaises(R.ResultError):
             R.validate(r)
-
-
-class KnownDeviations(unittest.TestCase):
-    def known(self, *entries):
-        return {"entries": [dict(e, reason=e.get("reason", "because")) for e in entries]}
-
-    def test_a_listed_failure_passes(self):
-        cells = [cell("ours", "own", status="differs", workload="x")]
-        k = self.known({"cell": "ours/generic-load/x", "status": "differs"})
-        self.assertEqual(R.verify_known(cells, k, "rust"), [])
-
-    def test_an_unlisted_failure_fails(self):
-        cells = [cell("ours", "own", status="differs", workload="x")]
-        [p] = R.verify_known(cells, self.known(), "rust")
-        self.assertIn("unlisted deviation ours/generic-load/x", p)
-
-    def test_a_stale_entry_fails(self):
-        cells = [cell("ours", "own", workload="x")]
-        k = self.known({"cell": "ours/generic-load/x", "status": "differs"})
-        [p] = R.verify_known(cells, k, "rust")
-        self.assertIn("stale", p)
-
-    def test_a_changed_status_fails(self):
-        cells = [cell("ours", "own", status="rejects", workload="x")]
-        k = self.known({"cell": "ours/generic-load/x", "status": "differs"})
-        [p] = R.verify_known(cells, k, "rust")
-        self.assertIn("listed as differs", p)
-
-    def test_variants_are_deviations(self):
-        cells = [cell("ours", "own", workload="x", variant="merged")]
-        self.assertEqual(len(R.verify_known(cells, self.known(), "rust")), 1)
-        k = self.known({"cell": "ours/generic-load/x", "status": "ok", "variant": "merged"})
-        self.assertEqual(R.verify_known(cells, k, "rust"), [])
-
-    def test_unsupported_and_unmeasured_cells_are_not_deviations(self):
-        cells = [cell("ours", "own", status="unsupported", workload="x")]
-        k = self.known({"cell": "ours/generic-load/not-run", "status": "differs"})
-        self.assertEqual(R.verify_known(cells, k, "rust"), [])
-
-    def test_a_document_judged_on_bytes_alone_is_a_listed_deviation(self):
-        cells = [cell("edit", workload="x", variant="bytes-only")]
-        self.assertEqual(len(R.verify_known(cells, self.known(), "rust")), 1)
-        k = self.known({"cell": "edit/generic-load/x", "status": "ok", "variant": "bytes-only"})
-        self.assertEqual(R.verify_known(cells, k, "rust"), [])
-
-    UNIVERSE = {"x": ["generic-load", "dump"], "y": ["generic-load"]}
-    LIBS = {"ours", "rival"}
-
-    def check(self, *entries, cells=()):
-        return R.verify_known(list(cells), self.known(*entries), "rust", self.UNIVERSE, self.LIBS)
-
-    def test_entries_for_unknown_libraries_tasks_and_workloads_are_stale_even_if_unmeasured(self):
-        [p] = self.check({"cell": "ghost/generic-load/x", "status": "differs"})
-        self.assertIn("no library 'ghost'", p)
-        [p] = self.check({"cell": "ours/generic-load/nowhere", "status": "differs"})
-        self.assertIn("no workload 'nowhere'", p)
-        [p] = self.check({"cell": "ours/edit-script/x", "status": "differs"})
-        self.assertIn("has no task 'edit-script'", p)
-        [p] = self.check({"cell": "ours/dump/y", "status": "differs"})
-        self.assertIn("has no task 'dump'", p)
-        [p] = self.check({"cell": "ours-generic-load-x", "status": "differs"})
-        self.assertIn("not library/task/workload", p)
-
-    def test_a_real_cell_that_was_not_measured_is_left_alone(self):
-        self.assertEqual(self.check({"cell": "ours/dump/x", "status": "differs"}), [])
-        measured = [cell("ours", "own", workload="y")]
-        self.assertEqual(self.check({"cell": "ours/dump/x", "status": "differs"}, cells=measured), [])
-
-    def test_a_duplicate_entry_is_refused(self):
-        e = {"cell": "ours/dump/x", "status": "differs"}
-        self.assertEqual(len(self.check(e, e)), 1)
-
-    def test_an_entry_needs_a_reason(self):
-        k = {"entries": [{"cell": "a/b/c", "status": "differs", "reason": ""}]}
-        self.assertEqual(len(R.verify_known([], k, "rust")), 1)
-
-
-def with_processes(c, peaks):
-    """The cell as a harness that measured memory in several processes publishes it."""
-    c["memory"]["peak_bytes"] = sorted(peaks)[len(peaks) // 2]
-    c["memory"]["allocated_bytes"] = c["memory"]["peak_bytes"]
-    c["memory"]["processes"] = {"count": len(peaks), "peak_bytes": list(peaks), "allocated_bytes": list(peaks)}
-    return c
-
-
-class MemoryAcrossProcesses(unittest.TestCase):
-    def test_a_gap_inside_the_observed_range_is_a_tie_and_one_beyond_it_is_decided(self):
-        # Ours moves between 420,816 and 467,216 bytes (median 444,016); the rival sits at 440,000, 1% below.
-        # Without the range the median alone would call a loss; the rival lies inside our range, so it is a tie.
-        self.assertEqual(R.memory_verdict(444016, 440000), "tie")
-        self.assertEqual(R.memory_verdict(446000, 400000), "loss")
-        self.assertEqual(R.memory_verdict(446000, 400000, (420816, 467216), (400000, 400000)), "loss")
-        self.assertEqual(R.memory_verdict(446000, 430000, (420816, 467216), (430000, 430000)), "tie")
-        self.assertEqual(R.memory_verdict(400000, 430000, (380000, 440000), (430000, 430000)), "tie")
-        self.assertEqual(R.memory_verdict(400000, 430000, (380000, 420000), (430000, 430000)), "win")
-        # The rival's own spread counts as well.
-        self.assertEqual(R.memory_verdict(400000, 430000, (380000, 420000), (410000, 450000)), "tie")
-
-    def test_rows_use_the_ranges_of_both_cells(self):
-        ours = with_processes(cell("ours", "own", peak=0), [420816, 444016, 444016, 467216, 444016])
-        rival = with_processes(cell("rival", peak=0), [430000] * 5)
-        [row] = R.compare_rows([ours, rival])
-        self.assertEqual(row["own"][0]["memory"]["verdict"], "tie")  # 3% apart, but the rival is inside our range
-        far = with_processes(cell("rival", peak=0), [300000] * 5)
-        [row] = R.compare_rows([ours, far])
-        self.assertEqual(row["own"][0]["memory"]["verdict"], "loss")
-        far = with_processes(cell("rival", peak=0), [500000] * 5)
-        [row] = R.compare_rows([ours, far])
-        self.assertEqual(row["own"][0]["memory"]["verdict"], "win")
-        # A cell measured in one process behaves as before.
-        [row] = R.compare_rows([cell("ours", "own", peak=1000), cell("rival", peak=1005)])
-        self.assertEqual(row["own"][0]["memory"]["verdict"], "tie")
-
-    def test_the_median_of_the_processes_is_published_and_every_figure_is_kept(self):
-        c = cell("lib", peak=444016)
-        c["memory"]["allocated_bytes"] = 444016
-        R.merge_memory_processes(c, [{"peak_bytes": 467216, "allocated_bytes": 467216},
-                                     {"peak_bytes": 444080, "allocated_bytes": 444016},
-                                     {"peak_bytes": 420816, "allocated_bytes": 420816}])
-        m = c["memory"]
-        self.assertEqual(m["processes"]["count"], 4)
-        self.assertEqual(m["processes"]["allocated_bytes"], [444016, 467216, 444016, 420816])
-        self.assertEqual(m["allocated_bytes"], 444016)  # the median of four is the mean of the middle two
-        self.assertEqual(R.memory_range(c, "allocated_bytes"), (420816, 467216))
-        self.assertEqual(R.memory_range(cell("one", peak=7), "peak_bytes"), (7, 7))
-        c2 = cell("lib", peak=5)
-        R.merge_memory_processes(c2, [])
-        self.assertNotIn("processes", c2["memory"])
-
-    def test_the_result_is_refused_when_the_published_figure_is_not_the_median(self):
-        good = with_processes(cell("lib"), [900, 1000, 1000, 1100, 1000])
-        R.validate(result([good]))
-        for edit in (lambda m: m.update(peak_bytes=1100),
-                     lambda m: m["processes"].update(count=3),
-                     lambda m: m["processes"]["allocated_bytes"].append(1),
-                     lambda m: m["processes"].update(peak_bytes=[1000, "x", 1000, 1000, 1000])):
-            bad = with_processes(cell("lib"), [900, 1000, 1000, 1100, 1000])
-            edit(bad["memory"])
-            with self.assertRaises(R.ResultError):
-                R.validate(result([bad]))
-
-
-if __name__ == "__main__":
-    unittest.main()

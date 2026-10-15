@@ -1,31 +1,27 @@
 # Benchmarks
 
-The benchmark harness measures YAML libraries, ours and their competitors, on the same
-inputs and the same tasks, and generates the tables and charts that library READMEs
-embed. It reports wall-clock time and memory, checks every answer before timing it, and
-says plainly when a run is only a smoke result.
+The benchmark measures YAML libraries, ours and their competitors, on the same inputs and the
+same tasks, and generates the tables and charts that library READMEs embed. Each language uses
+its own standard benchmark tool at its defaults, every answer is checked before it is timed, and
+a quick run says plainly that it is only a smoke result.
 
 ```sh
-bin/bench run                    # quick mode: seconds, writes out/bench/
-bin/bench run --mode full        # full mode: minutes, for a quiet host
-bin/bench run --task dump --workload gha-workflow   # a slice of either
-bin/bench run --counters         # also count instructions with callgrind
-bin/bench report out/bench/results.json             # re-render a report
+bin/bench run                    # quick mode: seconds to a minute, writes out/bench/
+bin/bench run --mode full        # full mode: the tools' defaults, for a quiet machine
+bin/bench run --lang go --task dump --workload gha-workflow   # a slice of either
+bin/bench report out/bench/results.json                       # re-render a report
 bin/bench workloads              # write the workload set only
-bin/bench freeze --check         # verify the real-world expectations
-bin/bench baseline out/bench/results.json --out bench/rust/counters.json
-bin/bench check out/bench/results.json --baseline bench/rust/counters.json
+bin/bench readme --results out --library oneyaml-go --readme README.md --docs docs   # see below
+bin/bench-cloud quick|full       # one run on a rented machine, see below
 ```
 
-Output goes to `$KIT_OUT/bench` (default `./out/bench`, never committed):
-`results.json`, `report.md`, `charts/*.svg`, and the prepared `workloads/`.
-Build output goes to `$CARGO_TARGET_DIR`, or to `out/bench/target`: the Rust harness is built there by cargo, and the Go harness binary (`oneyaml-bench-go`) is written beside it.
+Output goes to `$KIT_OUT/bench` (default `./out/bench`, never committed): `results.json`,
+`report.md`, `charts/*.svg`, and the prepared `workloads/`. Build output goes to
+`$CARGO_TARGET_DIR`, or to `out/bench/target`.
 
-Quick mode is for the inner loop: short warm-up, five short samples per cell. Full mode
-is for numbers worth reading: a 300 ms warm-up and 31 samples of about 50 ms per cell (a full run never
-takes fewer than 30 samples in any cell; fewer are for quick mode only), and
-the large scaling inputs. Numbers taken on a shared machine are **smoke results** and the
-report says so (see [Publishable runs](#publishable-runs)).
+Quick mode runs each tool with a short setting. Full mode is the tools' defaults and adds the
+large scaling inputs. A quick run, or any run outside the cloud machine (or one started with `--smoke`, or from `bin/bench-cloud --here`), is a
+**smoke result** and its report says so.
 
 ## What is measured
 
@@ -45,7 +41,10 @@ the same code twice: once for the correctness guard, and then many times under t
 | `patch` | a parsed lossless document | apply an RFC 6902 patch atomically, write the bytes | the bytes equal the expected bytes, and a second patch with a failing step leaves the document unchanged and reports an error |
 
 The state each task starts from is built fresh for every iteration, outside the clock, and
-is released after the clock stops. The result of every iteration (a value tree, an output
+is released after the clock stops. The one exception is the Go `unchanged-emit` task: writing out an unchanged
+document can take nanoseconds, so the harness shares one parsed document between runs, but only for a library
+whose write of a used document allocates the same as a write of a fresh one (checked before timing, within 2%).
+A library that does less the second time gets a fresh document for every run. The result of every iteration (a value tree, an output
 buffer) is dropped inside the clock, as a caller's would be. Edit paths are resolved from the
 workload's pointers once, before the clock, into the library's own path syntax.
 
@@ -95,89 +94,47 @@ places and are written to `out/bench/workloads/` before a run:
 - Two outcomes are accepted where the specification leaves a choice, and the result names
   which one the library produced: `merged` (a library that applies `<<` merge keys while
   loading, a YAML 1.1 extension; YAML 1.2 reads `<<` as a plain key) for `generic-load`,
-  `dump` and `document-parse`. Only the plain outcome is `spec`. A `merged` result, and a
-  `bytes-only` one (a document judged on its bytes because the library gives no value to
-  compare), are listed as known deviations. A third, `value-only`, exists for one purpose: the
+  `dump` and `document-parse`. Only the plain outcome is `spec`. A `bytes-only` result is a
+  document judged on its bytes because the library gives no value to compare. A third, `value-only`, exists for one purpose: the
   baseline patcher that works on JSON and cannot keep the text (see
   [benchmark-adapters.md](benchmark-adapters.md)); its output is judged on the value it holds.
   A fourth, `harness-rendered`, marks an edit whose lookup and new text are written by the harness
-  because the library only replaces a range of characters; the work is timed, and the cell is
-  listed as a known deviation.
+  because the library only replaces a range of characters; the work is timed.
 
 ### Metrics
 
-- **Time:** wall-clock time of one operation. A sample runs a batch of prepared
-  iterations and divides by the batch size, with the batch sized so a sample lasts a
-  target time. The reported time is the median of the samples, the spread is the median
-  absolute deviation (shown as a percentage), and all samples are kept in the result.
-- **Memory:** one extra tracked run of the task, through a counting global allocator.
-  *Peak* is the high-water mark of live heap bytes, including the state the task starts
-  from (for example the parsed document of an emit). *Retained*, where a harness measures it,
-  is what a run leaves live: the live heap one full collection after the run, less the live heap
-  just before it, with the starting state held in both readings. It has this one definition in
-  every harness (pools and caches show up in it). *Allocated* is the bytes the task
-  itself requested, and *allocations* the number of allocation calls. Stacks and memory
-  mapped outside the allocator are not seen.
-  The Go harness cannot count through an allocator, so it reads `runtime.MemStats` instead
-  and says so in each cell's method (`runtime.MemStats, sampled`); its peak is the highest
-  heap reading seen and is not the same quantity as the Rust one. Its allocation figures are
-  `testing.B` per-op averages over all the timed runs, so a cost a library pays only now and then (a refill
-  after a collection, a periodic flush) is spread over the runs as a user's program spreads it. After
-  each collection the harness makes one unmeasured run, so pools are full when counting starts; the
-  cost of that first run is reported separately as `first_run_allocations`, in the result file only.
-  What a library keeps in its pools shows in `retained_bytes`. The exact method is in
-  [benchmark-adapters.md](benchmark-adapters.md#memory), and a table never mixes methods.
-- **Memory in .NET** is not an allocator count: allocated bytes are exact, the peak is the starting
-  state plus every byte the task requested plus the shared-pool buffers it took, in bytes (so a document held in pooled arrays counts), measured in a no-GC region so that it does not depend on the
-  collector's earlier state (see [benchmark-adapters.md](benchmark-adapters.md#memory)), `retained_bytes`
-  is what the library keeps after a run (pools, caches), and the number of allocation calls is not
-  available. Do not compare it with the Rust or Go figures. The allocated bytes of one process are
-  exact and repeat to the byte, but they are not the same in every process: the runtime's dynamic
-  profile-guided optimisation decides, from a sample of the calls it saw, which objects the compiled
-  code keeps on the stack, and that sample differs from run to run. Ten identical runs of one cell
-  gave up to 5.5% spread in quick mode and 11% in full mode, in steps of one allocation site (for
-  YamlDotNet's generic load of `gha-workflow`, 420,816, 444,016 or 467,216 bytes). Treat .NET memory
-  ratios closer than about 10% as ties; the verdict's tie band for memory (1%) is too narrow for
-  this runtime.
-- **Instructions** (`--counters`): instructions executed by one iteration, counted by
-  callgrind restricted to the measured region.
+Each language reports what its standard tool reports, and the report names the tool:
 
-Allocation counts and heap figures repeat to within a few percent for a given
-input and library version (one oneyaml edit path varies by up to 2% with the hash seed), so they gate CI: `bench/rust/counters.json` holds the figures
-of our library for every quick-mode cell, and `bin/bench check` fails when one grows by
-more than 3% (allocation calls), 1% (bytes) or 2% (instructions), or when an entry no
-longer matches a measured cell.
-Refresh it with `bin/bench baseline` when a change is meant to alter them. Wall-clock time
-is the number that goes into a README.
+| Language | Time | Memory |
+|---|---|---|
+| Rust | criterion, mean time of one run | bytes and calls requested in one run, counted by a global allocator |
+| Go | `testing.Benchmark`, ns/op | B/op and allocs/op from `ReportAllocs` |
+| .NET | BenchmarkDotNet's default job, run in process, mean time per task | bytes allocated per task from `MemoryDiagnoser` |
+
+The starting state of every run is built outside the clock and released after it. Quick mode only
+shortens the tool's own time settings. Figures from different tools are never mixed in one table.
 
 ### Verdicts
 
-For each row the reference is the **strongest competitor in that row on that metric**: the
-fastest for time, the smallest peak for memory, whatever it did. Our library's ratio is its value divided
-by the reference's, so below 1.0 is better. A gap is a **tie** when it is smaller than
-the noise: 2% or three times the larger relative spread for time, 1% for memory.
-Otherwise it is a **win** or a **loss**. Losses are marked in the tables and the charts.
+For each row the reference is the **strongest competitor in that row on that metric**: the fastest
+for time, the least allocated for memory, whatever it did. Our library's ratio is its value divided
+by the reference's, so below 1.0 is better. A gap is a **tie** when it is under 5% for time or 2% for
+memory; otherwise it is a **win** or a **loss**. Losses are marked in the tables and the charts.
 
-A cell judged more loosely (`bytes-only`, `value-only`, `harness-rendered`) or from a library that takes
-and returns text (`state: the text`) is shown with a † and is never called the best. It is still compared
-with: when it is faster than ours, or is the only competitor, the verdict names it with its mark ("loss vs
-yaml-edit †, bytes-only") and a loss to it is a loss in the tally and the weakest row. A row has "no rival"
-only when no competitor answered correctly. `merged` carries no mark and may be called the best on every
-task where it occurs (`generic-load`, `dump` and `document-parse`), and is labelled wherever it appears.
-The rule and the reasons are in
+A cell judged more loosely (`bytes-only`, `value-only`, `harness-rendered`) or from a library that
+takes and returns text (`state: the text`) is shown with a † and is never called the best. It is still
+compared with: when it is faster than ours, or is the only competitor, the verdict names it with its
+mark ("loss vs yaml-edit †, bytes-only") and a loss to it is a loss in the tally and the weakest row.
+A row has "no rival" only when no competitor answered correctly. `merged` carries no mark and may be
+called the best on every task where it occurs (`generic-load`, `dump` and `document-parse`), and is
+labelled wherever it appears. The rule and the reasons are in
 [benchmark-adapters.md](benchmark-adapters.md#what-may-be-the-best).
 
 ### A language without a library of ours
 
-The verdicts compare our library with the strongest competitor. A language whose harness has no library of
-ours (the .NET harness, until there is one) has no such comparison. Its tables name the best library in
-each row instead (a faster † cell is named beside it, marked), its summary lists for each library the
-geometric mean of its value divided by the best full-task library's in the same row (1.0× is the best), the
-number of rows it won and the number of rows in which a † cell was ahead of it, and its charts draw that mean
-per library. That is the baseline a library of ours has to beat. Because an average over a library's own
-rows flatters a library that fails its slow rows, the summary also gives each library's mean over only the
-rows in which every library that can set the best has a number, with the number of those rows. A library
-that is never called the best because of the rule above is listed with its ratio and the reason.
+The verdicts compare our library with the strongest competitor. A language whose harness has no
+library of ours has no such comparison; its tables name the best library in each row instead (a
+faster † cell is named beside it, marked).
 
 ## Correctness guard
 
@@ -191,143 +148,52 @@ A library gets a number only if its answer was right.
 - `unjudged`: the harness cannot tell. For `dump` the output is read back by two reference
   parsers, and when they disagree with each other (or only one accepts it) the cell is
   `unjudged` with both readings, not `differs`. It is the harness's problem, not a verdict
-  on the library under test, and it is listed as a known deviation until resolved.
-- `error`: the harness could not measure it (the process died or stalled). The driver
+  on the library under test.
+- `error`: the harness could not measure it (the process died). The driver
   restarts the harness past that cell.
 
-Cells that are not `ok` never carry a time or a memory figure; the result validator and
-the harness's own tests enforce that. `bench/<language>/known.json` lists every cell that
-is a deviation. A new deviation, or an entry that no longer holds, fails the run, and so
-does an entry that names a library, task or workload that does not exist (only a real cell
-that this run did not measure, in another tier or outside a filter, is left alone). The list
-is checked before results and report are written; if it does not match, the report is
-headed as a smoke result with that reason.
+Cells that are not `ok` never carry a time or a memory figure; the result validator and the
+harnesses' own tests enforce that. A cell that is a `differs`, `rejects`, `unjudged` or `error` is
+listed with its reason in the report's table of cells without a number.
 
-## Publishable runs
+## Smoke results
 
-Every result records the date, versions of every library and of the harness, the compiler
-or runtime, build flags, the CPU, the operating system, the governor, and the host load.
-While a run is in progress the driver samples how many cores are busy with work other than
-the harness. A run is labelled **publishable** only if:
+Every result records the date, the versions of every library and of the harness, the tool, the
+compiler or runtime, the CPU, the operating system and the host load before and after. A quick run
+is always labelled **SMOKE RESULT**; A full run anywhere but the cloud machine
+(`KIT_INSTANCE_TYPE` unset), or one shipped with `--here`, is labelled the same way. `bin/bench readme` refuses a smoke result unless `--allow-smoke` is
+given, because a README is public and a smoke number is easily quoted as a claim.
 
-- it covers everything the harnesses of its languages offer: every library, task and workload.
-  A run narrowed with `--library`, `--task` or `--workload` is never publishable, because the
-  strongest competitor or a losing workload may be the one left out; the reason names what
-  was left out. `--lang` is different: a run of one language is complete for that language,
-  so a Go-only run that includes all of Go's libraries, tasks and workloads can be published;
-- it is a full run that finished every cell it set out to measure, with no cell that crashed
-  or stalled (`error`);
-- the harness was pinned to one CPU (`--pin`; the run fails if `taskset` is not available, rather than recording a pin that was not applied);
-- the CPU frequency governor is `performance` (anything else, `powersave` included, lets the
-  clock change during the run, and an unreadable governor counts the same);
-- the list of known deviations matched the run;
-- other work kept at most 1.0 cores busy for 95% of the samples and at most 4.0 at the
-  worst sample;
-- the one-minute load average was at most 3.0 at the start and at the end (the harness's
-  own core included);
-- at least five load samples were taken.
+## Running on a rented machine
 
-Otherwise the report is headed **SMOKE RESULT, NOT PUBLISHABLE** and lists the reasons.
-The thresholds are in `PUBLISH_RULE` in `bench/oneyaml_bench/results.py` and are recorded
-in each result, together with the governor and the CPU the harness was pinned to. Isolated
-cores and boost are recorded (`boost`) but not checked. A host that cannot be pinned or set
-to `performance` cannot produce a publishable run, and the report says which of the reasons
-applies.
-
-## Sharded runs
-
-A full run can be split across several identical machines and the pieces combined into one
-result, which is publishable on the conditions an unsharded run would be, provided every shard
-records the same clean kit revision.
-
-```sh
-bin/bench plan --shards 4 [--lang go]            # show the split as JSON, to pick N
-bin/bench run --mode full --pin 2 --shard 1/4 --out DIR1   # on machine 1; likewise 2/4 ... 4/4
-bin/bench merge --out MERGED DIR1 DIR2 DIR3 DIR4
-```
-
-**The unit is a group**: one language on one workload, with all its libraries and tasks.
-A shard holds whole groups, so every library of a comparison row is measured on the same
-machine. `plan` assigns each group to exactly one shard, longest first onto the cheapest
-shard so far. The cost estimate is `(input bytes + 256 KiB) x tasks x passes`: the fixed
-share stands for the warm-up and sampling every cell pays whatever its size, and a harness
-that measures memory in several processes counts a quarter of a pass for each extra process.
-The numbers only balance the shards; they are relative, not seconds. Libraries are not in the
-estimate because a harness reports them only once it is built; each group runs all of its
-language's libraries. The plan depends only on the languages with a harness, the workloads
-with their sizes and tasks, the mode and the filters, so every machine computes the same plan
-without talking to the others. `plan_digest` is a hash of it. `--shard` takes the same
-`--lang`, `--library`, `--task` and `--workload` filters as an unsharded run, which narrow the
-plan the same way. More shards than groups is an error.
-
-A shard's `results.json` is a normal result with a `run.shard` record: `index`, `count`,
-`plan_digest` and the plan itself, so the merge can check the shard without anything else.
-Its `selection.left_out.groups` lists the rows of the other shards, so a shard is never
-publishable on its own.
-
-**`merge`** refuses (exit 1, nothing written) when:
-
-- the plan digests differ, or a shard's recorded plan does not match its digest, or a shard
-  holds rows the plan did not give it;
-- a shard is missing or given twice;
-- the kit files, the kit revision, the harness of a language (version, library versions, flags,
-  configuration, runtime), a workload's input, the mode, the filters, the number of memory
-  processes, or whether instructions were counted differ. Every result records `run.kit_digest`,
-  a hash of the bytes and paths of the files under `bench`, `suites`, `adapters`, `tools` and
-  `bin` (build output such as `__pycache__`, `target`, `obj` and nested `bin` directories is
-  skipped). It is computed from the files, so it works without a git checkout, for example from
-  an unpacked archive;
-- a shard holds cells outside the rows the plan gave it;
-- the environments differ in anything but the start time and the pinned core: CPU model,
-  `instance_type` (set it with the `KIT_INSTANCE_TYPE` variable when the machines are rented),
-  operating system, memory, governor and so on.
-
-`--allow-incomplete` merges the shards that are there; the missing rows are listed in
-`selection.left_out.groups`, which makes the result a smoke result.
-
-A result whose kit revision is unknown (no git checkout and none supplied) or carries
-`+modified` (uncommitted changes) is never publishable, sharded or not: the revision must name
-the code that was measured. A merged result is also not publishable when a shard's held rows
-lack a cell for any library its harness lists and any task of the row, or hold a cell that
-did not finish; the merge checks this itself rather than trusting the shard's reasons.
-
-The merged `selection` is the union of the shards': `groups` holds every row that was
-measured, and `left_out` is computed against everything the plan offered, so a complete set
-has nothing left out. The publishing rule is applied to every shard again, from the host
-figures it recorded (load, busy cores, governor, pinning, sample count), together with the
-reasons the shard itself found (a crashed cell, a stale list of known deviations, a warm-up
-that did not settle). Each reason in the merged result says which shards it applies to. The
-merge never reads the lists of known deviations itself: each shard checked its own cells.
-`run.shards` keeps every shard's environment, load and measured host figures as a list;
-`run.environment` is the first shard's (they are equal), `run.load` the highest load seen,
-`run.seconds` the longest shard and `run.restarts` the sum. The report shows a table of the
-shards.
+`bin/bench-cloud quick` or `bin/bench-cloud full` runs the whole benchmark on one on-demand cloud
+instance and brings the results back. It launches one instance of the type set in the config from a
+stock Ubuntu image. The instance's start-up script clones the public kit and library repositories at
+the revisions given, installs the toolchains, runs the benchmark and uploads one results tarball to a
+presigned S3 URL. The script waits for the tarball, downloads it, writes the report and terminates the
+instance. The instance has no SSH, no inbound ports and no credentials, and shuts itself down
+(terminating) after a deadline whatever happens. The configuration file is named by `KIT_CLOUD_CONFIG`
+(default `~/.config/oneyaml-kit/cloud.env`); see the head of `bin/bench-cloud` for its variables.
 
 ## Result format
 
-`results.json`, format `oneyaml-kit-bench/1`:
+`results.json`, format `oneyaml-kit-bench/2`:
 
 ```json
 {
- "format": "oneyaml-kit-bench/1",
- "run": {"date": "...", "mode": "quick", "seconds": 31.0, "restarts": 0, "counters": false,
-         "environment": {"cpu": "...", "cpus": 32, "os": "...", "governor": "...", "...": "..."},
-         "publishability": {"publishable": false, "label": "smoke", "reasons": ["..."], "rule": {}, "measured": {}},
-         "selection": {"languages": "all", "libraries": "all", "tasks": "all", "workloads": "all",
-                       "left_out": {"libraries": [], "tasks": [], "workloads": []}},
+ "format": "oneyaml-kit-bench/2",
+ "run": {"date": "...", "mode": "quick", "smoke": true, "seconds": 31.0,
+         "environment": {"cpu": "...", "cpus": 32, "os": "...", "kit_revision": "..."},
          "load": {"before": 1.8, "after": 2.2}},
- "harnesses": {"rust": {"name": "oneyaml-bench-rust", "version": "0.1.0", "runtime": "rustc ...",
-                        "flags": {}, "config": {}, "libraries": [{"id": "oneyaml", "package": "oneyaml",
+ "harnesses": {"rust": {"name": "oneyaml-bench-rust", "version": "0.2.0", "runtime": "rustc ...", "tool": "criterion",
+                        "timer": "...", "memory": "...", "libraries": [{"id": "oneyaml", "package": "oneyaml",
                         "version": "1.1.0", "role": "own", "settings": {}}]}},
  "workloads": [{"id": "gha-workflow", "kind": "real-world", "input_bytes": 9656, "source": {}, "tasks": []}],
  "cells": [
   {"language": "rust", "library": "oneyaml", "role": "own", "task": "generic-load", "workload": "gha-workflow",
    "status": "ok", "variant": "spec", "input_bytes": 9656,
-   "time": {"median_ns": 149000.0, "mad_ns": 800.0, "min_ns": 148000.0, "max_ns": 152000.0,
-            "samples": 5, "iters_per_sample": 7, "samples_ns": []},
-   "memory": {"method": "counting global allocator", "peak_bytes": 51000,
-              "allocated_bytes": 134000, "allocations": 1200},
-   "instructions": null},
+   "time": {"ns": 149000.0, "stat": "mean"},
+   "memory": {"allocated_bytes": 134000, "allocations": 1200}},
   {"language": "rust", "library": "yaml-edit", "role": "competitor", "task": "edit-script",
    "workload": "reference-b", "status": "differs", "detail": "byte 26: got ..., expected ..."}
  ]
@@ -397,24 +263,22 @@ is listed as not run. Nothing is dropped silently.
 
 The verdict is never better than the per-workload verdicts allow: a row with a losing workload is
 marked mixed or loss, and a row with no winning workload is never marked a win. The mark comes from
-the kit's verdict on each workload (its noise floor, and for memory its observed ranges and the
-tie it gives when fewer processes measured than declared), not from the mean. Time and memory each
+the kit's verdict on each workload (its tie band), not from the mean. Time and memory each
 show a count of better, level and worse workloads, and the memory cell names the competitor(s)
-that had the smallest peak, which need not be the time winner. The chart has a row for every
+that allocated least, which need not be the time winner. The chart has a row for every
 task, in the same colour and words as the table: `mixed` is amber, a partial task says which
 workload has no number, and a task without a number is a labelled row with no bar. The alt text
 counts tasks and gives each task's ratio, mark, workload counts and gaps. A † names a competitor
 that did less than the full task.
 
 The method strip gives the date, the kit version and revision, library and competitor versions,
-runtime, flags, warm-up, sample count and statistic (each time is a median), the memory method,
-CPU, OS, governor and host load, and the run's publishability label. A benchmark result records
+runtime, the tool and its statistic (a mean), the memory method, CPU, OS and host load, and
+whether the run is a smoke result. A benchmark result records
 the kit revision but not its version, so the version is read from the conformance result when
 there is one, and otherwise from the checkout that renders the block, and the block says so.
 
-A result that is not publishable is refused unless `--allow-smoke` is given, because a README is
-public and a smoke number is easily quoted as a claim; with the flag every block opens with a
-"SMOKE RESULT, NOT PUBLISHABLE" notice and the reasons.
+A smoke result is refused unless `--allow-smoke` is given, because a README is public and a smoke
+number is easily quoted as a claim; with the flag every block opens with a "SMOKE RESULT" notice.
 
 **Conformance blocks** are refused (exit 1, nothing written) unless the result is for the library,
 comes from a complete run (`run.complete`, so not a filtered one), has no unlisted, stale or unknown

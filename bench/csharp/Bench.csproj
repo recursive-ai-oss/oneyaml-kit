@@ -12,37 +12,23 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <Optimize>true</Optimize>
     <DebugType>portable</DebugType>
-    <!-- The libraries and the harness run under the collector most programs get: workstation, with
-         the background collector off so no background collection lands inside a sample. -->
-    <ServerGarbageCollector>false</ServerGarbageCollector>
-    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
-    <!-- The runtime keeps its defaults (tiered compilation, quick JIT, dynamic PGO), as a user's program has them.
-         The harness warms every cell until the JIT stops compiling, so what is timed is the optimised code the
-         profile produced; see Measure.WarmUp. -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <!-- Once a lock file exists the restore must match it exactly, so a version only moves on purpose. -->
+    <!-- Once a lock file exists the restore must match it exactly, so a version only moves on purpose.
+         A build that links the library's source restores without it, because a project reference cannot be locked. -->
     <RestoreLockedMode Condition="Exists('$(MSBuildProjectDirectory)/packages.lock.json')">true</RestoreLockedMode>
     <NoWarn>$(NoWarn);CS8981</NoWarn>
   </PropertyGroup>
 
   <!-- oneyaml-csharp is measured only when build.sh passes OneYamlSrc, the checkout named by
-       KIT_ONEYAML_CSHARP_SRC; without it nothing below changes and the lock file below applies as before.
-       Tools that only load the project (formatting) never link the checkout. The checkout is a project
-       reference, which the lock file cannot hold, so a build with the variable restores unlocked and keeps
-       its own lock file in the build's obj folder. build.sh then compares that file with packages.lock.json
-       (check_linked_lock.py) and fails the build if any competitor package, direct or transitive, resolved
-       to a different version. -->
+       KIT_ONEYAML_CSHARP_SRC; without it nothing below changes and the lock file applies as before. -->
   <PropertyGroup Condition="'$(OneYamlSrc)' != ''">
     <OneYamlProject>$([System.IO.Path]::GetFullPath('$(OneYamlSrc)/src/OneYaml/OneYaml.csproj'))</OneYamlProject>
   </PropertyGroup>
   <PropertyGroup Condition="'$(OneYamlProject)' != '' And Exists('$(OneYamlProject)')">
-    <!-- The kit's own build tests link an empty stand-in checkout to test the build (paths with spaces, the
-         lock check). The library-facing sources cannot compile against it, so they set
-         KIT_LINK_WITHOUT_LIBRARY_SOURCES=1: the reference and its restore stay, the sources that call the
-         library are left out, as in a build with no checkout. -->
-    <DefineConstants Condition="'$(KIT_LINK_WITHOUT_LIBRARY_SOURCES)' != '1'">$(DefineConstants);ONEYAML_LINKED</DefineConstants>
-    <NuGetLockFilePath>$(MSBuildProjectExtensionsPath)packages.linked.lock.json</NuGetLockFilePath>
+    <DefineConstants>$(DefineConstants);ONEYAML_LINKED</DefineConstants>
     <RestoreLockedMode>false</RestoreLockedMode>
+    <!-- Its own lock file goes under obj, so the committed one is left alone. -->
+    <NuGetLockFilePath>$(MSBuildProjectExtensionsPath)packages.linked.lock.json</NuGetLockFilePath>
     <OneYamlRevision Condition="'$(OneYamlRevision)' == ''">devel</OneYamlRevision>
   </PropertyGroup>
   <ItemGroup Condition="'$(OneYamlProject)' != '' And Exists('$(OneYamlProject)')">

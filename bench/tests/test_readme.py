@@ -49,13 +49,9 @@ def real_world(result: dict, *ids: str) -> dict:
     return result
 
 
-def publishable(result: dict) -> dict:
+def full_run(result: dict) -> dict:
     result = copy.deepcopy(result)
-    result["run"]["mode"] = "full"
-    for c in result["cells"]:
-        if c["status"] == "ok":
-            c["time"]["samples"] = 30
-    result["run"]["publishability"] = {"publishable": True, "reasons": [], "measured": {}}
+    result["run"].update(mode="full", smoke=False)
     return result
 
 
@@ -146,7 +142,7 @@ class Splice(Base):
                 before = self.files()
                 with self.assertRaises(M.ReadmeError) as cm:
                     M.scan_blocks(text, set(M.KINDS), "README") if name != "none" else M.update(
-                        M.Ctx(publishable(real_world(synthetic(), "w1")), "ours", "0", None, self.dir, False),
+                        M.Ctx(full_run(real_world(synthetic(), "w1")), "ours", "0", None, self.dir, False),
                         [self.readme], "c", self.dir)
                 self.assertIn(msg, str(cm.exception))
                 self.assertEqual(self.run_cmd(), 1)
@@ -225,19 +221,19 @@ class Hero(Base):
         self.assertEqual(before, self.files())
         self.run_cmd()
         for path, kind in ((self.readme, "bench-hero"), (self.docs / "performance.md", "bench-full")):
-            self.assertIn("SMOKE RESULT, NOT PUBLISHABLE", self.block(path, kind))
+            self.assertIn("SMOKE RESULT", self.block(path, kind))
 
-    def test_publishable_run_is_labelled_publishable(self):
-        self.assertEqual(self.run_cmd(publishable(real_world(synthetic(), "w1", "w2")), smoke=False), 0)
+    def test_publishable_run_is_labelled_full_run(self):
+        self.assertEqual(self.run_cmd(full_run(real_world(synthetic(), "w1", "w2")), smoke=False), 0)
         hero = self.block(self.readme, "bench-hero")
-        self.assertIn("**PUBLISHABLE**", hero)
-        self.assertNotIn("NOT PUBLISHABLE", hero)
+        self.assertIn("**full run**", hero)
+        self.assertNotIn("SMOKE RESULT", hero)
 
     def test_method_strip(self):
         self.run_cmd()
         hero = self.block(self.readme, "bench-hero")
         for needle in ("2026-01-01", "Kit 0.9.0", "revision abc", "`ours 1.0`", "`rival 2.0`", "`other 3.0`",
-                       "rustc x", "opt=3", "Test CPU", "Linux", "governor performance", "0.5 before"):
+                       "rustc x", "criterion", "Test CPU", "Linux", "0.5 before"):
             self.assertIn(needle, hero)
 
     def test_chart_embedded_with_numbers_in_alt(self):
@@ -329,7 +325,7 @@ class Marks(Base):
     def test_all_workloads_level_is_not_a_win(self):
         c = []
         for w in "abc":
-            c += [cell("ours", "own", workload=w, t=94.0, mad=3.0), cell("rival", workload=w, t=100.0, mad=3.0)]
+            c += [cell("ours", "own", workload=w, t=97.0), cell("rival", workload=w, t=100.0)]
         self.run_cmd(probe_result(c))
         line = self.hero_line("generic load")
         self.assertIn("● tie", line)
@@ -366,20 +362,10 @@ class Marks(Base):
         line = self.hero_line("generic load")
         mem = line.split("|")[6]
         self.assertIn("`rival 2.0`", line.split("|")[3])  # the time winner
-        self.assertIn("smallest peak: `other`", mem)
+        self.assertIn("least allocated: `other`", mem)
         self.assertNotIn("`rival`", mem)
         self.assertIn("2 better, 0 level, 1 worse of 3", mem)
         self.assertIn("◆ mixed", mem)
-        self.assertNotIn("▲ win", mem)
-
-    def test_incomplete_memory_processes_are_a_tie_as_in_the_kit(self):
-        r = probe_result(self.memory_cells())
-        for x in r["cells"]:
-            if x["library"] == "ours":
-                x["memory"]["processes_declared"] = 3
-        self.run_cmd(r)
-        mem = self.hero_line("generic load").split("|")[6]
-        self.assertIn("0 better, 3 level, 0 worse of 3", mem)
         self.assertNotIn("▲ win", mem)
 
     def p4_result(self):
@@ -461,7 +447,7 @@ class Details(Base):
     def test_method_strip_discloses_how_it_was_measured_and_where_the_kit_version_comes_from(self):
         self.run_cmd()
         hero = self.block(self.readme, "bench-hero")
-        for needle in ("Kit 0.9.0", "warm-up 1 ms", "5 samples", "median", "Memory: mm"):
+        for needle in ("Kit 0.9.0", "measured with criterion", "Memory: mm"):
             self.assertIn(needle, hero)
         self.readme.write_bytes(f"{HERO}\n{END}\n".encode())
         for name in ("performance.md", "conformance.md"):
