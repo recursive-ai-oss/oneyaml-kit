@@ -1,0 +1,229 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/patch-copy-doubling",
+ "title": "Forty copies of a document into itself must be refused with a limit error, not grown to terabytes",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "187"
+ ],
+ "refs": [
+  "RFC 6902 section 4.5",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "Each copy of the whole document into a new member doubles it, so forty of them would make an output of more than twenty terabytes (over a hundred in block style) from a twenty-byte input and a patch of two kilobytes. Every copy is valid on its own (RFC 6902 allows a copy of a value into a location inside it), so the only acceptable outcome is a limit error: the family rule is that the bytes a patch copies, aliases written out included, are charged to the same byte budget as alias expansion, and a patch that goes over it fails with a limit error and changes nothing. The failed patch leaves the document as it was, which the case format can state only for an exact error, not for a bounded one; the bounds are the point of this case. A library that does the copies without a bound fails on memory or time.",
+ "provenance": {
+  "reference": "A patch engine that copied a whole document into itself with no bound, so repeated copies grew the output exponentially."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k0"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k1"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k2"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k3"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k4"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k5"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k6"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k7"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k8"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k9"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k10"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k11"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k12"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k13"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k14"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k15"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k16"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k17"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k18"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k19"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k20"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k21"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k22"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k23"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k24"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k25"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k26"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k27"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k28"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k29"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k30"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k31"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k32"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k33"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k34"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k35"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k36"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k37"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k38"
+   },
+   {
+    "op": "copy",
+    "from": "",
+    "path": "/k39"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "error": "limit"
+ }
+}
