@@ -1,0 +1,39 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-literal-followed-by-blank-line-with-list-keeps-literal",
+ "title": "A clipped multi-line string in a list that replaces a literal block stays a literal block",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "170",
+  "173"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.3",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The value of `a` is a literal block scalar followed by an empty line and the next entry. It is replaced by a list with one string, `make` and one final line break. Reading the result back must give that list. The specification allows a double-quoted item (`- \"make\\n\"`) as well as a literal one, so the exact bytes rest on the kit convention listed in docs/edit-semantics.md: a string whose only line break is its last, set where a literal block scalar was, is written as a literal block with clip chomping, not quoted. The empty line before `b` is not content of the string (YAML 1.2.2 section 8.1.3: with clip chomping the final line break is kept and trailing empty lines are not content) and stays where it was, byte for byte.",
+ "provenance": {
+  "reference": "A patch engine that quoted every item of a list built to replace a literal block scalar when an empty line followed the scalar."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": [
+     "make\n"
+    ]
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

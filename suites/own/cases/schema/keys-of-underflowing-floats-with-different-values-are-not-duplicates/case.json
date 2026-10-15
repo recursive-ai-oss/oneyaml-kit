@@ -1,0 +1,42 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/keys-of-underflowing-floats-with-different-values-are-not-duplicates",
+ "title": "Float keys below the smallest double are different keys when their values differ",
+ "category": "schema",
+ "origin": "bug",
+ "productions": [
+  "187"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.1.1",
+  "YAML 1.2.2 section 3.2.1.3",
+  "YAML 1.2.2 section 10.2.1.4"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "`1e-400` and `2e-400` stand for 10^-400 and 2*10^-400. A double rounds both to zero; the kit compares keys by exact decimal value (see the overflow case with different values), so they are two keys. The tag `convention` marks the choice of exact value over the double that the specification leaves open (YAML 1.2.2 section 10.2.1.4 says a float is an approximation whose range and accuracy depend on the implementation, and section 3.2.1.3 compares scalars by canonical form.). A library may instead refuse the document with a `limit` error; it must not call the keys duplicates. A patch is used because 0.0 is not the value of either key.",
+ "provenance": {
+  "reference": "A key identity taken from the rounded double, so two keys that round to zero were refused as duplicates."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/2e-400",
+    "value": "c"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 5,
+  "memory_mb": 512,
+  "error": "limit",
+  "accept": {
+   "kind": "bytes",
+   "file": "expected.yaml"
+  }
+ }
+}

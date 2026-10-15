@@ -1,0 +1,39 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-entry-after-literal-with-more-indented-comment",
+ "title": "Removing an entry takes a comment indented under it and leaves the literal scalar before it alone",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "173",
+  "75",
+  "187"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.3",
+  "YAML 1.2.2 section 6.6",
+  "RFC 6902 section 4.2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention",
+  "comment-ownership"
+ ],
+ "notes": "The literal scalar of `k` ends at `  x: 1`, which is less indented than its content (production 173), so the value of `k` is `v` and one line break. `    # c` follows `x: 1` and is indented under it: it is a comment (section 6.6) and the lines of a block scalar before it are not touched by it. Removing `/a/x` takes the entry and, by the kit convention for comments (docs/edit-semantics.md, Comments: 'A comment line directly after an entry and indented more than its key belongs to that entry and goes with it'), the comment; YAML gives comments no owner, hence the tags. The comment must not become content of the literal scalar of `k`: the value of `k` stays `v\\n`, and `b: 2` stays.",
+ "provenance": {
+  "reference": "A patch engine that moved the comment line into the preceding block scalar, or kept it, after the entry it belonged to was removed."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/a/x"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

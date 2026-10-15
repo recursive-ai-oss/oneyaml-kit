@@ -78,7 +78,7 @@ and `document` (index of the document in the stream, default 0). Pointers are RF
 6901. A patch is atomic: when any operation fails the document is unchanged.
 
 `dump` takes `value`, a kit value (below) that is one document: the library writes it, and
-the kit reads the text back (see *Written values*). Integers beyond 64 bits are not used.
+the kit reads the text back (see *Written values*). Integers beyond 64 bits and mappings whose keys are not strings (the `$map` form) are allowed. A library with no such value of its own (no integer beyond 64 bits, no mapping with keys that are not strings) answers unsupported; an adapter passes them through the library's own type when it has one.
 
 Any operation may set `profile` to name a behaviour profile; the default is `core`
 (YAML 1.2 core schema, spec-correct defaults). Compat cases name the profile they

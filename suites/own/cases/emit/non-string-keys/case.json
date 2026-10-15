@@ -1,0 +1,38 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/non-string-keys",
+ "title": "Integer and boolean keys keep their type",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "131",
+  "187"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.1.1",
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "notes": "A mapping key is a node like any other, and the Core schema types the keys `1`, `2` and `true` as an integer, an integer and a boolean. The text read back must give a mapping with those keys, not the strings `\"1\"` and `\"true\"`. The value uses the `$map` form because the keys are not strings.",
+ "operation": {
+  "type": "dump",
+  "value": {
+   "$map": [
+    [
+     1,
+     "one"
+    ],
+    [
+     2,
+     "two"
+    ],
+    [
+     true,
+     "yes"
+    ]
+   ]
+  }
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

@@ -4,6 +4,7 @@ Needs a Rust toolchain and network access for the first build, so it only runs w
 KIT_ADAPTER_TESTS=1 (the gate sets it).
 """
 
+import base64
 import os
 import unittest
 
@@ -72,7 +73,8 @@ class OneyamlRust(unittest.TestCase):
         for r in self.res["cases"]:
             if r.get("emulated"):
                 self.assertEqual((r["suite"], r["op"]), ("own", "patch"), r["id"])
-                self.assertTrue(r["expect"] == "error" or r["loose"] == "fail", r["id"])
+                # A bounded case may accept a refusal too (a `limit` error), and that refusal passes.
+                self.assertTrue(r["expect"] in ("error", "bounded") or r["loose"] == "fail", r["id"])
         # A failure that the library itself reports is not marked as the adapter's.
         self.assertEqual(self.by_id["own:edit/failed-test-changes-nothing"].get("emulated"), None)
 
@@ -85,14 +87,18 @@ class OneyamlRust(unittest.TestCase):
         # serialize_bytes in oneyaml 1.1.0 writes a sequence of integers, as serde_yaml does.
         self.assertIn("list of integers", r["detail"])
 
-    def test_an_integer_beyond_64_bits_is_declined_not_turned_into_a_float(self):
+    def test_an_integer_beyond_64_bits_is_written_exactly_not_turned_into_a_float(self):
         from oneyaml_kit.protocol import SubprocessAdapter
         from oneyaml_kit.runner import load_manifest
         m = load_manifest("oneyaml-rust")
         ad = SubprocessAdapter(m["command"], cwd=m["_dir"], env=dict(os.environ), timeout=30)
         ad.start()
         try:
-            self.assertEqual(ad.run("a", "dump", b"", {"value": [10**20]})["status"], "unsupported")
+            # The library's own wide integer type holds it, so it is written in full.
+            r = ad.run("a", "dump", b"", {"value": [10**20, -10**30]})
+            self.assertEqual(r["status"], "ok")
+            text = base64.b64decode(r["output"])
+            self.assertEqual(text, b"- 100000000000000000000\n- -1000000000000000000000000000000\n")
             self.assertEqual(ad.run("b", "dump", b"", {"value": [1e20, 2**64 - 1]})["status"], "ok")
         finally:
             ad.close()

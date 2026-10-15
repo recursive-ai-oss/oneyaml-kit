@@ -53,6 +53,12 @@ type Adapter struct {
 	Binary func(data []byte) (any, error)
 	// NoBinary says why Binary is nil: what the library does with a byte slice instead.
 	NoBinary string
+	// BigInt turns the digits of an integer beyond 64 bits into the library's own integer type
+	// (for Go, *big.Int). Nil when the library has none: the case is then unsupported.
+	BigInt func(digits string) (any, error)
+	// AnyMaps is true when the library writes a map[any]any with typed keys. When it is false the
+	// library has no mapping with keys that are not strings and the case is unsupported.
+	AnyMaps bool
 }
 
 // Result is one response. Build it with the constructors below.
@@ -216,7 +222,7 @@ func (a *Adapter) handle(q request) Result {
 		}
 	case "dump":
 		if a.Dump != nil {
-			v, err := NativeWith(args.Value, a.binary())
+			v, err := NativeOpts(args.Value, NativeOptions{Binary: a.binary(), BigInt: a.BigInt, AnyMaps: a.AnyMaps})
 			if err != nil {
 				return Unsupported(err.Error())
 			}

@@ -1,0 +1,36 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/directive-lookalike-line-in-a-block-scalar-before-a-document",
+ "title": "A line that starts with a percent sign inside a top-level block scalar is content, also before a following document",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "173",
+  "203",
+  "206",
+  "207",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.2",
+  "YAML 1.2.2 section 9.1.2",
+  "YAML 1.2.2 section 9.2",
+  "YAML 1.2.2 section 6.8",
+  "yaml-test-suite M7A3 (Example 9.3)",
+  "yaml-test-suite W4TN"
+ ],
+ "notes": "The literal scalar of the first document has no indentation (it may be at indentation 0 in a top-level document, n = -1), and its content lines are `foo` and `%bar`. A line is content of a block scalar until the document markers or less indentation end it, so `%bar` is not a directive (a directive can only follow `...` or start the stream). `---` ends the scalar and starts the second document, `x`. The first value is `foo` and a line break, `%bar` and a line break.",
+ "provenance": {
+  "reference": "A reader that ended the block scalar at a line starting with a percent sign."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   "foo\n%bar\n",
+   "x"
+  ]
+ }
+}

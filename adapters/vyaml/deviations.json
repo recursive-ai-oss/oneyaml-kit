@@ -3157,6 +3157,62 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:emit/integers-beyond-64-bits",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Adapter gap, not a limit of the library: the adapter does not yet pass an integer beyond 64 bits to the library"
+  },
+  {
+   "case": "own:emit/integers-beyond-64-bits",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Adapter gap, not a limit of the library: the adapter does not yet pass an integer beyond 64 bits to the library"
+  },
+  {
+   "case": "own:emit/non-string-keys",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Adapter gap, not a limit of the library: the adapter does not yet pass a mapping with keys that are not strings to the library"
+  },
+  {
+   "case": "own:emit/non-string-keys",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Adapter gap, not a limit of the library: the adapter does not yet pass a mapping with keys that are not strings to the library"
+  },
+  {
+   "case": "own:parse/directive-lookalike-line-in-a-block-scalar-before-a-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'Did not find expected token of  `DocumentStart` at Line: 4, Col: 0, Idx: 15'"
+  },
+  {
+   "case": "own:parse/directive-lookalike-line-in-a-block-scalar-before-a-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'Did not find expected token of  `DocumentStart` at Line: 4, Col: 0, Idx: 15'"
+  },
+  {
+   "case": "own:schema/duplicate-key-overflowing-float-same-value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (a dictionary add of two keys that both become infinity)"
+  },
+  {
+   "case": "own:schema/duplicate-key-overflowing-float-same-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (a dictionary add of two keys that both become infinity)"
   }
  ]
 }

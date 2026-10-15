@@ -52,6 +52,7 @@ having got YAML wrong.
 - **The quote of a string that cannot stay plain.** A plain scalar that would read back as
   another type, as a comment, as a key, or lose its edge spaces becomes single-quoted. The
   specification allows any quoted style; single quotes need no escapes.
+- **A new multi-line string member.** A string with a line break that is written as new content (an added member, or an item of a collection that replaces another node) is a literal block scalar, with the chomping indicator its final line breaks need. A multi-line string that replaces an inline scalar stays on its line, double-quoted (below). The specification allows quoted styles too, so this is a convention.
 - **Comments of a removed entry.** See *Comments* below.
 - **The layout of a new nested block collection** (a sequence or a mapping) copies the indentation of a sibling collection of the same kind. With no sibling sequence to copy (or no sibling mapping, for a mapping), a new block sequence or block mapping under a key, whether added or set in place of a scalar, is indented by the document's block indentation step, which is how far a block mapping's entries are indented under their key. The step is taken from the mapping that holds the key of the new collection when that mapping is itself nested under a key, and then from the next mapping out that is; so the enclosing mapping's own step wins over the step used elsewhere in the document. When the new key is in the root mapping, no enclosing mapping gives a step, and the step of the nearest preceding nested block mapping is used. The step is two spaces when the document has no nested block mapping.
 - **A collection replaced by a scalar stays on the key's line.** `a: 5`, not `a:` with the value on the next line, indented. Production [194] allows both and they read back the same.
@@ -123,6 +124,16 @@ A key with no content is an empty node, read as a plain scalar with an empty val
 from the rule above and is not a convention. When a quoted `""` key is also present, both
 keys match and the edit is refused as ambiguous.
 
+Two float keys whose values lie outside the finite non-zero range of a binary64 double
+(`1e400`, `1e-400`) are the same key when their exact decimal values are equal (`1e400` and
+`10e399`) and different keys when they are not (`1e400` and `2e400`). The specification
+leaves this open: it calls a float an approximation whose range depends on the
+implementation (section 10.2.1.4) and compares scalars by canonical form (section 3.2.1.3).
+The kit takes the exact value, as it does for integers beyond 64 bits: a library reads the
+keys exactly or refuses the document with a `limit` error; it does not call them duplicates
+because its double rounds them alike. The rule does not reach floats inside the range that
+round to the same double. It is a convention (tag `convention`).
+
 ## Comments
 
 Edits to a value do not touch comments outside the value. A comment inside a collection
@@ -132,8 +143,10 @@ When an entry is removed, the kit's convention (tag `comment-ownership`, as well
 `convention`) is that a comment at the end of its line, a comment on the line directly
 above it with no blank line between, and a comment inside its value go with it; a comment
 directly above the next entry, a comment after the last entry, and a header comment
-separated from the first entry by a blank line stay. YAML defines comments as presentation
-detail with no owner, so these cases are few.
+separated from the first entry by a blank line stay. A comment line directly after an entry
+and indented more than its key belongs to that entry and goes with it, even when the entry
+is the last one. YAML defines comments as presentation detail with no owner, so these cases
+are few.
 
 ## The `test` operation
 

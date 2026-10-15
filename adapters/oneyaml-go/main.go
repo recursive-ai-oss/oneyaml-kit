@@ -12,6 +12,7 @@ import (
 	"errors"
 	"io"
 	"iter"
+	"math/big"
 	"strings"
 
 	"example.invalid/oneyaml-kit/gokit"
@@ -251,6 +252,14 @@ func main() {
 		},
 		Events: events, Value: value, Patch: patch, Dump: dump,
 		Binary: func(data []byte) (any, error) { return data, nil },
+		BigInt: func(digits string) (any, error) {
+			n, ok := new(big.Int).SetString(digits, 10)
+			if !ok {
+				return nil, errors.New("not a decimal integer")
+			}
+			return n, nil
+		},
+		AnyMaps: true,
 	}
 	a.Serve()
 }

@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/duplicate-key-overflowing-float-same-value",
+ "title": "Float keys beyond the range of a double are equal when their values are equal",
+ "category": "schema",
+ "origin": "bug",
+ "productions": [
+  "187"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.1.1",
+  "YAML 1.2.2 section 3.2.1.3",
+  "YAML 1.2.2 section 10.2.1.4"
+ ],
+ "notes": "Under the Core schema `1e400` and `10e399` both match the float expression and both stand for the value 10^400, so they are one key and the mapping holds a duplicate (section 3.2.1.1: keys are unique; section 3.2.1.3: nodes are equal when their tags and canonical content are equal). YAML 1.2.2 section 10.2.1.4 says a float is an approximation whose range and accuracy depend on the implementation, and section 3.2.1.3 compares scalars by canonical form. A library whose double type overflows to infinity for both keys reaches the same verdict: the case does not depend on which equality is chosen. A library that cannot hold the keys exactly may refuse the document with a `limit` error instead.",
+ "provenance": {
+  "reference": "A key identity that treated different spellings of an overflowing float as different keys."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 5,
+  "memory_mb": 512,
+  "error": [
+   "duplicate-key",
+   "limit"
+  ]
+ }
+}
