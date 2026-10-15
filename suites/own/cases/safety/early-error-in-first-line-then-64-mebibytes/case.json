@@ -1,19 +1,21 @@
 {
  "format": "oneyaml-kit-case/2",
  "id": "safety/early-error-in-first-line-then-64-mebibytes",
- "title": "An error in the first line is refused without work or memory in proportion to the 64 MiB that follows",
+ "title": "An error in the first line is refused without keeping memory in proportion to the 64 MiB that follows",
  "category": "safety",
  "origin": "bug",
  "productions": [
-  "187"
+  "130",
+  "187",
+  "194"
  ],
  "refs": [
   "YAML 1.2.2 section 8.2.2",
   "YAML 1.2.2 section 7.3.3"
  ],
- "notes": "The first line is `a: b: c`. The value of a block mapping entry cannot start another block mapping on the same line (section 8.2.2), and a plain scalar cannot contain `: ` (section 7.3.3), so the document is invalid at the second colon, on line 1; yaml-test-suite ZCZ6 is the same mistake. What follows is 22,369,618 lines of `x:`, 64 MiB in all, that a reader never needs to look at. The answer is a syntax error. A limit error is accepted as well, because a library may refuse an input of this size by its length before it reads it; no result is allowed. A reader that sizes its storage from the whole input (every colon is a likely node), or that reads and tokenizes all of it before reporting the first error, spends memory in proportion to 64 MiB on an error at byte 6. Bounds. The memory bound is 1536 MB, 24 times the input. The kit measures the whole adapter process, and the request that carries a 64 MiB input already costs the adapter several times that before the library is called: the input travels as base64 text (1.33 times its size) and is decoded into bytes (1 time), and in a runtime whose strings are UTF-16 the same text held as a string is 2 to 2.7 times. With a library that only refuses the input, the adapters measured here peaked at 4.9 times the input in Go (259 to 330 MB) and at 15.4 to 16.4 times in .NET (984 to 1048 MB, the same for five different libraries, so it is the delivery and not a library). A bound of twice the input, which would suit a library that holds the text once, would fail every adapter for the kit's own transport. 24 times is 1.46 times the heaviest delivery cost measured, and below the cost of a reader that goes through the whole input before it reports the error (a token or node for every few bytes costs 28 times the input or more; measured 38 times and more). It is a guard against work in proportion to the input; it does not see memory that is reserved but never touched, because the kit reads resident memory. The time bound is 15 seconds: the sibling safety/ten-million-digit-plain-scalar-events allows 2 seconds for 10 MB, 0.2 seconds per megabyte, and a refusal at the first error costs less than a full read. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The input is generated from the recipe in case.json (docs/case-format.md); fast mode leaves this case out (tag slow).",
+ "notes": "The first line is `a: b: c`. The value of a block mapping entry cannot start another block mapping on the same line (section 8.2.2, [194]), and a plain scalar cannot contain `: ` ([130]), so the document is invalid at the second colon (line 1, column 5); yaml-test-suite ZCZ6 is the same mistake. What follows is 22,369,618 lines of `x:`, 64 MiB in all. The answer is a syntax error. A limit error is accepted as a resource refusal (a library configured with an input-size cap refuses 64 MiB before it reads it); it is not a second answer of the specification. Bounds. Memory: 1536 MB, 24 times the input. The kit measures the whole adapter process, and delivering a 64 MiB input already costs the adapter several times that before the library is called (base64 text, decoded bytes, and UTF-16 strings in some runtimes): 4.9 times in Go, 3.7 times in Rust, up to 16.4 times in .NET, so the room left for the library differs by language. A reader that tokenizes the whole input before reporting the error keeps 28 times the input or more. Storage that is reserved but never touched is not seen, because the kit reads resident memory. Time: 15 seconds, a linear read of the whole input at the rate of the sibling safety/ten-million-digit-plain-scalar-events (0.2 seconds per megabyte); it catches readers slower than linear, not readers that read everything before reporting the error. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The input is generated from the recipe in case.json (docs/case-format.md); fast mode leaves this case out (tag slow).",
  "provenance": {
-  "reference": "A library that sized its node storage from the length of the input before it parsed, so an input that is refused at once, or at the depth limit, still cost several times its own size."
+  "reference": "A reader that tokenized the whole input, keeping a token for every few bytes, before it reported an error in the first line: 38 times the input on 64 MiB."
  },
  "operation": {
   "type": "events"

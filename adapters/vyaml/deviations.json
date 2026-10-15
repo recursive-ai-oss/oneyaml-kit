@@ -156,20 +156,6 @@
    "reason": "Takes the input without a limit error: accepted; only a limit error is allowed"
   },
   {
-   "case": "own:safety/early-error-open-brackets-64-mebibytes",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
-  },
-  {
-   "case": "own:safety/early-error-open-brackets-64-mebibytes",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
-  },
-  {
    "case": "own:safety/invalid-utf-8-byte",
    "expectation": "primary",
    "mode": "loose",

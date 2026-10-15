@@ -1,4 +1,4 @@
-"""The two 64 MiB early-error cases: what they build, how their bounds are derived, and that they bite."""
+"""The 64 MiB early-error case: what they build, how their bounds are derived, and that they bite."""
 
 import unittest
 
@@ -6,7 +6,6 @@ import support
 from oneyaml_kit import cases as C
 from oneyaml_kit.runner import execute
 
-BRACKETS = "own:safety/early-error-open-brackets-64-mebibytes"
 FIRST_LINE = "own:safety/early-error-in-first-line-then-64-mebibytes"
 TEN_MILLION_DIGITS = "own:safety/ten-million-digit-plain-scalar-events"
 MIB = 1 << 20
@@ -35,7 +34,6 @@ def verdicts(case_id, peak_mb, answer=None):
 
 class Shape(unittest.TestCase):
     def test_the_inputs_are_what_the_notes_say(self):
-        self.assertEqual(CASES[BRACKETS].input, b"[" * (64 * MIB))
         data = CASES[FIRST_LINE].input
         self.assertTrue(data.startswith(b"a: b: c\nx:\nx:\n"))
         self.assertEqual(len(data), 8 + 3 * 22_369_618)
@@ -43,8 +41,8 @@ class Shape(unittest.TestCase):
         self.assertGreater(len(data), 64 * MIB - 8)
         self.assertEqual(data.count(b"\n"), 22_369_619)
 
-    def test_both_are_slow_events_cases_that_allow_no_result(self):
-        for cid, errors in ((BRACKETS, ["limit", "syntax"]), (FIRST_LINE, ["syntax", "limit"])):
+    def test_it_is_a_slow_events_cases_that_allow_no_result(self):
+        for cid, errors in ((FIRST_LINE, ["syntax", "limit"]),):
             c = CASES[cid]
             self.assertIn("slow", c.tags)
             self.assertEqual((c.category, c.op), ("safety", "events"))
@@ -57,7 +55,7 @@ class Shape(unittest.TestCase):
         # a runtime with UTF-16 strings). Time: the sibling's 0.2 s per megabyte over 64 MiB, to the second.
         rate = CASES[TEN_MILLION_DIGITS].expect["time_seconds"] / 10.0
         self.assertAlmostEqual(rate, 0.2)
-        for cid in (BRACKETS, FIRST_LINE):
+        for cid in (FIRST_LINE,):
             e = CASES[cid].expect
             self.assertEqual(e["memory_mb"], 24 * 64)
             self.assertLessEqual(e["time_seconds"], 2 * rate * 64 * MIB / 1e6)
@@ -66,18 +64,18 @@ class Shape(unittest.TestCase):
 
 class Bites(unittest.TestCase):
     def test_an_error_inside_the_bounds_passes(self):
-        for cid in (BRACKETS, FIRST_LINE):
+        for cid in (FIRST_LINE,):
             self.assertEqual(verdicts(cid, 330.0), ("pass", "pass"))
             self.assertEqual(verdicts(cid, 1050.0), ("pass", "pass"), "the heaviest delivery cost measured")
 
     def test_memory_in_proportion_to_the_input_fails(self):
-        for cid in (BRACKETS, FIRST_LINE):
+        for cid in (FIRST_LINE,):
             self.assertEqual(verdicts(cid, 2451.0), ("fail", "fail"))
 
     def test_an_answer_fails_and_so_does_the_wrong_kind_of_error(self):
         ok = lambda cid: {"id": cid, "status": "ok", "events": ["+STR", "-STR"]}
         wrong = lambda cid: {"id": cid, "status": "error", "error": {"category": "encoding", "message": "x"}}
-        for cid in (BRACKETS, FIRST_LINE):
+        for cid in (FIRST_LINE,):
             self.assertEqual(verdicts(cid, 300.0, ok), ("fail", "fail"))
             self.assertEqual(verdicts(cid, 300.0, wrong), ("pass", "fail"))
 
