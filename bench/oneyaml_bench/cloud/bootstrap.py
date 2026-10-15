@@ -17,6 +17,60 @@ from . import toolchains
 WORK = "/work"
 CACHE = "/opt/kit-cache"
 LOG_FILE = "/var/log/kit-run.log"
+TOOLS = ("bench", "kit")
+
+# Run on the instance after every command. For a benchmark shard: the result must exist, belong to a shard, and
+# hold no cell that crashed or stalled (status error); `differs` and `rejects` are results, not failures. The
+# kit revision is filled in because an archive has no history for the harness to read it from. For conformance:
+# the result files must exist.
+CHECK_SCRIPT = r"""
+import glob, json, os, sys
+kind, out = sys.argv[1], sys.argv[2]
+if kind == "conformance":
+    files = glob.glob(out + "/results/*.json")
+    if not files:
+        print("no conformance result was written")
+        sys.exit(22)
+    sys.exit(0)
+path = out + "/results.json"
+try:
+    r = json.load(open(path))
+except (OSError, ValueError) as e:
+    print("the shard wrote no readable result:", e)
+    sys.exit(23)
+run = r.get("run", {})
+if "shard" not in run:
+    print("the result is not a shard result")
+    sys.exit(23)
+bad = [c for c in r.get("cells", []) if c.get("status") == "error"]
+if bad:
+    print("%d cell(s) crashed or stalled, first: %s/%s/%s %s" % (len(bad), bad[0]["library"], bad[0]["task"],
+          bad[0]["workload"], bad[0].get("detail", "")))
+    sys.exit(24)
+env = run.get("environment", {})
+label = open("/work/kit-label").read().strip() if os.path.exists("/work/kit-label") else ""
+if label and not env.get("kit_revision"):
+    env["kit_revision"] = label
+    json.dump(r, open(path, "w"), indent=1)
+print("shard result ok: %d cells, instance type %s" % (len(r.get("cells", [])), env.get("instance_type")))
+"""
+
+# Builds the harnesses before the driver starts. The driver samples the machine's load from its first step, and
+# a build uses many cores, so a build inside the run shows up as foreign load and makes a good run unpublishable.
+# With this done first, the driver's own build step finds everything built and does almost nothing.
+PREBUILD_SCRIPT = r"""
+import os, sys
+from pathlib import Path
+sys.path.insert(0, "bench")
+from oneyaml_bench import run
+found = run.discover()
+langs = sys.argv[1:] or sorted(found)
+build_dir = Path(os.environ["CARGO_TARGET_DIR"])
+for lang in langs:
+    print("building the %s harness before the run" % lang, flush=True)
+    run.build(found[lang], build_dir)
+"""
+
 # The line the driver prints when it starts measuring; the script notes the time it first appears.
 MEASURING_PATTERN = "measuring ("
 
@@ -26,7 +80,7 @@ class ShardScript:
     run_id: str
     shard: str                       # a label, e.g. "1/2"
     attempt: int
-    commands: list[list[str]]        # bin/bench arguments; "{out}" becomes the output directory of that command
+    commands: list[list[str]]        # ["bench" or "kit", arguments...]; "{out}" becomes the command's output directory
     inputs_url: str
     log_url: str
     status_url: str
@@ -72,12 +126,25 @@ def shard_script(s: ShardScript) -> str:
     pre = _fill(PRELUDE, {"LIFETIME": str(int(s.lifetime_minutes)), "LOG": LOG_FILE, "WORK": WORK, "LOG_URL": _q(s.log_url),
                           "RUN": s.run_id, "SHARD": s.shard, "ATTEMPT": str(s.attempt)})
     runs = []
-    for k, args in enumerate(s.commands):
-        words = " ".join(_q(a).replace("'{out}'", '"$OUT/' + str(k) + '"').replace("{out}", '"$OUT/' + str(k) + '"')
-                         for a in args)
-        runs.append(f'mkdir -p "$OUT/{k}"\necho {_q(f"== bench {k}: " + " ".join(args))}\n'
-                    f"python3 bin/bench {words}\nrc=$?\n"
-                    f'if [ $rc -ne 0 ]; then echo "bench command {k} exited with status $rc"; exit $rc; fi')
+    for k, cmd in enumerate(s.commands):
+        tool, args = cmd[0], cmd[1:]
+        if tool not in TOOLS:
+            raise ValueError(f"unknown tool {tool!r}")
+        out = '"$OUT/' + str(k) + '"'
+        words = " ".join(_q(a).replace("'{out}'", out).replace("{out}", out) for a in args)
+        step = (f'mkdir -p {out}\necho {_q(f"== {tool} {k}: " + " ".join(args))}\n'
+                f"python3 bin/{tool} {words}\nrc=$?\n"
+                f'if [ $rc -ne 0 ]; then echo "{tool} command {k} exited with status $rc"; RC=$rc; exit $rc; fi')
+        if tool == "bench":
+            langs = [args[i + 1] for i, a in enumerate(args[:-1]) if a == "--lang"]
+            step = (f'python3 "$PREBUILD" {" ".join(_q(l) for l in langs)} || {{ RC=$?; exit $RC; }}\n') + step
+            # A shard is never publishable on its own, so the harness's exit status says nothing about that.
+            # It is zero when the shard measured and its deviation list matched; a cell that crashed or stalled
+            # does not change it and shows only as a cell with status error, which is checked here.
+            step += f'\npython3 "$CHECK" shard {out} || {{ RC=$?; exit $RC; }}'
+        else:
+            step += f'\npython3 "$CHECK" conformance {out} || {{ RC=$?; exit $RC; }}'
+        runs.append(step)
     libs = "\n".join(
         f'export {var}={WORK}/src/{name}' for var, name in sorted(s.library_vars.items()))
     body = r"""
@@ -153,33 +220,24 @@ export PYTHONUNBUFFERED=1
 export CARGO_TARGET_DIR=__CACHE__/build KIT_OUT=$OUT
 __LIBS__
 mkdir -p "$OUT"
+CHECK=__WORK__/check.py
+PREBUILD=__WORK__/prebuild.py
+cat > "$PREBUILD" <<'PY'
+__PREBUILD__
+PY
+cat > "$CHECK" <<'PY'
+__CHECK__
+PY
 cd __WORK__/kit
 ( until grep -q -F '__MEASURING__' "$LOG" 2>/dev/null; do sleep 0.3; done; mark measuring ) &
 mark bench_start
 __RUNS__
 mark bench_done
-# Provenance the harness cannot read from an archive: the kit revision, and the instance type when the
-# harness did not record it itself.
-python3 - <<'PY'
-import glob, json, os
-rev = open("__WORK__/rev-kit").read().strip()
-for path in glob.glob(os.environ["KIT_OUT"] + "/*/results.json"):
-    r = json.load(open(path))
-    env = r.get("run", {}).get("environment")
-    if env is None:
-        continue
-    env.setdefault("instance_type", os.environ.get("KIT_INSTANCE_TYPE", ""))
-    if not env.get("instance_type"):
-        env["instance_type"] = os.environ.get("KIT_INSTANCE_TYPE", "")
-    if not env.get("kit_revision"):
-        env["kit_revision"] = rev[:12]
-    json.dump(r, open(path, "w"), indent=1)
-PY
 RC=0
 """
     body = _fill(body, {"WORK": WORK, "CACHE": CACHE, "RESULT_URL": _q(s.result_url), "LOG_URL": _q(s.log_url),
                         "STATUS_URL": _q(s.status_url), "INPUTS_URL": _q(s.inputs_url), "LIBS": libs,
-                        "RUNS": "\n".join(runs), "MEASURING": MEASURING_PATTERN})
+                        "RUNS": "\n".join(runs), "MEASURING": MEASURING_PATTERN, "CHECK": CHECK_SCRIPT.rstrip(), "PREBUILD": PREBUILD_SCRIPT.rstrip()})
     return pre + body
 
 
@@ -222,6 +280,8 @@ mkdir -p "$B"
 ( cd /work/kit/bench/go && sh build.sh "$B" ) || exit 30
 ( cd /work/kit/bench/rust && CARGO_TARGET_DIR="$B" cargo build --release --locked --quiet ) || exit 31
 ( cd /work/kit/bench/csharp && ./build.sh "$B" ) || exit 32
+# The conformance run builds the Rust adapter: fetch and compile its dependencies now.
+( cd /work/kit/adapters/oneyaml-rust && CARGO_TARGET_DIR="$B" cargo build --release --locked --quiet ) || exit 33
 go version; "$DOTNET" --version; rustc --version
 rm -rf /work/* /tmp/* /var/lib/apt/lists/* /var/log/kit-marks
 mark bake_done

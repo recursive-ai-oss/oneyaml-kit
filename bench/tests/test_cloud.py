@@ -150,7 +150,7 @@ class FakeAws:
 
 
 def job_list(n=2, itype="c7i.test", minutes=5):
-    return [runner.Job(i, f"{i}/{n}", itype, [["run", "--shard", f"{i}/{n}", "--out", "{out}"]], minutes, 60.0) for i in range(1, n + 1)]
+    return [runner.Job(i, f"{i}/{n}", itype, [["bench", "run", "--shard", f"{i}/{n}", "--out", "{out}"]], minutes, 60.0) for i in range(1, n + 1)]
 
 
 class RunCase(unittest.TestCase):
@@ -319,6 +319,16 @@ class RetryAndFallback(RunCase):
             self.make(aws, jobs=job_list(1), cost_cap=0.0001).execute()
         self.assertFalse([s for s in aws.launches if not s.spot])
 
+    def test_output_of_a_failed_job_is_kept_but_not_marked_ok(self):
+        aws = FakeAws(lambda spec, n: "bad-exit")
+        r = self.make(aws, jobs=job_list(1))
+        with self.assertRaises(runner.RunFailed):
+            r.execute()
+        res = r.results[1]
+        self.assertFalse(res.ok)
+        self.assertIsNone(res.out_dir)
+        self.assertTrue((res.partial_dir / "0" / "results.json").exists())
+
     def test_real_failure_is_not_retried(self):
         aws = FakeAws(lambda spec, n: "bad-exit")
         with self.assertRaises(runner.RunFailed):
@@ -348,54 +358,90 @@ class Cleanup(unittest.TestCase):
 
 
 class Planning(unittest.TestCase):
-    def plan_obj(self, secs):
-        return {"plan_digest": "abc", "shards": [{"shard": i, "groups": ["g%d" % i], "estimated_seconds": s}
-                                                 for i, s in enumerate(secs, 1)]}
+    def plan_obj(self, secs, mode="full", lang="go"):
+        """The planner's output shape; costs are relative, so the test states seconds and converts."""
+        k = plan.SECONDS_PER_COST[mode]
+        return {"format": "oneyaml-kit-bench-plan/1", "plan_digest": "sha256:abc", "count": len(secs),
+                "shards": [{"index": i, "groups": [f"{lang}/w{i}"], "estimated_cost": s / k, "share": 0.5}
+                           for i, s in enumerate(secs, 1)]}
 
     def test_parse_and_reject(self):
-        p = plan.parse_plan(self.plan_obj([100, 200]), 2)
-        self.assertEqual([s.seconds for s in p.shards], [100, 200])
-        for bad in ({}, {"plan_digest": "x"}, {"plan_digest": "x", "shards": [{}]}):
+        p = plan.parse_plan(self.plan_obj([100, 200]))
+        self.assertEqual([round(s.seconds) for s in p.shards], [100, 200])
+        self.assertEqual(p.shards[0].groups, ["go/w1"])
+        for bad in ({}, {"plan_digest": "x"}, {"plan_digest": "x", "shards": [{}]},
+                    {"plan_digest": "x", "shards": [{"index": 1, "estimated_seconds": 5}]}):
             with self.assertRaises(plan.PlanError):
                 plan.parse_plan(bad)
+        wrong = self.plan_obj([1, 2])
+        wrong["count"] = 3
         with self.assertRaises(plan.PlanError):
-            plan.parse_plan(self.plan_obj([1]), 2)
+            plan.parse_plan(wrong)
+
+    def test_planner_is_asked_with_the_mode_and_the_filters_the_shards_get(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            (root / "bin").mkdir()
+            (root / "bin" / "bench").write_text(
+                "import sys, json\nprint(json.dumps({'plan_digest': 'd', 'shards': [{'index': 1, 'estimated_cost': 1.0, "
+                "'groups': sys.argv[1:]}]}))\n")
+            filters = cli.filter_args(["go"], ["dump"], None, ["w"])
+            got = plan.run_planner(root, 1, "quick", filters)
+            self.assertEqual(got.shards[0].groups, ["plan", "--shards", "1", "--mode", "quick", "--lang", "go",
+                                                    "--task", "dump", "--workload", "w"])
+            job = cli.bench_command("quick", "1/1", filters, 2)
+            self.assertEqual(job[:6], ["bench", "run", "--mode", "quick", "--shard", "1/1"])
+            self.assertEqual(job[-len(filters):], filters)
 
     def test_plan_maps_to_one_job_per_shard(self):
         p = plan.parse_plan(self.plan_obj([600, 900, 300]))
-        jobs = cli.jobs_from_plan(p, "c7i.test", "full", ["go"], 2, ["--task", "dump"])
+        filters = cli.filter_args(["go"], ["dump"], None, None)
+        jobs = cli.jobs_from_plan(p, "c7i.test", "full", filters, 2)
         self.assertEqual([j.label for j in jobs], ["1/3", "2/3", "3/3"])
         self.assertEqual({j.instance_type for j in jobs}, {"c7i.test"})
-        self.assertEqual(jobs[1].commands[0][:5], ["run", "--mode", "full", "--shard", "2/3"])
-        self.assertIn("go", jobs[0].commands[0])
-        self.assertEqual(jobs[0].commands[0][-2:], ["--task", "dump"])
+        self.assertEqual({j.role for j in jobs}, {"shard"})
+        self.assertEqual(jobs[1].commands[0][:6], ["bench", "run", "--mode", "full", "--shard", "2/3"])
+        self.assertEqual(jobs[0].commands[0][-4:], ["--lang", "go", "--task", "dump"])
         self.assertGreater(jobs[1].lifetime_minutes, jobs[2].lifetime_minutes)    # longer shard, longer limit
         self.assertGreater(jobs[1].lifetime_minutes * 60, plan.BOOT_TO_MEASURING_SECONDS + 900)
 
     def test_quick_mode_has_a_fixed_short_lifetime(self):
-        p = plan.parse_plan(self.plan_obj([50000]))
-        self.assertEqual(cli.jobs_from_plan(p, "t", "quick", None, 2, [])[0].lifetime_minutes, plan.QUICK_LIFETIME_MINUTES)
+        p = plan.parse_plan(self.plan_obj([50000], "quick"), "quick")
+        self.assertEqual(cli.jobs_from_plan(p, "t", "quick", [], 2)[0].lifetime_minutes, plan.QUICK_LIFETIME_MINUTES)
+
+    def test_each_further_language_adds_build_time(self):
+        two = plan.ShardPlan(1, 100, ["go/a", "rust/a", "csharp/a"])
+        one = plan.ShardPlan(1, 100, ["go/a", "go/b"])
+        self.assertEqual(plan.instance_seconds(two) - plan.instance_seconds(one), 2 * plan.BUILD_SECONDS_PER_LANGUAGE)
 
     def test_auto_picks_the_fastest_count_under_the_cap(self):
-        totals = [4000.0]
-
         def get(n):
-            return plan.parse_plan(self.plan_obj([totals[0] / n] * n))
+            return plan.parse_plan(self.plan_obj([4000.0 / n] * n))
         n, p, table = plan.choose_shards(get, 6, price=1.0, cap=100.0)
         self.assertEqual(n, 6)
         # a low cap rules out the many-instance plans, which pay the start-up time on each instance
         cheap = plan.plan_cost(get(1), 1.0)
-        n2, _, _ = plan.choose_shards(get, 6, price=1.0, cap=cheap + 0.3)
+        n2, _, _ = plan.choose_shards(get, 6, price=1.0, cap=cheap + 0.03)
         self.assertLess(n2, 6)
         with self.assertRaises(plan.PlanError):
             plan.choose_shards(get, 6, price=1.0, cap=0.01)
 
+    def test_auto_counts_the_conformance_job(self):
+        def get(n):
+            return plan.parse_plan(self.plan_obj([60.0 / n] * n))
+        _, p, _ = plan.choose_shards(get, 4, price=1.0, cap=100.0, conformance=2)
+        self.assertGreater(plan.plan_cost(p, 1.0, 2), plan.plan_cost(p, 1.0, 1))
+        self.assertGreater(plan.plan_cost(p, 1.0, 1), plan.plan_cost(p, 1.0))
+        self.assertGreaterEqual(plan.wall_seconds(p, 2), plan.conformance_instance_seconds(2))
+
     def test_auto_stops_when_the_harness_cannot_split_further(self):
         def get(n):
-            return plan.parse_plan(self.plan_obj([600.0 / min(n, 2)] * min(n, 2)))
+            if n > 2:
+                raise plan.PlanError("3 shards but only 2 comparison rows to share out")
+            return plan.parse_plan(self.plan_obj([600.0 / n] * n))
         n, p, table = plan.choose_shards(get, 8, price=1.0, cap=100.0)
         self.assertEqual(p.count, 2)
-        self.assertLessEqual(len(table), 3)
+        self.assertEqual(len(table), 2)
 
     def test_cost_guard_refuses_before_launching(self):
         aws = FakeAws()
@@ -411,10 +457,140 @@ class Planning(unittest.TestCase):
         self.assertEqual(aws.launches, [])
 
 
+class Conformance(RunCase):
+    def adapters_tree(self, root: Path):
+        for name, lang, env in (("oneyaml-go", "go", ["KIT_ONEYAML_GO_SRC"]), ("oneyaml-rust", "rust", []),
+                                ("oneyaml-csharp", "csharp", ["KIT_ONEYAML_CSHARP_SRC"]), ("go-yaml-v3", "go", [])):
+            d = root / "adapters" / name
+            d.mkdir(parents=True)
+            (d / "adapter.json").write_text(json.dumps({"name": name, "language": lang, "requires_env": env}))
+
+    def test_own_libraries_of_the_selected_languages_only(self):
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t)
+            self.adapters_tree(root)
+            self.assertEqual(cli.own_adapters(root, ["go"], {"KIT_ONEYAML_GO_SRC"}), (["oneyaml-go"], []))
+            use, skipped = cli.own_adapters(root, ["go", "rust"], set())
+            self.assertEqual(use, ["oneyaml-rust"])
+            self.assertIn("KIT_ONEYAML_GO_SRC is not set", skipped[0])
+            self.assertEqual(cli.own_adapters(root, None, {"KIT_ONEYAML_GO_SRC", "KIT_ONEYAML_CSHARP_SRC"})[0],
+                             ["oneyaml-csharp", "oneyaml-go", "oneyaml-rust"])
+
+    def test_conformance_job_runs_the_full_kit_per_library(self):
+        j = cli.conformance_job(3, "t", ["oneyaml-go", "oneyaml-rust"])
+        self.assertEqual(j.role, "conformance")
+        self.assertEqual(j.commands[0], ["kit", "run", "--slow", "--adapter", "oneyaml-go", "--out", "{out}"])
+        self.assertEqual(len(j.commands), 2)
+
+    def test_results_are_filed_where_readme_looks(self):
+        aws = FakeAws()
+        jobs = job_list(1) + [cli.conformance_job(2, "c7i.test", ["oneyaml-go"])]
+        r = self.make(aws, jobs=jobs)
+        # the fake instance returns a shard result for every job; give the conformance one its file
+        orig = aws.launch
+
+        def launch(spec):
+            iid = orig(spec)
+            script = gzip.decompress(spec.user_data).decode()
+            if "kit run" in script:
+                url = next(u for u in URL.findall(script) if "result.tar.gz" in u.split("?")[0])
+                buf = io.BytesIO()
+                with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+                    data = b'{"adapter": {"name": "oneyaml-go"}}'
+                    info = tarfile.TarInfo("0/results/oneyaml-go.json")
+                    info.size = len(data)
+                    tf.addfile(info, io.BytesIO(data))
+                aws.store[url.split("?")[0].split(".com/", 1)[1]] = buf.getvalue()
+            return iid
+        aws.launch = launch
+        calls = []
+        r.after_collect = lambda run: calls.append(cli.merge_after_collect(self.dir / "out")(run))
+        saved = runner.merge
+        runner.merge = lambda *a, **k: calls.append(("merge", a[1], k)) or 0
+        try:
+            r.execute()
+        finally:
+            runner.merge = saved
+        merge_call = next(c for c in calls if c and c[0] == "merge")
+        self.assertEqual([p.parts[-2:] for p in merge_call[1]], [("1", "0")])      # shards only
+        self.assertFalse(merge_call[2]["allow_incomplete"])
+        self.assertEqual((self.dir / "out" / "results" / "conformance" / "oneyaml-go.json").read_bytes(),
+                         b'{"adapter": {"name": "oneyaml-go"}}')
+
+    def test_failed_conformance_still_merges_and_then_fails_the_run(self):
+        aws = FakeAws(lambda spec, n: "bad-exit" if n == 2 else "done")
+        jobs = job_list(1) + [cli.conformance_job(2, "c7i.test", ["oneyaml-go"])]
+        r = self.make(aws, jobs=jobs)
+        merged = []
+        r.after_collect = lambda run: merged.append(True)
+        with self.assertRaises(runner.RunFailed):
+            r.execute()
+        self.assertEqual(merged, [True])
+        self.assertTrue(aws.clean())
+
+    def test_allow_incomplete_merges_the_survivors_and_still_fails(self):
+        aws = FakeAws(lambda spec, n: "bad-exit" if n == 2 else "done")
+        r = self.make(aws, jobs=job_list(2), allow_incomplete=True)
+        seen = []
+        r.after_collect = lambda run: seen.append(run.incomplete)
+        with self.assertRaises(runner.RunFailed):
+            r.execute()
+        self.assertEqual(seen, [True])
+        self.assertFalse(json.loads((self.dir / "out" / "cloud-run.json").read_text())["ok"])
+        self.assertTrue(aws.clean())
+
+    def test_incomplete_is_refused_by_default(self):
+        aws = FakeAws(lambda spec, n: "bad-exit" if n == 2 else "done")
+        r = self.make(aws, jobs=job_list(2))
+        r.after_collect = lambda run: self.fail("merged although a shard failed")
+        with self.assertRaises(runner.RunFailed):
+            r.execute()
+
+
+class ShardCheck(unittest.TestCase):
+    """What the instance accepts as a shard that measured correctly, run on the script it really uses."""
+
+    def check(self, kind, files):
+        with tempfile.TemporaryDirectory() as t:
+            out = Path(t) / "0"
+            out.mkdir()
+            for name, data in files.items():
+                (out / name).parent.mkdir(parents=True, exist_ok=True)
+                (out / name).write_text(data if isinstance(data, str) else json.dumps(data))
+            script = Path(t) / "check.py"
+            script.write_text(bootstrap.CHECK_SCRIPT)
+            label = Path(t) / "kit-label"
+            r = subprocess.run([sys.executable, str(script), kind, str(out)], capture_output=True, text=True)
+            return r.returncode, r.stdout
+
+    def shard(self, status="ok", **env):
+        return {"run": {"shard": {"index": 1}, "environment": dict({"instance_type": "t"}, **env)},
+                "cells": [{"library": "l", "task": "t", "workload": "w", "status": status}]}
+
+    def test_non_publishable_shard_with_deviations_is_a_success(self):
+        for status in ("ok", "differs", "rejects", "unsupported"):
+            self.assertEqual(self.check("shard", {"results.json": self.shard(status)})[0], 0, status)
+
+    def test_a_crashed_or_stalled_cell_is_a_failure(self):
+        code, out = self.check("shard", {"results.json": self.shard("error")})
+        self.assertEqual(code, 24)
+        self.assertIn("crashed or stalled", out)
+
+    def test_missing_unreadable_or_unsharded_results_are_failures(self):
+        self.assertEqual(self.check("shard", {})[0], 23)
+        self.assertEqual(self.check("shard", {"results.json": "{not json"})[0], 23)
+        self.assertEqual(self.check("shard", {"results.json": {"run": {}, "cells": []}})[0], 23)
+
+    def test_conformance_needs_its_result_file(self):
+        self.assertEqual(self.check("conformance", {})[0], 22)
+        self.assertEqual(self.check("conformance", {"results/oneyaml-go.json": {}})[0], 0)
+
+
 class Scripts(unittest.TestCase):
     def script(self, **kw):
         long = "https://bucket.s3.us-east-2.amazonaws.com/runs/r/x?" + "X-Amz-Signature=" + "a" * 64 + "&X-Amz-Security-Token=" + "t" * 900
-        args = dict(run_id="r", shard="1/2", attempt=1, commands=[["run", "--mode", "full", "--shard", "1/2", "--out", "{out}"]],
+        args = dict(run_id="r", shard="1/2", attempt=1, commands=[["bench", "run", "--mode", "full", "--shard", "1/2", "--out", "{out}"],
+                              ["kit", "run", "--slow", "--out", "{out}"]],
                     inputs_url=long, log_url=long, status_url=long, result_url=long, lifetime_minutes=33,
                     library_vars={"KIT_ONEYAML_GO_SRC": "oneyaml-go"})
         args.update(kw)

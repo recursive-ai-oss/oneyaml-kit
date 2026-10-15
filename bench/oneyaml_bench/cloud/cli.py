@@ -43,21 +43,48 @@ def make_aws(cfg) -> Aws:
     return Aws(cfg)
 
 
-def bench_command(mode: str, label: str, langs: list[str] | None, pin: int, extra: list[str]) -> list[str]:
-    cmd = ["run", "--mode", mode, "--shard", label, "--pin", str(pin), "--out", "{out}"]
-    for lang in langs or []:
-        cmd += ["--lang", lang]
-    return cmd + extra
+def bench_command(mode: str, label: str, filters: list[str], pin: int) -> list[str]:
+    """One shard's `bin/bench run`. The filters are the same ones the plan was made with: the plan digest covers them."""
+    return ["bench", "run", "--mode", mode, "--shard", label, "--pin", str(pin), "--out", "{out}", *filters]
 
 
-def jobs_from_plan(plan: planmod.Plan, itype: str, mode: str, langs: list[str] | None, pin: int, extra: list[str]) -> list[runner.Job]:
-    """One job per planned shard, all of one instance type. A quick run's time is capped: it only checks the pipeline."""
+def filter_args(langs, tasks, libraries, workloads) -> list[str]:
+    out: list[str] = []
+    for flag, values in (("--lang", langs), ("--task", tasks), ("--library", libraries), ("--workload", workloads)):
+        for v in values or []:
+            out += [flag, v]
+    return out
+
+
+def own_adapters(kit_root: Path, langs: list[str] | None, available_env: set[str]) -> tuple[list[str], list[str]]:
+    """The conformance adapters of our own libraries in the languages of the run, and the ones left out because
+    their source is not available (the variable that would bring it in is not set)."""
+    use, skipped = [], []
+    for p in sorted((kit_root / "adapters").glob("*/adapter.json")):
+        d = json.loads(p.read_text(encoding="utf-8"))
+        if not d["name"].startswith("oneyaml-") or (langs and d.get("language") not in langs):
+            continue
+        need = [v for v in d.get("requires_env", []) if v not in available_env]
+        if need:
+            skipped.append(f"{d['name']} ({need[0]} is not set)")
+        else:
+            use.append(d["name"])
+    return use, skipped
+
+
+def conformance_job(index: int, itype: str, adapters: list[str]) -> runner.Job:
+    cmds = [["kit", "run", "--slow", "--adapter", name, "--out", "{out}"] for name in adapters]
+    return runner.Job(index, "conformance", itype, cmds, planmod.CONFORMANCE_LIFETIME_MINUTES,
+                      planmod.conformance_instance_seconds(len(adapters)), role="conformance")
+
+
+def jobs_from_plan(plan: planmod.Plan, itype: str, mode: str, filters: list[str], pin: int) -> list[runner.Job]:
+    """One job per planned shard, all of one instance type."""
     jobs = []
     for s in plan.shards:
-        secs = min(s.seconds, 300) if mode == "quick" else s.seconds
         label = f"{s.index}/{plan.count}"
-        jobs.append(runner.Job(s.index, label, itype, [bench_command(mode, label, langs, pin, extra)],
-                               planmod.lifetime_minutes(secs, mode), secs))
+        jobs.append(runner.Job(s.index, label, itype, [bench_command(mode, label, filters, pin)],
+                               planmod.lifetime_minutes(s, mode), planmod.instance_seconds(s)))
     return jobs
 
 
@@ -89,11 +116,26 @@ def run_summary(say, summary: dict) -> None:
     say(f"estimated cost ${summary['cost_estimate']:.2f} (spot ${summary['price_per_hour_spot']:.4f}/h)")
 
 
+class DryRun(Exception):
+    """Raised after the plan, the estimate and the cost guard, when nothing is to be started."""
+
+
 def merge_after_collect(out: Path):
-    """The hook that merges the shards while the instances are still finishing their termination."""
+    """The hook that merges the shards, and files the conformance results beside the merged benchmark result, in
+    the layout `bin/bench readme --results` reads: bench/results.json and conformance/<library>.json. It runs
+    while the instances are still finishing their termination."""
     def hook(r: runner.Run) -> None:
-        dirs = [Path(res.out_dir) / "0" for _, res in sorted(r.results.items()) if res.out_dir]
-        r.extra["merge_exit"] = runner.merge(KIT_ROOT, dirs, out / "merged", r.say)
+        shard_dirs = [Path(res.out_dir) / "0" for _, res in sorted(r.results.items())
+                      if res.out_dir and res.job.role == "shard"]
+        final = out / "results"
+        r.extra["merge_exit"] = runner.merge(KIT_ROOT, shard_dirs, final / "bench", r.say, allow_incomplete=r.incomplete)
+        for _, res in sorted(r.results.items()):
+            if res.out_dir and res.job.role == "conformance":
+                for k in sorted(p for p in Path(res.out_dir).iterdir() if p.is_dir()):
+                    for f in sorted((k / "results").glob("*.json")):
+                        (final / "conformance").mkdir(parents=True, exist_ok=True)
+                        (final / "conformance" / f.name).write_bytes(f.read_bytes())
+                        r.say(f"conformance result: results/conformance/{f.name}")
     return hook
 
 
@@ -109,6 +151,8 @@ def prepare_run(a, cfg, aws, say, itype: str, jobs_for, merge: bool = False) -> 
     say(f"{itype}: spot ${price:.4f}/h" + (f", on-demand ${od:.4f}/h" if od else "") + f"; estimated cost ${est:.2f}, cap ${cap:.2f}")
     if est > cap:
         raise runner.RunFailed(f"the estimated cost ${est:.2f} is above the cap ${cap:.2f}; raise it with --cost-cap")
+    if getattr(a, "dry_run", False):
+        raise DryRun()
     image_id, info = imagemod.ensure_image(aws, cfg, KIT_ROOT, out / "image", say)
     t = time.time()
     packs = packmod.pack_all(KIT_ROOT, out / "packs", kit_tree=a.kit_tree)
@@ -116,6 +160,7 @@ def prepare_run(a, cfg, aws, say, itype: str, jobs_for, merge: bool = False) -> 
         say(f"packed {p.name} {p.revision[:12]}{' (uncommitted changes not included)' if p.dirty and p.source == 'git' else ''}"
             f"{' (working tree)' if p.source == 'tree' else ''}, {p.size} bytes")
     opts = runner.Options(out=out, mode=getattr(a, "mode", "full"), cost_cap=cap, volume_gb=cfg.volume_gb,
+                          allow_incomplete=getattr(a, "allow_incomplete", False),
                           timeout_minutes=a.timeout_minutes, spot_retries=a.spot_retries,
                           on_demand_fallback=not a.no_on_demand)
     r = runner.Run(aws, cfg, opts, jobs, image_id, packs, price, od, say=say, run_id=run_id,
@@ -152,28 +197,46 @@ def verify_clean(aws, run_id: str, say) -> int:
 
 def cmd_run(a, cfg, aws, say) -> int:
     itype = a.instance_type or cfg.instance_type
-    langs = a.lang or None
+    filters = filter_args(a.lang, a.task, a.library, a.workload)
     vcpus = aws.vcpus(itype)
-    max_n = max(1, min(cfg.max_shards, cfg.spot_vcpu_quota // vcpus))
-    extra = a.bench_arg or []
+    adapters, skipped = ([], [])
+    if a.conformance:
+        adapters, skipped = own_adapters(KIT_ROOT, a.lang, {v for v in packmod.LIBRARY_VARS if os.environ.get(v)})
+    for s in skipped:
+        say(f"conformance left out for {s}")
+    if a.conformance and not adapters:
+        say("conformance: no library of ours is available for this selection; no conformance job")
+    extra_jobs = 1 if adapters else 0
+    max_n = max(1, min(cfg.max_shards, cfg.spot_vcpu_quota // vcpus - extra_jobs))
+    cap = a.cost_cap if a.cost_cap is not None else cfg.cost_cap
 
     def jobs_for(price):
+        def get(k):
+            return planmod.run_planner(KIT_ROOT, k, a.mode, filters)
         if a.shards == "auto":
-            n, plan, table = planmod.choose_shards(lambda k: planmod.run_planner(KIT_ROOT, k, langs), max_n, price,
-                                                   a.cost_cap if a.cost_cap is not None else cfg.cost_cap)
+            n, plan, table = planmod.choose_shards(get, max_n, price, cap, len(adapters))
             for row in table:
                 say(f"  candidate {row['shards']} shards: wall {row['wall_seconds']} s, cost ${row['cost']:.2f}")
         else:
             n = int(a.shards)
             if n > max_n:
-                raise runner.RunFailed(f"{n} instances of {itype} ({vcpus} vCPUs each) exceed the spot quota of "
-                                       f"{cfg.spot_vcpu_quota} vCPUs; at most {max_n}")
-            plan = planmod.run_planner(KIT_ROOT, n, langs)
+                raise runner.RunFailed(f"{n} shards and {extra_jobs} conformance job of {itype} ({vcpus} vCPUs each) exceed "
+                                       f"the spot quota of {cfg.spot_vcpu_quota} vCPUs; at most {max_n} shards")
+            plan = get(n)
         say(f"plan {plan.digest}: {plan.count} shard(s)")
-        jobs = jobs_from_plan(plan, itype, a.mode, langs, a.pin, extra)
-        return jobs, planmod.plan_cost(planmod.Plan(plan.digest, [planmod.ShardPlan(j.index, j.est_seconds, []) for j in jobs]), price)
+        for s in plan.shards:
+            say(f"  shard {s.index}/{plan.count}: {len(s.groups)} groups, about {round(s.seconds)} s of measuring, "
+                f"{round(planmod.instance_seconds(s))} s on the instance, limit {planmod.lifetime_minutes(s, a.mode)} min")
+        jobs = jobs_from_plan(plan, itype, a.mode, filters, a.pin)
+        if adapters:
+            jobs.append(conformance_job(plan.count + 1, itype, adapters))
+            say("conformance job: " + ", ".join(adapters))
+        return jobs, planmod.plan_cost(plan, price, len(adapters))
 
-    r, out = prepare_run(a, cfg, aws, say, itype, jobs_for, merge=True)
+    try:
+        r, out = prepare_run(a, cfg, aws, say, itype, jobs_for, merge=True)
+    except DryRun:
+        return 0
     code = 0
     try:
         summary = execute(r, aws, say, out)
@@ -185,8 +248,8 @@ def cmd_run(a, cfg, aws, say) -> int:
         say("interrupted; everything tagged with this run was terminated")
         code = 130
         summary = None
-    if summary:
-        rc = r.extra.get("merge_exit")
+    rc = r.extra.get("merge_exit")
+    if rc is not None:
         code = code or (0 if rc == 0 else 1)
     clean = verify_clean(aws, r.run_id, say)
     return code or clean
@@ -209,7 +272,7 @@ def cmd_spread(a, cfg, aws, say) -> int:
     def jobs_for(price):
         cmds = []
         for _ in range(a.repeat):
-            cmds.append(["run", "--mode", "quick", "--pin", str(a.pin), "--out", "{out}", *sel])
+            cmds.append(["bench", "run", "--mode", "quick", "--pin", str(a.pin), "--out", "{out}", *sel])
         jobs = [runner.Job(i, t, t, cmds, planmod.QUICK_LIFETIME_MINUTES, 600) for i, t in enumerate(types, 1)]
         return jobs, sum(planmod.shard_cost(aws.spot_price(t), 600) for t in types)
 
@@ -300,7 +363,14 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--shards", default="auto", help="a number, or auto: the shortest wall-clock time under the cost cap")
     s.add_argument("--lang", action="append")
     s.add_argument("--mode", choices=("quick", "full"), default="full")
-    s.add_argument("--bench-arg", action="append", help="an extra argument for every `bench run` (repeatable)")
+    s.add_argument("--task", action="append", help="measure only this task (repeatable); the plan sees it too")
+    s.add_argument("--library", action="append", help="measure only this library (repeatable)")
+    s.add_argument("--workload", action="append", help="measure only this workload (repeatable)")
+    s.add_argument("--allow-incomplete", action="store_true",
+                   help="merge the shards that succeeded when others failed; the result is never publishable and the run fails")
+    s.add_argument("--dry-run", action="store_true", help="print the plan, the estimates and the cost check, then stop")
+    s.add_argument("--conformance", action=argparse.BooleanOptionalAction, default=True,
+                   help="also run the full conformance of our own libraries in the selected languages (default: on)")
     common(s)
     s.set_defaults(fn=cmd_run)
     s = sub.add_parser("spread", help="repeat a few quick cells on each instance type and compare the spread")

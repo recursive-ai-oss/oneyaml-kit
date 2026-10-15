@@ -43,6 +43,7 @@ class Job:
     commands: list[list[str]]
     lifetime_minutes: int
     est_seconds: float = 0.0
+    role: str = "shard"              # "shard" (timed; merged) or "conformance" (untimed; kept as it is)
 
 
 @dataclass
@@ -63,6 +64,7 @@ class JobResult:
     job: Job
     attempts: list[Attempt] = field(default_factory=list)
     out_dir: Path | None = None
+    partial_dir: Path | None = None   # the output of a job that failed; never merged
     ok: bool = False
     error: str = ""
 
@@ -78,6 +80,7 @@ class Options:
     timeout_minutes: int | None = None
     volume_gb: int = 40
     launch_backoff_seconds: float = 10.0
+    allow_incomplete: bool = False   # merge the shards that succeeded; the run still counts as failed
 
 
 class Teardown:
@@ -152,6 +155,8 @@ class Run:
         self.aws, self.cfg, self.opts, self.jobs, self.image_id, self.packs = aws, cfg, opts, jobs, image_id, packs
         self.price, self.on_demand_price = price, on_demand_price
         self.after_collect = after_collect
+        self.incomplete = False
+        self.deferred: list[str] = []
         self.extra: dict = {}
         self.prices: dict[str, float] = {}      # per type, when a run mixes types
         self.say = say
@@ -229,6 +234,7 @@ class Run:
                 return
             if att.outcome == "failed":
                 res.error = att.detail
+                self.collect(job, att, res, ok=False)      # kept for diagnosis; never merged
                 return
             if att.outcome == "cancelled":
                 res.error = "cancelled"
@@ -303,17 +309,22 @@ class Run:
                 return
             self.cancel.wait(self.opts.poll_seconds)
 
-    def collect(self, job: Job, att: Attempt, res: JobResult) -> None:
+    def collect(self, job: Job, att: Attempt, res: JobResult, ok: bool = True) -> None:
         data = self.fetch(self.key(f"job{job.index}-a{att.number}", "result.tar.gz"))
         if not data:
-            att.outcome, att.detail = "failed", "the instance reported success but uploaded no result"
-            res.error = att.detail
+            if ok:
+                att.outcome, att.detail = "failed", "the instance reported success but uploaded no result"
+                res.error = att.detail
             return
         dest = self.opts.out / "jobs" / str(job.index)
         dest.mkdir(parents=True, exist_ok=True)
         with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tf:
             tf.extractall(dest, filter="data")
-        res.out_dir, res.ok = dest, True
+        if ok:
+            res.out_dir, res.ok = dest, True
+        else:
+            res.partial_dir = dest
+            self.say(f"[{job.label}] the results of the failed job were kept for inspection in jobs/{job.index}")
 
     # -- the whole run ----------------------------------------------------------------------
 
@@ -353,8 +364,18 @@ class Run:
                     th.join(0.2)
             self.timeline["jobs"] = self.clock() - t_launch
             failed = [r for r in self.results.values() if not r.ok]
-            if failed or len(self.results) < len(self.jobs):
-                raise RunFailed("; ".join(f"job {r.job.label}: {r.error or 'no result'}" for r in failed) or "a job never started")
+            missing = len(self.results) < len(self.jobs)
+            bad_shards = [r for r in failed if r.job.role == "shard"]
+            shards_ok = [r for r in self.results.values() if r.ok and r.job.role == "shard"]
+            if (bad_shards or missing) and self.opts.allow_incomplete and shards_ok:
+                self.incomplete = True
+                for r in bad_shards:
+                    self.say(f"job {r.job.label} failed and is left out: {r.error}")
+            elif bad_shards or missing:
+                raise RunFailed("; ".join(f"job {r.job.label}: {r.error or 'no result'}" for r in failed)
+                                or "a job never started")
+            # A failed conformance run does not stop the benchmark shards from being merged; it fails the run after.
+            self.deferred = [f"job {r.job.label}: {r.error}" for r in failed if r.job.role != "shard"]
         except BaseException as e:      # includes KeyboardInterrupt and the SIGTERM handler's exception
             error = e
         finally:
@@ -379,6 +400,10 @@ class Run:
         self.write_summary(summary)
         if error is not None:
             raise error
+        if self.incomplete:
+            raise RunFailed("some jobs failed; the shards that succeeded were merged with --allow-incomplete")
+        if self.deferred:
+            raise RunFailed("; ".join(self.deferred))
         if problems:
             raise RunFailed("teardown left resources behind: " + "; ".join(problems))
         return summary
@@ -419,7 +444,8 @@ class Run:
                 "cost_estimate": round(cost, 3),
             })
         return {
-            "run_id": self.run_id, "ok": error is None and not problems, "error": repr(error) if error else "",
+            "run_id": self.run_id, "ok": error is None and not problems and not self.incomplete and not self.deferred,
+            "incomplete": self.incomplete, "error": repr(error) if error else "",
             "teardown_problems": problems, "teardown_pending": self.teardown.pending,
             "extra": self.extra, "instance_type": self.types(), "image": self.image_id,
             "price_per_hour_spot": self.price, "price_per_hour_on_demand": self.on_demand_price,
@@ -471,8 +497,11 @@ def install_signal_handlers() -> None:
         signal.signal(s, handler)
 
 
-def merge(kit_root: Path, shard_dirs: list[Path], out: Path, say=print) -> int:
-    cmd = [sys.executable, str(kit_root / "bin" / "bench"), "merge", "--out", str(out)] + [str(d) for d in shard_dirs]
+def merge(kit_root: Path, shard_dirs: list[Path], out: Path, say=print, allow_incomplete: bool = False) -> int:
+    cmd = [sys.executable, str(kit_root / "bin" / "bench"), "merge", "--out", str(out)]
+    if allow_incomplete:
+        cmd.append("--allow-incomplete")
+    cmd += [str(d) for d in shard_dirs]
     say("merging: bin/bench merge --out " + out.name + " " + " ".join(d.parent.name + "/" + d.name for d in shard_dirs))
     r = subprocess.run(cmd, capture_output=True, text=True)
     say((r.stdout + r.stderr).strip()[-1500:])

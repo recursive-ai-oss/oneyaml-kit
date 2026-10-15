@@ -16,8 +16,8 @@ import tarfile
 from dataclasses import dataclass
 from pathlib import Path
 
-# The parts of the kit a harness run needs. The case suites are not used by the benchmarks.
-KIT_PATHS = ("bin", "bench", "tools")
+# The parts of the kit a run needs: the benchmark harnesses, and for the conformance run the case suites and adapters.
+KIT_PATHS = ("bin", "bench", "tools", "suites", "adapters")
 SKIP_PARTS = {".git", "__pycache__", "out", "target", "bin-go", "node_modules"}
 
 # Library sources the harnesses can link in, by the variable that names their checkout.
@@ -124,4 +124,11 @@ def bundle_inputs(packs: list[Packed], path: Path) -> Path:
             info = tarfile.TarInfo(f"rev-{p.name}")
             info.size = len(data)
             tf.addfile(info, io.BytesIO(data))
+            if p.name == "kit":
+                # What the result's environment block shows as the kit revision: an archive has no history
+                # for the harness to read it from. A working-tree pack is not a commit, so it says so.
+                label = (p.revision[:12] + ("+modified" if p.source == "tree" else "") + "\n").encode()
+                info = tarfile.TarInfo("kit-label")
+                info.size = len(label)
+                tf.addfile(info, io.BytesIO(label))
     return path
