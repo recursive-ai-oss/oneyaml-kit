@@ -217,7 +217,13 @@ def execute(ad, caps: set, cases: list[Case], progress=None, emulates=(),
         scale = speed.time_scale() if c.expect["kind"] == "bounded" else 1.0
         if compare.satisfied(base, caps):
             lim = limits_of(c, scale)
-            resp = ad.run(c.id, c.op, c.input, c.args, lim) if lim else ad.run(c.id, c.op, c.input, c.args)
+            if lim and hasattr(ad, "run_fresh"):
+                # A bounded case is measured in a process of its own, from a clean start.
+                resp = ad.run_fresh(c.id, c.op, c.input, c.args, lim)
+            elif lim:
+                resp = ad.run(c.id, c.op, c.input, c.args, lim)
+            else:
+                resp = ad.run(c.id, c.op, c.input, c.args)
         else:
             resp = {"status": "skipped"}
         results.append(evaluate_case(c, resp, caps, int((time.monotonic() - t) * 1e6), emulates, protocol))
@@ -302,6 +308,7 @@ def run_adapter(name: str, cases: list[Case], complete: bool, adapters_dir: Path
             "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d"),
             "mode": "fast", "complete": complete, "cases": len(cases),
             "seconds": round(elapsed, 3), "adapter_restarts": ad.restarts,
+            "bounded_sessions": ad.fresh_sessions,
             "system": {"os": platform.platform(), "machine": platform.machine(),
                        "cpus": os.cpu_count(), "load_1m": _load(),
                        "python": platform.python_version()},

@@ -1,6 +1,8 @@
 """Subprocess adapter connection: JSON Lines over stdin/stdout.
 
-One adapter process serves every case of a run, so start-up cost is paid once.
+One adapter process serves every ordinary case of a run, so start-up cost is paid once.
+A case with resource bounds gets a process of its own (`run_fresh`), so what it uses is
+measured from a clean start and never depends on the cases that ran before it.
 A crash, a protocol violation or a timeout is reported for that case only; the
 process is then killed and restarted for the next one.
 """
@@ -93,6 +95,7 @@ class SubprocessAdapter:
         self.hello: dict = {}
         self._q: queue.Queue = queue.Queue()
         self.restarts = 0
+        self.fresh_sessions = 0
 
     # -- lifecycle
     def start(self) -> dict:
@@ -260,6 +263,27 @@ class SubprocessAdapter:
         if limits:
             out["_measure"] = {"seconds": secs, "peak_mb": peak, "time_bound": timeout}
         return out
+
+    def run_fresh(self, case_id: str, op: str, data: bytes, args: dict, limits: dict) -> dict:
+        """Run one bounded case in a new adapter process that serves nothing else.
+
+        Memory is measured as growth over what the process holds when the case starts. A
+        process that has already served cases holds memory its runtime kept (a garbage
+        collector's heap, a parser's buffers), so the same case measures differently after
+        different predecessors. A new process starts from the same state every time. The
+        shared session is left alone and serves the next ordinary case."""
+        one = SubprocessAdapter(self.command, cwd=self.cwd, env=self.env, timeout=self.timeout,
+                                memory_limit_mb=self.memory_limit_mb)
+        self.fresh_sessions += 1
+        try:
+            try:
+                one.start()
+            except AdapterError as e:
+                return {"status": "crash", "detail": f"fresh session did not start: {e}",
+                        "_measure": {"seconds": 0.0, "peak_mb": None, "time_bound": limits["time_seconds"]}}
+            return one.run(case_id, op, data, args, limits)
+        finally:
+            one.close()
 
     def _failed(self, status: str, detail: str) -> dict:
         if self.proc:

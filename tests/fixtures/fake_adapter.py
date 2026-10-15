@@ -3,9 +3,11 @@
 
 Behaviour per case id comes from the file named by FAKE_SCRIPT (JSON): a map from case id to
 one of "ok-events", "crash", "hang", "garbage", "unsupported", "error", "accepted",
-"deep-value", "deep-garbage", "slow" (answers after one second). FAKE_PROTOCOL says which hello
-protocol to speak (default 1).
-Every request id is appended to FAKE_LOG, one per line, so tests can see what was sent.
+"deep-value", "deep-garbage", "slow" (answers after one second), "pool" (the first such case
+fills a 200 MB pool that later ones reuse, as a runtime that keeps freed memory does).
+FAKE_PROTOCOL says which hello protocol to speak (default 1).
+Every request id is appended to FAKE_LOG, one per line, so tests can see what was sent;
+with FAKE_PIDLOG the id, the process id and the session id are also appended to that file.
 """
 import json
 import os
@@ -17,6 +19,7 @@ log = os.environ.get("FAKE_LOG")
 caps = json.loads(os.environ.get("FAKE_CAPS", '["events", "value"]'))
 emulates = json.loads(os.environ.get("FAKE_EMULATES", "[]"))
 held = []
+pool = []
 protocol = int(os.environ.get("FAKE_PROTOCOL", "1"))
 
 for line in sys.stdin:
@@ -30,7 +33,11 @@ for line in sys.stdin:
     elif req["type"] == "run":
         if log:
             open(log, "a").write(req["id"] + "\n")
+        if os.environ.get("FAKE_PIDLOG"):
+            open(os.environ["FAKE_PIDLOG"], "a").write("%s %d %d\n" % (req["id"], os.getpid(), os.getsid(0)))
         how = script.get(req["id"], "ok-events")
+        if how == "pool" and not pool:
+            pool.append(bytearray(b"\x01" * (200 * 1024 * 1024)))
         if how == "crash":
             os._exit(3)
         if how == "hang":

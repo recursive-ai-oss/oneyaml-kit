@@ -17,7 +17,7 @@ generated from these files only.
  },
  "run": {
   "date": "2026-10-14", "mode": "fast", "complete": true, "cases": 720,
-  "seconds": 0.2, "adapter_restarts": 0,
+  "seconds": 0.2, "adapter_restarts": 0, "bounded_sessions": 0,
   "system": {"os": "...", "machine": "...", "cpus": 32, "load_1m": 1.1, "python": "3.13.13"}
  },
  "adapter": {
@@ -31,6 +31,10 @@ generated from these files only.
  "deviations": {"listed": 17, "unlisted": [], "stale": [], "unknown": [], "ok": true, "entries": []}
 }
 ```
+
+In `run`, `adapter_restarts` counts how often the shared adapter process had to be started
+again after a failure, and `bounded_sessions` how many separate processes the bounded cases
+used (one each, see the adapter protocol).
 
 ## Cases
 

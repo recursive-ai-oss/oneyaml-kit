@@ -77,9 +77,44 @@ class Subprocess(unittest.TestCase):
         self.assertEqual(res[0]["reason"], "capability")
         self.assertFalse(self.log.exists())
 
-    def bounded(self, seconds=2, mb=100):
-        return mk("b", expect={"kind": "bounded", "time_seconds": seconds, "memory_mb": mb,
+    def bounded(self, seconds=2, mb=100, cid="b"):
+        return mk(cid, expect={"kind": "bounded", "time_seconds": seconds, "memory_mb": mb,
                               "accept": {"kind": "events", "events": ["+STR", "-STR"]}, "category": "limit"})
+
+    def test_a_bounded_case_runs_in_a_process_of_its_own(self):
+        pidlog = self.t / "pids"
+        a = self.adapter({})
+        a.env["FAKE_PIDLOG"] = str(pidlog)
+        h = a.start()
+        cases = [mk("a"), self.bounded(cid="first"), mk("c"), self.bounded(cid="second")]
+        res = R.execute(a, set(h["capabilities"]), cases)
+        self.assertEqual([r["loose"] for r in res], ["pass"] * 4)
+        pid = {f[0]: f[1] for f in (line.split() for line in pidlog.read_text().splitlines())}
+        self.assertEqual(pid["a"], pid["c"])  # ordinary cases share one session
+        self.assertEqual(len({pid["a"], pid["first"], pid["second"]}), 3)
+        self.assertEqual(a.fresh_sessions, 2)
+        self.assertEqual(a.restarts, 0)
+
+    @unittest.skipUnless(os.path.exists("/proc/self/clear_refs"), "needs Linux /proc")
+    def test_the_memory_of_a_bounded_case_does_not_depend_on_earlier_cases(self):
+        # The adapter fills a pool on its first such case and reuses it afterwards, as a
+        # runtime that keeps freed memory does. In one shared session the second case would
+        # show no growth; each case gets its own process, so both show the cost.
+        a = self.adapter({"first": "pool", "second": "pool"}, timeout=30)
+        h = a.start()
+        res = R.execute(a, set(h["capabilities"]),
+                        [self.bounded(seconds=20, mb=500, cid="first"), self.bounded(seconds=20, mb=50, cid="second")])
+        self.assertEqual(res[0]["loose"], "pass")
+        self.assertEqual((res[1]["loose"], res[1]["strict"]), ("fail", "fail"))
+        self.assertGreater(res[1]["measured"]["peak_mb"], 100)
+
+    def test_a_fresh_session_that_cannot_start_fails_that_case_only(self):
+        a = self.adapter({})
+        h = a.start()
+        a.command = [sys.executable, "-c", "print('not a hello')"]
+        res = R.execute(a, set(h["capabilities"]), [self.bounded(cid="first"), mk("a")])
+        self.assertEqual((res[0]["loose"], res[1]["loose"]), ("fail", "pass"))
+        self.assertIn("did not start", res[0]["detail"])
 
     def test_a_case_states_its_own_time_bound_whatever_the_manifest_says(self):
         a = self.adapter({"b": "hang"}, timeout=30)  # the manifest would wait half a minute
@@ -142,11 +177,16 @@ class Subprocess(unittest.TestCase):
 
     @unittest.skipUnless(os.path.exists("/proc/self/clear_refs"), "needs Linux /proc")
     def test_nothing_of_the_adapter_session_survives_a_failure(self):
+        # A bounded case runs in a session of its own; when it fails, all of that session goes.
+        pidlog = self.t / "pids"
         a = self.wrapped({"b": "alloc-hold"}, "sh")
+        a.env["FAKE_PIDLOG"] = str(pidlog)
         h = a.start()
-        session = a.proc.pid
-        R.execute(a, set(h["capabilities"]), [self.bounded(seconds=20, mb=50)])
-        self.assertEqual(P.tree_pids(session), [])
+        res = R.execute(a, set(h["capabilities"]), [self.bounded(seconds=20, mb=50)])
+        self.assertEqual(res[0]["loose"], "fail")
+        _, pid, session = pidlog.read_text().split()
+        self.assertNotEqual(int(session), a.proc.pid)  # not the shared session
+        self.assertEqual(P.tree_pids(int(session)), [])
 
     def test_emulated_behaviour_is_declared_and_recorded(self):
         a = self.adapter({"a": "emulated", "b": "emulated-undeclared"})
