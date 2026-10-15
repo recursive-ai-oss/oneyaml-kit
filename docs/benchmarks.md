@@ -130,7 +130,14 @@ places and are written to `out/bench/workloads/` before a run:
   state plus every byte the task requested, measured in a no-GC region so that it does not depend on the
   collector's earlier state (see [benchmark-adapters.md](benchmark-adapters.md#memory)), `retained_bytes`
   is what the library keeps after a run (pools, caches), and the number of allocation calls is not
-  available. Do not compare it with the Rust or Go figures.
+  available. Do not compare it with the Rust or Go figures. The allocated bytes of one process are
+  exact and repeat to the byte, but they are not the same in every process: the runtime's dynamic
+  profile-guided optimisation decides, from a sample of the calls it saw, which objects the compiled
+  code keeps on the stack, and that sample differs from run to run. Ten identical runs of one cell
+  gave up to 5.5% spread in quick mode and 11% in full mode, in steps of one allocation site (for
+  YamlDotNet's generic load of `gha-workflow`, 420,816, 444,016 or 467,216 bytes). Treat .NET memory
+  ratios closer than about 10% as ties; the verdict's tie band for memory (1%) is too narrow for
+  this runtime.
 - **Instructions** (`--counters`): instructions executed by one iteration, counted by
   callgrind restricted to the measured region.
 
