@@ -13,7 +13,5 @@
   {"case": "own:schema/unresolved-tag-is-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"},
   {"case": "own:schema/unresolved-tag-is-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"},
   {"case": "yts:UGM3@value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"},
-  {"case": "yts:UGM3@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"},
-  {"case": "own:edit/add-sequence-value-uses-the-enclosing-mappings-step", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 31: expected b'- 1\\n', got b' - 1\\n' (lengths 35 and 37)"},
-  {"case": "own:edit/add-sequence-value-uses-the-enclosing-mappings-step", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 31: expected b'- 1\\n', got b' - 1\\n' (lengths 35 and 37)"}
+  {"case": "yts:UGM3@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"}
  ]}
