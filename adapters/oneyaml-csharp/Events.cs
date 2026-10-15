@@ -14,7 +14,7 @@ static class Events
 
     public static Outcome Run(Request r)
     {
-        var (doc, error) = Lib.Parse(r.Input);
+        var (doc, error) = Lib.Parse(r.Input, allowDuplicateKeys: true);
         if (error != null) return Outcome.Error(Lib.Describe(error));
         using var _ = doc!;
 

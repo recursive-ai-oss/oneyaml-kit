@@ -23,7 +23,7 @@ sealed class OneYamlKitAdapter : IAdapter
     // internal event reader is not public: no event is available before an error, hence no error-events.
     public string[] Capabilities =>
     [
-        "events", "value", "error-category", "error-position",
+        "events", "value", "dump", "error-category", "error-position",
         "patch:add", "patch:remove", "patch:replace", "patch:move", "patch:copy", "patch:test", "patch:merge",
     ];
 
@@ -42,6 +42,7 @@ sealed class OneYamlKitAdapter : IAdapter
         ["package"] = "OneYaml, from a checkout named by KIT_ONEYAML_CSHARP_SRC",
         ["events"] = "events derived from YamlDocument.Parse (kind, style, tag, anchor, alias); document markers and %TAG directives from a line scan",
         ["value"] = "YamlDocument nodes read with GetValue<object>, so key types and tags survive",
+        ["dump"] = "YamlSerializer.SerializeToUtf8Bytes over Dictionary<string, object>, List<object>, long, double, default options",
         ["patch"] = "YamlDocument.ApplyPatch (RFC 6902) and ApplyMergePatch (RFC 7396)",
         ["library stack"] = $"{Host.LibraryStackBytes / (1024 * 1024)} MiB thread",
         ["runtime"] = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
@@ -65,6 +66,7 @@ sealed class OneYamlKitAdapter : IAdapter
             "events" => Events.Run(request),
             "value" => Values.Run(request),
             "patch" => Patches.Run(request),
+            "dump" => Lib.Dump(request),
             _ => Outcome.Unsupported("operation " + request.Op),
         };
     }

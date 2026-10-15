@@ -10,9 +10,10 @@ static class Lib
 {
     /// <summary>Parses the input as the library would be given it, bytes and all (it detects UTF-16/32 and
     /// byte order marks itself). Returns the document, or the library's error.</summary>
-    public static (YamlDocument? Doc, YamlException? Error) Parse(byte[] input)
+    public static (YamlDocument? Doc, YamlException? Error) Parse(byte[] input, bool allowDuplicateKeys = false)
     {
-        try { return (Host.Library(() => YamlDocument.Parse(input)), null); }
+        var options = new YamlDocumentOptions { AllowDuplicateKeys = allowDuplicateKeys };
+        try { return (Host.Library(() => YamlDocument.Parse(input, options)), null); }
         catch (YamlException e) { return (null, e); }
     }
 
@@ -32,6 +33,16 @@ static class Lib
         // A binding error is about a .NET type; the kit has no name for it.
         _ => "other",
     };
+
+    /// <summary>The library's ordinary dump of a kit value: the generic value written with default options.</summary>
+    public static Outcome Dump(Request r)
+    {
+        object? v;
+        try { v = Native.Of(r); }
+        catch (NotSupportedException e) { return Outcome.Unsupported(e.Message); }
+        try { return Outcome.OutputOk(Host.Library(() => YamlSerializer.SerializeToUtf8Bytes(v))); }
+        catch (YamlException e) { return Outcome.Error(Describe(e)); }
+    }
 
     public static Failure Describe(YamlException e) =>
         e.Line > 0

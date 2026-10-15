@@ -16,32 +16,39 @@
    "reason": "Writes the replacement as a double-quoted scalar; the case keeps the literal block scalar with its keep chomping."
   },
   {
+   "case": "own:emit/number-with-underscores-is-quoted",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the string _1 as a plain scalar, which readers that accept underscores in numbers read as a number."
+  },
+  {
    "case": "own:safety/alias-byte-expansion-bomb",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Followed aliases without a limit error: a walk over the expansion of long strings is not refused by the library, so the value is built until the adapter stops it."
+   "reason": "Followed aliases without a limit error: a node walk over the expansion of long strings is not refused by the library, so the value is built until the adapter stops it."
   },
   {
    "case": "own:safety/alias-byte-expansion-bomb",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Followed aliases without a limit error: a walk over the expansion of long strings is not refused by the library, so the value is built until the adapter stops it."
+   "reason": "Followed aliases without a limit error: a node walk over the expansion of long strings is not refused by the library, so the value is built until the adapter stops it."
   },
   {
-   "case": "yts:2JQS",
+   "case": "own:safety/patch-copy-doubling",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "YamlDocument rejects a mapping that holds the same key twice (duplicate-key); the event stream of this case accepts it."
+   "reason": "A patch of repeated copy operations that doubles the document is not stopped by the alias or size limit; memory grows past the bound instead of a limit error."
   },
   {
-   "case": "yts:2JQS",
+   "case": "own:safety/patch-copy-doubling",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "YamlDocument rejects a mapping that holds the same key twice (duplicate-key); the event stream of this case accepts it."
+   "reason": "A patch of repeated copy operations that doubles the document is not stopped by the alias or size limit; memory grows past the bound instead of a limit error."
   },
   {
    "case": "yts:UGM3@value",
