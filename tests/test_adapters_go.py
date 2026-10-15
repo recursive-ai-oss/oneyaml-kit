@@ -284,7 +284,7 @@ class OptionalRun(unittest.TestCase):
         self.assertEqual(validate_result(res), [])
         self.assertEqual(set(res["adapter"]["capabilities"]),
                          {"events", "value", "error-category", "error-position", "patch:add", "patch:remove",
-                          "patch:replace", "patch:move", "patch:copy", "patch:test", "patch:merge"})
+                          "patch:replace", "patch:move", "patch:copy", "patch:test", "patch:merge", "dump"})
         # The library is atomic and keeps the bytes of a refused patch, so nothing is emulated.
         self.assertEqual(res["adapter"]["emulates"], [])
         d = res["deviations"]
