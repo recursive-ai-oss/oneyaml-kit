@@ -13,10 +13,7 @@
   "YAML 1.2.2 section 10.3.2",
   "YAML 1.2.2 section 7.3.3"
  ],
- "notes": "Each of these resolves to an integer or a float under the Core schema when plain, so as strings they are quoted. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
- "tags": [
-  "convention"
- ],
+ "notes": "Each of these resolves to an integer or a float under the Core schema when plain, so as strings they are quoted.",
  "operation": {
   "type": "dump",
   "value": [

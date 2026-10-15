@@ -31,10 +31,11 @@ Kit version 9.9.9 (corpus digest `0123456789ab`). Scored baseline: yaml-test-sui
   kit reads the text back with its own reader, never the library's. Loose: the text is valid
   YAML (an implicit key of more than 1024 characters, or a raw control character, is not) and
   means the value under the YAML 1.2 Core schema. Strict: it also means the value under YAML
-  1.1, no plain string takes a form that common readers read as a number (`0b-1`, `+-1`,
-  `1_000`), and NEL, LS, PS and BOM are escaped. The extra conditions are the family's writing
-  convention, not the specification, so these cases carry the `convention` tag, and a loose pass
-  with a strict failure is a difference of convention.
+  1.1, no plain string takes one of the number forms that some common readers accept (`0b-1`,
+  `+-1`, `1_000`), and NEL, LS, PS and BOM are escaped. Loose is the specification. The extra
+  conditions of strict are the family's writing convention, so the cases where they can matter
+  carry the `strict-convention` tag, and a loose pass with a strict failure is a difference of
+  convention.
 - **Strict, corrected**: strict, judged against the kit's corrected expectation for
   the cases where the upstream one is wrong. Corrections and their reasons are in
   `suites/yaml-test-suite/corrections.json`.

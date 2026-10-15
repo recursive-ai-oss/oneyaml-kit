@@ -3931,9 +3931,16 @@
   {
    "case": "own:emit/line-separators-and-bom-are-escaped",
    "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: the output does not read as YAML: a byte order mark is written raw outside a quoted scalar; it must be escaped"
+  },
+  {
+   "case": "own:emit/line-separators-and-bom-are-escaped",
+   "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Writes text that does not read back as the value: written raw: BOM, LS, PS (YAML 1.1 reads NEL, LS and PS as line breaks and a BOM is not text)"
+   "reason": "Writes text that does not read back as the value: the output does not read as YAML: a byte order mark is written raw outside a quoted scalar; it must be escaped"
   },
   {
    "case": "own:emit/noncharacters-are-escaped",

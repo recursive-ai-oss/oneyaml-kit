@@ -222,6 +222,72 @@ class Judging(unittest.TestCase):
         for ch in ("\x01", "\x7f", "\ufffe"):
             self.assertEqual(evaluate("a%sb" % ch, ('"a%sb"\n' % ch).encode())[:2], ("fail", "fail"), hex(ord(ch)))
 
+    def test_a_raw_byte_order_mark_outside_quotes_fails_both(self):
+        for text in ("- a\ufeffb\n", "- |\n  a\ufeffb\n", "- a # c\ufeffd\n", "a: \ufeffb\n"):
+            loose, strict, detail = evaluate(["a\ufeffb"], text.encode())
+            self.assertEqual((loose, strict), ("fail", "fail"), text)
+        # Inside quotes it is a character of the scalar (strict objects, loose does not); at the
+        # start of the stream it is the encoding signature.
+        self.assertEqual(evaluate(["a\ufeffb"], '- "a\ufeffb"\n'.encode())[:2], ("pass", "fail"))
+        self.assertEqual(evaluate(["a"], "\ufeff- a\n".encode())[:2], ("pass", "pass"))
+
+    def test_leading_blank_lines_longer_than_the_first_text_line_need_an_indicator(self):
+        for value, text in ((" \nabc\n", b"- |\n   \n  abc\n"), ("  \nfoo\n", b"- |\n    \n  foo\n"),
+                            (" \nabc\n", b"k: |\n    \n  abc\n"), (" \nabc\n", b"- >\n   \n  abc\n")):
+            if value.startswith(" ") and text.startswith(b"- >"):
+                value = " \nabc\n"
+            loose, strict, detail = evaluate([value] if text.startswith(b"- ") else {"k": value}, text)
+            self.assertEqual((loose, strict), ("fail", "fail"), (text, detail))
+            self.assertIn("indentation indicator", detail)
+        self.assertEqual(evaluate([" \nabc\n"], b"- |2\n   \n  abc\n")[:2], ("pass", "pass"))
+        self.assertEqual(evaluate([" \nabc\n"], b'- " \\nabc\\n"\n')[:2], ("pass", "pass"))
+        # A leading blank line that is not longer than the text is fine.
+        self.assertEqual(evaluate(["\nabc\n"], b"- |\n\n  abc\n")[:2], ("pass", "pass"))
+        self.assertEqual(evaluate(["\nabc\n"], b"- |\n  \n  abc\n")[:2], ("pass", "pass"))
+
+    def test_the_implicit_key_limit_counts_the_tag(self):
+        key = "a" * 1020
+        self.assertEqual(evaluate({key: 1}, ("!!str " + key + ": 1\n").encode())[0], "fail")  # 1026
+        self.assertEqual(evaluate({key: 1}, ("? !!str " + key + "\n: 1\n").encode())[:2], ("pass", "pass"))
+        key = "a" * 1018
+        self.assertEqual(evaluate({key: 1}, ("!!str " + key + ": 1\n").encode())[:2], ("pass", "pass"))  # 1024
+        self.assertEqual(evaluate({key: 1}, ("!!str " + key + " : 1\n").encode())[0], "fail")  # 1025, blank counts
+        key = "a" * 1017
+        self.assertEqual(evaluate({key: 1}, ("!!str " + key + " : 1\n").encode())[:2], ("pass", "pass"))  # 1024
+        key = "a" * 1020
+        self.assertEqual(evaluate([{key: 1}], ("- !!str " + key + ": 1\n").encode())[0], "fail")
+        self.assertEqual(evaluate([{key: 1}], ("- {!!str " + key + ": 1}\n").encode())[:2], ("pass", "pass"))
+        self.assertEqual(evaluate([{key: 1}], ("- [!!str " + key + ": 1]\n").encode())[0], "fail")
+
+    def test_the_implicit_key_limit_counts_blanks_before_the_colon_in_later_keys(self):
+        for n, want in ((1023, "pass"), (1024, "fail")):
+            key = "a" * (n - 2)  # written with its quotes it is n characters
+            self.assertEqual(evaluate({"x": 1, key: 2}, ("x: 1\n\"" + key + "\" : 2\n").encode())[0], want, n)
+
+    def test_one_digit_month_and_day_are_a_timestamp_in_yaml_1_1(self):
+        for text in (b"2001-1-1\n", b"2001-12-1\n", b"2001-1-12\n"):
+            self.assertEqual(evaluate(text.decode().strip(), text)[:2], ("pass", "fail"), text)
+
+    def test_unreadable_numbers_and_indicators_fail_cleanly(self):
+        for text in ("- |\u00b2\n  a\n", "- |\u0661\n  a\n", "- " + "1" * 5000 + "\n", "- 0x" + "f" * 5000 + "\n"):
+            loose, strict, detail = evaluate(["a\n"], text.encode())
+            self.assertEqual((loose, strict), ("fail", "fail"), text[:20])
+        self.assertEqual(evaluate([1], ("- " + "1" * 5000 + "\n").encode())[0], "fail")
+
+    def test_an_empty_stream_is_no_document(self):
+        for text in (b"", b"\n", b"# nothing\n", b"\xef\xbb\xbf"):
+            loose, strict, detail = evaluate(None, text)
+            self.assertEqual((loose, strict), ("fail", "fail"), text)
+            self.assertIn("no document", detail)
+        # An explicit empty document is the null value.
+        self.assertEqual(evaluate(None, b"---\n")[:2], ("pass", "pass"))
+        self.assertEqual(evaluate(None, b"null\n")[:2], ("pass", "pass"))
+
+    def test_a_block_sequence_may_sit_at_the_indent_of_an_explicit_key_and_value(self):
+        want = {"$map": [[["a", "b"], ["c"]]]}
+        self.assertEqual(R.to_value(R.parse("?\n- a\n- b\n:\n- c\n"), R.SCHEMAS[R.CORE]), want)
+        self.assertEqual(evaluate(want, b"?\n- a\n- b\n:\n- c\n")[:2], ("pass", "pass"))
+
     def test_an_error_or_missing_output_fails(self):
         class Dump:
             op = "dump"
@@ -241,6 +307,11 @@ class Judging(unittest.TestCase):
         self.assertIn("$.k", detail)
 
 
+def notes_of(case):
+    path = support.ROOT / "suites" / "own" / "cases" / case.id.split(":", 1)[1] / "case.json"
+    return kitjson.loads(path.read_bytes()).get("notes", "")
+
+
 class EmitCases(unittest.TestCase):
     def test_the_cases_are_the_ones_the_family_rule_needs(self):
         ids = {c.id for c in EMIT}
@@ -254,7 +325,9 @@ class EmitCases(unittest.TestCase):
         self.assertGreaterEqual(len(EMIT), 25)
         for c in EMIT:
             self.assertEqual((c.op, c.expect, c.input), ("dump", {"kind": "readback"}, b""), c.id)
-            self.assertIn("convention", c.tags, c.id)
+            self.assertNotIn("convention", c.tags, c.id)
+            # The family convention is the strict layer only; the notes say so for the cases it marks.
+            self.assertEqual("strict-convention" in c.tags, "writing convention of the family" in notes_of(c), c.id)
             self.assertIn(c.origin, ("bug", "spec"), c.id)
             self.assertTrue(c.refs or c.provenance, c.id)
 

@@ -82,3 +82,15 @@ class OneyamlRust(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_an_integer_beyond_64_bits_is_declined_not_turned_into_a_float(self):
+        from oneyaml_kit.protocol import SubprocessAdapter
+        from oneyaml_kit.runner import load_manifest
+        m = load_manifest("oneyaml-rust")
+        ad = SubprocessAdapter(m["command"], cwd=m["_dir"], env=dict(os.environ), timeout=30)
+        ad.start()
+        try:
+            self.assertEqual(ad.run("a", "dump", b"", {"value": [10**20]})["status"], "unsupported")
+            self.assertEqual(ad.run("b", "dump", b"", {"value": [1e20, 2**64 - 1]})["status"], "ok")
+        finally:
+            ad.close()

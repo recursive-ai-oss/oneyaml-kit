@@ -10,10 +10,7 @@
  "refs": [
   "YAML 1.2.2 section 10.3.2"
  ],
- "notes": "The largest signed and unsigned 64-bit integers and the smallest signed one are written in full, in decimal, and read back as the same integers. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
- "tags": [
-  "convention"
- ],
+ "notes": "The largest signed and unsigned 64-bit integers and the smallest signed one are written in full, in decimal, and read back as the same integers.",
  "operation": {
   "type": "dump",
   "value": [

@@ -13,10 +13,7 @@
   "YAML 1.2.2 section 8.1",
   "YAML 1.2.2 section 6.5"
  ],
- "notes": "Whatever style the writer picks (literal block, folded block or a quoted scalar with escapes), the line breaks, the trailing breaks and the leading spaces come back exactly. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
- "tags": [
-  "convention"
- ],
+ "notes": "Whatever style the writer picks (literal block, folded block or a quoted scalar with escapes), the line breaks, the trailing breaks and the leading spaces come back exactly. A literal block whose first lines hold only spaces needs an indentation indicator when those lines are longer than the first text line (YAML 1.2.2 section 8.1.1.1); without one the text is not valid YAML.",
  "operation": {
   "type": "dump",
   "value": [
@@ -26,7 +23,9 @@
    "a\n\nb",
    "  lead\nx",
    "x\n\n",
-   "a b\n  c\nd"
+   "a b\n  c\nd",
+   " \nabc\n",
+   "  \nfoo\n"
   ]
  },
  "expect": {

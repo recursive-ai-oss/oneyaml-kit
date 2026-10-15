@@ -12,9 +12,9 @@
   "YAML 1.2.2 section 5.7",
   "YAML 1.2.2 section 7.3.1"
  ],
- "notes": "YAML 1.2 reads these four characters as ordinary text, but YAML 1.1 reads NEL, LS and PS as line breaks, and a byte order mark is a stream marker rather than text. The family writes them as escapes in a double-quoted scalar, so every reader keeps them. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
+ "notes": "YAML 1.2 reads these four characters as ordinary text, but YAML 1.1 reads NEL, LS and PS as line breaks, and a byte order mark is a stream marker rather than text. The family writes them as escapes in a double-quoted scalar, so every reader keeps them. A byte order mark written raw outside a quoted scalar is not valid YAML at all (it is not a character of plain or block scalars), so that fails the loose verdict too. The Core-schema reading (loose) is the specification. The reading under YAML 1.1 and the number forms that some common readers accept (strict) is a writing convention of the family: a string is written plain only when it reads as that same string there too.",
  "tags": [
-  "convention"
+  "strict-convention"
  ],
  "operation": {
   "type": "dump",

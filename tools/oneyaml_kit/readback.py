@@ -21,7 +21,8 @@ Text is judged under three readings, in this order of strictness:
   number once every `_` is removed).
 
 The first is the specification. The other two are the family's writing convention: a string
-is written plain only when every common reader reads it as that same string.
+is written plain only when it reads as that same string under YAML 1.1 and under the listed
+number forms that some common readers accept.
 
 Syntax limits that a lenient reader would let through are checked here: an implicit key is on
 one line and at most 1024 characters, and every character is printable or escaped.
@@ -97,12 +98,16 @@ def _is_ws_or_end(ch: str) -> bool:
 
 
 class Parser:
-    def __init__(self, text: str):
+    def __init__(self, text: str, allow_empty: bool = True):
         for ch in text:
             if not _printable(ch):
                 raise ReadError(f"the character U+{ord(ch):04X} is written raw; it must be escaped")
         # Line breaks are normalised first: a bare CR is a line break, as the specification says.
         self.s = text.replace("\r\n", "\n").replace("\r", "\n")
+        self.allow_empty = allow_empty
+        # Where quoted scalars lie: a byte order mark is allowed inside them and nowhere else.
+        self.quoted_spans: list[tuple[int, int]] = []
+        self.prop_start = 0
         self.n = len(self.s)
         self.i = 0
         self.depth = 0
@@ -193,6 +198,8 @@ class Parser:
             self.i += 3
             root = self.block_node(-1, inline_coll=False, seq_same=False)
         elif col is None:
+            if not self.allow_empty:
+                raise ReadError("no document: an empty stream is not a value")
             root = Scalar("", implicit_empty=True)
         else:
             root = self.block_node(-1, inline_coll=True, seq_same=False)
@@ -210,7 +217,17 @@ class Parser:
                     raise ReadError("more than one document")
             else:
                 raise ReadError("more than one document")
+        self.check_byte_order_marks()
         return root
+
+    def check_byte_order_marks(self) -> None:
+        """A byte order mark is not a character of plain or block scalars or comments (it is
+        not an nb-char); only a quoted scalar may hold one, and the stream may start with one."""
+        pos = self.s.find("\ufeff", 1)
+        while pos >= 0:
+            if not any(a <= pos < b for a, b in self.quoted_spans):
+                raise ReadError("a byte order mark is written raw outside a quoted scalar; it must be escaped")
+            pos = self.s.find("\ufeff", pos + 1)
 
     # -- properties
     def props(self) -> str | None:
@@ -266,6 +283,7 @@ class Parser:
         try:
             self.skip_ws()
             col0 = self.col()
+            self.prop_start = self.i
             tag = self.props()
             same_line = tag is not None
             c = self.peek()
@@ -295,6 +313,7 @@ class Parser:
     def content(self, parent, tag, coll_ok, tag_same_line, col0):
         c = self.peek()
         col = self.col()
+        pstart = self.prop_start
         if c in "-?:" and _is_ws_or_end(self.peek(1)):
             if not coll_ok:
                 raise ReadError(f"a block collection cannot start here (line {self.line()})")
@@ -308,7 +327,8 @@ class Parser:
         end = self.i
         self.skip_ws()
         if self.peek() == ":" and _is_ws_or_end(self.peek(1)):
-            self.check_key(start, end)
+            # The limit counts the key's properties and the white space before the colon.
+            self.check_key(pstart if tag_same_line else start, self.i)
             if not coll_ok:
                 raise ReadError(f"a block mapping cannot start here (line {self.line()})")
             if tag_same_line:
@@ -354,13 +374,13 @@ class Parser:
                 self.skip_ws()
             elif self.peek() == "?" and _is_ws_or_end(self.peek(1)):
                 self.i += 1
-                key = self.block_node(col, inline_coll=True, seq_same=False)
+                key = self.block_node(col, inline_coll=True, seq_same=True)
                 save = self.i
                 self.end_of_line()
                 c = self.next_line()
                 if c == col and self.peek() == ":" and _is_ws_or_end(self.peek(1)):
                     self.i += 1
-                    val = self.block_node(col, inline_coll=True, seq_same=False)
+                    val = self.block_node(col, inline_coll=True, seq_same=True)
                 else:
                     self.i = save
                     val = Scalar("", implicit_empty=True)
@@ -386,15 +406,14 @@ class Parser:
         return Map(pairs, tag)
 
     def implicit_key(self, col: int):
-        tag = self.props()
         start = self.i
+        tag = self.props()
         c = self.peek()
         if c == "" or c == "\n" or (c in "-?:" and _is_ws_or_end(self.peek(1))):
             raise ReadError(f"expected a mapping key at line {self.line()}")
         node, _ = self.inline(col, in_flow=False, single_line=True)
-        end = self.i
-        self.check_key(start, end)
         self.skip_ws()
+        self.check_key(start, self.i)
         if tag is not None:
             node.tag = tag
         return node
@@ -409,7 +428,7 @@ class Parser:
             if c in "+-":
                 chomp = "keep" if c == "+" else "strip"
                 self.i += 1
-            elif c.isdigit() and c != "0":
+            elif c in "123456789":
                 explicit = int(c)
                 self.i += 1
         self.end_of_line()
@@ -433,6 +452,9 @@ class Parser:
                 lead = len(raw[idx]) - len(raw[idx].lstrip(" "))
                 if lead > parent and not (lead == 0 and self.line_is_marker(raw[idx])):
                     ind = lead
+                    if any(len(blank) > lead for blank in raw[:idx]):
+                        raise ReadError("a leading empty line of a block scalar has more spaces than its first "
+                                        "text line; the scalar needs an indentation indicator")
             if ind is None:
                 # No text: the blank lines are all there is, and `+` keeps them.
                 lines = [""] * idx
@@ -591,6 +613,7 @@ class Parser:
     def quoted(self, parent: int) -> Scalar:
         q = self.peek()
         start_line = self.line()
+        span_start = self.i
         self.i += 1
         out: list[str] = []
         ws_start = None
@@ -646,6 +669,7 @@ class Parser:
                 ws_start = None
             out.append(ch)
             self.i += 1
+        self.quoted_spans.append((span_start, self.i))
         return Scalar("".join(out), style="single" if q == "'" else "double")
 
     def skip_to_text(self, parent: int) -> int:
@@ -754,7 +778,7 @@ class Parser:
         if self.peek() == ":" and (json_like or _is_ws_or_end(nx) or nx in _FLOW):
             if not is_map and not explicit:
                 # A pair inside a sequence is a single-line implicit key.
-                self.check_key(start, end)
+                self.check_key(start, self.i)
             self.i += 1
             self.ws_nl(parent)
             if self.peek() in ("", ",", "]", "}"):
@@ -802,7 +826,7 @@ _Y11_INT_SEX = re.compile(r"([-+]?)([1-9][0-9_]*(?::[0-5]?[0-9])+)")
 _Y11_FLOAT = re.compile(r"[-+]?(?:[0-9][0-9_]*)\.[0-9_]*(?:[eE][-+][0-9]+)?"
                         r"|[-+]?\.[0-9][0-9_]*(?:[eE][-+][0-9]+)?")
 _Y11_FLOAT_SEX = re.compile(r"([-+]?)([0-9][0-9_]*(?::[0-5]?[0-9])+\.[0-9_]*)")
-_Y11_TIMESTAMP = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}"
+_Y11_TIMESTAMP = re.compile(r"[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}"
                             r"|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:[Tt]|[ \t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}"
                             r"(?:\.[0-9]*)?(?:[ \t]*(?:Z|[-+][0-9]{1,2}(?::[0-9]{2})?))?")
 
@@ -976,11 +1000,15 @@ def to_value(node, schema: Schema, depth: int = 0):
             raise ReadError(f"!!{t} on a scalar")
         if t in ("str", "!"):
             return node.text
-        if t is None:
-            if node.style != "plain":
-                return node.text
-            return schema.resolve(node.text)
-        return schema.typed(t, node.text)
+        try:
+            if t is None:
+                if node.style != "plain":
+                    return node.text
+                return schema.resolve(node.text)
+            return schema.typed(t, node.text)
+        except ValueError as e:  # an integer with more digits than the reader converts
+            raise ReadError(f"the number {node.text[:20]!r}... has {len(node.text)} characters, "
+                            "more than the reader converts") from e
     if isinstance(node, Seq):
         if node.tag not in (None, "seq", "!"):
             raise ReadError(f"!!{node.tag} on a sequence")
@@ -1015,9 +1043,9 @@ def decode(out: bytes) -> str:
         raise ReadError(f"the output is not UTF-8: {e}") from e
 
 
-def parse(text: str):
+def parse(text: str, allow_empty: bool = True):
     try:
-        return Parser(text).parse()
+        return Parser(text, allow_empty).parse()
     except RecursionError as e:
         raise ReadError("nested more deeply than the kit reads") from e
 
@@ -1028,7 +1056,7 @@ def judge(out: bytes, value) -> dict:
     number forms common readers accept, and characters 1.1 reads as line breaks or a BOM."""
     try:
         text = decode(out)
-        root = parse(text)
+        root = parse(text, allow_empty=False)
     except ReadError as e:
         msg = f"the output does not read as YAML: {e}"
         return {"core": msg, "convention": msg}

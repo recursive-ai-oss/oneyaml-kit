@@ -13,10 +13,7 @@
   "YAML 1.2.2 section 10.3.2",
   "YAML 1.2.2 section 7.3.3"
  ],
- "notes": "Each of these resolves to null or a boolean when plain, so as strings they are quoted. The empty string is written as an empty quoted scalar, because an empty plain scalar is null. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
- "tags": [
-  "convention"
- ],
+ "notes": "Each of these resolves to null or a boolean when plain, so as strings they are quoted. The empty string is written as an empty quoted scalar, because an empty plain scalar is null.",
  "operation": {
   "type": "dump",
   "value": [

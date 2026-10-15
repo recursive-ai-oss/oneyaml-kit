@@ -13,12 +13,12 @@
   "YAML 1.2.2 section 10.3.2",
   "YAML 1.2.2 section 7.3.3"
  ],
- "notes": "None of these is a number under the Core schema or YAML 1.1, so they are strings. Some readers take them as numbers all the same: gopkg.in/yaml.v3 reads `0b-1` as -1 and `0o+7` as 7, because it hands the text to a number parser that accepts a sign after the prefix and underscores. A string is therefore quoted when it has a 0x, 0o or 0b prefix with a sign after it. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
+ "notes": "None of these is a number under the Core schema or YAML 1.1, so they are strings. Some readers take them as numbers all the same: gopkg.in/yaml.v3 reads `0b-1` as -1 and `0o+7` as 7, because it hands the text to a number parser that accepts a sign after the prefix and underscores. A string is therefore quoted when it has a 0x, 0o or 0b prefix with a sign after it. The Core-schema reading (loose) is the specification. The reading under YAML 1.1 and the number forms that some common readers accept (strict) is a writing convention of the family: a string is written plain only when it reads as that same string there too.",
  "provenance": {
   "reference": "Strings such as 0b-1, 0o+7 and 0b-1_0 written without quotes; one common reader reads 0b-1 as the number -1."
  },
  "tags": [
-  "convention"
+  "strict-convention"
  ],
  "operation": {
   "type": "dump",

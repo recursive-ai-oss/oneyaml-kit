@@ -11,12 +11,12 @@
   "YAML 1.2.2 section 10.3.2",
   "YAML 1.2.2 section 10.2.1.4"
  ],
- "notes": "The YAML 1.2 Core schema reads `1E+17` as a float, but YAML 1.1 needs a point in the mantissa and a sign in the exponent, so PyYAML reads `1E+17` and `1e-5` as strings while it reads `1.0E+17` and `1.0e-05` as floats. A float is written with a point and a signed exponent whenever it is written in exponent form, so every reader reads a float. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
+ "notes": "The YAML 1.2 Core schema reads `1E+17` as a float, but YAML 1.1 needs a point in the mantissa and a sign in the exponent, so PyYAML reads `1E+17` and `1e-5` as strings while it reads `1.0E+17` and `1.0e-05` as floats. A float is written with a point and a signed exponent whenever it is written in exponent form, so every reader reads a float. The Core-schema reading (loose) is the specification. The reading under YAML 1.1 and the number forms that some common readers accept (strict) is a writing convention of the family: a string is written plain only when it reads as that same string there too.",
  "provenance": {
   "reference": "The float 1e17 written as 1E+17, which PyYAML reads as a string; 1.0E+17 reads as a float."
  },
  "tags": [
-  "convention"
+  "strict-convention"
  ],
  "operation": {
   "type": "dump",

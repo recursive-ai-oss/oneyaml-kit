@@ -36,10 +36,11 @@ CRITERIA = """\
   kit reads the text back with its own reader, never the library's. Loose: the text is valid
   YAML (an implicit key of more than 1024 characters, or a raw control character, is not) and
   means the value under the YAML 1.2 Core schema. Strict: it also means the value under YAML
-  1.1, no plain string takes a form that common readers read as a number (`0b-1`, `+-1`,
-  `1_000`), and NEL, LS, PS and BOM are escaped. The extra conditions are the family's writing
-  convention, not the specification, so these cases carry the `convention` tag, and a loose pass
-  with a strict failure is a difference of convention.
+  1.1, no plain string takes one of the number forms that some common readers accept (`0b-1`,
+  `+-1`, `1_000`), and NEL, LS, PS and BOM are escaped. Loose is the specification. The extra
+  conditions of strict are the family's writing convention, so the cases where they can matter
+  carry the `strict-convention` tag, and a loose pass with a strict failure is a difference of
+  convention.
 - **Strict, corrected**: strict, judged against the kit's corrected expectation for
   the cases where the upstream one is wrong. Corrections and their reasons are in
   `suites/yaml-test-suite/corrections.json`.
@@ -102,6 +103,31 @@ def _convention_section(cases: list[dict]) -> list[str]:
     return out
 
 
+STRICT_CONVENTION = "strict-convention"
+
+
+def _strict_convention_section(cases: list[dict]) -> list[str]:
+    """Cases whose loose verdict is the specification and whose strict verdict adds the family's
+    writing convention: how many pass loose, how many pass strict, and how many fail only strict."""
+    rows = [r for r in cases if STRICT_CONVENTION in r.get("tags", [])]
+    if not rows:
+        return []
+    out = ["Cases where the strict verdict adds the family's writing convention to the specification "
+           "(loose is the specification). They are counted in the table above too.", "",
+           "| Group | Cases | Loose pass | Strict pass | Fail only strict | Unsupported |",
+           "|---|---:|---:|---:|---:|---:|"]
+    groups: "OrderedDict[str, list]" = OrderedDict()
+    for r in sorted(rows, key=lambda r: (group_of(r), r["id"])):
+        groups.setdefault(group_of(r), []).append(r)
+    for name, rs in groups.items():
+        only = sum(1 for r in rs if r["loose"] == compare.PASS and r["strict"] == compare.FAIL)
+        unsup = sum(1 for r in rs if r["loose"] == compare.UNSUPPORTED)
+        out.append(f"| {name} | {len(rs)} | {sum(1 for r in rs if r['loose'] == compare.PASS)} "
+                   f"| {sum(1 for r in rs if r['strict'] == compare.PASS)} | {only} | {unsup} |")
+    out.append("")
+    return out
+
+
 def render_one(res: dict) -> str:
     a, k, run = res["adapter"], res["kit"], res["run"]
     lines = []
@@ -141,6 +167,7 @@ def render_one(res: dict) -> str:
                          else "**yaml-test-suite · events · all**", yts))
     lines.append("")
     lines += _convention_section(res["cases"])
+    lines += _strict_convention_section(res["cases"])
     d = res["deviations"]
     entries = d.get("entries", [])
     lines.append(f"Known deviations listed: {len(entries)}. "

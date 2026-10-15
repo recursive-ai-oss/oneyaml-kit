@@ -12,10 +12,7 @@
   "YAML 1.2.2 section 7.4.1",
   "YAML 1.2.2 section 7.4.2"
  ],
- "notes": "Empty collections inside a block mapping or sequence are written in flow form (`[]`, `{}`), which is the only way to write them. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
- "tags": [
-  "convention"
- ],
+ "notes": "Empty collections inside a block mapping or sequence are written in flow form (`[]`, `{}`), which is the only way to write them.",
  "operation": {
   "type": "dump",
   "value": {

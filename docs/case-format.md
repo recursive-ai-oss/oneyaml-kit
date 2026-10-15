@@ -50,7 +50,7 @@ cases are `yts:<ID>` (`yts:DK95/06` for numbered sub-cases); where the suite shi
 | `origin` | `spec`, `bug`, `fuzz`, `real-world`, `competitor` or `upstream`. |
 | `productions` | YAML 1.2.2 production numbers the case exercises, as strings. Optional; used by a future spec-coverage report. |
 | `refs` | Citations: spec sections, RFC sections, or a page of these docs. A `spec` case must have at least one. |
-| `tags` | Free labels. `slow` keeps a case out of the fast mode. `convention` marks a case whose exact bytes rest on a rule the kit chose where the specification leaves a choice (listed in [edit-semantics.md](edit-semantics.md)); `comment-ownership` is the more specific label for the rules about which comments go with a removed entry, and such a case carries both. A case whose notes call something a convention or open carries `convention`. Tags are copied into result records and reports count the cases apart, so a library is not failed on taste unnoticed. |
+| `tags` | Free labels. `slow` keeps a case out of the fast mode. `convention` marks a case whose exact bytes rest on a rule the kit chose where the specification leaves a choice (listed in [edit-semantics.md](edit-semantics.md)); `strict-convention` marks an `emit` case whose loose verdict is the specification but whose strict verdict adds the family's writing convention; `comment-ownership` is the more specific label for the rules about which comments go with a removed entry, and such a case carries both. A case whose notes call something a convention or open carries `convention`. Tags are copied into result records and reports count the cases apart, so a library is not failed on taste unnoticed. |
 | `notes` | Optional reasoning for a reader. |
 | `provenance` | Where the case comes from: optional `source` (URL), `revision`, `licence` and `reference` (a report, issue or paper), all non-empty strings. A `bug`, `fuzz` or `competitor` case must have `reference`; a `real-world` case must have `source` and `licence`. A case written for the kit says so in `reference`. |
 | `input` | Input file name; default `input.yaml`. A `dump` case has no input. |
@@ -274,13 +274,17 @@ The text is read three ways, and the verdicts are split like this:
   a requirement of the specification: the text must also mean the value under YAML 1.1
   (`yes`, `on`, `0755`, `1_000`, `1:30`, timestamps, `<<` and `=` are not strings there; a
   float needs a point and a signed exponent: `1.0e+17`, not `1E+17`), and a plain string must
-  not have a form that common readers read as a number although neither schema does: a
+  not have one of the listed number forms that some common readers accept although neither
+  schema reads it as a number: a
   `0x`, `0o` or `0b` prefix in any case with a sign before or after it, a number after two
   or more signs, a number once every `_` is removed. NEL, LS, PS and a byte order mark
   are written as escapes, because YAML 1.1 reads the first three as line breaks.
 
-A problem under the convention only is therefore loose pass, strict fail. Every `emit` case
-carries the `convention` tag, so reports count them apart. The reader's forms are listed in
+A problem under the convention only is therefore loose pass, strict fail. The loose verdict is
+the specification. A raw control character, a raw byte order mark outside a quoted scalar, a
+string written as a number, or a float written as an integer fails it. Only the strict layer is
+the family convention, and the `emit` cases where the two can differ carry the
+`strict-convention` tag, so reports count them apart. The reader's forms are listed in
 the module; it follows the YAML 1.1 type pages (`yaml.org/type`) and the number syntax that
 PyYAML, gopkg.in/yaml.v3 and goccy/go-yaml accept.
 

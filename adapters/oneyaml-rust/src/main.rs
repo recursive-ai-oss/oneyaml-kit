@@ -398,7 +398,12 @@ fn native(j: &Json, depth: usize) -> Result<Value, String> {
 }
 
 /// Writes the value with the library's default settings. The text is returned as it is.
-fn dump(args: &Json) -> Outcome {
+fn dump(args: &Json, big_integer: bool) -> Outcome {
+    // The JSON reader turns an integer beyond 64 bits into a float, so the request text is
+    // checked for one beforehand; such a value is declined, never written rounded.
+    if big_integer {
+        return Outcome::Unsupported("integer beyond 64 bits".into());
+    }
     let Some(j) = args.get("value") else {
         return Outcome::Unsupported("no value".into());
     };
@@ -657,7 +662,7 @@ fn handle(req: &Json) -> Option<String> {
                 Some("events") => events(&bytes),
                 Some("value") => value(&bytes),
                 Some("patch") => patch(&bytes, &args),
-                Some("dump") => dump(&args),
+                Some("dump") => dump(&args, req.get("big_integer").is_some()),
                 other => Outcome::Unsupported(format!("operation {other:?}")),
             };
             Some(respond(id, outcome))
@@ -666,14 +671,51 @@ fn handle(req: &Json) -> Option<String> {
     }
 }
 
+/// Whether the JSON text holds an integer literal (no point, no exponent, outside strings)
+/// that fits neither i64 nor u64.
+fn has_big_integer(text: &str) -> bool {
+    let mut in_string = false;
+    let mut escaped = false;
+    let mut token = String::new();
+    for c in text.chars().chain(std::iter::once(' ')) {
+        if in_string {
+            match (escaped, c) {
+                (true, _) => escaped = false,
+                (false, '\\') => escaped = true,
+                (false, '"') => in_string = false,
+                _ => {}
+            }
+            continue;
+        }
+        if c.is_ascii_digit() || matches!(c, '-' | '+' | '.' | 'e' | 'E') {
+            token.push(c);
+            continue;
+        }
+        if !token.is_empty() {
+            let integral = !token.contains(['.', 'e', 'E']);
+            if integral && token.parse::<i64>().is_err() && token.parse::<u64>().is_err() {
+                return true;
+            }
+            token.clear();
+        }
+        if c == '"' {
+            in_string = true;
+        }
+    }
+    false
+}
+
 fn serve() {
     let stdin = std::io::stdin();
     let mut out = std::io::stdout().lock();
     for line in stdin.lock().lines() {
         let Ok(line) = line else { return };
-        let Ok(req) = serde_json::from_str::<Json>(&line) else {
+        let Ok(mut req) = serde_json::from_str::<Json>(&line) else {
             return;
         };
+        if line.contains("\"dump\"") && has_big_integer(&line) {
+            req["big_integer"] = Json::Bool(true);
+        }
         if req.get("type").and_then(Json::as_str) == Some("bye") {
             return;
         }

@@ -188,9 +188,9 @@ def _readback(case, resp: dict) -> dict:
     """A written document is judged by reading it back with the kit's own reader.
 
     Loose: under the YAML 1.2 Core schema the text means the value. Strict adds the family's
-    writing convention: it also means the value under YAML 1.1, and no plain string takes a
-    form that common readers read as a number. A convention-only problem is therefore
-    loose pass, strict fail."""
+    writing convention: it also means the value under YAML 1.1, and no plain string takes one of
+    the listed number forms that some common readers accept. A convention-only problem is
+    therefore loose pass, strict fail."""
     if resp.get("status") == "error":
         e = resp.get("error") or {}
         return {"loose": FAIL, "strict": FAIL,

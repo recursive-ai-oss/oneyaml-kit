@@ -11,10 +11,7 @@
   "YAML 1.2.2 section 10.3.2",
   "YAML 1.1 types (yaml.org/type): bool, int, float, timestamp, merge, value"
  ],
- "notes": "The Core schema and YAML 1.1 write infinity and not-a-number as `.inf`, `-.inf` and `.nan` (also in the capitalised forms). Any other spelling, such as `Infinity` or `NaN`, reads as a string. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
- "tags": [
-  "convention"
- ],
+ "notes": "The Core schema and YAML 1.1 write infinity and not-a-number as `.inf`, `-.inf` and `.nan` (also in the capitalised forms). Any other spelling, such as `Infinity` or `NaN`, reads as a string.",
  "operation": {
   "type": "dump",
   "value": [
