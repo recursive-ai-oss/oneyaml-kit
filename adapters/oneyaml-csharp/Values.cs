@@ -21,7 +21,7 @@ static class Values
     const int MaxDepth = 50_000;
 
     // A bomb of long strings is bounded by size as well as by node count.
-    const long MaxChars = 32_000_000;
+    const long MaxChars = 256_000_000;
 
     [ThreadStatic] static long _chars;
 

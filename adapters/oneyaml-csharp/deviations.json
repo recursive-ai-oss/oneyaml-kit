@@ -2,18 +2,32 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
-   "case": "own:edit/sequence-item-set-equal-to-next-keeps-keep-chomp",
+   "case": "own:emit/binary-value-as-the-document",
    "expectation": "primary",
    "mode": "loose",
-   "verdict": "fail",
-   "reason": "Writes the replacement as a double-quoted scalar; the case keeps the literal block scalar with its keep chomping."
+   "verdict": "unsupported",
+   "reason": "Declined: the library has no byte-string type it writes as !!binary, and the adapter does not tag text itself."
   },
   {
-   "case": "own:edit/sequence-item-set-equal-to-next-keeps-keep-chomp",
+   "case": "own:emit/binary-value-as-the-document",
    "expectation": "primary",
    "mode": "strict",
-   "verdict": "fail",
-   "reason": "Writes the replacement as a double-quoted scalar; the case keeps the literal block scalar with its keep chomping."
+   "verdict": "unsupported",
+   "reason": "Declined: the library has no byte-string type it writes as !!binary, and the adapter does not tag text itself."
+  },
+  {
+   "case": "own:emit/binary-values-are-tagged-base64",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the library has no byte-string type it writes as !!binary, and the adapter does not tag text itself."
+  },
+  {
+   "case": "own:emit/binary-values-are-tagged-base64",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the library has no byte-string type it writes as !!binary, and the adapter does not tag text itself."
   },
   {
    "case": "own:emit/number-with-underscores-is-quoted",
@@ -21,34 +35,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Writes the string _1 as a plain scalar, which readers that accept underscores in numbers read as a number."
-  },
-  {
-   "case": "own:safety/alias-byte-expansion-bomb",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Followed aliases without a limit error: a node walk over the expansion of long strings is not refused by the library, so the value is built until the adapter stops it."
-  },
-  {
-   "case": "own:safety/alias-byte-expansion-bomb",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Followed aliases without a limit error: a node walk over the expansion of long strings is not refused by the library, so the value is built until the adapter stops it."
-  },
-  {
-   "case": "own:safety/patch-copy-doubling",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "A patch of repeated copy operations that doubles the document is not stopped by the alias or size limit; memory grows past the bound instead of a limit error."
-  },
-  {
-   "case": "own:safety/patch-copy-doubling",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "A patch of repeated copy operations that doubles the document is not stopped by the alias or size limit; memory grows past the bound instead of a limit error."
   },
   {
    "case": "yts:UGM3@value",
