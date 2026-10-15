@@ -487,7 +487,7 @@
    "safety/malformed-utf-8-truncated-sequence-at-the-end": "c15707cfc5475fa72c21823a0f1d923020226ccc405648d7eef0df4a4b70300e",
    "safety/many-anchors-and-aliases": "9acf1dea0291fe835a1615ec0f873755cdcab401cc488d4b46bba6b6d29697f5",
    "safety/many-anchors-sharing-one-name": "cc8c76ba6e065d35b9038120e0c3555408e6fea59119c7e5471a30690ecf4719",
-   "safety/merge-patch-many-deletions-from-a-large-mapping": "1219627f57397355d1a024ebce42c0435c4fc14c3fb11d0798a96e0b918af32f",
+   "safety/merge-patch-many-deletions-from-a-large-mapping": "e2eae9f9e60cb1cd896518d4b486b160cfa86faad790e8f71ba2c86460f03b56",
    "safety/one-line-flow-mapping-many-pairs": "f601feb543d101848e5c9de3e7868318cb4f9768881b1cb17676755575bae5ac",
    "safety/one-line-flow-mapping-ten-megabytes": "247c8a5018365cffa06898bbf6f9ae1382fb7b6922740626fcdc9857747cb982",
    "safety/one-line-flow-mapping-with-duplicate-keys": "5087d29231714c1d09393893b8633c542322a2a58363628155f520c05e87a599",
@@ -574,8 +574,8 @@
     "sha256": "225792848119600f48dbf9dd254d2e5199ee496fff1dfd0708bd3688463f7a85"
    },
    "safety/merge-patch-many-deletions-from-a-large-mapping": {
-    "bytes": 7455000,
-    "sha256": "f58944213e7063d576e2d9885f3a1753862f3313125b9b65694042f5d689a1f0"
+    "bytes": 7320000,
+    "sha256": "72c90116aa3904cfe3724db9c7b7cf4fee6811d6461139ec6b823f2ae7c66828"
    },
    "safety/one-line-flow-mapping-ten-megabytes": {
     "bytes": 18788923,
