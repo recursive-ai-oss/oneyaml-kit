@@ -308,8 +308,16 @@ def bench_lang_steps(area: str, root: Path, out: Path, target: str, dotnet: str)
 
 def build_steps(areas: list[str], touched: dict, root: Path, out: Path, full: bool = True) -> list[Step]:
     """The steps of the areas, in order. `full` is every step; without it, the hand-over tier."""
-    return [s for s in _all_steps(areas, touched, root, out)
-            if s.tier == "both" or s.tier == ("full" if full else "hand-over")]
+    steps = [s for s in _all_steps(areas, touched, root, out)
+             if s.tier == "both" or s.tier == ("full" if full else "hand-over")]
+    if full:
+        # The slow cases (large generated inputs) run only here: the hand-over tier would spend
+        # its budget on them. Every step that runs adapters over the cases asks for them through
+        # the environment, which both `kit fast` and the adapter test modules read.
+        for s in steps:
+            if s.area != "core" and not s.area.startswith("bench"):
+                s.env = {**s.env, "KIT_SLOW": "1"}
+    return steps
 
 
 def _all_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[Step]:

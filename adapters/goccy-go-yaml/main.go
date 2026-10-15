@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -22,6 +23,8 @@ import (
 
 const version = "v1.19.2"
 
+var duplicateKeyMessage = regexp.MustCompile(`\Amapping key ".*" already defined at \[\d+:\d+\]\z`)
+
 // failure converts a library error. The library reports syntax errors with the token they
 // stopped at, which carries a 1-based line and column, and names the depth limit.
 func failure(err error) gokit.Result {
@@ -30,9 +33,17 @@ func failure(err error) gokit.Result {
 	case errors.Is(err, yaml.ErrExceededMaxDepth):
 		cat = "limit"
 	default:
+		var dk *yaml.DuplicateKeyError
 		var se *yaml.SyntaxError
-		if errors.As(err, &se) {
+		if errors.As(err, &dk) {
+			cat = "duplicate-key"
+		} else if errors.As(err, &se) {
 			cat = "syntax"
+			// The parser refuses a repeated key with a syntax error and no type of its own, so the
+			// message is the only signal; it is matched in full.
+			if duplicateKeyMessage.MatchString(se.GetMessage()) {
+				cat = "duplicate-key"
+			}
 		}
 	}
 	line, col := 0, 0

@@ -48,6 +48,12 @@ class OwnCases(unittest.TestCase):
         self.assertEqual(crlf.expect["bytes"], b"\xef\xbb\xbfa: 3\r\nb: 2\r\n")
         for c in self.cases.values():
             d = C.OWN_DIR / c.id[len("own:"):]
+            recipe = json.loads((d / "case.json").read_bytes()).get("input_recipe")
+            if recipe is not None:
+                # A generated input has no file; it is exactly what its recipe builds.
+                self.assertFalse((d / "input.yaml").exists(), c.id)
+                self.assertEqual(c.input, C.generate_input(recipe, c.id), c.id)
+                continue
             self.assertEqual(c.input, (d / "input.yaml").read_bytes(), c.id)
 
     def test_spec_cases_cite_something(self):

@@ -51,6 +51,16 @@ sealed class SharpYamlKitAdapter : IAdapter
         return d.Transformed ? o.Emulating("decode") : o;
     }
 
+    // SharpYaml refuses a repeated key with a plain YamlException and no type or code of its own, so the
+    // message is the only signal. It is matched in full, mark included, so that no other error takes the
+    // category: `(Lin: 0, Col: 10, Chr: 10) - (Lin: 0, Col: 11, Chr: 11): Duplicate mapping key 'a'.`
+    static readonly System.Text.RegularExpressions.Regex DuplicateKeyMessage = new(
+        @"\A\(Lin: \d+, Col: \d+, Chr: \d+\) - \(Lin: \d+, Col: \d+, Chr: \d+\): Duplicate mapping key '.*'\.\z",
+        System.Text.RegularExpressions.RegexOptions.Singleline);
+
+    internal static bool IsDuplicateKey(Exception e) =>
+        e.GetType() == typeof(YamlException) && DuplicateKeyMessage.IsMatch(e.Message);
+
     /// <summary>SharpYaml positions are 0-based; the kit's are 1-based.</summary>
     internal static Failure Describe(Exception e, string text)
     {
@@ -58,6 +68,7 @@ sealed class SharpYamlKitAdapter : IAdapter
         var category = e switch
         {
             SyntaxErrorException or SemanticErrorException => "syntax",
+            _ when IsDuplicateKey(e) => "duplicate-key",
             _ => "other",
         };
         // An exception with an empty mark has no position to report; a syntax error at the very start does.

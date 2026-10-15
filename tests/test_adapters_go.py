@@ -236,6 +236,10 @@ class Run(unittest.TestCase):
         self.assertIn(bomb["got"]["status"], ("memory", "timeout"))
         self.assertRegex(bomb["detail"], r"^(memory growth passed|no answer within)")
 
+    def test_repeated_keys_are_named_where_the_library_gives_a_signal_and_only_there(self):
+        for n in ("go-yaml-v4", "goccy-go-yaml"):
+            support.check_duplicate_key_category(self, n)
+
     def test_a_deviation_list_is_checked_in_both_directions(self):
         for n in ("go-yaml-v3", "goccy-go-yaml", "palantir-yamlpatch-goccy"):
             res = self.res[n]

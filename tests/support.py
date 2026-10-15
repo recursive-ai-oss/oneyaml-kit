@@ -65,3 +65,36 @@ ALL_CAPS = {
     "events", "value", "patch:add", "patch:remove", "patch:replace", "patch:move",
     "patch:copy", "patch:test", "patch:merge", "error-category", "error-position", "error-events",
 }
+
+
+# Inputs for the `duplicate-key` category an adapter maps from its library. The first two are
+# refused by every library that refuses repeated keys; the rest are errors or documents that must
+# not take the category, including text that looks like a library's own duplicate-key message.
+DUPLICATE_KEY_DOCS = (b"a: 1\na: 2\n", b"{b: x, b: y}\n")
+NOT_DUPLICATE_KEY_ERRORS = (b"a: [1\n", b"a: b: c\n", b"a: [Duplicate key a\n", b"*nope\n",
+                            b'a: ["mapping key \\"a\\" already defined at line 1"\n')
+NOT_ERRORS = (b'{a: "mapping key \\"a\\" already defined at [1:2]", b: "Duplicate key a"}\n',
+              b"a: \"Duplicate mapping key 'a'.\"\nb: 1\n")
+
+
+def check_duplicate_key_category(test, name):
+    """Starts the built adapter `name` and checks that it names repeated keys `duplicate-key`, and
+    nothing else."""
+    from oneyaml_kit.protocol import SubprocessAdapter
+    from oneyaml_kit.runner import load_manifest
+    m = load_manifest(name)
+    ad = SubprocessAdapter(m["command"], cwd=m["_dir"], timeout=30)
+    ad.start()
+    try:
+        for i, doc in enumerate(DUPLICATE_KEY_DOCS):
+            r = ad.run("dup%d" % i, "value", doc, {})
+            test.assertEqual((r["status"], r["error"]["category"]), ("error", "duplicate-key"), (name, doc))
+        for i, doc in enumerate(NOT_DUPLICATE_KEY_ERRORS):
+            r = ad.run("bad%d" % i, "value", doc, {})
+            test.assertEqual(r["status"], "error", (name, doc))
+            test.assertNotEqual(r["error"]["category"], "duplicate-key", (name, doc))
+        for i, doc in enumerate(NOT_ERRORS):
+            r = ad.run("ok%d" % i, "value", doc, {})
+            test.assertNotEqual(r["status"], "error", (name, doc))
+    finally:
+        ad.close()

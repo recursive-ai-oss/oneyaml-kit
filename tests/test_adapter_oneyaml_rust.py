@@ -7,7 +7,7 @@ KIT_ADAPTER_TESTS=1 (the gate sets it).
 import os
 import unittest
 
-import support  # noqa: F401
+import support
 from oneyaml_kit import cases as C
 from oneyaml_kit import report
 from oneyaml_kit.runner import run_adapter, validate_result
@@ -31,6 +31,9 @@ class OneyamlRust(unittest.TestCase):
         self.assertEqual((a["loose"], a["strict"]), ("pass", "pass"))
         self.assertEqual((b["loose"], b["strict"]), ("fail", "fail"))
         self.assertIn("|-", b["detail"])
+
+    def test_repeated_keys_are_named_and_only_they_are(self):
+        support.check_duplicate_key_category(self, "oneyaml-rust")
 
     def test_yaml_test_suite_scores(self):
         ev = [r for r in self.res["cases"] if r["suite"] == "yaml-test-suite" and r["op"] == "events"]

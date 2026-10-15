@@ -1,0 +1,78 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/implicit-key-window-rescan",
+ "title": "A 24-million-character scalar inside 1,100 nested flow sequences",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "137",
+  "131",
+  "154"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.1",
+  "YAML 1.2.2 section 7.4.3"
+ ],
+ "notes": "The input is valid: 1,100 nested flow sequences around one plain scalar of 24 million characters. Every `[` allows an implicit key, and a key is at most 1024 characters, so the reader needs only a window of that many characters behind its position; it must not look again at the whole scalar for each open sequence. A reader may also refuse the nesting or the scalar with a limit error. The scalar is 24 million characters, not 32 million, because at 32 million two readers needed between 0.8 and 1.1 GB just to hold the answer, which put them on the 1024 MB bound. The reader that rescanned took 10.5 to 11 seconds on this input and a reader with a bounded window took 0.01 seconds; linear readers took at most 1.1 seconds. The time bound is 3 seconds, which keeps the rescanning reader out even when the runner stretches the bound for a slower machine. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The input is generated from the recipe in case.json (docs/case-format.md).",
+ "provenance": {
+  "reference": "A reader that, for each open flow sequence, scanned back over the characters since the sequence began to decide whether an implicit key was still possible, taking time in proportion to the depth times the length of the scalar."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "input_recipe": [
+  {
+   "text": "[",
+   "repeat": 1100
+  },
+  {
+   "text": "x",
+   "repeat": 24000000
+  },
+  {
+   "text": "]",
+   "repeat": 1100
+  },
+  {
+   "text": "\n"
+  }
+ ],
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 3,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "events",
+   "recipe": [
+    {
+     "text": "+STR\n+DOC\n"
+    },
+    {
+     "text": "+SEQ []\n",
+     "repeat": 1100
+    },
+    {
+     "text": "=VAL :"
+    },
+    {
+     "text": "x",
+     "repeat": 24000000
+    },
+    {
+     "text": "\n"
+    },
+    {
+     "text": "-SEQ\n",
+     "repeat": 1100
+    },
+    {
+     "text": "-DOC\n-STR\n"
+    }
+   ]
+  }
+ },
+ "tags": [
+  "slow"
+ ]
+}

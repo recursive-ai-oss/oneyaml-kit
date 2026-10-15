@@ -13,7 +13,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import support  # noqa: F401
+import support
 from oneyaml_kit import cases as C
 from oneyaml_kit import report
 from oneyaml_kit.protocol import SubprocessAdapter
@@ -241,6 +241,10 @@ class DotnetAdapters(unittest.TestCase):
         finally:
             ad.close()
 
+    def test_repeated_keys_are_named_where_the_library_gives_a_signal_and_only_there(self):
+        for n in ("sharpyaml", "yaml2jsonnode"):
+            support.check_duplicate_key_category(self, n)
+
     def test_a_missing_document_reports_the_document_as_the_library_would_write_it(self):
         m = load_manifest("yaml2jsonnode")
         ad = SubprocessAdapter(m["command"], cwd=m["_dir"], timeout=30)
@@ -267,7 +271,7 @@ class DotnetAdapters(unittest.TestCase):
                 self.assertFalse(verify_deviations(cases, stale, True)["ok"], n)
 
     def test_every_deviation_has_a_reason_and_names_a_real_case(self):
-        ids = {c.id for c in C.load_all()}
+        ids = {c.id for c in C.load_all()} | C.slow_ids()  # the fast tier leaves slow cases out
         for n in NAMES:
             for e in load_deviations(load_manifest(n)):
                 self.assertIn(e["case"], ids, n)

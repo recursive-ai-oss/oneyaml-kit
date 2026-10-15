@@ -3801,6 +3801,13 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Error category differs: expected one of limit, syntax, got other"
+  },
+  {
+   "case": "own:safety/implicit-key-window-rescan",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected one of limit, got other"
   }
 ]
 }

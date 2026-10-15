@@ -229,6 +229,14 @@ class Deviations(unittest.TestCase):
         self.assertFalse(self.check([result("a")], [dev("zz")], complete=True)["ok"])
         self.assertTrue(self.check([result("a")], [dev("zz")], complete=False)["ok"])
 
+    def test_an_entry_for_a_deferred_slow_case_is_kept_but_a_real_unknown_one_still_fails(self):
+        done = [result("a")]
+        v = R.verify_deviations(done, [dev("slow")], True, deferred={"slow"})
+        self.assertTrue(v["ok"])
+        v = R.verify_deviations(done, [dev("slow"), dev("zz")], True, deferred={"slow"})
+        self.assertEqual(len(v["unknown"]), 1)
+        self.assertIn("zz", v["unknown"][0])
+
     def test_capability_unsupported_needs_no_entry_and_a_listed_one_is_stale(self):
         r = result("a", loose="unsupported", strict="unsupported", reason="capability")
         self.assertTrue(self.check([r], [])["ok"])

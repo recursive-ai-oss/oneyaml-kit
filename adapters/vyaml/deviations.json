@@ -2723,6 +2723,34 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Over the time bound: the same 140,608 lines took 0.7 s at depth 100, 1.5 s at 1,000 and 11 s at 9,000 (shared host, load about 13), so the time grows with the number of open flow mappings"
+  },
+  {
+   "case": "own:safety/one-line-flow-mapping-with-duplicate-keys",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library fails with an exception of its own kind that is not a rejection, so the adapter process ended (exit code 70) instead of reporting an error"
+  },
+  {
+   "case": "own:safety/one-line-flow-mapping-with-duplicate-keys",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library fails with an exception of its own kind that is not a rejection, so the adapter process ended (exit code 70) instead of reporting an error"
+  },
+  {
+   "case": "own:safety/implicit-key-window-rescan",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Over the time bound: no answer within 3 s for 1,100 nested sequences around a scalar of 24 million characters. The time follows the length of the scalar, not the nesting: at 100 levels 24 million characters take over 120 s, and at 1,100 levels 6 million characters take 0.2 s"
+  },
+  {
+   "case": "own:safety/implicit-key-window-rescan",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Over the time bound: no answer within 3 s for 1,100 nested sequences around a scalar of 24 million characters. The time follows the length of the scalar, not the nesting: at 100 levels 24 million characters take over 120 s, and at 1,100 levels 6 million characters take 0.2 s"
   }
 ]
 }

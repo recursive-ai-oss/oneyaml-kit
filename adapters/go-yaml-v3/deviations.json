@@ -593,5 +593,9 @@
   {"case": "own:parse/tab-only-line-after-block-scalar-at-end", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: found a tab character where an indentation space is expected'"},
   {"case": "own:parse/tab-only-line-after-block-scalar-at-end", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: found a tab character where an indentation space is expected'"},
   {"case": "own:parse/verbatim-tag-with-fragment", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: \"yaml: did not find the expected '>'\""},
-  {"case": "own:parse/verbatim-tag-with-fragment", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"yaml: did not find the expected '>'\""}
+  {"case": "own:parse/verbatim-tag-with-fragment", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"yaml: did not find the expected '>'\""},
+  {"case": "own:safety/one-line-flow-mapping-with-duplicate-keys", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over the memory bound: 30, 89 and 432 MB at 400, 800 and 1,600 pairs, and over 1.3 GB at 3,200, growing about four times for each doubling; the case stops it at 128 MB growth"},
+  {"case": "own:safety/one-line-flow-mapping-with-duplicate-keys", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over the memory bound: 30, 89 and 432 MB at 400, 800 and 1,600 pairs, and over 1.3 GB at 3,200, growing about four times for each doubling; the case stops it at 128 MB growth"},
+  {"case": "own:safety/one-line-flow-mapping-ten-megabytes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over the time bound: no answer within 10 s for 900,000 pairs on one line"},
+  {"case": "own:safety/one-line-flow-mapping-ten-megabytes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over the time bound: no answer within 10 s for 900,000 pairs on one line"}
 ]}

@@ -97,7 +97,14 @@ class Mutations(unittest.TestCase):
                 a = mutate(e["accept"])
                 variants.append(({**e, "accept": a}, ("fail", "fail")))
             if e["category"] is not None and e["accept"] is None:
-                variants.append(({**e, "category": ["syntax"]}, ("pass", "fail")))
+                # The oracle answers with the first listed category. A mutation must leave
+                # that one out, whatever the list holds: replacing it by `syntax` changed
+                # nothing for a case that already expects syntax first.
+                cats = list(e["category"])
+                other = next(x for x in ("limit", "syntax", "encoding") if x not in cats)
+                variants.append(({**e, "category": [other]}, ("pass", "fail")))
+                if len(cats) > 1:
+                    variants.append(({**e, "category": cats[1:]}, ("pass", "fail")))
                 variants.append(({**e, "accept": None, "category": None, "error": None}, None))
             for v, want in variants:
                 if want is None:

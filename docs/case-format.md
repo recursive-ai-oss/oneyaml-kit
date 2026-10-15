@@ -54,6 +54,7 @@ cases are `yts:<ID>` (`yts:DK95/06` for numbered sub-cases); where the suite shi
 | `notes` | Optional reasoning for a reader. |
 | `provenance` | Where the case comes from: optional `source` (URL), `revision`, `licence` and `reference` (a report, issue or paper), all non-empty strings. A `bug`, `fuzz` or `competitor` case must have `reference`; a `real-world` case must have `source` and `licence`. A case written for the kit says so in `reference`. |
 | `input` | Input file name; default `input.yaml`. |
+| `input_recipe` | Instead of an input file: a list of parts that describe the input bytes, for an input too large to store. See *Generated inputs*. A case has an input file or a recipe, not both. |
 | `operation` | What to do with the input, see below. |
 | `expect` | What must come back, see below. |
 
@@ -149,7 +150,7 @@ A position is a 1-based `line` and `column`.
 
 | `kind` | Fields | Passes when |
 |---|---|---|
-| `events` | `file` (event lines) | no error, and the event lines are equal |
+| `events` | `file` (event lines) or `recipe` (see *Generated inputs*) | no error, and the event lines are equal |
 | `value` | `value` (list of documents) or `file` (JSON) | no error, and the documents are equal |
 | `bytes` | `file` | no error, and every output byte is equal |
 | `error` | `category`, `line`, `column`, `events_file`, `unchanged` | an error is reported (see below) |
@@ -160,7 +161,9 @@ anywhere. **Strict** mode also checks whatever the case states:
 
 - `category`: one of `syntax`, `encoding`, `limit`, `patch-path`, `patch-test`,
   `patch-invalid`, `refused-alias`, `refused-ambiguous`, `unresolved-tag` (a reader
-  refused a tag it cannot resolve, YAML 1.2.2 section 3.3), or `any` (the default).
+  refused a tag it cannot resolve, YAML 1.2.2 section 3.3), `duplicate-key` (a mapping
+  holds two equal keys, which YAML 1.2.2 section 3.2.1.1 forbids: the keys of a mapping are
+  unique), or `any` (the default).
   Categories are stable names, never message text.
 - `line` and `column`: see *Positions* above. `column` may be left out when only the
   line is fixed.
@@ -250,6 +253,46 @@ needs just some `patch:*` capability, and so does an empty patch (the way a roun
 asked for: the document must come back byte for byte). In strict mode an expected category needs `error-category` and an
 expected position needs `error-position`. A case an adapter cannot do is reported as
 unsupported, counted apart from passes and failures.
+
+## Generated inputs
+
+A stored file may not be larger than 1 MB, so an input that is megabytes long is described by a
+recipe in `case.json` and built when the case is loaded. A recipe is data: nothing in it is
+evaluated, no text is substituted, and no file or program is read.
+
+```json
+"input_recipe": [
+  {"text": "{", "repeat": 9000},
+  {"numbers": {"count": 140608, "prefix": "k", "suffix": ": v,\n", "width": 6}},
+  {"text": "}\n"}
+]
+```
+
+| Part | Builds |
+|---|---|
+| `{"text": s, "repeat": n}` | the UTF-8 bytes of `s`, `n` times (`repeat` defaults to 1) |
+| `{"numbers": {"count": n, "start": k, "prefix": p, "suffix": s, "width": w}}` | `p`, the decimal number, `s` for `k`, `k+1`, ... `k+n-1`, the number zero-padded to at least `w` digits. `start`, `prefix`, `suffix` and `width` are optional. Used for keys that must all be different. |
+
+A recipe has at most 64 parts and builds at most 64 MiB; the size is worked out from the parts
+before a byte is built, so a recipe that is too large is refused when the case loads. The parts
+are written one after another; counts and repeats are integers of 0 or more.
+
+An expected event list may use a recipe in the same way (`{"kind": "events", "recipe": [...]}`,
+also inside `accept`), for a result that is as large as the input. The recipe builds the text of
+an events file, lines ending in `\n`.
+
+The runner sends a generated input like a stored one: the bytes, base64, in the request. Nothing
+is written to disk. `tests/pins.json` pins the size and the SHA-256 of every generated input
+(`generated_inputs`), besides the digest of the case directory that holds the recipe, so a
+change to the recipe, or to what a recipe builds, fails the kit's tests until the pins are
+regenerated and the diff is checked.
+
+The large generated cases carry the tag `slow`. A run leaves them out, without building their
+inputs or expected results, unless `--slow` is given or the environment variable `KIT_SLOW` is
+set (to anything but empty or `0`). The full gate sets it, so the large cases run there and not in
+the hand-over tier. A run without them skips deviation entries that name them instead of calling
+them stale; an entry for an id that is no case is still an error. Inputs are built in pieces of
+about a megabyte, so building one holds little more than its own bytes.
 
 ## Pins
 

@@ -1,0 +1,54 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/ten-million-digit-plain-scalar-events",
+ "title": "A plain scalar of ten million digits, read as events",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "131"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 7.3.3"
+ ],
+ "notes": "The scalar is a valid decimal integer under the core schema, so a reader may answer with the exact text or refuse it with a limit error. This case compares the scalar as the event stream gives it, because the kit cannot state or compare the integer as a value: its JSON reader takes integers of at most 4300 digits, and a stored expectation of ten million digits would not fit in the repository. Converting the scalar to an integer is therefore not exercised here. Reading a scalar of this length must take time and memory in proportion to its length; the memory bound is above the 518 MB that the most hungry reader measured needs to hold the answer, which is about fifty times the input. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The input is generated from the recipe in case.json (docs/case-format.md).",
+ "provenance": {
+  "reference": "A plain scalar of ten million digits read as events. It guards the scanner and the event path; converting the scalar to an integer is not checked by this case."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "input_recipe": [
+  {
+   "text": "1",
+   "repeat": 10000000
+  },
+  {
+   "text": "\n"
+  }
+ ],
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 2,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "events",
+   "recipe": [
+    {
+     "text": "+STR\n+DOC\n=VAL :"
+    },
+    {
+     "text": "1",
+     "repeat": 10000000
+    },
+    {
+     "text": "\n-DOC\n-STR\n"
+    }
+   ]
+  }
+ },
+ "tags": [
+  "slow"
+ ]
+}
