@@ -85,10 +85,20 @@ def archive_tree(name: str, root: Path, dest: Path, paths: tuple[str, ...]) -> P
         info.uname = info.gname = ""
         return info
 
+    # Tracked and untracked files that git does not ignore: the same set a commit of the working tree would
+    # hold, so a stray build directory or cache is left out the way the repository's ignore rules say.
+    listed = subprocess.run(["git", "-C", str(root), "ls-files", "-z", "-co", "--exclude-standard", "--", *paths],
+                            capture_output=True)
     with tarfile.open(dest, "w:gz", compresslevel=6) as tf:
-        for p in paths:
-            if (root / p).exists():
-                tf.add(root / p, arcname=p, filter=keep)
+        if listed.returncode == 0:
+            for rel in sorted(set(listed.stdout.decode("utf-8", "surrogateescape").split("\0")) - {""}):
+                # A file deleted in the working tree is still listed as tracked.
+                if (root / rel).is_file() or (root / rel).is_symlink():
+                    tf.add(root / rel, arcname=rel, recursive=False, filter=keep)
+        else:       # not a git checkout: walk the named parts
+            for p in paths:
+                if (root / p).exists():
+                    tf.add(root / p, arcname=p, filter=keep)
     return Packed(name, dest, rev, True, "tree", _digest(dest), dest.stat().st_size)
 
 
@@ -120,7 +130,8 @@ def bundle_inputs(packs: list[Packed], path: Path) -> Path:
     with tarfile.open(path, "w") as tf:
         for p in packs:
             tf.add(p.path, arcname="kit.tar.gz" if p.name == "kit" else f"lib-{p.name}.tar.gz")
-            data = (p.revision + "\n").encode()
+            # A working-tree pack is not a commit, and the file must not pass it off as one.
+            data = (p.revision + ("+modified" if p.source == "tree" else "") + "\n").encode()
             info = tarfile.TarInfo(f"rev-{p.name}")
             info.size = len(data)
             tf.addfile(info, io.BytesIO(data))

@@ -11,7 +11,9 @@ from __future__ import annotations
 import base64
 import datetime as dt
 import json
+import os
 import subprocess
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -22,6 +24,10 @@ from . import sigv4
 
 RUN_TAG = "oneyaml-kit-run"
 IMAGE_TAG = "oneyaml-kit-image"
+# Epoch seconds after which the resource has no business existing. A cleanup that was not told which run to
+# clean leaves everything before this time alone, so it cannot terminate a run that is still in progress.
+DEADLINE_TAG = "oneyaml-kit-deadline"
+CLOCK_ALLOWANCE_SECONDS = 120
 NAME_TAG = "Name"
 
 
@@ -48,6 +54,19 @@ class Instance:
     ended: float | None = None
     reason: str = ""                # the state transition reason code, e.g. a spot interruption
     tags: dict[str, str] = field(default_factory=dict)
+    image: str = ""
+
+    @property
+    def deadline(self) -> float | None:
+        """When the instance's own lifetime limit has passed, from its tag (None when it carries none)."""
+        return parse_deadline(self.tags.get(DEADLINE_TAG))
+
+
+def parse_deadline(value) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 @dataclass
@@ -61,18 +80,32 @@ class Launch:
     spot: bool
     volume_gb: int
     stop_on_shutdown: bool = False   # the image bake needs a stopped instance, not a terminated one
+    deadline: float = 0.0            # epoch seconds; tagged on everything the launch creates
+    zone: str = ""                   # a fixed availability zone, or any
 
 
 class Presigner:
     """Signs URLs with short-lived credentials, so they stop working when the run's deadline passes."""
 
-    def __init__(self, host: str, region: str, creds: dict, expires: int):
+    def __init__(self, host: str, region: str, creds: dict, expires: int, mode: str = "session token",
+                 credentials_expire: float | None = None):
         self.host, self.region, self.expires = host, region, expires
+        self.mode, self.credentials_expire = mode, credentials_expire
         self._access, self._secret, self._token = creds["AccessKeyId"], creds["SecretAccessKey"], creds.get("SessionToken")
 
     def url(self, method: str, key: str, expires: int | None = None) -> str:
         return sigv4.presign(method, self.host, key, self.region, self._access, self._secret, self._token,
                              expires or self.expires)
+
+
+def parse_time(value) -> float | None:
+    """Epoch seconds of an ISO timestamp as the service prints it, or None."""
+    if not value:
+        return None
+    try:
+        return dt.datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return None
 
 
 def http_get(url: str, timeout: float = 20) -> bytes | None:
@@ -89,11 +122,12 @@ def http_get(url: str, timeout: float = 20) -> bytes | None:
 
 
 class Aws:
-    def __init__(self, cfg, runner=None):
+    def __init__(self, cfg, runner=None, tmpdir=None):
         self.cfg = cfg
         self.region = cfg.region
         self.bucket = cfg.bucket
         self._runner = runner or self._exec
+        self.tmpdir = tmpdir      # where private request files go: the run's own directory, never a shared one
 
     # -- plumbing ---------------------------------------------------------------------------
 
@@ -109,19 +143,45 @@ class Aws:
         out = self._runner(cmd, stdin)
         return json.loads(out) if parse and out.strip() else out
 
+    def cli_json_file(self, service: str, command: str, request: dict):
+        """Runs a command whose request goes in through a private file. The request of a launch holds presigned
+        URLs, which are capabilities, and a command line is readable by every user of the machine."""
+        fd, name = tempfile.mkstemp(prefix="request-", suffix=".json", dir=self.tmpdir)    # created 0600
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(request, f)
+            return self.cli(service, command, "--cli-input-json", "file://" + name)
+        finally:
+            try:
+                os.unlink(name)
+            except OSError:
+                pass
+
     # -- credentials and signing ------------------------------------------------------------
 
-    def presigner(self, seconds: int) -> Presigner:
-        """URLs valid for `seconds`, signed with temporary credentials of the same lifetime."""
+    def presigner(self, seconds: int, now=time.time) -> Presigner:
+        """URLs valid for `seconds`, signed with temporary credentials of the same lifetime.
+
+        A URL stops working when the credentials that signed it expire, so credentials that run out before the
+        run's deadline would break the run half way: that is refused up front. The signing mode is kept on the
+        result for the run record."""
         seconds = max(900, int(seconds))
+        asked_at = now()
         try:
             creds = self.cli("sts", "get-session-token", "--duration-seconds", str(seconds))["Credentials"]
+            mode, expires = "session token", parse_time(creds.get("Expiration"))
         except AwsError:
             # Some credential types cannot ask for a session token; their own are short-lived already.
             exp = self.cli("configure", "export-credentials", "--format", "process", region=False)
             creds = {"AccessKeyId": exp["AccessKeyId"], "SecretAccessKey": exp["SecretAccessKey"],
                      "SessionToken": exp.get("SessionToken")}
-        return Presigner(sigv4.bucket_host(self.bucket, self.region), self.region, creds, seconds)
+            expires = parse_time(exp.get("Expiration"))
+            mode = "exported credentials" if expires else "exported credentials without a stated expiry"
+        # A short allowance for the time the call took and for clock differences with the service.
+        if expires is not None and expires < asked_at + seconds - CLOCK_ALLOWANCE_SECONDS:
+            raise AwsError("the signing credentials expire in %d minutes, before the run's deadline in %d minutes; "
+                           "renew them and run again" % ((expires - asked_at) // 60, seconds // 60))
+        return Presigner(sigv4.bucket_host(self.bucket, self.region), self.region, creds, seconds, mode, expires)
 
     # -- S3 ---------------------------------------------------------------------------------
 
@@ -176,16 +236,19 @@ class Aws:
     # -- prices and sizes -------------------------------------------------------------------
 
     def spot_price(self, itype: str) -> float:
-        """The cheapest current spot price over the zones that offer the type."""
+        """The highest current spot price over the zones a launch may land in (the configured zones, or all that
+        offer the type). The estimate must hold wherever the instance starts, so it uses the dearest one."""
         r = self.cli("ec2", "describe-spot-price-history", "--instance-types", itype,
                      "--product-descriptions", "Linux/UNIX", "--start-time",
                      dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
         latest: dict[str, float] = {}
         for h in r.get("SpotPriceHistory", []):
-            latest.setdefault(h["AvailabilityZone"], float(h["SpotPrice"]))
+            zone = h["AvailabilityZone"]
+            if not getattr(self.cfg, "zones", ()) or zone in self.cfg.zones:
+                latest.setdefault(zone, float(h["SpotPrice"]))
         if not latest:
             raise AwsError(f"no spot price for {itype} in {self.region}")
-        return min(latest.values())
+        return max(latest.values())
 
     def on_demand_price(self, itype: str) -> float | None:
         """The list price per hour, or None when the pricing service does not answer."""
@@ -215,12 +278,13 @@ class Aws:
 
     # -- network ----------------------------------------------------------------------------
 
-    def create_security_group(self, run_id: str) -> str:
+    def create_security_group(self, run_id: str, deadline: float = 0.0) -> str:
         """A group with no inbound rule in the default network. Outbound stays open for downloads."""
         vpc = self.cli("ec2", "describe-vpcs", "--filters", "Name=is-default,Values=true")["Vpcs"][0]["VpcId"]
         r = self.cli("ec2", "create-security-group", "--group-name", f"oneyaml-kit-{run_id}", "--vpc-id", vpc,
                      "--description", "benchmark run, no inbound",
-                     "--tag-specifications", f"ResourceType=security-group,Tags=[{{Key={RUN_TAG},Value={run_id}}}]")
+                     "--tag-specifications", f"ResourceType=security-group,Tags=[{{Key={RUN_TAG},Value={run_id}}}"
+                     + (f",{{Key={DEADLINE_TAG},Value={int(deadline)}}}" if deadline else "") + "]")
         return r["GroupId"]
 
     def delete_security_group(self, gid: str, attempts: int = 12) -> bool:
@@ -238,6 +302,8 @@ class Aws:
 
     def launch(self, spec: Launch) -> str:
         tags = [{"Key": RUN_TAG, "Value": spec.run_id}, {"Key": NAME_TAG, "Value": spec.name}]
+        if spec.deadline:
+            tags.append({"Key": DEADLINE_TAG, "Value": str(int(spec.deadline))})
         req = {
             "ImageId": spec.image, "InstanceType": spec.type, "MinCount": 1, "MaxCount": 1,
             "SecurityGroupIds": [spec.security_group],
@@ -250,12 +316,14 @@ class Aws:
                 "DeleteOnTermination": True}}],
             "TagSpecifications": [{"ResourceType": t, "Tags": tags} for t in ("instance", "volume")],
         }
+        if spec.zone:
+            req["Placement"] = {"AvailabilityZone": spec.zone}
         if spec.spot:
             req["InstanceMarketOptions"] = {"MarketType": "spot", "SpotOptions": {
                 "SpotInstanceType": "one-time", "InstanceInterruptionBehavior": "terminate"}}
             req["TagSpecifications"].append({"ResourceType": "spot-instances-request", "Tags": tags})
         try:
-            r = self.cli("ec2", "run-instances", "--cli-input-json", json.dumps(req))
+            r = self.cli_json_file("ec2", "run-instances", req)
         except AwsError as e:
             m = str(e)
             code = next((c for c in ("InsufficientInstanceCapacity", "SpotMaxPriceTooLow", "MaxSpotInstanceCountExceeded",
@@ -274,8 +342,15 @@ class Aws:
                     id=i["InstanceId"], state=i["State"]["Name"], type=i.get("InstanceType", ""),
                     lifecycle=i.get("InstanceLifecycle", "on-demand"), az=i.get("Placement", {}).get("AvailabilityZone", ""),
                     launched=dt.datetime.fromisoformat(i["LaunchTime"].replace("Z", "+00:00")).timestamp(),
-                    reason=(i.get("StateReason") or {}).get("Code", ""), tags=tags))
+                    reason=(i.get("StateReason") or {}).get("Code", ""), tags=tags,
+                    image=i.get("ImageId", "")))
         return out
+
+    def expire(self, resource_ids: list[str]) -> None:
+        """Sets the deadline of the given instances and groups to now."""
+        if resource_ids:
+            self.cli("ec2", "create-tags", "--resources", *resource_ids, "--tags",
+                     f"Key={DEADLINE_TAG},Value={int(time.time())}", parse=False)
 
     def terminate(self, ids: list[str]) -> None:
         if ids:
@@ -337,3 +412,54 @@ class Aws:
                 raise AwsError(f"image {image_id} failed")
             time.sleep(10)
         raise AwsError(f"image {image_id} not available in time")
+
+    def superseded_images(self, keep_digest: str, in_use: set[str] = frozenset()) -> list[dict]:
+        """Machine images of this tool that are not the current one: another digest, or an older image of the
+        current digest. Each entry carries the image id and its snapshots. Images that a live instance uses stay."""
+        r = self.cli("ec2", "describe-images", "--owners", "self", "--filters", f"Name=tag-key,Values={IMAGE_TAG}")
+        imgs = sorted(r.get("Images", []), key=lambda i: i["CreationDate"])
+
+        def tag(i):
+            return next((t["Value"] for t in i.get("Tags", []) if t["Key"] == IMAGE_TAG), "")
+        current = [i for i in imgs if tag(i) == keep_digest and i["State"] == "available"]
+        keep = current[-1]["ImageId"] if current else None
+        out = []
+        for i in imgs:
+            if i["ImageId"] == keep or i["ImageId"] in in_use:
+                continue
+            snaps = [b["Ebs"]["SnapshotId"] for b in i.get("BlockDeviceMappings", []) if b.get("Ebs", {}).get("SnapshotId")]
+            out.append({"image": i["ImageId"], "digest": tag(i), "snapshots": snaps})
+        return out
+
+    def current_image_ids(self, keep_digest: str) -> list[str]:
+        found = self.find_image(keep_digest)
+        return [found] if found else []
+
+    def remove_image(self, image_id: str, snapshots: list[str]) -> None:
+        self.cli("ec2", "deregister-image", "--image-id", image_id, parse=False)
+        for sid in snapshots:
+            self.cli("ec2", "delete-snapshot", "--snapshot-id", sid, parse=False)
+
+    # -- who owns what ----------------------------------------------------------------------
+
+    def run_deadlines(self, unknown_age: float = 24 * 3600) -> dict[str, float]:
+        """For every run that left something tagged: the latest deadline among its resources. A resource without a
+        deadline tag counts as expired, except an instance from before the tag existed, which is trusted for
+        `unknown_age` seconds after it was launched."""
+        out: dict[str, float] = {}
+
+        def note(tags, fallback=0.0):
+            run = next((t["Value"] for t in tags if t["Key"] == RUN_TAG), None)
+            if run is None:
+                return
+            d = parse_deadline(next((t["Value"] for t in tags if t["Key"] == DEADLINE_TAG), None))
+            out[run] = max(out.get(run, 0.0), d if d is not None else fallback)
+        for i in self.instances(None):
+            if i.state != "terminated":
+                note([{"Key": k, "Value": v} for k, v in i.tags.items()], i.launched + unknown_age)
+        flt = [f"Name=tag-key,Values={RUN_TAG}"]
+        for call, key in (("describe-security-groups", "SecurityGroups"), ("describe-volumes", "Volumes"),
+                          ("describe-launch-templates", "LaunchTemplates")):
+            for res in self.cli("ec2", call, "--filters", *flt).get(key, []):
+                note(res.get("Tags", []))
+        return out

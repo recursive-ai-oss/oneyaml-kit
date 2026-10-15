@@ -95,6 +95,8 @@ def cmd_setup(a, cfg, aws, say) -> int:
 
 def cmd_image(a, cfg, aws, say) -> int:
     work = (Path(a.out) if a.out else default_out()) / "image"
+    work.mkdir(parents=True, exist_ok=True)
+    aws.tmpdir = work
     t0 = time.time()
     image_id, info = imagemod.ensure_image(aws, cfg, KIT_ROOT, work, say, force=a.force)
     say(f"image {image_id} ({'baked in %d s' % info['seconds'] if info['baked'] else 'reused'}), digest {info['digest']}")
@@ -113,7 +115,16 @@ def run_summary(say, summary: dict) -> None:
         if s:
             say("   " + ", ".join(f"{k} {v}s" for k, v in s.items()))
     say("timeline: " + ", ".join(f"{k} {v}s" for k, v in summary["timeline_seconds"].items()))
-    say(f"estimated cost ${summary['cost_estimate']:.2f} (spot ${summary['price_per_hour_spot']:.4f}/h)")
+    st, cl = summary.get("instances_started", {}), summary.get("cost_by_lifecycle", {})
+    done = {"spot": 0, "on-demand": 0}
+    for j in summary["jobs"]:
+        if j["ok"] and j["lifecycle"] in done:
+            done[j["lifecycle"]] += 1
+    say(f"instances started: {st.get('spot', 0)} spot, {st.get('on-demand', 0)} on-demand; "
+        f"jobs finished on: {done['spot']} spot, {done['on-demand']} on-demand")
+    say(f"estimated cost ${summary['cost_estimate']:.2f} (spot ${cl.get('spot', 0):.2f}, on-demand "
+        f"${cl.get('on-demand', 0):.2f}); spot ${summary['price_per_hour_spot']:.4f}/h with the volume; "
+        f"signed with: {(summary.get('signing') or {}).get('mode', 'unknown')}")
 
 
 class DryRun(Exception):
@@ -144,11 +155,18 @@ def prepare_run(a, cfg, aws, say, itype: str, jobs_for, merge: bool = False) -> 
     run_id = "r" + time.strftime("%m%d%H%M%S") + os.urandom(2).hex()
     out = out / run_id
     out.mkdir(parents=True, exist_ok=True)
-    price = aws.spot_price(itype)
-    od = aws.on_demand_price(itype)
+    aws.tmpdir = out        # private request files live with the run, not in a shared directory
+    spot = aws.spot_price(itype)
+    od_list = aws.on_demand_price(itype) or cfg.on_demand_price
+    # The volume is billed for the life of the instance; every figure below includes it.
+    vol = planmod.volume_per_hour(cfg.volume_gb)
+    price = spot + vol
+    od = od_list + vol if od_list else None
     jobs, est = jobs_for(price)
     cap = a.cost_cap if a.cost_cap is not None else cfg.cost_cap
-    say(f"{itype}: spot ${price:.4f}/h" + (f", on-demand ${od:.4f}/h" if od else "") + f"; estimated cost ${est:.2f}, cap ${cap:.2f}")
+    say(f"{itype}: spot ${spot:.4f}/h (dearest zone{' of ' + ','.join(cfg.zones) if cfg.zones else ''})"
+        + (f", on-demand ${od_list:.4f}/h" if od_list else ", on-demand price unknown: no on-demand fallback")
+        + f", volume ${vol:.4f}/h; estimated cost ${est:.2f}, cap ${cap:.2f}")
     if est > cap:
         raise runner.RunFailed(f"the estimated cost ${est:.2f} is above the cap ${cap:.2f}; raise it with --cost-cap")
     if getattr(a, "dry_run", False):
@@ -165,6 +183,7 @@ def prepare_run(a, cfg, aws, say, itype: str, jobs_for, merge: bool = False) -> 
                           on_demand_fallback=not a.no_on_demand)
     r = runner.Run(aws, cfg, opts, jobs, image_id, packs, price, od, say=say, run_id=run_id,
                    after_collect=merge_after_collect(out) if merge else None)
+    r.extra["volume_per_hour"] = round(vol, 4)
     r.timeline["pack"] = time.time() - t
     if info["baked"]:
         r.timeline["image_bake"] = info["seconds"]
@@ -173,7 +192,7 @@ def prepare_run(a, cfg, aws, say, itype: str, jobs_for, merge: bool = False) -> 
 
 def execute(r: runner.Run, aws, say, out: Path) -> dict:
     """Runs with the teardown wired to every way out; returns the summary."""
-    runner.install_signal_handlers()
+    runner.ensure_signal_handlers()
     atexit.register(lambda: r.teardown.done or r.teardown.run(quiet=True))
     try:
         summary = r.execute()
@@ -274,10 +293,11 @@ def cmd_spread(a, cfg, aws, say) -> int:
         for _ in range(a.repeat):
             cmds.append(["bench", "run", "--mode", "quick", "--pin", str(a.pin), "--out", "{out}", *sel])
         jobs = [runner.Job(i, t, t, cmds, planmod.QUICK_LIFETIME_MINUTES, 600) for i, t in enumerate(types, 1)]
-        return jobs, sum(planmod.shard_cost(aws.spot_price(t), 600) for t in types)
+        vol = planmod.volume_per_hour(cfg.volume_gb)
+        return jobs, sum(planmod.shard_cost(aws.spot_price(t) + vol, 600) for t in types)
 
     r, out = prepare_run(a, cfg, aws, say, types[0], jobs_for)
-    r.prices = {t: aws.spot_price(t) for t in types}
+    r.prices = {t: aws.spot_price(t) + planmod.volume_per_hour(cfg.volume_gb) for t in types}
     # Different types in one run are the point here, so the price used for the estimate is each type's own.
     code = 0
     try:
@@ -335,7 +355,9 @@ def spread_report(r: runner.Run, repeat: int) -> dict:
 
 
 def cmd_cleanup(a, cfg, aws, say) -> int:
-    left = cleanup_mod.cleanup(aws, a.run, say, wait=a.wait)
+    # Without --run it also drops machine images of older toolchain digests; the current one stays.
+    digest = None if a.run else imagemod.current_digest(cfg, KIT_ROOT)
+    left = cleanup_mod.cleanup(aws, a.run, say, wait=a.wait, keep_image_digest=digest)
     return 0 if cleanup_mod.total(left) == 0 else 3
 
 
@@ -383,7 +405,7 @@ def build_parser() -> argparse.ArgumentParser:
     common(s)
     s.set_defaults(fn=cmd_spread)
     s = sub.add_parser("cleanup", help="terminate and delete every tagged leftover, then show what remains")
-    s.add_argument("--run", help="only this run id")
+    s.add_argument("--run", help="only this run id, whatever its deadline; without it, only runs past their deadline")
     s.add_argument("--wait", type=float, default=900.0, help="seconds to wait for instances to finish terminating")
     s.set_defaults(fn=cmd_cleanup)
     return p
@@ -392,6 +414,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     a = build_parser().parse_args(argv)
     say = Stamp()
+    # Before any command: setup, image and cleanup start instances or delete things too, and a signal must
+    # reach their `finally` blocks instead of killing the process outright.
+    runner.install_signal_handlers()
     try:
         cfg = configmod.load()
         aws = make_aws(cfg)
@@ -399,3 +424,6 @@ def main(argv: list[str] | None = None) -> int:
     except (configmod.ConfigError, runner.RunFailed, planmod.PlanError, packmod.PackError, AwsError) as e:
         say(f"bench-cloud: {e}")
         return 1
+    except KeyboardInterrupt:
+        say("bench-cloud: interrupted")
+        return 130

@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-sequence-value-defaults-to-two-spaces",
+ "title": "A new sequence under a key, in a document with no nested mapping and no sequence, is indented two spaces",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "183"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "YAML 1.2.2 section 8.2.1",
+  "YAML 1.2.2 section 8.2.2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The document is one flat mapping: there is no sibling sequence to copy and no nested block mapping to take an indentation step from. The patch adds `/n` with the sequence `[1]`. The specification allows any indentation of the dash greater than the key's, and the dash flush with the key, so the bytes rest on a kit convention (docs/edit-semantics.md): with no step to take, the dash is indented two spaces, written `  - 1`. The case carries the tag `convention`. The new member goes at the end of the root mapping, which is a second convention (RFC 6902 does not fix the position). The result reads back as `a` is 1 and `n` is a sequence of the single item 1; no nested mapping is created.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/n",
+    "value": [
+     1
+    ]
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

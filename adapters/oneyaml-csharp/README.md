@@ -29,12 +29,24 @@ and never touches the checkout.
 
 ## What it declares
 
-No capability yet, so every case is unsupported and the deviation list is empty. `Program.cs` lists
-the three operations (events, value, patch) as seams: what each will call, and which capabilities to
-declare with it.
+Capabilities: `events`, `value`, `error-category`, `error-position`, `dump`, `patch:add`, `patch:remove`,
+`patch:replace`, `patch:move`, `patch:copy`, `patch:test`, `patch:merge`. The library is given the input bytes and detects the encoding itself, so nothing is
+decoded for it.
 
-The benchmark side is `bench/csharp/src/Libs/OneYamlLibs.cs`, built in only with the same variable;
-it takes part in no task yet and has one row per binding path (`oneyaml-csharp`,
-`oneyaml-csharp-gen`).
+| Operation | Through | Supplied by the adapter |
+|---|---|---|
+| `events` | the nodes of `YamlDocument.Parse` with `AllowDuplicateKeys` (an event stream does not check key uniqueness) (kind, style, tag, anchor, alias) | `style`: whether a document had an explicit `---` or `...`, from a line scan of the decoded text. `tag`: the full tag from the written tag and the `%TAG` directives of that scan |
+| `value` | the same nodes read with `GetValue<object>`, so key types, repeated keys and tags survive (the generic `object` model of the serializer drops tags and reads keys as text) | a tag the Core schema does not resolve is written as `$tagged` |
+| `dump` | `YamlSerializer.SerializeToUtf8Bytes` of the plain .NET value built from the kit value, default options | nothing; byte strings go in as `byte[]`, which the library writes as `!!binary`; integers beyond 64 bits go in as `BigInteger` and mappings with non-string keys as `Dictionary<object, object?>`, which the library writes |
+| `patch` | `YamlDocument.ApplyPatch` (RFC 6902: all six operations, any number, atomic) and `ApplyMergePatch` (RFC 7396), given the patch as the case carries it | nothing |
+
+There is no `error-events`: the library's event reader is not public, and a document that fails to parse
+gives no events. A library `DuplicateKey` error is reported as `duplicate-key`. Every case the library fails is
+listed in `deviations.json` with the reason; the kit fails a run when a failure is missing from the list or an
+entry has gone stale.
+
+The benchmark side is `bench/csharp/src/Libs/OneYamlLibs.cs`, built in only with the same variable. It has
+one row per binding path (`oneyaml-csharp`, reflection; `oneyaml-csharp-gen`, a generated context for the
+kit's models) and takes part in every task.
 
 The shared plumbing is in [../dotnet-common/README.md](../dotnet-common/README.md).

@@ -43,6 +43,9 @@
   </PropertyGroup>
   <ItemGroup Condition="'$(OneYamlProject)' != '' And Exists('$(OneYamlProject)')">
     <ProjectReference Include="$(OneYamlProject)" />
+    <!-- The library's source generator, as a package reference would bring it: it writes the metadata for the
+         typed models of the generated row (src/Libs/OneYamlContext.cs). Build time only. -->
+    <ProjectReference Include="$([System.IO.Path]::GetFullPath('$(OneYamlSrc)/src/OneYaml.SourceGeneration/OneYaml.SourceGeneration.csproj'))" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>OneYamlRevision</_Parameter1>
       <_Parameter2>$(OneYamlRevision)</_Parameter2>

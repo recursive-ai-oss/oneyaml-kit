@@ -15,7 +15,7 @@ from pathlib import Path
 
 from . import bootstrap, pack as packmod, toolchains
 from .aws import Launch, http_get
-from .runner import RunFailed, Teardown, shield_interrupts
+from .runner import RunFailed, Teardown, ensure_signal_handlers, shield_interrupts
 
 BAKE_TYPE = "c7i.4xlarge"
 BAKE_MINUTES = 40
@@ -41,14 +41,19 @@ def ensure_image(aws, cfg, kit_root: Path, work: Path, say=print, force: bool = 
 
 
 def bake(aws, cfg, kit_root: Path, work: Path, digest: str, say, poll: float) -> dict:
+    """Bakes on an on-demand instance that stops (rather than terminates) when its script ends, so the volume can
+    be imaged. The instance is terminated when the bake ends, whether it worked, failed or was interrupted: the
+    `finally` below runs on every way out, SIGTERM and SIGHUP included."""
+    ensure_signal_handlers()
     run_id = "bake" + time.strftime("%m%d%H%M%S") + uuid.uuid4().hex[:3]
     td = Teardown(aws, run_id, say)
+    deadline = time.time() + (BAKE_MINUTES + 45) * 60
     image_id = None
     try:
         work.mkdir(parents=True, exist_ok=True)
         packs = [packmod.archive_git("kit", kit_root, work / "kit-bake.tar.gz", packmod.KIT_PATHS)]
         bundle = packmod.bundle_inputs(packs, work / "bake-inputs.tar")
-        sg = aws.create_security_group(run_id)
+        sg = aws.create_security_group(run_id, deadline)
         td.security_groups.append(sg)
         pre = aws.presigner(BAKE_MINUTES * 60 + 1800)
         aws.upload(bundle, f"runs/{run_id}/inputs.tar")
@@ -57,7 +62,7 @@ def bake(aws, cfg, kit_root: Path, work: Path, digest: str, say, poll: float) ->
                                        pre.url("PUT", base + "/status.json"), BAKE_MINUTES, run_id)
         iid = aws.launch(Launch(image=cfg.base_ami, type=BAKE_TYPE, security_group=sg, user_data=bootstrap.pack_user_data(script),
                                 run_id=run_id, name=f"oneyaml-kit-{run_id}", spot=False, volume_gb=cfg.volume_gb,
-                                stop_on_shutdown=True))
+                                stop_on_shutdown=True, deadline=deadline))
         say(f"bake instance {iid} started")
         shown = 0
         status = None

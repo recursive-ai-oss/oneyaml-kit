@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 
 from . import freeze as freeze_mod
-from . import report, results, run, shards, workloads
+from . import readme, report, results, run, shards, workloads
 
 ROOT = Path(__file__).resolve().parents[1]
 KIT_ROOT = ROOT.parent
@@ -32,6 +32,15 @@ def public_text_hits(paths: list[Path]) -> list[str]:
             if m:
                 hits.append(f"{p.name}:{n}: {m.group(0)!r}")
     return hits
+
+
+def text_hits(text: str) -> list[str]:
+    """The kit's public-text check over a string."""
+    sys.path.insert(0, str(KIT_ROOT / "tools"))
+    from oneyaml_kit import public_text  # noqa: E402
+
+    return [f"{n}: {m.group(0)!r}" for n, line in enumerate(text.split("\n"), 1)
+            if (m := public_text.PATTERN.search(line))]
 
 
 def write_report(result: dict, out: Path) -> list[Path]:
@@ -289,6 +298,34 @@ def compare_counters(current: dict, baseline: dict) -> list[str]:
     return problems
 
 
+def find_first(candidates: list[Path]) -> Path | None:
+    return next((p for p in candidates if p.is_file()), None)
+
+
+def cmd_readme(a: argparse.Namespace) -> int:
+    version = (KIT_ROOT / "suites" / "VERSION").read_text(encoding="utf-8").strip()
+    res = Path(a.results)
+    try:
+        bench = Path(a.bench) if a.bench else find_first([res / "bench" / "results.json", res / "results.json"])
+        if bench is None:
+            raise readme.ReadmeError(f"no benchmark result found in {res} (looked for bench/results.json and results.json)")
+        conf_path = Path(a.conformance) if a.conformance else find_first(
+            [res / d / f"{a.library}.json" for d in ("conformance", "results", ".")])
+        conf = json.loads(conf_path.read_text(encoding="utf-8")) if conf_path else None
+        docs = Path(a.docs)
+        readme_path = Path(a.readme)
+        ctx = readme.Ctx(json.loads(bench.read_text(encoding="utf-8")), a.library, version, conf,
+                         readme_path.parent / a.charts.rstrip("/"), a.allow_smoke)
+        targets = [readme_path, docs / "performance.md", docs / "conformance.md"]
+        new = readme.update(ctx, targets, a.charts.rstrip("/"), docs / "conformance.md")
+        changed = readme.check_and_write(ctx, new, ctx.chart_dir, text_hits)
+    except (readme.ReadmeError, results.ResultError, OSError, KeyError, ValueError) as e:
+        print(f"bench readme: {e}", file=sys.stderr)
+        return 1
+    print("\n".join(f"updated {p}" for p in changed) or "already up to date")
+    return 0
+
+
 def cmd_baseline(a: argparse.Namespace) -> int:
     view = counter_view(json.loads(Path(a.result).read_text(encoding="utf-8")))
     Path(a.out).write_text(json.dumps(view, indent=1, sort_keys=True) + "\n", encoding="utf-8")
@@ -353,6 +390,17 @@ def main(argv: list[str] | None = None) -> int:
     f = sub.add_parser("freeze", help="(re)freeze the expected values of the real-world files")
     f.add_argument("--check", action="store_true", help="fail if a frozen file is out of date")
     f.set_defaults(fn=cmd_freeze)
+    m = sub.add_parser("readme", help="write the generated blocks of a library README and docs between their markers")
+    m.add_argument("--results", required=True, help="directory with the benchmark result and the conformance results")
+    m.add_argument("--library", required=True, help="the library to feature")
+    m.add_argument("--readme", required=True)
+    m.add_argument("--docs", required=True, help="directory holding performance.md and conformance.md")
+    m.add_argument("--charts", default="docs/img", help="chart directory, relative to the README")
+    m.add_argument("--bench", help="benchmark result file, when not at <results>/bench/results.json")
+    m.add_argument("--conformance", help="conformance result file, when not at <results>/<dir>/<library>.json")
+    m.add_argument("--allow-smoke", action="store_true",
+                   help="accept a result that is not publishable (the blocks are labelled as such)")
+    m.set_defaults(fn=cmd_readme)
     b = sub.add_parser("baseline", help="write the deterministic counters of a result as a baseline")
     b.add_argument("result")
     b.add_argument("--out", required=True)

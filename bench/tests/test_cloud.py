@@ -24,7 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from oneyaml_bench.cloud import bootstrap, cleanup, cli, config, pack, plan, runner, sigv4, toolchains  # noqa: E402
-from oneyaml_bench.cloud.aws import Instance, LaunchError, Presigner  # noqa: E402
+from oneyaml_bench.cloud.aws import DEADLINE_TAG, RUN_TAG, Aws, AwsError, Instance, LaunchError, Presigner  # noqa: E402
 
 KIT = Path(__file__).resolve().parents[2]
 URL = re.compile(r"https://[^'\s]+")
@@ -50,6 +50,9 @@ class FakeAws:
         self.inst: dict[str, Instance] = {}
         self.launches: list = []
         self.groups: set[str] = set()
+        self.group_tags: dict[str, tuple[str, float]] = {}      # group id -> (run id, deadline)
+        self.images: list[dict] = []                            # {"image", "digest", "snapshots", "in_use"}
+        self.removed_images: list[str] = []
         self.terminate_calls = 0
         self.n = 0
 
@@ -78,9 +81,10 @@ class FakeAws:
     def list_keys(self, prefix, older_than=None):
         return [k for k in self.store if k.startswith(prefix)]
 
-    def create_security_group(self, run_id):
+    def create_security_group(self, run_id, deadline=0.0):
         gid = f"sg-{run_id}"
         self.groups.add(gid)
+        self.group_tags[gid] = (run_id, deadline)
         return gid
 
     def delete_security_group(self, gid, attempts=1):
@@ -88,7 +92,35 @@ class FakeAws:
         return True
 
     def security_groups(self, run_id=None):
-        return sorted(self.groups)
+        return sorted(g for g in self.groups if run_id is None or self.group_tags.get(g, (run_id,))[0] == run_id)
+
+    def run_deadlines(self):
+        out = {}
+        for i in self.inst.values():
+            run = i.tags.get(RUN_TAG)
+            if run and i.state != "terminated":
+                out[run] = max(out.get(run, 0.0), i.deadline if i.deadline is not None else i.launched + 24 * 3600)
+        for g in self.groups:
+            run, d = self.group_tags.get(g, (None, 0.0))
+            if run:
+                out[run] = max(out.get(run, 0.0), d)
+        return out
+
+    def expire(self, resource_ids):
+        for rid in resource_ids:
+            if rid in self.inst:
+                self.inst[rid].tags[DEADLINE_TAG] = str(int(time.time()) - 1)
+            if rid in self.group_tags:
+                self.group_tags[rid] = (self.group_tags[rid][0], time.time() - 1)
+
+    def superseded_images(self, keep_digest, in_use=frozenset()):
+        cur = [i for i in self.images if i["digest"] == keep_digest]
+        keep = cur[-1]["image"] if cur else None
+        return [dict(i) for i in self.images if i["image"] != keep and i["image"] not in in_use and not i.get("in_use")]
+
+    def remove_image(self, image_id, snapshots):
+        self.removed_images.append(image_id)
+        self.images = [i for i in self.images if i["image"] != image_id]
 
     def launch_templates(self, run_id=None):
         return []
@@ -110,10 +142,14 @@ class FakeAws:
         if isinstance(action, tuple):
             raise LaunchError(action[1], "fake")
         iid = f"i-{n:04d}"
-        self.inst[iid] = Instance(iid, "running", spec.type, "spot" if spec.spot else "on-demand", "test-a", time.time(), tags={})
+        tags = {RUN_TAG: spec.run_id}
+        if spec.deadline:
+            tags[DEADLINE_TAG] = str(int(spec.deadline))
+        self.inst[iid] = Instance(iid, "running", spec.type, "spot" if spec.spot else "on-demand",
+                                  spec.zone or "test-a", time.time(), tags=tags, image=spec.image)
         script = gzip.decompress(spec.user_data).decode()
-        urls = {u.split("?")[0].rsplit("/", 1)[1]: u.split("?")[0].split(".com/", 1)[1] for u in URL.findall(script)}
-        if action in ("done", "bad-exit", "done-slow"):
+        urls = {u.split("?")[0].rsplit("/", 1)[1]: u.split("?")[0].split(".com/", 1)[1] for u in URL.findall(script) if ".amazonaws.com/" in u}
+        def finish(state):
             now = time.time()
             self.store[urls["log.txt"]] = b"== run\nmeasuring (quick)\n"
             self.store[urls["result.tar.gz"]] = fake_result(spec.type)
@@ -123,14 +159,20 @@ class FakeAws:
                           "cache_warm": now - 14, "bench_start": now - 13, "measuring": now - 10, "bench_done": now - 1,
                           "finished": now},
                 "instance": {"KIT_INSTANCE_TYPE": spec.type, "KIT_INSTANCE_AZ": "test-a", "KIT_INSTANCE_LIFECYCLE": "spot"}}).encode()
-            self.inst[iid].state = "shutting-down" if action == "done-slow" else "terminated"
+            self.inst[iid].state = state
+        if action in ("done", "bad-exit", "done-slow"):
+            finish("shutting-down" if action == "done-slow" else "terminated")
+        elif action == "done-late":
+            # The result appears only after the instance listing has been blind to the instance for a while.
+            threading.Timer(1.8, finish, ["terminated"]).start()
         elif action == "interrupt":
             self.inst[iid].state = "terminated"
             self.inst[iid].reason = "Server.SpotInstanceTermination"
         return iid
 
     def instances(self, run_id=None):
-        return [Instance(i.id, i.state, i.type, i.lifecycle, i.az, i.launched, reason=i.reason) for i in self.inst.values()]
+        return [Instance(i.id, i.state, i.type, i.lifecycle, i.az, i.launched, reason=i.reason, tags=dict(i.tags), image=i.image)
+                for i in self.inst.values() if run_id is None or i.tags.get(RUN_TAG, run_id) == run_id]
 
     def terminate(self, ids):
         self.terminate_calls += 1
@@ -169,9 +211,9 @@ class RunCase(unittest.TestCase):
             signal.signal(s, h)
         self.tmp.cleanup()
 
-    def make(self, aws, jobs=None, **opts):
+    def make(self, aws, jobs=None, cfg=None, **opts):
         o = runner.Options(out=self.dir / "out", poll_seconds=0.02, launch_backoff_seconds=0, **opts)
-        r = runner.Run(aws, config.Config("test", "bucket", "ami-x"), o, jobs or job_list(), "ami-image", self.packs, 0.5, 1.5,
+        r = runner.Run(aws, cfg or config.Config("test", "bucket", "ami-x"), o, jobs or job_list(), "ami-image", self.packs, 0.5, 1.5,
                        say=self.lines.append, fetch=aws.fetch, run_id="rtest")
         r.teardown.poll = 0.01
         return r
@@ -344,11 +386,272 @@ class RetryAndFallback(RunCase):
         self.assertEqual(len(set(logs)), len(logs))
 
 
+class CostCap(RunCase):
+    """The cap bounds what is committed across all jobs and attempts, not each launch alone."""
+
+    def test_on_demand_fallbacks_are_counted_together(self):
+        # The on-demand instances stay alive for a moment, so each still counts for its projected cost.
+        aws = FakeAws(lambda spec, n: ("error", "InsufficientInstanceCapacity") if spec.spot else "done-late")
+        jobs = [runner.Job(i, f"{i}/4", "c7i.test", [["bench", "run"]], 200, 7200.0) for i in range(1, 5)]
+        # An on-demand instance for two hours is $3.00 here: a cap of $7 admits two of the four.
+        with self.assertRaises(runner.RunFailed):
+            self.make(aws, jobs=jobs, cost_cap=7.0).execute()
+        self.assertEqual(len([s for s in aws.launches if not s.spot]), 2)
+
+    def test_spot_retries_are_checked_too(self):
+        aws = FakeAws()
+        jobs = [runner.Job(i, f"{i}/3", "c7i.test", [["bench", "run"]], 200, 7200.0) for i in range(1, 4)]
+        r = self.make(aws, jobs=jobs, cost_cap=2.5)         # a live spot instance commits $1.00 for its two hours
+        attempts = []
+        for j in jobs:
+            att = runner.Attempt(1, "spot")
+            r.results[j.index] = runner.JobResult(j, [att])
+            attempts.append((j, att))
+        reasons = [r.reserve(j, a) for j, a in attempts]
+        self.assertEqual([bool(x) for x in reasons], [False, False, True])
+        self.assertIn("above the cap", reasons[2])
+
+    def test_a_live_instance_counts_what_it_has_cost_when_that_is_more(self):
+        r = self.make(FakeAws(), jobs=job_list(1))
+        att = runner.Attempt(1, "spot", instance_id="i-1", launched=1000.0, reserved=True, rate=1.0, est_seconds=60.0)
+        r.clock = lambda: 1000.0 + 7200      # it has run two hours although only a minute was projected
+        self.assertAlmostEqual(r.committed(att), 2.0)
+        att.ended = 1000.0 + 600
+        self.assertAlmostEqual(r.committed(att), 600 / 3600)
+
+    def test_unknown_on_demand_price_means_no_fallback(self):
+        aws = FakeAws(lambda spec, n: ("error", "InsufficientInstanceCapacity") if spec.spot else "done")
+        r = self.make(aws, jobs=job_list(1))
+        r.on_demand_price = None
+        with self.assertRaises(runner.RunFailed):
+            r.execute()
+        self.assertFalse([s for s in aws.launches if not s.spot])
+        self.assertTrue(any("on-demand price is not known" in ln for ln in self.lines))
+
+    def test_summary_reports_the_spot_and_on_demand_split(self):
+        aws = FakeAws(lambda spec, n: ("error", "InsufficientInstanceCapacity") if spec.spot else "done")
+        s = self.make(aws, jobs=job_list(2)).execute()
+        self.assertEqual(s["instances_started"], {"spot": 0, "on-demand": 2})
+        self.assertEqual(s["cost_by_lifecycle"]["spot"], 0)
+        self.assertGreater(s["cost_by_lifecycle"]["on-demand"], 0)
+
+    def test_estimate_uses_the_dearest_zone_and_the_volume(self):
+        history = {"SpotPriceHistory": [
+            {"AvailabilityZone": "z-a", "SpotPrice": "0.30"}, {"AvailabilityZone": "z-b", "SpotPrice": "0.90"},
+            {"AvailabilityZone": "z-a", "SpotPrice": "0.10"}]}      # an older quote for z-a is ignored
+        fake = lambda args, stdin: json.dumps(history)             # noqa: E731
+        self.assertEqual(Aws(config.Config("r", "b", "a"), runner=fake).spot_price("t"), 0.90)
+        only_a = config.Config("r", "b", "a", zones=("z-a",))
+        self.assertEqual(Aws(only_a, runner=fake).spot_price("t"), 0.30)
+        self.assertGreater(plan.volume_per_hour(40), 0.1)
+
+
+class Zones(RunCase):
+    def test_spot_attempts_walk_the_configured_zones_and_on_demand_takes_any(self):
+        aws = FakeAws(lambda spec, n: ("error", "InsufficientInstanceCapacity") if spec.spot else "done")
+        cfg = config.Config("test", "bucket", "ami-x", zones=("z-a", "z-b"))
+        self.make(aws, jobs=job_list(1), cfg=cfg).execute()
+        self.assertEqual([sp.zone for sp in aws.launches], ["z-a", "z-b", "z-a", ""])
+
+
+class Deadlines(RunCase):
+    def test_everything_a_run_creates_carries_a_deadline(self):
+        aws = FakeAws()
+        before = time.time()
+        self.make(aws, jobs=job_list(1)).execute()
+        self.assertGreater(aws.launches[0].deadline, before + 5 * 60)
+        self.assertGreater(aws.group_tags["sg-rtest"][1], before + 30 * 60)
+
+    def test_cleanup_of_all_runs_leaves_a_run_inside_its_deadline_alone(self):
+        aws = FakeAws()
+        now = time.time()
+        aws.inst["i-young"] = Instance("i-young", "running", "t", launched=now - 60,
+                                       tags={RUN_TAG: "young", DEADLINE_TAG: str(int(now + 3000))})
+        aws.inst["i-old"] = Instance("i-old", "running", "t", launched=now - 9000,
+                                     tags={RUN_TAG: "old", DEADLINE_TAG: str(int(now - 100))})
+        aws.groups |= {"sg-young", "sg-old"}
+        aws.group_tags.update({"sg-young": ("young", now + 3000), "sg-old": ("old", now - 100)})
+        aws.store["runs/young/inputs.tar"] = b"x"
+        lines = []
+        left = cleanup.cleanup(aws, None, lines.append, wait=0)
+        self.assertEqual(aws.inst["i-old"].state, "terminated")
+        self.assertEqual(aws.inst["i-young"].state, "running")
+        self.assertIn("sg-young", aws.groups)
+        self.assertNotIn("sg-old", aws.groups)
+        self.assertIn("runs/young/inputs.tar", aws.store)
+        self.assertEqual(left["left_alone"], ["young"])
+        self.assertTrue(any("left alone: run young" in ln for ln in lines))
+
+    def test_a_run_that_leaves_instances_shutting_down_marks_them_due_for_the_next_cleanup(self):
+        aws = FakeAws(lambda spec, n: "done-slow")          # ends in "shutting-down", which takes a while
+        r = self.make(aws, jobs=job_list(1))
+        r.teardown.wait_seconds = 0.2
+        r.execute()
+        self.assertEqual([i.state for i in aws.inst.values()], ["shutting-down"])
+        self.assertIn("sg-rtest", aws.groups)               # held by the instance
+        aws.finish_terminations()
+        left = cleanup.cleanup(aws, None, lambda m: None, wait=0)
+        self.assertNotIn("left_alone", left)
+        self.assertNotIn("sg-rtest", aws.groups)
+
+    def test_cleanup_of_a_named_run_ignores_the_deadline(self):
+        aws = FakeAws()
+        now = time.time()
+        aws.inst["i-young"] = Instance("i-young", "running", "t", launched=now - 60,
+                                       tags={RUN_TAG: "young", DEADLINE_TAG: str(int(now + 3000))})
+        cleanup.cleanup(aws, "young", lambda m: None, wait=0)
+        self.assertEqual(aws.inst["i-young"].state, "terminated")
+
+    def test_an_instance_without_a_deadline_tag_is_trusted_for_a_day(self):
+        aws = FakeAws()
+        aws.inst["i-1"] = Instance("i-1", "running", "t", launched=time.time() - 60, tags={RUN_TAG: "legacy"})
+        cleanup.cleanup(aws, None, lambda m: None, wait=0)
+        self.assertEqual(aws.inst["i-1"].state, "running")
+
+    def test_superseded_images_go_and_the_current_and_used_ones_stay(self):
+        aws = FakeAws()
+        aws.images = [{"image": "ami-old", "digest": "d1", "snapshots": ["snap-1"]},
+                      {"image": "ami-busy", "digest": "d1", "snapshots": [], "in_use": True},
+                      {"image": "ami-now", "digest": "d2", "snapshots": ["snap-2"]}]
+        cleanup.cleanup(aws, "someone", lambda m: None, wait=0, keep_image_digest="d2")
+        self.assertEqual(aws.removed_images, [], "a named run's cleanup never touches images")
+        cleanup.cleanup(aws, None, lambda m: None, wait=0, keep_image_digest="d2")
+        self.assertEqual(aws.removed_images, ["ami-old"])
+        self.assertEqual({i["image"] for i in aws.images}, {"ami-busy", "ami-now"})
+
+
+class Signals(unittest.TestCase):
+    def setUp(self):
+        self.saved = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)}
+
+    def tearDown(self):
+        for s, h in self.saved.items():
+            signal.signal(s, h)
+
+    def test_main_installs_the_handlers_before_any_command(self):
+        from unittest import mock
+        seen = {}
+
+        def command(a, cfg, aws, say):
+            seen["term"] = signal.getsignal(signal.SIGTERM)
+            seen["hup"] = signal.getsignal(signal.SIGHUP)
+            return 0
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        signal.signal(signal.SIGHUP, signal.SIG_DFL)
+        with mock.patch.object(cli, "cmd_setup", command), mock.patch.object(cli.configmod, "load", lambda: None), \
+                mock.patch.object(cli, "make_aws", lambda cfg: None):
+            self.assertEqual(cli.main(["setup"]), 0)
+        self.assertNotIn(seen["term"], (signal.SIG_DFL, signal.SIG_IGN))
+        self.assertNotIn(seen["hup"], (signal.SIG_DFL, signal.SIG_IGN))
+
+    def test_a_signal_during_the_bake_terminates_the_bake_instance(self):
+        from oneyaml_bench.cloud import image
+        from unittest import mock
+        for sig in (signal.SIGTERM, signal.SIGHUP):
+            signal.signal(signal.SIGTERM, signal.SIG_DFL)
+            signal.signal(signal.SIGHUP, signal.SIG_DFL)
+            aws = FakeAws(lambda spec, n: "hang")
+            aws.find_image = lambda digest: None
+            with tempfile.TemporaryDirectory() as t:
+                def fake_archive(name, repo, dest, paths=(), env_var=None):
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    dest.write_bytes(b"x")
+                    return pack.Packed(name, dest, "a" * 40, False, "git", "0" * 64, 1)
+                timer = threading.Timer(0.5, os.kill, [os.getpid(), sig])
+                timer.start()
+                try:
+                    with mock.patch.object(image.packmod, "archive_git", fake_archive), mock.patch.object(image, "http_get", lambda u: None):
+                        with self.assertRaises(KeyboardInterrupt):
+                            image.ensure_image(aws, config.Config("t", "b", "ami"), KIT, Path(t) / "img", lambda m: None, poll=0.05)
+                finally:
+                    timer.cancel()
+            self.assertTrue(aws.launches[0].stop_on_shutdown)
+            self.assertEqual([i.state for i in aws.inst.values()], ["terminated"], sig.name)
+            self.assertFalse(aws.groups)
+
+
+class Robustness(RunCase):
+    def test_instances_the_listing_does_not_show_yet_are_not_lost(self):
+        aws = FakeAws(lambda spec, n: "done-late")
+        real = aws.instances
+        first_asked = {}
+
+        def lagging(run_id=None):
+            out = []
+            for i in real(run_id):
+                first_asked.setdefault(i.id, time.time())
+                if time.time() - first_asked[i.id] > 1.5:
+                    out.append(i)
+            return out
+        aws.instances = lagging
+        s = self.make(aws, jobs=job_list(1)).execute()
+        self.assertEqual(len(aws.launches), 1, [a for a in s["jobs"][0]["attempts"]])
+        self.assertTrue(s["ok"])
+
+    def test_a_retry_that_cannot_finish_before_the_limit_is_not_started(self):
+        aws = FakeAws(lambda spec, n: "interrupt")
+        jobs = [runner.Job(1, "1/1", "c7i.test", [["bench", "run"]], 5, 600.0)]
+        with self.assertRaises(runner.RunFailed) as cm:
+            self.make(aws, jobs=jobs, timeout_minutes=2).execute()
+        self.assertEqual(len(aws.launches), 1)
+        self.assertIn("time limit", str(cm.exception))
+
+    def test_teardown_that_cannot_reach_the_service_still_writes_the_summary_and_names_the_cleanup(self):
+        aws = FakeAws(lambda spec, n: "hang")
+        real = aws.instances
+        state = {"broken": False}
+
+        def instances(run_id=None):
+            if state["broken"]:
+                raise AwsError("Could not connect to the endpoint URL")
+            return real(run_id)
+        aws.instances = instances
+        r = self.make(aws, jobs=job_list(1))
+        r.teardown.wait_seconds = 0.2
+
+        def break_it():
+            state["broken"] = True
+            r.cancel.set()
+        threading.Timer(0.3, break_it).start()
+        with self.assertRaises(runner.RunFailed):
+            r.execute()
+        # With no listing to go by, the instance is terminated by the id the run launched it under.
+        self.assertEqual(aws.running(), [])
+        self.assertTrue((self.dir / "out" / "cloud-run.json").exists())
+        self.assertTrue(any("bin/bench-cloud cleanup --run rtest" in ln for ln in self.lines), self.lines[-3:])
+
+    def test_signing_credentials_must_outlive_the_run(self):
+        def fake(args, stdin):
+            return json.dumps({"Credentials": {"AccessKeyId": "A", "SecretAccessKey": "S", "SessionToken": "T",
+                                               "Expiration": "2026-01-01T01:00:00Z"}})
+        a = Aws(config.Config("r", "b", "a"), runner=fake)
+        base = dt_epoch("2026-01-01T00:00:00Z")
+        with self.assertRaises(AwsError) as cm:
+            a.presigner(2 * 3600, now=lambda: base)         # the credentials end after one hour
+        self.assertNotIn("S", str(cm.exception).replace("Signing", ""))
+        p = a.presigner(1800, now=lambda: base)
+        self.assertEqual(p.mode, "session token")
+        # Credentials that end a minute short of the deadline are within the allowance for the call's own time.
+        p = a.presigner(3600 + 60, now=lambda: base)
+        self.assertEqual(p.credentials_expire, base + 3600)
+
+    def test_the_signing_mode_is_recorded(self):
+        s = self.make(FakeAws(), jobs=job_list(1)).execute()
+        self.assertIn("mode", s["signing"])
+
+
+def dt_epoch(text):
+    import datetime as dt
+    return dt.datetime.fromisoformat(text.replace("Z", "+00:00")).timestamp()
+
+
 class Cleanup(unittest.TestCase):
     def test_cleanup_removes_tagged_leftovers_and_proves_it(self):
         aws = FakeAws()
-        aws.inst["i-9"] = Instance("i-9", "running", "c7i.test")
+        aws.inst["i-9"] = Instance("i-9", "running", "c7i.test", launched=0.0,
+                                   tags={RUN_TAG: "old", DEADLINE_TAG: "1000"})
         aws.groups.add("sg-left")
+        aws.group_tags["sg-left"] = ("old", 1000.0)
         aws.store["runs/old/inputs.tar"] = b"x"
         lines = []
         left = cleanup.cleanup(aws, None, lines.append, now=lambda: time.time() + 10 ** 6)
@@ -629,9 +932,24 @@ class Scripts(unittest.TestCase):
 
         def fake(args, stdin):
             sent["args"] = args
+            ref = args[args.index("--cli-input-json") + 1]
+            sent["ref"] = ref
+            path = Path(ref[len("file://"):])
+            sent["mode"] = path.stat().st_mode & 0o777
+            sent["body"] = path.read_text()
+            sent["path"] = path
             return json.dumps({"Instances": [{"InstanceId": "i-1"}]})
-        Aws(config.Config("r", "b", "a"), runner=fake).launch(Launch("ami", "t", "sg", b"x", "run", "n", True, 20))
-        req = json.loads(sent["args"][sent["args"].index("--cli-input-json") + 1])
+        with tempfile.TemporaryDirectory() as t:
+            Aws(config.Config("r", "b", "a"), runner=fake, tmpdir=t).launch(
+                Launch("ami", "t", "sg", b"secret-user-data", "run", "n", True, 20, deadline=1234.0, zone="z-a"))
+            # The request holds presigned URLs: it goes in by a private file, never on the command line.
+            self.assertTrue(sent["ref"].startswith("file://" + t))
+            self.assertEqual(sent["mode"], 0o600)
+            self.assertFalse(sent["path"].exists(), "the request file is removed after the call")
+        self.assertNotIn("c2VjcmV0", " ".join(sent["args"]))
+        req = json.loads(sent["body"])
+        self.assertEqual(req["Placement"], {"AvailabilityZone": "z-a"})
+        self.assertTrue(all({"Key": DEADLINE_TAG, "Value": "1234"} in t["Tags"] for t in req["TagSpecifications"]))
         self.assertEqual(req["MetadataOptions"]["HttpTokens"], "required")
         self.assertEqual(req["InstanceInitiatedShutdownBehavior"], "terminate")
         for forbidden in ("KeyName", "IamInstanceProfile"):
@@ -674,6 +992,41 @@ class PackAndImage(unittest.TestCase):
                 self.assertEqual(tf.extractfile("a.txt").read(), b"one\n")
             self.assertEqual(pack.describe([p])[0]["revision"], p.revision)
             self.assertNotIn(t, json.dumps(pack.describe([p])))
+
+    def test_tree_pack_follows_git_and_is_marked_modified(self):
+        with tempfile.TemporaryDirectory() as t:
+            d = Path(t) / "kit"
+            (d / "bench").mkdir(parents=True)
+            (d / "bench" / "kept.py").write_text("a = 1\n")
+            (d / "bench" / "gone.py").write_text("b = 1\n")
+            (d / ".gitignore").write_text("*.cache\n")
+            env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
+            for cmd in (["init", "-q", "."], ["add", "-A"], ["commit", "-q", "-m", "m"]):
+                subprocess.run(["git", "-C", str(d)] + cmd, check=True, env=env, capture_output=True)
+            (d / "bench" / "kept.py").write_text("a = 2\n")            # edited
+            (d / "bench" / "new.py").write_text("c = 1\n")             # not added yet
+            (d / "bench" / "junk.cache").write_text("x")                # ignored by the repository
+            (d / "bench" / "gone.py").unlink()                          # deleted but still tracked
+            packs = pack.pack_all(d, Path(t) / "packs", kit_tree=True, env={})
+            with tarfile.open(packs[0].path) as tf:
+                names = sorted(tf.getnames())
+                self.assertEqual(tf.extractfile("bench/kept.py").read(), b"a = 2\n")
+            self.assertEqual(names, ["bench/kept.py", "bench/new.py"])
+            bundle = pack.bundle_inputs(packs, Path(t) / "in.tar")
+            with tarfile.open(bundle) as tf:
+                rev = tf.extractfile("rev-kit").read().decode().strip()
+                label = tf.extractfile("kit-label").read().decode().strip()
+            self.assertEqual(rev, packs[0].revision + "+modified")
+            self.assertTrue(label.endswith("+modified"))
+
+    def test_git_pack_records_the_plain_revision(self):
+        with tempfile.TemporaryDirectory() as t:
+            d = Path(t) / "src"
+            d.mkdir()
+            self.repo(d)
+            p = pack.archive_git("kit", d, Path(t) / "k.tar.gz")
+            with tarfile.open(pack.bundle_inputs([p], Path(t) / "in.tar")) as tf:
+                self.assertEqual(tf.extractfile("rev-kit").read().decode().strip(), p.revision)
 
     def test_image_digest_follows_lock_files_and_pins(self):
         with tempfile.TemporaryDirectory() as t:

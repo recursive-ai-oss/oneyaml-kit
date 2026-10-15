@@ -110,6 +110,19 @@ def instance_seconds(shard: ShardPlan) -> float:
     return startup_seconds(shard.groups) + shard.seconds
 
 
+# The root volume of an instance is billed while it exists, and it is provisioned well above the free
+# baseline (see `Aws.launch`), so it is not negligible next to a spot price. List prices per month of
+# gp3 storage, per IOPS above 3000 and per MB/s above 125; they change rarely and only feed the estimate.
+VOLUME_IOPS, VOLUME_MBPS = 16000, 1000
+GP3_GB_MONTH, GP3_IOPS_MONTH, GP3_MBPS_MONTH = 0.08, 0.005, 0.04
+HOURS_PER_MONTH = 730.0
+
+
+def volume_per_hour(volume_gb: int) -> float:
+    month = volume_gb * GP3_GB_MONTH + max(0, VOLUME_IOPS - 3000) * GP3_IOPS_MONTH + max(0, VOLUME_MBPS - 125) * GP3_MBPS_MONTH
+    return month / HOURS_PER_MONTH
+
+
 def shard_cost(price: float, seconds: float) -> float:
     return price * max(MIN_BILLED_SECONDS, seconds) / 3600.0
 

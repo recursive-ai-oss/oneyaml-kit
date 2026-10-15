@@ -13,7 +13,8 @@ bin/bench-cloud run --shards auto           # a full run on as many instances as
 bin/bench-cloud run --shards auto --dry-run # only the plan, the estimates and the cost check
 bin/bench-cloud run --shards 2 --mode quick --lang go    # a small end-to-end check
 bin/bench-cloud spread --types A,B          # compare the run-to-run spread of instance types
-bin/bench-cloud cleanup                     # terminate and delete anything tagged that is left
+bin/bench-cloud cleanup                     # remove what runs past their deadline left behind, and old images
+bin/bench-cloud cleanup --run ID            # remove one run's resources whatever their deadline
 ```
 
 Numbers from a cloud run are still labelled by the harness's own publishability rule
@@ -33,6 +34,8 @@ credentials:
 | `KIT_CLOUD_INSTANCE_TYPE` | default instance type |
 | `KIT_CLOUD_COST_CAP` | estimated-cost limit in dollars (default 25) |
 | `KIT_CLOUD_SPOT_VCPU_QUOTA` | spot vCPU quota; limits the number of instances |
+| `KIT_CLOUD_ZONES` | optional, comma-separated zones to try for spot capacity, one per attempt, in order; default: the service picks |
+| `KIT_CLOUD_ON_DEMAND_PRICE` | optional on-demand price per hour, used only when the pricing service gives none |
 
 Credentials come from the AWS command line tool's usual sources and stay on the local
 machine. The default network of the region is used.
@@ -48,21 +51,36 @@ machine. The default network of the region is used.
    allows) and takes the count with the shortest estimated wall-clock time whose estimated cost
    stays under the cap; an extra instance only counts when it saves at least 3% of the
    wall-clock time. The candidates are printed. `--dry-run` stops after this and the cost check.
-2. **Cost guard.** Estimated cost = live spot price x instances x (start-up time + shard
-   estimate), plus the conformance job. A run above the cap (`--cost-cap` raises it) is refused
-   before anything starts. An on-demand fallback that would take the total over the cap is
-   refused too. The summary prints the estimate again at the end, from the lifetimes of the
-   instances and the price of the life cycle each one used.
+2. **Cost guard.** Estimated cost = the highest current spot price over the zones a launch may
+   land in (the configured zones, or every zone that offers the type) x instances x (start-up
+   time + shard estimate), plus the conformance job, plus the root volume, which is billed for
+   the instance's life and is provisioned well above the free baseline (about $0.14 an hour at the
+   defaults, listed prices). A run above the cap (`--cost-cap` raises it) is refused before anything
+   starts. While the run goes, the cap is checked again at **every** launch, spot retries and the
+   on-demand fallback included: each attempt that is alive counts for the larger of what it has
+   cost so far and what its whole projected life will cost, each finished attempt for what it cost,
+   and a launch that would take the total over the cap is not made. The check and the
+   reservation happen under one lock, so shards that fall back at the same moment cannot
+   each pass it. If the on-demand price is unknown (the pricing service gave none and the
+   settings have none) there is no on-demand fallback at all, since its cost could not be
+   bounded. The summary prints the figures again at the end, from the lifetimes of the instances
+   and the price of the life cycle each one used, with the split between spot and on-demand
+   instances and their costs.
 3. **Pack.** `git archive` of the kit's HEAD (`bin`, `bench`, `tools`, `suites`, `adapters`) and
    of each library source named by `KIT_ONEYAML_GO_SRC` and `KIT_ONEYAML_CSHARP_SRC`, with the
    revisions recorded in `cloud-run.json` (and a note when the checkout has uncommitted
    changes, which an archive does not contain). `--kit-tree` packs the kit's working tree
-   instead, for a change that is not committed; the kit is then labelled `+modified`. The Rust
+   instead, for a change that is not committed: the files `git ls-files -co --exclude-standard`
+   lists (tracked and new files, nothing the repository ignores, nothing deleted). The kit is
+   then labelled `<revision>+modified` in the result's environment and in the input bundle. The Rust
    harness takes its library from crates.io at a pinned version, so it has no source to pack.
    The tarballs go into one input object in the bucket.
 4. **Launch.** One spot instance per shard, plus one for the conformance run, all of one type,
    started in parallel. Each instance boots from the machine image, and its boot script does
-   everything else.
+   everything else. The launch request travels in a private file (mode 0600, in the run's output
+   directory, removed after the call), not on the command line, because it holds the presigned
+   URLs. Every instance, volume and spot request is tagged with the run id and a **deadline**: the
+   moment its lifetime limit has passed plus ten minutes.
 5. **Follow.** The instance uploads its log every few seconds; the launcher prints new lines
    with the job label.
 6. **Collect, merge, tear down.** When a job reports, its results are downloaded and the
@@ -129,7 +147,10 @@ launcher (pack, upload, jobs, merge, teardown).
   has no credentials of any kind. IMDSv2 is required.
 - Inputs and outputs go through presigned URLs for single objects, each for one method,
   placed in the user data. They are signed with temporary credentials that expire shortly
-  after the run's deadline, so a leaked URL stops working.
+  after the run's deadline, so a leaked URL stops working. A run is refused up front when the
+  signing credentials would expire before its deadline (the URLs would stop working half way),
+  and the way the URLs were signed (a session token, or exported credentials with or without
+  a stated expiry) is recorded in `cloud-run.json`.
 - The bucket blocks public access and expires objects after a day. `run` deletes its own
   objects at the end.
 - Everything a run creates (instances, spot requests, volumes, security group, objects) is
@@ -142,13 +163,37 @@ launcher (pack, upload, jobs, merge, teardown).
 2. A lifetime limit (`shutdown -h +M`) is the first command of the boot script, before any step
    that could hang. M is the shard's estimated run time with slack, plus start-up time.
 3. The launcher terminates every instance tagged with the run id on success, failure, time
-   limit, Ctrl-C, SIGTERM and SIGHUP, then deletes the run's security group and objects. A
-   second signal during the teardown is ignored.
+   limit, Ctrl-C, SIGTERM and SIGHUP, then deletes the run's security group and objects. The
+   signal handlers are installed at the start of `main`, before any command runs, so every
+   command (`run`, `spread`, `image`, `cleanup`) reaches its teardown on a signal. A second
+   signal during the teardown is ignored. Each teardown step is guarded on its own: a failing
+   call is recorded and the steps after it still run, the run summary is always written, and a
+   teardown that could not finish prints the run id and the exact `cleanup --run` command that
+   finishes it.
+
+The **image bake** starts one on-demand instance that stops (instead of terminating) when its
+script ends, so its volume can be imaged. The bake terminates that instance when the bake ends
+whichever way it ends: after the image is available, on failure, and on Ctrl-C, SIGTERM or SIGHUP
+(the `finally` of the bake runs the same teardown as a run, and the bake also installs the
+handlers itself when it is called without `main`). If the launcher is killed outright (SIGKILL) the
+stopped instance stays; it carries the tags and a deadline, and `cleanup` removes it once the
+deadline has passed.
 
 `bin/bench-cloud cleanup [--run ID]` finds tagged leftovers (instances, spot requests,
 security groups, launch templates, volumes, stored objects older than the bucket's expiry),
-removes them, and prints what the account still holds. `run` calls it for its own run id at
-the end and fails when anything tagged is still running.
+removes them, and prints what the account still holds.
+
+- **With `--run ID`** it removes that run's resources whatever their deadline.
+- **Without it** it removes only the runs whose deadline has passed and names the runs it
+  left alone, so a cleanup started in one terminal cannot terminate a run in progress in
+  another. An instance without a deadline tag (from before the tag existed) counts as in
+  progress for a day after it was launched; other resources without one count as expired.
+- It also lists the machine images this tool made and removes those of a superseded digest
+  together with their snapshots. The current image stays, and so does an image a live
+  instance is using. A named run's cleanup never touches images.
+
+`run` calls the cleanup for its own run id at the end and fails when anything tagged is still
+running.
 
 Bare metal instances take several minutes to finish terminating. An instance that has started
 shutting down no longer runs and is no longer billed, so `run` waits only a short while for
@@ -162,7 +207,19 @@ result) or cannot be started for lack of capacity is started again on a new spot
 to `--spot-retries` more times (default 2). After that one on-demand instance of the same
 type is tried (`--no-on-demand` turns this off). A run never mixes instance types. A shard
 that ran and failed is not retried: that is a result. `cloud-run.json` records every
-attempt, and the summary says which shards ran on demand.
+attempt, and the summary says which shards ran on demand and how many spot and on-demand
+instances were started and what each kind cost.
+
+Every attempt is checked against the cost cap (see the cost guard), and a retry that could not
+finish before the run's time limit is not started. An instance the listing does not show yet
+is not counted lost for the first 90 seconds after its launch, since the listing can lag.
+
+**Speed policy.** The default is a few spot tries and then an on-demand instance of the same
+type, because a quick answer matters more here than the difference in price: spot capacity for
+`c7i.metal-24xl` in the region used for the real runs was refused for 8 of the 9 instances. The policy
+is a default of this tool, not a requirement. `KIT_CLOUD_ZONES` is an opt-in list of zones: with
+it, the spot attempts go through the zones in turn (zone capacity differs), and the on-demand
+attempt takes any zone. The price estimate then covers only those zones.
 
 ## Measurement fidelity
 

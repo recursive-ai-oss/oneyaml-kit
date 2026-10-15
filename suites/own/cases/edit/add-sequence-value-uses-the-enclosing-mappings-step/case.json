@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-sequence-value-uses-the-enclosing-mappings-step",
+ "title": "A new sequence under a key uses the step of the mapping it is added to, not the step of an earlier mapping",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "183"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "YAML 1.2.2 section 8.2.1",
+  "YAML 1.2.2 section 8.2.2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The document has two nested block mappings with different steps: `x` indents its entry four spaces under its key, and `z`, the mapping the new key is added to, indents its entry two. The patch adds `/z/n` with the sequence `[1]`; there is no sibling sequence to copy. The specification allows any indentation of the dash greater than the key's, so the bytes rest on a kit convention (docs/edit-semantics.md): the step is taken from the mapping the new key belongs to, here two spaces, so `n` is written at column 2 and its dash at column 4 (`    - 1`). A step of four, taken from the earlier mapping, would put the dash at column 6 and fails the case. The new member goes at the end of `z`, which is a second convention (RFC 6902 does not fix the position). The case carries the tag `convention`. The result reads back as `x` with `y` 1, and `z` with `w` 1 and `n` a sequence of the single item 1.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/z/n",
+    "value": [
+     1
+    ]
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

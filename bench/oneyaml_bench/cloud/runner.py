@@ -5,7 +5,11 @@ them, and returns its output directory. The launcher starts every job in paralle
 logs the instances stream to the bucket, retries a job whose instance was lost (a few times on
 spot, then once on demand, always the same instance type), and finally terminates everything
 tagged with the run's id. The teardown runs on every way out: success, failure, a timeout,
-Ctrl-C and SIGTERM.
+Ctrl-C, SIGTERM and SIGHUP.
+
+Money is bounded by one rule: before any instance is started, spot retries included, the cost already
+committed by every live and finished attempt of every job plus the full projected cost of the new one must
+fit under the cost cap.
 """
 
 from __future__ import annotations
@@ -57,6 +61,10 @@ class Attempt:
     outcome: str = "pending"          # done, lost, launch-failed, failed, cancelled
     detail: str = ""
     status: dict = field(default_factory=dict)
+    reserved: bool = False            # counted against the cost cap
+    rate: float = 0.0                 # dollars per hour at reservation
+    est_seconds: float = 0.0          # the projected life of the instance
+    zone: str = ""
 
 
 @dataclass
@@ -80,6 +88,8 @@ class Options:
     timeout_minutes: int | None = None
     volume_gb: int = 40
     launch_backoff_seconds: float = 10.0
+    # The instance list can lag behind a launch; an instance that has not shown up yet is not a lost one.
+    missing_grace_seconds: float = 90.0
     allow_incomplete: bool = False   # merge the shards that succeeded; the run still counts as failed
 
 
@@ -94,6 +104,7 @@ class Teardown:
         """With run_id None it covers every run that left tagged resources, for the cleanup command."""
         self.aws, self.run_id, self.say, self.poll, self.wait_seconds = aws, run_id, say, poll, wait_seconds
         self.security_groups: list[str] = []
+        self.known_instances: set[str] = set()      # what this run launched, for when the listing is unavailable
         self.done = False
         self.pending: list[str] = []
 
@@ -102,14 +113,29 @@ class Teardown:
 
     def request(self) -> list[str]:
         """Asks for everything that is not already shutting down to be terminated. Returns problems."""
+        problems: list[str] = []
         try:
             active = [i.id for i in self.live() if i.state != "shutting-down"]
+        except AwsError as e:
+            # The listing failed: terminate by the ids this run knows, which does not need it.
+            problems.append(f"list instances: {e}")
+            active = sorted(self.known_instances)
+        try:
             if active:
                 self.aws.terminate(active)
             self.aws.cancel_spot_requests(self.run_id)
         except AwsError as e:
-            return [f"terminate: {e}"]
-        return []
+            problems.append(f"terminate: {e}")
+        return problems
+
+    @staticmethod
+    def _step(problems: list[str], what: str, fn, default=None):
+        """One teardown step. A failure is recorded and the steps after it still run."""
+        try:
+            return fn()
+        except AwsError as e:
+            problems.append(f"{what}: {e}")
+            return default
 
     def run(self, quiet: bool = False, wait: float | None = None) -> list[str]:
         """Returns the problems that remain: instances that still run, or resources that could not be deleted.
@@ -117,31 +143,40 @@ class Teardown:
         problems: list[str] = []
         self.pending = []
         end = time.monotonic() + (self.wait_seconds if wait is None else wait)
+        live = None
         while True:
             problems = self.request()
-            if not self.live() or time.monotonic() > end:
+            live = self._step(problems, "list instances", self.live)
+            if live == [] or time.monotonic() > end:
                 break
             time.sleep(self.poll)
-        live = self.live()
-        running = [i for i in live if i.state != "shutting-down"]
+        running = [i for i in live or [] if i.state != "shutting-down"]
         if running:
             problems.append("instances still running: " + ", ".join(i.id for i in running))
         if live:
             self.pending = [f"{i.id} is shutting down" for i in live if i.state == "shutting-down"]
-        groups = {*self.security_groups, *self.aws.security_groups(self.run_id)}
-        if live:
+        groups = {*self.security_groups, *(self._step(problems, "list security groups",
+                                                      lambda: self.aws.security_groups(self.run_id), []) or [])}
+        if live is None:
+            problems.append("the instances could not be listed, so nothing was deleted that they might hold")
+        elif live:
             if groups:
                 self.pending.append("security group(s) wait for those instances; the cleanup command removes them")
         else:
             for gid in groups:
-                if not self.aws.delete_security_group(gid):
+                if not self._step(problems, f"delete security group {gid}", lambda: self.aws.delete_security_group(gid)):
                     problems.append(f"security group {gid} could not be deleted")
-        for lid in self.aws.launch_templates(self.run_id):
-            self.aws.delete_launch_template(lid)
-        for vid in self.aws.volumes(self.run_id):
-            self.aws.delete_volume(vid)
+        for lid in self._step(problems, "list launch templates", lambda: self.aws.launch_templates(self.run_id), []) or []:
+            self._step(problems, f"delete launch template {lid}", lambda: self.aws.delete_launch_template(lid))
+        for vid in self._step(problems, "list volumes", lambda: self.aws.volumes(self.run_id), []) or []:
+            self._step(problems, f"delete volume {vid}", lambda: self.aws.delete_volume(vid))
         if self.run_id:
-            self.aws.delete_prefix(f"runs/{self.run_id}/")
+            self._step(problems, "delete stored objects", lambda: self.aws.delete_prefix(f"runs/{self.run_id}/"))
+        if self.pending:
+            # What waits for a terminating instance is the cleanup command's to remove. Marking it as due now
+            # lets a plain cleanup (which spares runs inside their deadline) take it as soon as the instance is gone.
+            held = [i.id for i in live or []] + sorted(groups)
+            self._step(problems, "mark leftovers as due", lambda: self.aws.expire(held))
         self.done = not problems and not self.pending
         if not quiet:
             self.say("teardown: " + ("nothing left" if self.done else "; ".join(problems + self.pending) or "done"))
@@ -166,6 +201,9 @@ class Run:
         self.teardown = Teardown(aws, self.run_id, say, poll=min(3.0, opts.poll_seconds))
         self.results: dict[int, JobResult] = {}
         self.lock = threading.Lock()
+        self.commit_lock = threading.Lock()     # makes "check the cap, then reserve" one step
+        self.limit_at: float | None = None      # when the whole run must be over
+        self.signing: dict = {}
         self.presigner = None
         self._fetch = fetch
         self.sg: str | None = None
@@ -191,9 +229,45 @@ class Run:
                 self._snap_time = self.clock()
             return dict(self._snap)
 
+    def hourly(self, lifecycle: str, itype: str) -> float | None:
+        """Dollars per hour, volume included; None for on-demand when its price is not known."""
+        if lifecycle == "on-demand":
+            return self.on_demand_price
+        return self.prices.get(itype, self.price)
+
     def projected_cost(self, extra_seconds: float = 0.0, on_demand: bool = False) -> float:
-        price = (self.on_demand_price or self.price * 3) if on_demand else self.price
-        return planmod.shard_cost(price, extra_seconds)
+        price = self.hourly("on-demand" if on_demand else "spot", "")
+        return planmod.shard_cost(price or 0.0, extra_seconds)
+
+    def committed(self, a: Attempt) -> float:
+        """What an attempt counts for against the cap: what it cost when it is over, and while it lives the larger
+        of what it has cost so far and what its whole projected life will cost."""
+        if not a.reserved or (a.outcome == "launch-failed" and not a.instance_id):
+            return 0.0
+        if a.ended is not None:
+            return self.cost_of(a)
+        return max(self.cost_of(a), planmod.shard_cost(a.rate, a.est_seconds))
+
+    def committed_total(self) -> float:
+        with self.lock:
+            attempts = [a for r in self.results.values() for a in list(r.attempts)]
+        return sum(self.committed(a) for a in attempts)
+
+    def reserve(self, job: Job, att: Attempt) -> str:
+        """Checks the attempt against the cap together with everything already committed, and reserves it.
+        Returns the reason it was refused, or an empty string. Every launch goes through here."""
+        with self.commit_lock:
+            rate = self.hourly(att.lifecycle, job.instance_type)
+            if rate is None:
+                return f"the {att.lifecycle} price is not known, so its cost cannot be bounded"
+            need = planmod.shard_cost(rate, job.est_seconds)
+            spent = self.committed_total()
+            if spent + need > self.opts.cost_cap:
+                return (f"a {att.lifecycle} instance would take the committed cost from ${spent:.2f} to "
+                        f"${spent + need:.2f}, above the cap of ${self.opts.cost_cap:.2f}")
+            att.rate, att.est_seconds, att.reserved = rate, job.est_seconds, True
+            att.launched = self.clock()
+            return ""
 
     # -- one job ----------------------------------------------------------------------------
 
@@ -201,19 +275,24 @@ class Run:
         res = JobResult(job)
         with self.lock:
             self.results[job.index] = res
-        schedule = ["spot"] * (1 + self.opts.spot_retries) + (["on-demand"] if self.opts.on_demand_fallback else [])
+        fallback = self.opts.on_demand_fallback and self.on_demand_price is not None
+        schedule = ["spot"] * (1 + self.opts.spot_retries) + (["on-demand"] if fallback else [])
         for n, lifecycle in enumerate(schedule, 1):
             if self.cancel.is_set():
                 res.error = res.error or "cancelled"
                 return
+            if n > 1 and self.limit_at is not None and self.clock() + job.est_seconds > self.limit_at:
+                res.error = res.error or "no attempt left can finish before the run's time limit"
+                self.say(f"[{job.label}] {res.error}")
+                return
             att = Attempt(n, lifecycle)
             res.attempts.append(att)
-            if lifecycle == "on-demand":
-                spent = sum(self.cost_of(a) for r in self.results.values() for a in r.attempts)
-                if spent + self.projected_cost(job.est_seconds, True) > self.opts.cost_cap:
-                    att.outcome, att.detail = "launch-failed", "the on-demand fallback would exceed the cost cap"
-                    res.error = att.detail
-                    return
+            refused = self.reserve(job, att)
+            if refused:
+                att.outcome, att.detail = "launch-failed", refused
+                res.error = refused
+                self.say(f"[{job.label}] not launched: {refused}")
+                return
             try:
                 self.launch(job, att)
             except LaunchError as e:
@@ -254,13 +333,17 @@ class Run:
             result_url=self.presigner.url("PUT", self.key(f"job{job.index}-{prefix}", "result.tar.gz")),
             lifetime_minutes=ttl,
             library_vars={p.env_var: p.name for p in self.packs if p.env_var}))
+        # Spot attempts walk through the configured zones one by one: capacity differs from zone to zone.
+        zones = list(getattr(self.cfg, "zones", ()) or ())
+        att.zone = zones[(att.number - 1) % len(zones)] if zones and att.lifecycle == "spot" else ""
         spec = Launch(image=self.image_id, type=job.instance_type, security_group=self.sg,
                       user_data=bootstrap.pack_user_data(script), run_id=self.run_id,
                       name=f"oneyaml-kit-{self.run_id}-{job.index}", spot=att.lifecycle == "spot",
-                      volume_gb=self.opts.volume_gb)
-        att.launched = self.clock()
+                      volume_gb=self.opts.volume_gb, zone=att.zone,
+                      deadline=self.clock() + (job.lifetime_minutes + 10) * 60)
         att.instance_type = job.instance_type
         att.instance_id = self.aws.launch(spec)
+        self.teardown.known_instances.add(att.instance_id)
         att.outcome = "running"
         self.say(f"[{job.label}] launched {att.instance_id} ({att.lifecycle}, attempt {att.number})")
 
@@ -289,7 +372,9 @@ class Run:
                     att.outcome, att.detail = "failed", f"the run exited with status {att.status.get('exit')}"
                 return
             inst = self.instance_snapshot().get(att.instance_id)
-            if inst is None or inst.state in ENDED_STATES:
+            # A listing that lags behind the launch does not show the instance yet; that is not a loss.
+            missing_too_soon = inst is None and self.clock() - att.launched < self.opts.missing_grace_seconds
+            if not missing_too_soon and (inst is None or inst.state in ENDED_STATES):
                 # The status is uploaded just before power-off: look once more after a pause.
                 if gone_since is None:
                     gone_since = self.clock()
@@ -332,8 +417,7 @@ class Run:
         if not a.instance_id or not a.launched:
             return 0.0
         end = a.ended or self.clock()
-        spot = self.prices.get(a.instance_type or "", self.price)
-        price = (self.on_demand_price or spot * 3) if a.lifecycle == "on-demand" else spot
+        price = a.rate or self.hourly(a.lifecycle, a.instance_type or "") or 0.0
         return price * max(planmod.MIN_BILLED_SECONDS, end - a.launched) / 3600.0
 
     def execute(self) -> dict:
@@ -343,20 +427,26 @@ class Run:
         threads: list[threading.Thread] = []
         try:
             self.say(f"run {self.run_id}: {len(self.jobs)} job(s) of {self.types()}, image {self.image_id}")
-            self.sg = self.aws.create_security_group(self.run_id)
-            self.teardown.security_groups.append(self.sg)
             longest = max(j.lifetime_minutes for j in self.jobs)
+            self.sg = self.aws.create_security_group(self.run_id, self.clock() + (longest + 30) * 60)
+            self.teardown.security_groups.append(self.sg)
             self.presigner = self.aws.presigner((longest + 30) * 60)
+            self.signing = {"mode": getattr(self.presigner, "mode", "unknown"),
+                            "credentials_expire": getattr(self.presigner, "credentials_expire", None)}
+            if self.opts.on_demand_fallback and self.on_demand_price is None:
+                self.say("the on-demand price is not known (the pricing service gave none and the config has none): "
+                         "no on-demand fallback will be used")
             t = self.clock()
             inputs = self.bundle_inputs()
             self.aws.upload(inputs, self.key("inputs.tar"))
             self.timeline["upload"] = self.clock() - t
             t_launch = self.clock()
+            self.limit_at = t_launch + (longest + 10 if self.opts.timeout_minutes is None else self.opts.timeout_minutes) * 60
             for job in self.jobs:
                 th = threading.Thread(target=self._guard, args=(job,), name=f"job{job.index}", daemon=True)
                 th.start()
                 threads.append(th)
-            limit = self.clock() + (longest + 10 if self.opts.timeout_minutes is None else self.opts.timeout_minutes) * 60
+            limit = self.limit_at
             while any(th.is_alive() for th in threads):
                 if self.clock() > limit:
                     raise RunFailed("the run exceeded its time limit")
@@ -382,22 +472,37 @@ class Run:
             t = self.clock()
             self.cancel.set()
             shield_interrupts()
-            for th in threads:
-                th.join(60)
-            # Stop the billing first, then use the termination wait for the work that needs no instance.
-            early = self.teardown.request()
-            if error is None and self.after_collect:
-                tm = self.clock()
-                try:
-                    self.after_collect(self)
-                except Exception as e:      # reported in the summary; the teardown must still run
-                    self.extra["after_collect_error"] = repr(e)
-                self.timeline["merge"] = self.clock() - tm
-            problems = early + self.teardown.run()
+            problems: list[str] = []
+            try:
+                for th in threads:
+                    th.join(60)
+                # Stop the billing first, then use the termination wait for the work that needs no instance.
+                early = self.teardown.request()
+                if error is None and self.after_collect:
+                    tm = self.clock()
+                    try:
+                        self.after_collect(self)
+                    except Exception as e:      # reported in the summary; the teardown must still run
+                        self.extra["after_collect_error"] = repr(e)
+                    self.timeline["merge"] = self.clock() - tm
+                problems = early + self.teardown.run()
+            except BaseException as e:          # the summary below must still be written
+                problems.append(f"teardown: {e!r}")
             self.timeline["teardown"] = self.clock() - t - self.timeline.get("merge", 0.0)
         self.timeline["total"] = self.clock() - t0
-        summary = self.summary(problems, error)
-        self.write_summary(summary)
+        try:
+            summary = self.summary(problems, error)
+            self.write_summary(summary)
+        except Exception as e:
+            summary = {"run_id": self.run_id, "ok": False, "error": repr(error) if error else "",
+                       "teardown_problems": problems, "summary_error": repr(e)}
+            try:
+                self.write_summary(summary)
+            except OSError:
+                pass
+        if problems:
+            self.say(f"teardown left something behind for run {self.run_id}: " + "; ".join(problems))
+            self.say(f"finish it with: bin/bench-cloud cleanup --run {self.run_id}")
         if error is not None:
             raise error
         if self.incomplete:
@@ -426,10 +531,16 @@ class Run:
     def summary(self, problems: list[str], error: BaseException | None) -> dict:
         jobs = []
         total_cost = 0.0
+        started = {"spot": 0, "on-demand": 0}
+        by_life = {"spot": 0.0, "on-demand": 0.0}
         for idx in sorted(self.results):
             r = self.results[idx]
             cost = sum(self.cost_of(a) for a in r.attempts)
             total_cost += cost
+            for a in r.attempts:
+                if a.instance_id:
+                    started[a.lifecycle] += 1
+                    by_life[a.lifecycle] = round(by_life[a.lifecycle] + self.cost_of(a), 3)
             final = next((a for a in r.attempts if a.outcome == "done"), r.attempts[-1] if r.attempts else None)
             marks = (final.status.get("marks") if final else None) or {}
             jobs.append({
@@ -438,6 +549,7 @@ class Run:
                 "attempts": [{"n": a.number, "lifecycle": a.lifecycle, "outcome": a.outcome, "detail": a.detail}
                              for a in r.attempts],
                 "ran_on_demand": any(a.lifecycle == "on-demand" and a.outcome == "done" for a in r.attempts),
+                "zone_requested": next((a.zone for a in r.attempts if a.zone and a.instance_id), ""),
                 "availability_zone": ((final.status.get("instance") or {}).get("KIT_INSTANCE_AZ") if final else None),
                 "governor": final.status.get("governor") if final else None,
                 "seconds": self.phase_seconds(final, marks),
@@ -449,6 +561,7 @@ class Run:
             "teardown_problems": problems, "teardown_pending": self.teardown.pending,
             "extra": self.extra, "instance_type": self.types(), "image": self.image_id,
             "price_per_hour_spot": self.price, "price_per_hour_on_demand": self.on_demand_price,
+            "signing": self.signing, "instances_started": started, "cost_by_lifecycle": by_life,
             "cost_estimate": round(total_cost, 3), "timeline_seconds": {k: round(v, 1) for k, v in self.timeline.items()},
             "inputs": packmod.describe(self.packs), "jobs": jobs,
         }
@@ -494,7 +607,20 @@ def install_signal_handlers() -> None:
     def handler(signum, frame):
         raise KeyboardInterrupt(signal.Signals(signum).name)
     for s in (signal.SIGTERM, signal.SIGHUP):
-        signal.signal(s, handler)
+        try:
+            signal.signal(s, handler)
+        except ValueError:      # not the main thread
+            return
+
+
+def ensure_signal_handlers() -> None:
+    """For code that is called without going through the command line (the image bake): install the handlers
+    unless something already has."""
+    try:
+        if signal.getsignal(signal.SIGTERM) == signal.SIG_DFL:
+            install_signal_handlers()
+    except ValueError:
+        pass
 
 
 def merge(kit_root: Path, shard_dirs: list[Path], out: Path, say=print, allow_incomplete: bool = False) -> int:

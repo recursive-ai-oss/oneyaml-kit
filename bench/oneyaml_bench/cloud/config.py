@@ -29,6 +29,11 @@ class Config:
     spot_vcpu_quota: int = 512
     max_shards: int = 16
     volume_gb: int = 40
+    # Zones to try for spot capacity, in order (one per attempt). Empty: let the service pick.
+    zones: tuple[str, ...] = ()
+    # The on-demand price per hour to use when the pricing service does not answer. Without either, the
+    # on-demand fallback is not used, since its cost could not be bounded.
+    on_demand_price: float | None = None
 
 
 def parse(text: str) -> dict[str, str]:
@@ -60,6 +65,8 @@ def from_values(v: dict[str, str]) -> Config:
         spot_vcpu_quota=int(v.get("KIT_CLOUD_SPOT_VCPU_QUOTA", Config.spot_vcpu_quota)),
         max_shards=int(v.get("KIT_CLOUD_MAX_SHARDS", Config.max_shards)),
         volume_gb=int(v.get("KIT_CLOUD_VOLUME_GB", Config.volume_gb)),
+        zones=tuple(z.strip() for z in v.get("KIT_CLOUD_ZONES", "").split(",") if z.strip()),
+        on_demand_price=float(v["KIT_CLOUD_ON_DEMAND_PRICE"]) if v.get("KIT_CLOUD_ON_DEMAND_PRICE") else None,
     )
 
 
