@@ -64,7 +64,10 @@ def build(h: dict, build_dir: Path) -> None:
 
 def command(h: dict, build_dir: Path, pin_cpu: int | None) -> list[str]:
     cmd = [_subst(a, build_dir) for a in h["command"]]
-    if pin_cpu is not None and shutil.which("taskset"):
+    if pin_cpu is not None:
+        # Recording a pin that was never applied would let an unpinned run pass for a pinned one.
+        if not shutil.which("taskset"):
+            raise HarnessError("--pin needs the taskset program, which is not on PATH")
         cmd = ["taskset", "-c", str(pin_cpu)] + cmd
     return cmd
 
@@ -225,6 +228,7 @@ def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[st
     res = {
         "format": results.FORMAT,
         "run": {
+            "kit_digest": environment.kit_digest(ROOT.parent),
             "date": env["date"], "mode": mode, "seconds": round(seconds, 1), "restarts": restarts,
             "counters": counters, "environment": env, "publishability": pub,
             "selection": {k: v for k, v in selection.items()},
@@ -236,6 +240,8 @@ def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[st
                       for m in metas],
         "cells": cells,
     }
+    # A number is only as good as the identity of the code that produced it.
+    results.add_reasons(res, results.revision_reasons(env.get("kit_revision")))
     # A cell timed before its warm-up settled is a number nobody should publish.
     results.add_reasons(res, results.unsettled_reasons(mode, cells))
     return res

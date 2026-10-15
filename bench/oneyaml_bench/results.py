@@ -345,6 +345,16 @@ def assess_measured(mode: str, p95: float, worst: float, n_samples: int, load1_s
     return reasons
 
 
+def revision_reasons(revision: str | None) -> list[str]:
+    """Why a kit revision cannot back a published number: none recorded, or edits on top of it."""
+    if not revision:
+        return ["the kit revision is unknown, so the code that was measured is not identified"]
+    if "+modified" in revision:
+        return [f"the kit had uncommitted changes (revision {revision}), so the code that was measured "
+                "is not the revision named"]
+    return []
+
+
 def assess_publishability(mode: str, samples: list[float], load1_start: float, load1_end: float,
                           complete: bool, selftest_build: bool = False, pinned_cpu: int | None = None,
                           governor: str = "unknown",
