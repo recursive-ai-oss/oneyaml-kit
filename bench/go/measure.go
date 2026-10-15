@@ -47,11 +47,43 @@ type Timing struct {
 	Chunk int
 	// SamplesNS is the per-iteration time of each sample, sorted.
 	SamplesNS []float64
-	// AllocsPerOp and BytesPerOp are what testing.B counted over all samples, for the
-	// agreement check with the memory pass.
+	// AllocsPerOp and BytesPerOp are what testing.B counted per operation over all the timed runs:
+	// the published allocation figures. A cost a library pays only now and then is in them, spread
+	// over the runs as a user's program spreads it.
 	AllocsPerOp float64
 	BytesPerOp  float64
 	Panic       any
+	// Chunks is what each stretch of timed runs allocated and how many collections it met; the
+	// agreement check compares the stretches that met none with the memory pass.
+	Chunks []RunStat
+}
+
+// RunStat is what a stretch of runs did: how many, what they allocated, and how many collections
+// started during them (the collection forced before the stretch is not counted).
+type RunStat struct {
+	Runs    int
+	Mallocs uint64
+	Bytes   uint64
+	GCs     uint32
+}
+
+// numGC is the number of collections started so far.
+func numGC() uint32 {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return m.NumGC
+}
+
+// readRun runs f between two readings of the allocator. The collections it counts are those since
+// baseGC, which the caller read right after the collection it forced: so a collection that started
+// during the unmeasured warm-up counts too, because the run that follows it pays its refill.
+func readRun(runs int, baseGC uint32, f func()) RunStat {
+	var m0, m1 runtime.MemStats
+	runtime.ReadMemStats(&m0)
+	f()
+	runtime.ReadMemStats(&m1)
+	return RunStat{Runs: runs, Mallocs: m1.Mallocs - m0.Mallocs, Bytes: m1.TotalAlloc - m0.TotalAlloc,
+		GCs: m1.NumGC - baseGC}
 }
 
 func median(sorted []float64) float64 {
@@ -126,6 +158,7 @@ func setBenchtime(v string) {
 func timeRunner(r Runner, cfg Config) Timing {
 	chunk := chunkSize(r, cfg)
 	var panicked any
+	var chunks []RunStat
 	fn := func(b *testing.B) {
 		b.ReportAllocs()
 		b.StopTimer()
@@ -133,10 +166,17 @@ func timeRunner(r Runner, cfg Config) Timing {
 			n := min(left, chunk)
 			batch := r.Prepare(n)
 			runtime.GC() // collect what the previous chunk left, with the clock stopped
+			baseGC := numGC()
 			warmUp(r)
+			var ms0 runtime.MemStats
+			runtime.ReadMemStats(&ms0)
 			b.StartTimer()
 			batch.Run()
 			b.StopTimer()
+			var ms1 runtime.MemStats
+			runtime.ReadMemStats(&ms1)
+			chunks = append(chunks, RunStat{Runs: n, Mallocs: ms1.Mallocs - ms0.Mallocs,
+				Bytes: ms1.TotalAlloc - ms0.TotalAlloc, GCs: ms1.NumGC - baseGC})
 			if p := batch.Panic(); p != nil && panicked == nil {
 				panicked = p
 			}
@@ -146,6 +186,7 @@ func timeRunner(r Runner, cfg Config) Timing {
 	}
 	setBenchtime(cfg.Warmup.String())
 	warm := testing.Benchmark(fn)
+	chunks = nil
 	// The warm-up call found how long one iteration takes. Each sample then runs exactly the
 	// number of iterations that fills the sample target, so every sample has the same size and
 	// the framework does not ramp up again for each one.
@@ -169,6 +210,7 @@ func timeRunner(r Runner, cfg Config) Timing {
 		totalBytes += res.MemBytes
 	}
 	sort.Float64s(t.SamplesNS)
+	t.Chunks = chunks
 	if totalN > 0 {
 		t.AllocsPerOp = float64(totalAllocs) / float64(totalN)
 		t.BytesPerOp = float64(totalBytes) / float64(totalN)
@@ -208,6 +250,8 @@ type Memory struct {
 	// FirstRunAllocations is what the unmeasured run right after a collection allocated: the cost of
 	// a first call, with the pools and caches a collection emptied still to fill.
 	FirstRunAllocations uint64
+	// Groups is what each group of runs of the pass did, for the agreement check.
+	Groups []RunStat
 }
 
 // avgRunsFor is how many runs the allocation figures of the memory pass are averaged over:
@@ -293,43 +337,113 @@ func memoryPass(r Runner, runs, group int) Memory {
 	runtime.KeepAlive(batch)
 	batch = nil
 
-	var allocBytes, mallocs, total, first uint64
+	var groups []RunStat
+	var first uint64
 	for left := runs; left > 0; {
 		k := min(left, group)
 		avg := r.Prepare(k)
 		runtime.GC()
-		if n := warmUp(r); total == 0 {
+		baseGC := numGC()
+		if n := warmUp(r); len(groups) == 0 {
 			first = n
 		}
-		runtime.ReadMemStats(&before)
-		avg.Run()
-		runtime.ReadMemStats(&after)
+		groups = append(groups, readRun(k, baseGC, avg.Run))
 		runtime.KeepAlive(avg)
-		allocBytes += after.TotalAlloc - before.TotalAlloc
-		mallocs += after.Mallocs - before.Mallocs
-		total += uint64(k)
 		left -= k
 	}
+	var total, mallocs, bytes uint64
+	for _, g := range groups {
+		total += uint64(g.Runs)
+		mallocs += g.Mallocs
+		bytes += g.Bytes
+	}
 	return Memory{RetainedBytes: retained, PeakBytes: peak,
-		AllocatedBytes: (allocBytes + total/2) / total,
-		Allocations:    (mallocs + total/2) / total, FirstRunAllocations: first}
+		AllocatedBytes:      (bytes + total/2) / total,
+		Allocations:         (mallocs + total/2) / total,
+		FirstRunAllocations: first, Groups: groups}
 }
 
-// agree checks the memory pass against the allocation counts testing.B took in the timed
-// runs, which are averages over many more runs. The number of calls must agree within 5%; the
-// bytes within 25%, because a library that keeps buffers in a pool allocates fewer bytes the
-// longer the heap stays unchanged, and the two runs do not see the same number of collections.
-// A few bytes and calls of slack cover rounding and the runtime's own bookkeeping. A larger
-// difference means a figure cannot be trusted and the cell gets no numbers.
+// steadyMeans is the mean calls and bytes per run over the stretches that met no collection, and
+// how many runs that is. A collection during a stretch can empty a library's pools, and then the
+// stretch pays a refill that a stretch without one does not; whether a collection lands in a stretch
+// is chance, so the two passes are compared on the stretches where it did not.
+func steadyMeans(stats []RunStat) (calls, bytes float64, runs int) {
+	var c, b uint64
+	for _, s := range stats {
+		if s.GCs == 0 {
+			runs += s.Runs
+			c += s.Mallocs
+			b += s.Bytes
+		}
+	}
+	if runs == 0 {
+		return 0, 0, 0
+	}
+	return float64(c) / float64(runs), float64(b) / float64(runs), runs
+}
+
+// spikeShare is how much one rare event moves a mean: the most that a single stretch exceeds the
+// middle stretch, spread over all the runs. A library that pays a cost every few hundred calls shows
+// it in some stretches and not in others, and two passes of different lengths hold one event more or
+// less than each other; the mean of either is uncertain by about one such event. A library whose
+// stretches all look alike has no spike, and gets no allowance.
+func spikeShare(stats []RunStat) (calls, bytes float64) {
+	var perCall, perByte []float64
+	var runs int
+	for _, s := range stats {
+		if s.GCs == 0 && s.Runs > 0 {
+			perCall = append(perCall, float64(s.Mallocs)/float64(s.Runs))
+			perByte = append(perByte, float64(s.Bytes)/float64(s.Runs))
+			runs += s.Runs
+		}
+	}
+	if runs == 0 {
+		return 0, 0
+	}
+	share := func(per []float64) float64 {
+		sorted := append([]float64(nil), per...)
+		sort.Float64s(sorted)
+		mid := median(sorted)
+		var best float64
+		i := 0
+		for _, s := range stats {
+			if s.GCs == 0 && s.Runs > 0 {
+				best = math.Max(best, (per[i]-mid)*float64(s.Runs)/float64(runs))
+				i++
+			}
+		}
+		return best
+	}
+	return share(perCall), share(perByte)
+}
+
+// agree checks the memory pass against the allocation counts of the timed runs. The figures
+// compared are the means over the runs that met no collection in either pass (all the runs, when
+// one pass has none): the same quantity from the same kind of run. The number of calls must agree
+// within 5%; the bytes within 25%, because a library that keeps buffers in a pool allocates fewer
+// bytes the longer the heap stays unchanged. A few bytes and calls of slack cover rounding and the
+// runtime's own bookkeeping, and so does one rare event (see spikeShare). A larger difference means
+// a figure cannot be trusted and the cell gets no numbers.
 func agree(t Timing, m Memory) string {
 	if t.AllocsPerOp == 0 && t.BytesPerOp == 0 {
 		return ""
 	}
 	const slackCalls, slackBytes = 2.0, 128.0
 	okf := func(a, b, tol, slack float64) bool { return math.Abs(a-b) <= math.Max(tol*math.Max(a, b), slack) }
-	if !okf(t.AllocsPerOp, float64(m.Allocations), 0.05, slackCalls) || !okf(t.BytesPerOp, float64(m.AllocatedBytes), 0.25, slackBytes) {
-		return fmt.Sprintf("the memory pass (%d allocations, %d bytes) and testing.B (%.1f allocations, %.0f bytes per op) disagree",
-			m.Allocations, m.AllocatedBytes, t.AllocsPerOp, t.BytesPerOp)
+	tc, tb, mc, mb := t.AllocsPerOp, t.BytesPerOp, float64(m.Allocations), float64(m.AllocatedBytes)
+	which := "all runs"
+	spikeC, spikeB := 0.0, 0.0
+	if c1, b1, n1 := steadyMeans(t.Chunks); n1 > 0 {
+		if c2, b2, n2 := steadyMeans(m.Groups); n2 > 0 {
+			tc, tb, mc, mb, which = c1, b1, c2, b2, "runs without a collection"
+			sc1, sb1 := spikeShare(t.Chunks)
+			sc2, sb2 := spikeShare(m.Groups)
+			spikeC, spikeB = math.Max(sc1, sc2), math.Max(sb1, sb2)
+		}
+	}
+	if !okf(tc, mc, 0.05, math.Max(slackCalls, spikeC)) || !okf(tb, mb, 0.25, math.Max(slackBytes, spikeB)) {
+		return fmt.Sprintf("the memory pass (%.1f allocations, %.0f bytes) and testing.B (%.1f allocations, %.0f bytes per op) disagree, over %s",
+			mc, mb, tc, tb, which)
 	}
 	return ""
 }
@@ -354,5 +468,37 @@ func shareState(t Task, r Runner) string {
 		return err.Error()
 	}
 	sh.ShareState()
+	return ""
+}
+
+// crossCheck compares the memory pass with the timed runs. The memory pass is short, so it may not
+// have met a cost that the many timed runs spread out (a flush every few hundred calls, say). When
+// the figures disagree it is repeated once over as many runs as were timed, within a time budget,
+// before the cell is refused; the second pass is the one compared, and the reason names its size.
+func crossCheck(t Timing, m Memory, r Runner) string {
+	d := agree(t, m)
+	if d == "" {
+		return ""
+	}
+	have, timed := 0, 0
+	for _, g := range m.Groups {
+		have += g.Runs
+	}
+	for _, c := range t.Chunks {
+		timed += c.Runs
+	}
+	const budgetNS, most = 5e8, 100_000
+	want := timed
+	if med := t.Median(); med > 0 {
+		want = min(want, max(have, int(budgetNS/med)))
+	}
+	want = min(want, most)
+	if want <= have {
+		return d
+	}
+	again := memoryPass(r, want, max(1, min(t.ItersPerSample, t.Chunk)))
+	if d2 := agree(t, again); d2 != "" {
+		return fmt.Sprintf("%s (the memory pass was repeated over %d runs)", d2, want)
+	}
 	return ""
 }

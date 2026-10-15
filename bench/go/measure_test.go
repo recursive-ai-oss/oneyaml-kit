@@ -1,6 +1,7 @@
 package main
 
 import (
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -163,5 +164,153 @@ func TestWarmedMemoryPassStillRefusesARealDisagreement(t *testing.T) {
 	m := memoryPass(coldStartRunner(), 64, 2)
 	if agree(timed, m) == "" {
 		t.Errorf("a doubled allocation count was accepted: %+v", m)
+	}
+}
+
+var (
+	periodRuns int
+	periodSink [][]byte
+	refillGC   uint32
+	refillSink [][]byte
+)
+
+// flushRunner pays a cost by design: every 7th run (counted over the whole process) it builds a
+// buffer of 700 small objects, as a periodic flush or a growing buffer does. A user's program pays
+// it on average, 100 calls a run on top of the 2 of an ordinary run.
+func flushRunner() Runner {
+	return newRunner(func() struct{} { return struct{}{} },
+		func(*struct{}) ([]byte, error) {
+			periodRuns++
+			for t0 := time.Now(); time.Since(t0) < 100*time.Microsecond; {
+			}
+			poolSink = make([]byte, 8)
+			if periodRuns%7 == 0 {
+				periodSink = periodSink[:0]
+				for i := 0; i < 700; i++ {
+					periodSink = append(periodSink, make([]byte, 100))
+				}
+			}
+			return make([]byte, 64), nil
+		}, bytesProduct)
+}
+
+// A cost that is paid by design now and then is part of what a run costs, so the published figure
+// has it: the mean over all the timed runs, as testing.B counts. A median of the samples would
+// publish 2 here and put the library ahead of one that pays the same total on every call.
+func TestAPeriodicCostIsInThePublishedFigure(t *testing.T) {
+	tm := timeRunner(flushRunner(), quickConfig())
+	if tm.AllocsPerOp < 30 {
+		t.Errorf("published %.1f calls a run; the periodic cost makes it about 100", tm.AllocsPerOp)
+	}
+}
+
+// refillRunner loses its state when a collection has happened since its last run, as a library
+// does whose sync.Pool a collection emptied: the next run allocates the state again (2000 calls).
+// Every 11th run ends with a collection, standing for one the program started on its own.
+func refillRunner() Runner {
+	return newRunner(func() struct{} { return struct{}{} },
+		func(*struct{}) ([]byte, error) {
+			for t0 := time.Now(); time.Since(t0) < 300*time.Microsecond; {
+			}
+			var ms runtime.MemStats
+			runtime.ReadMemStats(&ms)
+			if ms.NumGC != refillGC {
+				refillGC = ms.NumGC
+				refillSink = refillSink[:0]
+				for i := 0; i < 2000; i++ {
+					refillSink = append(refillSink, make([]byte, 16))
+				}
+			}
+			periodRuns++
+			if periodRuns%11 == 0 {
+				runtime.GC()
+			}
+			return make([]byte, 64), nil
+		}, bytesProduct)
+}
+
+// Which pass meets a collection is chance, and a stretch of runs that met one pays a refill that a
+// stretch without one does not. Comparing the stretches that met none, the two passes agree on a
+// library like this; comparing everything, they disagree by the luck of where the collections fell.
+func TestACollectionDrivenRefillDoesNotRefuseTheCell(t *testing.T) {
+	r := refillRunner()
+	tm := timeRunner(r, quickConfig())
+	m := memoryPass(r, avgRunsFor(tm, quickConfig()), min(tm.ItersPerSample, tm.Chunk))
+	met := 0
+	for _, c := range tm.Chunks {
+		if c.GCs > 0 {
+			met++
+		}
+	}
+	t.Logf("%d of %d timed chunks and %d of %d groups met a collection; published %.1f calls a run, all-run memory pass %d",
+		met, len(tm.Chunks), countGC(m.Groups), len(m.Groups), tm.AllocsPerOp, m.Allocations)
+	if met == 0 || countGC(m.Groups) == 0 {
+		t.Skip("no collection fell in the runs; nothing to show")
+	}
+	if d := crossCheck(tm, m, r); d != "" {
+		t.Error(d)
+	}
+}
+
+func countGC(g []RunStat) (n int) {
+	for _, s := range g {
+		if s.GCs > 0 {
+			n++
+		}
+	}
+	return n
+}
+
+// What the check compares is the stretches without a collection; a real difference between them is
+// still refused, and so is one that only the stretches with a collection show.
+func TestTheCrossCheckStillRefusesARealDisagreement(t *testing.T) {
+	clean := RunStat{Runs: 4, Mallocs: 8, Bytes: 4 * 100}
+	tm := Timing{AllocsPerOp: 2, BytesPerOp: 100, Chunks: []RunStat{clean, clean, clean}}
+	ok := Memory{Allocations: 2, AllocatedBytes: 100, Groups: []RunStat{clean, clean}}
+	if d := agree(tm, ok); d != "" {
+		t.Fatal(d)
+	}
+	double := RunStat{Runs: 4, Mallocs: 32, Bytes: 4 * 100}
+	bad := Memory{Allocations: 8, AllocatedBytes: 100, Groups: []RunStat{double, double}}
+	if agree(tm, bad) == "" {
+		t.Error("twice the allocations in the memory pass was accepted")
+	}
+	// A refill in the stretches that met a collection is left out of both sides.
+	withGC := RunStat{Runs: 4, Mallocs: 4000, Bytes: 4 * 100, GCs: 1}
+	tm2 := Timing{AllocsPerOp: 500, BytesPerOp: 100, Chunks: []RunStat{clean, withGC, clean}}
+	if d := agree(tm2, ok); d != "" {
+		t.Errorf("a stretch that met a collection counted: %s", d)
+	}
+}
+
+// Two passes of different lengths hold a different number of a by-design periodic event, so their
+// means differ by about one event. That is accepted as the uncertainty of the mean; the same gap
+// between passes whose stretches all look alike is a real disagreement and is refused.
+func TestOneRareEventIsTheUncertaintyOfAMean(t *testing.T) {
+	plain := RunStat{Runs: 50, Mallocs: 100, Bytes: 5000}
+	spike := RunStat{Runs: 50, Mallocs: 100 + 2000, Bytes: 5000 + 200000}
+	rep := func(n int, s ...RunStat) []RunStat {
+		out := make([]RunStat, 0, n+len(s))
+		for i := 0; i < n; i++ {
+			out = append(out, plain)
+		}
+		return append(out, s...)
+	}
+	// 100 stretches that hold 2 events: 2.8 calls a run; 10 stretches that hold 1: 6 calls a run.
+	timed := Timing{Chunks: append(rep(98), spike, spike)}
+	timed.AllocsPerOp, timed.BytesPerOp, _ = steadyMeans(timed.Chunks)
+	mem := Memory{Groups: append(rep(9), spike)}
+	mc, mb, _ := steadyMeans(mem.Groups)
+	mem.Allocations, mem.AllocatedBytes = uint64(mc), uint64(mb)
+	if d := agree(timed, mem); d != "" {
+		t.Errorf("one event of difference between the passes was refused: %s", d)
+	}
+	// With no event in either, a gap of the same size is a disagreement.
+	smooth := Timing{Chunks: rep(31)}
+	smooth.AllocsPerOp, smooth.BytesPerOp, _ = steadyMeans(smooth.Chunks)
+	other := RunStat{Runs: 50, Mallocs: 50 * 9, Bytes: 5000}
+	m2 := Memory{Groups: []RunStat{other, other, other}}
+	if agree(smooth, m2) == "" {
+		t.Error("a gap with no rare event behind it was accepted")
 	}
 }
