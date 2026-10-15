@@ -4116,6 +4116,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/set-empty-value-of-explicit-key-on-next-line",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library refused the patch: \"(Lin: 3, Col: 0, Chr: 9) - (Lin: 3, Col: 0, Chr: 9): While scanning a simple key, could not find expected ':'.\" at 4:1"
+  },
+  {
+   "case": "own:edit/set-empty-value-of-explicit-key-on-next-line",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library refused the patch: \"(Lin: 3, Col: 0, Chr: 9) - (Lin: 3, Col: 0, Chr: 9): While scanning a simple key, could not find expected ':'.\" at 4:1"
   }
  ]
 }

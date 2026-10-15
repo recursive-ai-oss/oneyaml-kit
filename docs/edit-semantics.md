@@ -53,7 +53,7 @@ having got YAML wrong.
   another type, as a comment, as a key, or lose its edge spaces becomes single-quoted. The
   specification allows any quoted style; single quotes need no escapes.
 - **Comments of a removed entry.** See *Comments* below.
-- **The layout of a new nested sequence** copies the indentation of a sibling sequence.
+- **The layout of a new nested sequence** copies the indentation of a sibling sequence. When the document has none, it copies the indentation of the nearest block collection, and two spaces when there is no nested collection at all.
 - **Indentation of a rewritten block scalar** reuses the old content's indentation.
 - **A multi-line string replacing an inline scalar is double-quoted.** A plain or quoted
   scalar that is set to text with a line break keeps its place on the key's line and is
@@ -65,7 +65,7 @@ having got YAML wrong.
   exactly the value that was set**; otherwise it is dropped. A custom tag on a scalar stays
   while the new value is a scalar; `!`, `!!binary` and the like go when the new value is, say,
   an integer.
-- **A value for an explicit key that has none** goes on its own line at the key's indentation, as `: value`, after the key line and its comment (the specification requires the separate line for a `?` key). The convention is only that a missing final line break stays missing; the quote follows the rule above.
+- **A value for an explicit key that has none** goes on its own line at the key's indentation, as `: value`, after the key line and its comment (the specification requires the separate line for a `?` key). The convention is only that a missing final line break stays missing; the quote follows the rule above. When the entry already has its `:` line with nothing after it, the value goes after that colon on the same line (`: 1`), wherever the key's content is written; only a missing `:` line is added.
 
 ## The value keeps its style, and what follows from exactness
 

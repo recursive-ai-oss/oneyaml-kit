@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-empty-value-of-explicit-key-on-next-line",
+ "title": "The empty value of an explicit key whose content is on the next line is filled after its colon",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "188",
+  "189",
+  "190",
+  "191"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.2.2",
+  "RFC 6902 section 4.3",
+  "RFC 6901 section 3",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "The first entry is written with an explicit key: `?` alone on its line, the content `a` on the line after it, and `:` at the column of the `?` with nothing after it (productions 190 and 191). Its value is null. The pointer `/a` addresses it by the text of the key. The replace gives it the value 1, which goes after the colon that is already there: `: 1`. Nothing else changes; the next entry `b: 1` stays an entry of the same mapping and the key is still written on two lines. A value of an explicit key that has no `:` line at all goes on a new line of its own (`edit/set-value-of-explicit-null-key-at-end-of-large-mapping`); here the line exists and only the text after it changes, as for `edit/keep-explicit-key-entry`. A library that decides from the key's lines whether the colon belongs to the entry can write the value on a new line, leave a second colon, or put it in the next entry.",
+ "provenance": {
+  "reference": "A patch engine that looked for the colon of an explicit entry on the line of the key and, finding the key's content on the next line, did not find the colon that follows it."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": 1
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}
