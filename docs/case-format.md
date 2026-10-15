@@ -158,7 +158,7 @@ A position is a 1-based `line` and `column`.
 | `value` | `value` (list of documents) or `file` (JSON) | no error, and the documents are equal |
 | `bytes` | `file` | no error, and every output byte is equal |
 | `error` | `category`, `line`, `column`, `events_file`, `unchanged` | an error is reported (see below) |
-| `bounded` | `time_seconds`, `memory_mb`, `accept`, `error` | see below |
+| `bounded` | `time_seconds`, `memory_mb`, `accept`, `error`, `unchanged` | see below |
 | `readback` | none (`dump` operations only) | the written text reads back as the value, see *Written values* |
 
 For `error`, **loose** mode only requires that an error is reported, of any kind,
@@ -197,6 +197,12 @@ A `bounded` case names the acceptable outcomes and the resources it may use:
   needs the adapter's `error-category` and checks that the category is one of the list.
 - At least one of the two is required. A case with only `error` allows no result; a
   case with only `accept` allows no refusal.
+- `unchanged` (optional, `patch` operations with an `error` only) states that a refused patch
+  leaves the document as it was, which a patch must (RFC 6902 section 5). When the library
+  refuses, the document it reports must be byte for byte the input; one that reports another
+  document, or none, fails strict, the same as for an `error` expectation (loose asks only that
+  an error is reported). It is judged on the refusal alone, so a library that answers with a
+  result, goes over a bound or crashes is judged as before. Not stated, nothing is checked.
 - `time_seconds` and `memory_mb` are part of the case. The runner enforces them
   whatever the adapter manifest says: the case is cut off at the time bound, and the
   adapter process is killed if its resident memory grows past the memory bound while the

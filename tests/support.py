@@ -107,7 +107,10 @@ class OracleAdapter:
         if k == "bounded":
             a = e["accept"]
             if a is None:
-                return {"id": case_id, "status": "error", "error": {"category": e["category"][0]}}
+                r = {"id": case_id, "status": "error", "error": {"category": e["category"][0]}}
+                if op == "patch":
+                    r["output"] = b64(data)  # a refused patch leaves the document as it was
+                return r
             if a["kind"] == "events":
                 return {"id": case_id, "status": "ok", "events": a["events"]}
             if a["kind"] == "value":

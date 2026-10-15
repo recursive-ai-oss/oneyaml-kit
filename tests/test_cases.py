@@ -285,6 +285,27 @@ class Validation(unittest.TestCase):
         d["expect"]["error"] = "limit"
         self.assertEqual(self.load(d).expect["category"], ["limit"])
 
+    def test_bounded_unchanged_judges_a_refused_patch(self):
+        d = copy.deepcopy(self.GOOD)
+        d.update(category="edit", id="edit/x", origin="spec", refs=["x"],
+                 operation={"type": "patch", "patch": [{"op": "remove", "path": "/a"}]})
+        good = {"kind": "bounded", "time_seconds": 5, "memory_mb": 100, "error": "limit", "unchanged": True}
+        d["expect"] = good
+        self.assertIs(self.load(d, rel="edit/x").expect["unchanged"], True)
+        d["expect"] = {k: v for k, v in good.items() if k != "unchanged"}
+        self.assertIs(self.load(d, rel="edit/x").expect["unchanged"], False)
+        for change in ({"unchanged": 1}, {"unchanged": "yes"},
+                       {"error": None, "accept": {"kind": "bytes", "file": "input.yaml"}}):
+            e = {**good, **change}
+            d["expect"] = {k: v for k, v in e.items() if v is not None}
+            with self.assertRaises(C.CaseError, msg=str(change)):
+                self.load(d, rel="edit/x")
+        # Only a patch can be unchanged.
+        e = copy.deepcopy(self.GOOD)
+        e.update(origin="spec", refs=["x"], expect=good)
+        with self.assertRaises(C.CaseError):
+            self.load(e)
+
     def test_provenance(self):
         d = copy.deepcopy(self.GOOD)
         d.pop("provenance")

@@ -193,6 +193,31 @@ class Patches(unittest.TestCase):
         self.assertEqual(ev(c, {"status": "error", "error": {"category": "patch-path"}}), ("pass", "fail"))
         self.assertEqual(ev(c, {"status": "ok", "output": b64(b"a: 2\n")}), ("fail", "fail"))
 
+    def test_a_bounded_refusal_must_leave_the_document_unchanged(self):
+        b = {"kind": "bounded", "time_seconds": 2, "memory_mb": 100, "accept": None, "category": ["limit"],
+             "unchanged": True}
+        c = self.pc(b)
+        m = {"seconds": 0.5, "peak_mb": 10.0}
+        ok = {"status": "error", "error": {"category": "limit"}, "output": b64(b"a: 1\n"), "_measure": m}
+        self.assertEqual(ev(c, ok), ("pass", "pass"))
+        # A changed document, or none reported, fails strict: loose asks only for an error.
+        self.assertEqual(ev(c, dict(ok, output=b64(b"a: 2\n"))), ("pass", "fail"))
+        self.assertEqual(ev(c, dict(ok, output=b64(b"a: 1"))), ("pass", "fail"))
+        self.assertEqual(ev(c, {k: v for k, v in ok.items() if k != "output"}), ("pass", "fail"))
+        self.assertEqual(ev(c, dict(ok, output="!!!")), ("pass", "fail"))
+        # The wrong category and a changed document are both reported.
+        r = K.evaluate(c, c.expect, dict(ok, error={"category": "syntax"}, output=b64(b"a: 2\n")), CAPS)
+        self.assertEqual((r["loose"], r["strict"]), ("pass", "fail"))
+        self.assertIn("category", r["detail"])
+        self.assertIn("document changed", r["detail"])
+        # Without the statement nothing is checked, and an answer that is not a refusal is still
+        # judged as before.
+        plain = self.pc(dict(b, unchanged=False))
+        self.assertEqual(ev(plain, dict(ok, output=b64(b"a: 2\n"))), ("pass", "pass"))
+        self.assertEqual(ev(c, {"status": "ok", "output": b64(b"a: 2\n"), "_measure": m}), ("fail", "fail"))
+        # A missing measurement keeps strict unsupported, not failed, when the document is right.
+        self.assertEqual(ev(c, dict(ok, _measure={"seconds": 0.5, "peak_mb": None})), ("pass", "unsupported"))
+
     def test_required_capabilities_follow_the_patch(self):
         ops = [{"op": "add", "path": "/b", "value": 1}, {"op": "test", "path": "/a", "value": 1}]
         c = self.pc({"kind": "bytes", "bytes": b""}, ops=ops)

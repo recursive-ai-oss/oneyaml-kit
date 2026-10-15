@@ -167,7 +167,7 @@ def _expect_from_json(d: Any, base: Path | None, where: str, nested: bool = Fals
         only()
         return {"kind": "readback"}
     if kind == "bounded":
-        only("time_seconds", "memory_mb", "accept", "error")
+        only("time_seconds", "memory_mb", "accept", "error", "unchanged")
         ts, mb = _positive(d, "time_seconds", where), _positive(d, "memory_mb", where)
         acc = _expect_from_json(d["accept"], base, where, nested=True) if "accept" in d else None
         err = d.get("error")
@@ -181,7 +181,13 @@ def _expect_from_json(d: Any, base: Path | None, where: str, nested: bool = Fals
                                 f"naming kinds of error ('any' is not one)")
         if acc is None and err is None:
             raise CaseError(f"{where}: bounded needs an accepted result, an error category, or both")
-        return {"kind": "bounded", "time_seconds": ts, "memory_mb": mb, "accept": acc, "category": err}
+        unchanged = d.get("unchanged", False)
+        if not isinstance(unchanged, bool):
+            raise CaseError(f"{where}: bounded unchanged is true or false")
+        if unchanged and err is None:
+            raise CaseError(f"{where}: bounded unchanged needs an error category: it judges a refusal")
+        return {"kind": "bounded", "time_seconds": ts, "memory_mb": mb, "accept": acc, "category": err,
+                "unchanged": unchanged}
     only("category", "line", "column", "events_file", "unchanged")
     cat = d.get("category", "any")
     if cat not in ERROR_CATEGORIES:
@@ -246,7 +252,7 @@ def _check_pairing(op: str, expect: dict, where: str) -> None:
         raise CaseError(f"{where}: a {op} operation can only accept a {result} result")
     if k == "error" and expect["events"] is not None and op != "events":
         raise CaseError(f"{where}: events_file only applies to events operations")
-    if k == "error" and expect["unchanged"] and op != "patch":
+    if k in ("error", "bounded") and expect["unchanged"] and op != "patch":
         raise CaseError(f"{where}: unchanged only applies to patch operations")
 
 
