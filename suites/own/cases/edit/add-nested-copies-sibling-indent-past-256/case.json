@@ -1,0 +1,42 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-nested-copies-sibling-indent-past-256",
+ "title": "A nested mapping added after 300 scalar entries copies the indentation of the first nested sibling",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "187",
+  "192",
+  "194"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "YAML 1.2.2 section 6.1",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The document has 300 scalar entries and then one entry, `x`, with nested content indented by four spaces at both depths (`y` is four spaces in, the sequence under `z` is eight). The added mapping is written in the style of its siblings: the only siblings that show how a nested collection is indented are the ones in `x`, so each level is four spaces in and `b` is eight. Reading the style from the first few hundred entries alone would find only scalars and fall back to two spaces. The existing cases edit/add-mapping-value-indent-four and edit/add-mapping-value-indent-two show the same rule with the nested sibling first. Copying the indentation of nested siblings and putting a new member at the end of its mapping are kit conventions (docs/edit-semantics.md).",
+ "provenance": {
+  "reference": "A writer that looked for the indentation of nested siblings only among the first 256 entries and wrote two spaces here."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/new",
+    "value": {
+     "a": {
+      "b": 1
+     }
+    }
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}
