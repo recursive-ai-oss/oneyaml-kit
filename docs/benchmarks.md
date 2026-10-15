@@ -215,7 +215,7 @@ the harness. A run is labelled **publishable** only if:
   so a Go-only run that includes all of Go's libraries, tasks and workloads can be published;
 - it is a full run that finished every cell it set out to measure, with no cell that crashed
   or stalled (`error`);
-- the harness was pinned to one CPU (`--pin`);
+- the harness was pinned to one CPU (`--pin`; the run fails if `taskset` is not available, rather than recording a pin that was not applied);
 - the CPU frequency governor is `performance` (anything else, `powersave` included, lets the
   clock change during the run, and an unreadable governor counts the same);
 - the list of known deviations matched the run;
@@ -235,7 +235,8 @@ applies.
 ## Sharded runs
 
 A full run can be split across several identical machines and the pieces combined into one
-result, which is publishable on exactly the conditions an unsharded run would be.
+result, which is publishable on the conditions an unsharded run would be, provided every shard
+records the same clean kit revision.
 
 ```sh
 bin/bench plan --shards 4 [--lang go]            # show the split as JSON, to pick N
@@ -267,14 +268,26 @@ publishable on its own.
 - the plan digests differ, or a shard's recorded plan does not match its digest, or a shard
   holds rows the plan did not give it;
 - a shard is missing or given twice;
-- the kit revision, the harness of a language (version, library versions, flags, configuration,
-  runtime), a workload's input, the mode, the filters, or whether instructions were counted differ;
+- the kit files, the kit revision, the harness of a language (version, library versions, flags,
+  configuration, runtime), a workload's input, the mode, the filters, the number of memory
+  processes, or whether instructions were counted differ. Every result records `run.kit_digest`,
+  a hash of the bytes and paths of the files under `bench`, `suites`, `adapters`, `tools` and
+  `bin` (build output such as `__pycache__`, `target`, `obj` and nested `bin` directories is
+  skipped). It is computed from the files, so it works without a git checkout, for example from
+  an unpacked archive;
+- a shard holds cells outside the rows the plan gave it;
 - the environments differ in anything but the start time and the pinned core: CPU model,
   `instance_type` (set it with the `KIT_INSTANCE_TYPE` variable when the machines are rented),
   operating system, memory, governor and so on.
 
 `--allow-incomplete` merges the shards that are there; the missing rows are listed in
 `selection.left_out.groups`, which makes the result a smoke result.
+
+A result whose kit revision is unknown (no git checkout and none supplied) or carries
+`+modified` (uncommitted changes) is never publishable, sharded or not: the revision must name
+the code that was measured. A merged result is also not publishable when a shard's held rows
+lack a cell for any library its harness lists and any task of the row, or hold a cell that
+did not finish; the merge checks this itself rather than trusting the shard's reasons.
 
 The merged `selection` is the union of the shards': `groups` holds every row that was
 measured, and `left_out` is computed against everything the plan offered, so a complete set

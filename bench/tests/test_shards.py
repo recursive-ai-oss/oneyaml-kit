@@ -262,6 +262,35 @@ class Merge(unittest.TestCase):
                 change(p[0])
                 merge_fails(self, p, text)
 
+    def test_other_inconsistencies_between_shards_are_refused(self):
+        def stray_cell(p):
+            other = next(g for g in p[1]["run"]["selection"]["groups"])
+            lang, wl = other.split("/")
+            extra = dict(cell("ours", "dump", wl), language=lang, role="own")
+            extra.pop("type")
+            p[0]["cells"].append(extra)
+
+        def changed_input(p):
+            for a in range(3):
+                for b in range(a + 1, 3):
+                    both = {w["id"] for w in p[a]["workloads"]} & {w["id"] for w in p[b]["workloads"]}
+                    if both:
+                        next(w for w in p[b]["workloads"] if w["id"] == min(both))["input_sha256"] = "00ff"
+                        return
+            self.fail("the fixture must give one workload to two shards")
+
+        def memory_processes(p):
+            p[0]["run"]["memory_processes"] = {"zz": {"declared": 5, "used": 5}}
+            p[1]["run"]["memory_processes"] = {"zz": {"declared": 5, "used": 1}}
+
+        for what, change, text in [("cells outside the rows", stray_cell, "cells outside its rows"),
+                                   ("workload input", changed_input, "differs between shards (the input changed)"),
+                                   ("memory processes", memory_processes, "different numbers of processes")]:
+            with self.subTest(what):
+                p = self.parts_copy()
+                change(p)
+                merge_fails(self, p, text)
+
     def test_a_language_measured_by_two_shards_must_have_the_same_harness_in_both(self):
         changes = [
             ("pin", lambda h: h["libraries"][0].update(version="2")),
@@ -279,6 +308,62 @@ class Merge(unittest.TestCase):
                 p = self.parts_copy()
                 change(p[y]["harnesses"][shared[0]])
                 merge_fails(self, p, f"the {shared[0]} harness differs between shards")
+
+    def test_shards_that_ran_different_kit_files_are_refused_whatever_the_revision_says(self):
+        # Same revision string on every machine, as with no git checkout or the same dirty commit.
+        p = self.parts_copy()
+        for x in p:
+            x["run"]["environment"]["kit_revision"] = "abc"
+        p[1]["run"]["kit_digest"] = "sha256:" + "0" * 64
+        merge_fails(self, p, "kit digests differ")
+
+    def test_a_shard_without_a_kit_digest_is_refused(self):
+        p = self.parts_copy()
+        del p[2]["run"]["kit_digest"]
+        merge_fails(self, p, "does not record the digest")
+
+    def test_a_revision_that_does_not_identify_the_code_is_not_publishable(self):
+        for rev in (None, "abc+modified"):
+            with self.subTest(rev):
+                p = self.parts_copy()
+                for x in p:
+                    x["run"]["environment"]["kit_revision"] = rev
+                    x["run"]["publishability"]["reasons"] = [
+                        r for r in x["run"]["publishability"]["reasons"] if "kit" not in r]
+                merged = shards.merge(p)
+                self.assertFalse(pub(merged)["publishable"])
+                self.assertTrue([r for r in pub(merged)["reasons"] if "kit" in r], pub(merged)["reasons"])
+
+    def test_a_clean_packed_revision_with_matching_files_stays_publishable(self):
+        p = self.parts_copy()
+        for x in p:
+            x["run"]["environment"]["kit_revision"] = "0123456789ab"
+        self.assertTrue(pub(shards.merge(p))["publishable"])
+
+    def test_the_run_itself_names_an_unidentified_revision(self):
+        res = go(env=dict(ENV, kit_revision=None))
+        self.assertFalse(pub(res)["publishable"])
+        self.assertTrue([r for r in pub(res)["reasons"] if "kit revision is unknown" in r])
+        self.assertTrue(res["run"]["kit_digest"].startswith("sha256:"))
+
+    def test_a_cell_missing_from_a_held_row_makes_the_merge_not_publishable(self):
+        p = self.parts_copy()
+        p[0]["cells"] = [c for c in p[0]["cells"] if c["library"] != "weak"]
+        merged = shards.merge(p)
+        self.assertFalse(pub(merged)["publishable"])
+        self.assertTrue([r for r in pub(merged)["reasons"] if r.startswith("shard 1:") and "have no cell" in r],
+                        pub(merged)["reasons"])
+
+    def test_a_crashed_cell_makes_the_merge_not_publishable_even_with_the_shard_reasons_scrubbed(self):
+        p = self.parts_copy()
+        c = p[0]["cells"][0]
+        c.update(status="error", detail="died")
+        for k in ("time", "memory", "variant"):
+            c.pop(k, None)
+        p[0]["run"]["publishability"]["reasons"] = []
+        merged = shards.merge(p)
+        self.assertFalse(pub(merged)["publishable"])
+        self.assertTrue([r for r in pub(merged)["reasons"] if "did not finish" in r])
 
     def test_the_machines_may_differ_in_date_and_core(self):
         p = self.parts_copy()

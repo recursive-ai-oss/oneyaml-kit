@@ -180,6 +180,14 @@ def _differs(items: list, what: str, problems: list[str]) -> bool:
 def _env_problems(runs: list[dict]) -> list[str]:
     problems = []
     envs = [r["environment"] for r in runs]
+    # The revision string may not identify the code (no git on the machine, or local edits), so the
+    # shards also carry a hash of the kit's files; those must match.
+    digests = [r.get("kit_digest") for r in runs]
+    if not all(digests):
+        problems.append("a shard does not record the digest of the kit files it ran")
+    elif len(set(digests)) > 1:
+        problems.append("the shards ran different kit files (kit digests differ): "
+                        + ", ".join(sorted({d[:19] for d in digests})))
     if len({e.get("kit_revision") for e in envs}) > 1:
         problems.append("the shards ran different kit revisions: "
                         + ", ".join(sorted({str(e.get("kit_revision")) for e in envs})))
@@ -197,7 +205,7 @@ def merge(parts: list[dict], allow_incomplete: bool = False) -> dict:
 
     Raises MergeError, and builds nothing, unless the shards are of one plan, are all there
     (unless `allow_incomplete`, which leaves the missing rows out and says so), and come from
-    the same kit revision, harness pins and configuration, and the same kind of machine.
+    the same kit files, harness pins and configuration, and the same kind of machine.
     """
     problems: list[str] = []
     if not parts:
@@ -287,7 +295,7 @@ def merge(parts: list[dict], allow_incomplete: bool = False) -> dict:
     sel["left_out"] = left_out
 
     cells = [c for p in parts for c in p["cells"]]
-    pub = _merged_publishability(parts, left_out)
+    pub = _merged_publishability(parts, left_out, plan["groups"])
     shard_rows = []
     for p in parts:
         r = p["run"]
@@ -318,7 +326,33 @@ def merge(parts: list[dict], allow_incomplete: bool = False) -> dict:
     return result
 
 
-def _merged_publishability(parts: list[dict], left_out: dict) -> dict:
+def held_rows_reasons(part: dict, plan_groups: dict) -> list[str]:
+    """Why the cells of a shard do not cover the rows it holds: a library its harness lists has no
+    cell for a task of the row, or a cell crashed. A genuine shard says so itself; this does not
+    depend on it."""
+    libs: dict[str, list[str]] = {}
+    for lang, h in part["harnesses"].items():
+        libs[lang] = [x["id"] for x in h.get("libraries", [])]
+    have = {(c["language"], c["library"], c["task"], c["workload"]): c["status"] for c in part["cells"]}
+    missing, crashed = [], []
+    for gid in part["run"]["selection"]["groups"]:
+        lang, wid = gid.split("/", 1)
+        for lib in libs.get(lang, []):
+            for task in plan_groups[gid]["tasks"]:
+                status = have.get((lang, lib, task, wid))
+                if status is None:
+                    missing.append(f"{lang}/{lib}/{task}/{wid}")
+                elif status == "error":
+                    crashed.append(f"{lang}/{lib}/{task}/{wid}")
+    out = []
+    for what, names in (("have no cell", missing), ("did not finish", crashed)):
+        if names:
+            shown = ", ".join(names[:3]) + (f" and {len(names) - 3} more" if len(names) > 3 else "")
+            out.append(f"{len(names)} cell(s) of the rows this shard holds {what} ({shown})")
+    return out
+
+
+def _merged_publishability(parts: list[dict], left_out: dict, plan_groups: dict) -> dict:
     """The rule applied to every shard again from what it measured, plus the reasons each shard
     found that the numbers cannot show (a cell that crashed, a stale deviation list, ...).
 
@@ -336,7 +370,8 @@ def _merged_publishability(parts: list[dict], left_out: dict) -> dict:
         again = results.assess_measured(p["run"]["mode"], m["foreign_busy_cores_p95"], m["foreign_busy_cores_max"],
                                         m["load_samples"], m["load1_start"], m["load1_end"],
                                         m["pinned_cpu"], m["governor"])
-        for reason in list(pub["reasons"]) + again:
+        found = held_rows_reasons(p, plan_groups) + results.revision_reasons(p["run"]["environment"].get("kit_revision"))
+        for reason in list(pub["reasons"]) + again + found:
             if reason.startswith(results.LEFT_OUT_PREFIX):
                 continue
             by_reason.setdefault(reason, [])

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import platform
 import subprocess
@@ -70,6 +71,46 @@ def git_revision(root: Path) -> str | None:
         return out + ("+modified" if dirty else "")
     except (OSError, subprocess.CalledProcessError):
         return None
+
+
+# The parts of the kit whose files decide what a run measures and how it is judged: the driver and
+# harnesses with the workloads and known-deviation lists (bench), the case data (suites), the
+# adapters, the tools and the launchers (bin). Documentation, the gate's own tests and CI files do
+# not change a result and are left out.
+DIGEST_DIRS = ("bench", "suites", "adapters", "tools", "bin")
+# Build output and editor leftovers that may sit in a tree without being part of the kit: they are
+# skipped by name so a machine that built something still matches one that did not. The top-level `bin`
+# (the launchers) is walked from its root, so only a nested `bin` is skipped.
+DIGEST_SKIP_DIRS = {"__pycache__", "target", "out", "artifacts", "obj", "bin", "node_modules", ".bin", ".git"}
+DIGEST_SKIP_SUFFIXES = (".pyc", ".swp", "~")
+_digests: dict[str, str] = {}
+
+
+def kit_digest(root: Path) -> str:
+    """A hash of the kit's files (see DIGEST_DIRS), computed from their bytes and relative paths.
+
+    It needs no git checkout, so a machine that unpacked an archive gets the same answer as the
+    checkout the archive came from. Two shards with different digests ran different code or data.
+    """
+    key = str(root)
+    if key in _digests:
+        return _digests[key]
+    top = hashlib.sha256()
+    for d in DIGEST_DIRS:
+        base = root / d
+        entries = []
+        for dirpath, dirnames, filenames in os.walk(base):
+            rel = Path(dirpath).relative_to(root)
+            dirnames[:] = sorted(n for n in dirnames if n not in DIGEST_SKIP_DIRS)
+            for name in sorted(filenames):
+                if name.endswith(DIGEST_SKIP_SUFFIXES) or name == ".DS_Store":
+                    continue
+                entries.append(rel / name)
+        for rel_path in sorted(entries):
+            top.update(rel_path.as_posix().encode("utf-8") + b"\0")
+            top.update(hashlib.sha256((root / rel_path).read_bytes()).digest())
+    _digests[key] = "sha256:" + top.hexdigest()
+    return _digests[key]
 
 
 def _cpu_times() -> tuple[int, int]:
