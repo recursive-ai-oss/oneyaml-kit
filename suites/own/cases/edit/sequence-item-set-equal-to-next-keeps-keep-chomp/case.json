@@ -1,0 +1,44 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/sequence-item-set-equal-to-next-keeps-keep-chomp",
+ "title": "A literal item replaced by a sequence holding the same keep literal as the next item keeps the keep chomping",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "164",
+  "165",
+  "166",
+  "168",
+  "170",
+  "183",
+  "186"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1.2",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "Item 1 is a keep literal `|+`; the patch replaces it with a sequence of one string, `\"tail\\n\\n\"`, which is exactly what every later item already holds (`- - |+` over `tail` and one empty line). A string that ends in two line breaks reads back exactly only when the literal has the keep indicator: with clip (`|`) the scalar is `tail\\n`, with strip it is `tail` (productions 164 to 168). The new text is the old node's style, a literal, inside a block sequence written in the compact form, with the content indentation of the sibling items; the kit has no convention that fixes the style of a string inside a collection that replaces a scalar, but the old style and the siblings agree, so that is what the case states, and it is a kit convention (docs/edit-semantics.md). Only bytes of item 1 change. The input is over 512 bytes because a library may edit by region above a size threshold, a different path from the one small documents take.",
+ "provenance": {
+  "reference": "A writer that, for a value equal to the next item, copied the next item's text but dropped its keep indicator, so the value read back as `tail` with one line break."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/1",
+    "value": [
+     "tail\n\n"
+    ]
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}
