@@ -3,5 +3,6 @@
  "language": "csharp",
  "build": ["./build.sh", "{build}"],
  "command": ["./run.sh", "{build}"],
+ "memory_processes": {"full": 5},
  "optional_libraries": {"KIT_ONEYAML_CSHARP_SRC": ["oneyaml-csharp", "oneyaml-csharp-gen"]}
 }

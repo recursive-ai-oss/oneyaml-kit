@@ -20,6 +20,8 @@ public static class Program
         public string? Out;
         public string Mode = "quick";
         public bool GuardOnly => Mode == "guard";
+        // The extra processes of a full run: guard, warm-up and memory pass of each cell, and no timing.
+        public bool MemoryOnly => Mode == "memory";
         public List<string> Libraries = [], Tasks = [], Only = [], Skip = [];
     }
 
@@ -260,6 +262,11 @@ public static class Program
         var note = runner.SharedStateRefusal is { } refused ? "fresh starting states: " + refused : "";
         // Only the verdicts are wanted when the known deviations are being recorded.
         if (a.GuardOnly) return new Cell("ok", note, runner.Variant ?? ok.Variant);
+        if (a.MemoryOnly)
+        {
+            try { return new Cell("ok", note, runner.Variant ?? ok.Variant, null, Measure.WarmedMemory(runner, cfg)); }
+            catch (Exception e) { return new Cell("error", "while measuring: " + Describe(e)); }
+        }
         try
         {
             // Time first, which warms the cell: the memory pass then sees the optimised code a user's program runs.
@@ -283,6 +290,7 @@ public static class Program
         w.WriteString("status", c.Status);
         w.WriteString("detail", c.Detail);
         if (c.Status == "ok" && c.Time == null) w.WriteString("variant", c.Variant);
+        if (c.Status == "ok" && c.Time == null && c.Memory != null) WriteMemory(w, c.Memory);
         if (c.Status == "ok" && c.Time != null && c.Memory != null)
         {
             w.WriteString("variant", c.Variant);
@@ -303,14 +311,19 @@ public static class Program
             foreach (var x in c.Time.SamplesNs) w.WriteNumberValue(x);
             w.WriteEndArray();
             w.WriteEndObject();
-            w.WriteStartObject("memory");
-            w.WriteString("method", MemoryMethod);
-            w.WriteNumber("peak_bytes", c.Memory.PeakBytes);
-            w.WriteNumber("allocated_bytes", c.Memory.AllocatedBytes);
-            w.WriteNull("allocations");
-            w.WriteNumber("retained_bytes", c.Memory.RetainedBytes);
-            w.WriteEndObject();
+            WriteMemory(w, c.Memory);
         }
+        w.WriteEndObject();
+    }
+
+    static void WriteMemory(Utf8JsonWriter w, Usage m)
+    {
+        w.WriteStartObject("memory");
+        w.WriteString("method", MemoryMethod);
+        w.WriteNumber("peak_bytes", m.PeakBytes);
+        w.WriteNumber("allocated_bytes", m.AllocatedBytes);
+        w.WriteNull("allocations");
+        w.WriteNumber("retained_bytes", m.RetainedBytes);
         w.WriteEndObject();
     }
 
@@ -320,7 +333,7 @@ public static class Program
     static Config ConfigFor(string mode) => mode switch
     {
         "quick" or "guard" => Config.Quick,
-        "full" => Config.Full,
+        "full" or "memory" => Config.Full,
         _ => throw new ArgumentException($"unknown mode {mode}"),
     };
 
