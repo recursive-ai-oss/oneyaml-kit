@@ -1,0 +1,300 @@
+"""Self-tests for the generated README and docs blocks: marker handling, what the tables must
+show, and that re-running changes nothing."""
+
+import contextlib
+import copy
+import io
+import json
+import math
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+
+from oneyaml_bench import cli  # noqa: E402
+from oneyaml_bench import readme as M  # noqa: E402
+from test_report import synthetic  # noqa: E402
+from test_results import cell  # noqa: E402
+
+END = M.END_MARK
+HERO = "<!-- generated:bench-hero -->"
+LINE = "<!-- generated:conformance-line -->"
+FULL = "<!-- generated:bench-full -->"
+DEV = "<!-- generated:conformance-deviations -->"
+README = f"# Title\r\nintro  \n\n{HERO}\nold hero\n{END}\n\nmiddle \t\n\n{LINE}\nold line\n{END}\nlast\n"
+PERF = f"# Performance\n\n{FULL}\nold\n{END}\n\ntail  \n"
+CONF = f"# Conformance\n\n{DEV}\nold\n{END}\n"
+
+CONFORMANCE = {
+    "adapter": {"name": "ours"},
+    "kit": {"suites": {"yaml-test-suite": {"release": "data-2022-01-17"}}},
+    "cases": [{"suite": "yaml-test-suite", "loose": "pass", "strict": "pass"},
+              {"suite": "yaml-test-suite", "loose": "pass", "strict": "fail"},
+              {"suite": "own", "loose": "pass", "strict": "fail"}],
+    "deviations": {"entries": [{"case": "yts:XXXX", "expectation": "primary", "mode": "strict",
+                                "verdict": "fail", "reason": "reads | as text"}]},
+}
+
+
+def real_world(result: dict, *ids: str) -> dict:
+    for w in result["workloads"]:
+        w["kind"] = "real-world" if w["id"] in ids else "generated"
+    return result
+
+
+def publishable(result: dict) -> dict:
+    result = copy.deepcopy(result)
+    result["run"]["mode"] = "full"
+    for c in result["cells"]:
+        if c["status"] == "ok":
+            c["time"]["samples"] = 30
+    result["run"]["publishability"] = {"publishable": True, "reasons": [], "measured": {}}
+    return result
+
+
+class Base(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+        self.readme = self.dir / "README.md"
+        self.docs = self.dir / "docs"
+        self.docs.mkdir()
+        self.readme.write_bytes(README.encode())
+        (self.docs / "performance.md").write_bytes(PERF.encode())
+        (self.docs / "conformance.md").write_bytes(CONF.encode())
+
+    def put(self, result=None, conf=CONFORMANCE):
+        res = self.dir / "res"
+        (res / "bench").mkdir(parents=True, exist_ok=True)
+        (res / "bench" / "results.json").write_text(json.dumps(result or real_world(synthetic(), "w1", "w2")))
+        (res / "conformance").mkdir(exist_ok=True)
+        if conf is not None:
+            (res / "conformance" / "ours.json").write_text(json.dumps(conf))
+        return res
+
+    def run_cmd(self, result=None, smoke=True, conf=CONFORMANCE, library="ours", extra=()):
+        res = self.put(result, conf)
+        args = ["readme", "--results", str(res), "--library", library, "--readme", str(self.readme),
+                "--docs", str(self.docs), *extra]
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            return cli.main(args + (["--allow-smoke"] if smoke else []))
+
+    def files(self):
+        return {p: p.read_bytes() for p in [self.readme, *self.docs.glob("*.md"), *self.dir.glob("docs/img/*")]}
+
+    def block(self, path, kind) -> str:
+        t = path.read_bytes().decode()
+        k, a, b = next(x for x in M.scan_blocks(t, set(M.KINDS)) if x[0] == kind)
+        return t[a:b]
+
+    def hero_line(self, task):
+        return next(l for l in self.block(self.readme, "bench-hero").split("\n") if l.startswith(f"| {task} "))
+
+
+class Splice(Base):
+    def test_only_marked_regions_change_and_rerun_is_identical(self):
+        self.assertEqual(self.run_cmd(), 0)
+        first = self.files()
+        old = README.encode()
+        new = self.readme.read_bytes()
+        self.assertTrue(new.startswith(old[:old.index(HERO.encode()) + len(HERO)]))
+        self.assertTrue(new.endswith(old[old.index(b"last"):]))
+        self.assertIn(b"\n\nmiddle \t\n\n" + LINE.encode(), new)
+        self.assertNotIn(b"old hero", new)
+        self.assertNotIn(b"old line", new)
+        self.assertTrue((self.docs / "performance.md").read_bytes().endswith(b"\ntail  \n"))
+        self.assertEqual(self.run_cmd(), 0)
+        self.assertEqual(first, self.files())
+
+    def test_several_blocks_in_a_file_and_blocks_in_each_file(self):
+        self.run_cmd()
+        self.assertIn("yaml-test-suite", self.block(self.readme, "conformance-line"))
+        self.assertIn("Workload", self.block(self.docs / "performance.md", "bench-full"))
+        self.assertIn("yts:XXXX", self.block(self.docs / "conformance.md", "conformance-deviations"))
+        self.assertIn("Strongest competitor", self.block(self.readme, "bench-hero"))
+
+    def test_crlf_marker_keeps_crlf(self):
+        self.readme.write_bytes(f"a\r\n{HERO}\r\nold\r\n{END}\r\nz\r\n".encode())
+        self.run_cmd()
+        data = self.readme.read_bytes()
+        self.assertNotIn(b"\n", data.replace(b"\r\n", b""))
+
+    def test_marker_errors_leave_every_file_untouched(self):
+        cases = {
+            "unknown": (f"<!-- generated:nope -->\n{END}\n", "unknown block kind"),
+            "none": ("text\n", "no generated markers"),
+            "missing end": (f"{HERO}\n", "missing end"),
+            "extra end": (f"{END}\n{HERO}\n{END}\n", "no begin"),
+            "duplicated": (f"{HERO}\n{END}\n{HERO}\n{END}\n", "duplicated"),
+            "nested": (f"{HERO}\n{LINE}\n{END}\n{END}\n", "nested"),
+        }
+        for name, (text, msg) in cases.items():
+            with self.subTest(name):
+                self.readme.write_bytes(text.encode())
+                before = self.files()
+                with self.assertRaises(M.ReadmeError) as cm:
+                    M.scan_blocks(text, set(M.KINDS), "README") if name != "none" else M.update(
+                        M.Ctx(publishable(real_world(synthetic(), "w1")), "ours", "0", None, self.dir, False),
+                        [self.readme], "c", self.dir)
+                self.assertIn(msg, str(cm.exception))
+                self.assertEqual(self.run_cmd(), 1)
+                self.assertEqual(before, self.files())
+
+    def test_a_bad_docs_file_stops_the_readme_from_changing(self):
+        (self.docs / "performance.md").write_bytes(f"{FULL}\nx\n".encode())
+        before = self.files()
+        self.assertEqual(self.run_cmd(), 1)
+        self.assertEqual(before, self.files())
+        self.assertFalse((self.dir / "docs" / "img").exists())
+
+    def test_marker_for_a_block_without_its_input_is_an_error(self):
+        before = self.files()
+        self.assertEqual(self.run_cmd(conf=None), 1)
+        self.assertEqual(before, self.files())
+
+
+class Hero(Base):
+    def test_geometric_mean_over_real_world_workloads(self):
+        # generic-load: w1 is 0.5x, w2 is 2.0x; the geometric mean is 1.0x, a tie. w3 and w4 are generated.
+        self.run_cmd()
+        line = self.hero_line("generic load")
+        self.assertIn("1.00×", line)
+        self.assertIn("● tie", line)
+        self.assertIn("1 better, 0 level, 1 worse of 2", line)
+        self.assertIn("`rival 2.0`", line)
+        self.assertIn("real-world workloads", self.block(self.readme, "bench-hero"))
+        r = real_world(synthetic(), "w1", "w3")  # 0.5 and 0.8
+        self.run_cmd(r)
+        self.assertIn(f"{math.sqrt(0.5 * 0.8):.2f}×", self.hero_line("generic load"))
+        self.assertIn("▲ win", self.hero_line("generic load"))
+
+    def test_a_loss_is_a_loss(self):
+        self.run_cmd(real_world(synthetic(), "w2"))
+        line = self.hero_line("generic load")
+        self.assertIn("2.00×", line)
+        self.assertIn("▼ loss", line)
+
+    def test_not_comparable_workload_is_not_dropped(self):
+        self.run_cmd(real_world(synthetic(), "w1", "w4"))  # ours differs on w4
+        line = self.hero_line("generic load")
+        self.assertIn("`w4` (differs)", line)
+        self.assertIn("partial", line)
+        r = real_world(synthetic(), "w4")  # only the failing workload
+        self.run_cmd(r)
+        line = self.hero_line("generic load")
+        self.assertIn("NOT COMPARABLE", line)
+        self.assertNotIn("×", line)
+
+    def test_tasks_without_cells_are_left_out_and_unsupported_is_not_a_number(self):
+        self.run_cmd()
+        hero = self.block(self.readme, "bench-hero")
+        self.assertNotIn("typed load", hero)
+        self.assertIn("NOT COMPARABLE", self.hero_line("patch"))
+        self.assertIn("(unsupported)", self.hero_line("patch"))
+
+    def test_task_without_a_real_world_workload_names_its_basis(self):
+        self.run_cmd(real_world(synthetic()))
+        self.assertIn("all workloads for", self.block(self.readme, "bench-hero"))
+
+    def test_marked_competitor_is_named_and_counts(self):
+        r = real_world(synthetic(), "w2")
+        r["cells"] = [c for c in r["cells"] if c["workload"] != "w2"] + [
+            cell("ours", "own", workload="w2", t=200.0),
+            cell("rival", workload="w2", t=100.0, variant="bytes-only")]
+        self.run_cmd(r)
+        line = self.hero_line("generic load")
+        self.assertIn("†", line)
+        self.assertIn("▼ loss", line)
+
+    def test_smoke_is_labelled_and_refused_without_the_flag(self):
+        before = self.files()
+        self.assertEqual(self.run_cmd(smoke=False), 1)
+        self.assertEqual(before, self.files())
+        self.run_cmd()
+        for path, kind in ((self.readme, "bench-hero"), (self.docs / "performance.md", "bench-full")):
+            self.assertIn("SMOKE RESULT, NOT PUBLISHABLE", self.block(path, kind))
+
+    def test_publishable_run_is_labelled_publishable(self):
+        self.assertEqual(self.run_cmd(publishable(real_world(synthetic(), "w1", "w2")), smoke=False), 0)
+        hero = self.block(self.readme, "bench-hero")
+        self.assertIn("**PUBLISHABLE**", hero)
+        self.assertNotIn("NOT PUBLISHABLE", hero)
+
+    def test_method_strip(self):
+        self.run_cmd()
+        hero = self.block(self.readme, "bench-hero")
+        for needle in ("2026-01-01", "Kit 0.1.0", "revision abc", "`ours 1.0`", "`rival 2.0`", "`other 3.0`",
+                       "rustc x", "opt=3", "Test CPU", "Linux", "governor performance", "0.5 before"):
+            self.assertIn(needle, hero)
+
+    def test_chart_embedded_with_numbers_in_alt(self):
+        self.run_cmd()
+        hero = self.block(self.readme, "bench-hero")
+        self.assertIn('srcset="docs/img/ours-hero-dark.svg"', hero)
+        self.assertIn('src="docs/img/ours-hero-light.svg"', hero)
+        for theme in ("light", "dark"):
+            self.assertIn("<svg", (self.dir / "docs" / "img" / f"ours-hero-{theme}.svg").read_text())
+        alt = hero[hero.index('alt="') + 5:]
+        alt = alt[:alt.index('"')]
+        self.assertIn("generic load 1.00×", alt)
+        self.assertIn("dump 0.90×", alt)
+
+    def test_chart_path_is_relative_to_each_file(self):
+        (self.docs / "performance.md").write_bytes(f"{HERO}\n{END}\n".encode())
+        self.run_cmd()
+        self.assertIn('srcset="img/ours-hero-dark.svg"', self.block(self.docs / "performance.md", "bench-hero"))
+
+
+class Other(Base):
+    def test_full_table_has_every_workload_and_every_competitor(self):
+        self.run_cmd()
+        full = self.block(self.docs / "performance.md", "bench-full")
+        head = next(l for l in full.split("\n") if l.startswith("| Task"))
+        for lib in ("ours", "rival", "other"):
+            self.assertIn(f"`{lib}`", head)
+        rows = [l for l in full.split("\n") if l.startswith("| generic load")]
+        self.assertEqual(len(rows), 8)  # four workloads, time and memory
+        w4 = next(l for l in rows if "`w4`" in l)
+        self.assertIn("no number (differs)", w4)
+        self.assertIn("▼ loss", next(l for l in rows if "`w2`" in l))
+
+    def test_conformance_line(self):
+        self.run_cmd()
+        line = self.block(self.readme, "conformance-line")
+        self.assertIn("yaml-test-suite data-2022-01-17: 2/2 loose, 1/2 strict.", line)
+        self.assertIn("own cases: 1/1 loose, 0/1 strict", line)
+        self.assertIn("(docs/conformance.md)", line)
+
+    def test_conformance_of_another_library_is_refused(self):
+        before = self.files()
+        self.assertEqual(self.run_cmd(conf={**CONFORMANCE, "adapter": {"name": "other"}}), 1)
+        self.assertEqual(before, self.files())
+
+    def test_deviations_listed_with_reasons(self):
+        self.run_cmd()
+        dev = self.block(self.docs / "conformance.md", "conformance-deviations")
+        self.assertIn("`yts:XXXX`", dev)
+        self.assertIn("reads \\| as text", dev)
+
+    def test_unknown_library_is_an_error(self):
+        before = self.files()
+        self.assertEqual(self.run_cmd(library="nope"), 1)
+        self.assertEqual(before, self.files())
+
+    def test_output_passes_the_public_text_check(self):
+        self.run_cmd()
+        self.assertEqual(cli.public_text_hits([p for p in self.files() if p.suffix in (".md", ".svg")]), [])
+        self.assertEqual(cli.text_hits("see the al" + "era plan"), ["1: 'al" + "era'"])
+        bad = {**CONFORMANCE, "deviations": {"entries": [{**CONFORMANCE["deviations"]["entries"][0],
+                                                          "reason": "ask the arch" + "itect"}]}}
+        before = self.files()
+        self.assertEqual(self.run_cmd(conf=bad), 1)
+        self.assertEqual(before, self.files())
+
+
+if __name__ == "__main__":
+    unittest.main()
