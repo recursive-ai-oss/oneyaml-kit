@@ -14,20 +14,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The upstream value reads 450.00 as the integer 450; the library reads the float 450.0, which is right under the core schema (the corrected expectation passes)."
-  },
-  {
-   "case": "own:edit/add-sequence-value-uses-the-enclosing-mappings-step",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "The new sequence is indented by the step of the preceding mapping, not by the enclosing mapping's own step (output differs at byte 31: '  - 1' where '- 1' follows the two-space key)."
-  },
-  {
-   "case": "own:edit/add-sequence-value-uses-the-enclosing-mappings-step",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The new sequence is indented by the step of the preceding mapping, not by the enclosing mapping's own step (output differs at byte 31: '  - 1' where '- 1' follows the two-space key)."
   }
  ]
 }

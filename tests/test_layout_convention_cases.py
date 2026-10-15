@@ -10,6 +10,7 @@ from oneyaml_kit import compare as K
 CASES = {c.id: c for c in C.load_own()}
 FLAT = "own:edit/add-sequence-value-defaults-to-two-spaces"
 ENCLOSING = "own:edit/add-sequence-value-uses-the-enclosing-mappings-step"
+MAPPING = "own:edit/set-nested-mapping-under-nested-key-uses-enclosing-step"
 SCALARS = ("own:edit/set-collection-to-scalar", "own:edit/set-sequence-to-scalar")
 CAPS = set(support.ALL_CAPS)
 
@@ -55,6 +56,27 @@ class SequenceIndentation(unittest.TestCase):
         self.assertIn("The step is two spaces when the document has no nested block mapping", doc)
         for cid in (FLAT, ENCLOSING):
             self.assertIn("docs/edit-semantics.md", notes(CASES[cid]))
+
+
+class MappingIndentation(unittest.TestCase):
+    def test_a_new_mapping_uses_the_enclosing_mappings_step(self):
+        c = CASES[MAPPING]
+        self.assertEqual(c.input, b"x:\n    y: 1\nz:\n  w: 1\n")
+        self.assertEqual(c.args["patch"], [{"op": "replace", "path": "/z/w", "value": {"q": 1}}])
+        self.assertEqual(c.expect["bytes"], b"x:\n    y: 1\nz:\n  w:\n    q: 1\n")
+        self.assertIn("convention", c.tags)
+        self.assertIn("docs/edit-semantics.md", notes(c))
+
+    def test_the_case_separates_the_readings(self):
+        # Four spaces from the earlier mapping, or a flow mapping, must fail.
+        c = CASES[MAPPING]
+        for wrong in (b"x:\n    y: 1\nz:\n  w:\n      q: 1\n",
+                      b"x:\n    y: 1\nz:\n  w: {q: 1}\n"):
+            self.assertNotEqual(verdict(c, wrong), verdict(c, c.expect["bytes"]))
+
+    def test_the_docs_cover_mappings_as_well_as_sequences(self):
+        doc = " ".join((support.ROOT / "docs" / "edit-semantics.md").read_text(encoding="utf-8").split())
+        self.assertIn("The layout of a new nested block collection** (a sequence or a mapping)", doc)
 
 
 class CollectionToScalar(unittest.TestCase):

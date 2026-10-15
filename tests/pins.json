@@ -303,6 +303,7 @@
    "edit/set-literal-strip-keeps-strip": "25dc8ac894ea62eed61a9300a3e03e28c182f8268c5380bcad39ba508db5218e",
    "edit/set-literal-strip-to-clip-when-newline-added": "c8fc76683fd5cb2406da3bbed6280416d33efd6c9a7bd948c336f22aa55fc04a",
    "edit/set-literal-to-integer": "bbc88d9bd3c7798440da77965ca76f8f699cb6e5d4065301e0c56d67519e814f",
+   "edit/set-nested-mapping-under-nested-key-uses-enclosing-step": "b5b8567a3d025efd62be35de81f011df37ab979d60b35f4bc9bbaee39e698ffc",
    "edit/set-plain-boolean": "b931ce118522f8982e9b3abd1d9ed52a199582ed6adfe78f3262f22f1140ae20",
    "edit/set-plain-float": "0a35458a84938bf96d60a313348420c40f82c41283613b4cf56d8bd6387afab5",
    "edit/set-plain-integer": "c94434a4afedfc30045ff0f5d23a2a3464b9b3be30cbfd31724efc5b6f709082",
