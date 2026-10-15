@@ -4388,7 +4388,7 @@
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Refuses the first copy of the document into itself as a path error although the patch is valid, so it never reaches a limit: the category differs, expected limit"
+   "reason": "Refuses the first copy of the document into itself as a path error although the patch is valid, so it never reaches a limit: the category differs, expected limit. The document it reports after the refusal is also not the input: the plain scalar comes back double-quoted (22 bytes for 20), the library's own rewriting"
   },
   {
    "case": "own:edit/patch-copies-of-written-out-aliases-are-charged",

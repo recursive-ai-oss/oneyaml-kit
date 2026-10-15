@@ -32,8 +32,8 @@ generated from these files only.
 }
 ```
 
-In `run`, `adapter_restarts` counts how often the shared adapter process had to be started
-again after a failure, and `bounded_sessions` how many separate processes the bounded cases
+In `run`, `adapter_restarts` counts how often the shared adapter process was started
+again after a failure (a restart that failed is not counted: its case failed with `detail`), and `bounded_sessions` how many separate processes the bounded cases
 used (one each, see the adapter protocol).
 
 ## Cases
@@ -51,7 +51,8 @@ Per case: `loose` and `strict` are each `pass`, `fail` or `unsupported`.
   audited without re-running.
 - `measured` (bounded cases): `seconds`, `time_bound` (the time bound that was enforced:
   the case's own bound times the machine's speed factor, see the case format) and `peak_mb`,
-  the peak resident-memory growth (null where it cannot be measured).
+  the peak resident-memory growth (null where it cannot be measured). A case whose adapter
+  could not be started has `seconds` 0 and `peak_mb` null.
 - `tags`: the kit case's tags, for kit cases that have any (for example `convention`), so a
   report can count verdicts that rest on a kit rule apart from the rest.
 - `emulated`: the behaviours the adapter supplied for this answer (see the adapter

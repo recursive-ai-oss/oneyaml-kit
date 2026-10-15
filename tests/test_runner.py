@@ -171,6 +171,53 @@ class Subprocess(unittest.TestCase):
         self.assertEqual((res[0]["loose"], res[1]["loose"]), ("fail", "pass"))
         self.assertIn("warm-up", res[0]["detail"])
 
+    def test_a_failed_restart_fails_that_case_and_the_run_goes_on(self):
+        a = self.adapter({"b": "crash"}, timeout=1)
+        h = a.start()
+        caps = set(h["capabilities"])
+        startlog = self.t / "starts"
+        good = a.command
+        # Every start of the replacement answers something that is not a hello.
+        a.command = [sys.executable, "-c",
+                     f"open({str(startlog)!r}, 'a').write('x'); print('not a hello')"]
+        res = R.execute(a, caps, [mk("b"), mk("c"), mk("d"), mk("e"), mk("f"), mk("g")])
+        self.assertEqual([r["loose"] for r in res], ["fail"] * 6)
+        self.assertIn("exited", res[0]["detail"])
+        for r in res[1:4]:
+            self.assertIn("could not be restarted", r["detail"])
+        # The restart is attempted for each of the next cases, three in a row, and then the rest of
+        # the run is refused at once instead of paying a start-up timeout for every case.
+        self.assertEqual(startlog.read_text(), "xxx")
+        for r in res[4:]:
+            self.assertIn("not running", r["detail"])
+        self.assertEqual(a.restarts, 0)
+        a.command = good
+        a.failed_starts = 0
+
+    def test_a_later_restart_can_succeed_after_a_failed_one(self):
+        a = self.adapter({"b": "crash"}, timeout=1)
+        h = a.start()
+        caps = set(h["capabilities"])
+        good = a.command
+        a.command = [sys.executable, "-c", "print('not a hello')"]
+        res = R.execute(a, caps, [mk("b"), mk("c")])
+        self.assertEqual([r["loose"] for r in res], ["fail", "fail"])
+        a.command = good
+        res = R.execute(a, caps, [mk("d"), mk("e")])
+        self.assertEqual([r["loose"] for r in res], ["pass", "pass"])
+        self.assertEqual((a.restarts, a.failed_starts), (1, 0))
+
+    def test_a_bounded_case_after_a_failed_restart_still_gets_its_own_process(self):
+        a = self.adapter({"b": "crash"}, timeout=1)
+        h = a.start()
+        caps = set(h["capabilities"])
+        good = a.command
+        a.command = [sys.executable, "-c", "print('not a hello')"]
+        R.execute(a, caps, [mk("b")])
+        a.command = good
+        res = R.execute(a, caps, [self.bounded(cid="first")])
+        self.assertEqual(res[0]["loose"], "pass")
+
     def test_a_case_states_its_own_time_bound_whatever_the_manifest_says(self):
         a = self.adapter({"b": "hang"}, timeout=30)  # the manifest would wait half a minute
         h = a.start()

@@ -175,6 +175,19 @@ def _bounded(case, expect: dict, resp: dict, caps: set) -> dict:
         elif err.get("category") not in want:
             verdict = FAIL
             detail = f"category: expected one of {', '.join(want)}, got {err.get('category')}"
+        if expect.get("unchanged"):
+            # A patch that is refused leaves the document as it was (RFC 6902 section 5). Like
+            # the same check on an error expectation, it is judged in strict mode only; loose
+            # asks for no more than that an error is reported.
+            out = _decode_output(resp)
+            if out is None:
+                problem = "document after the refusal not reported"
+            else:
+                d = diff_bytes(case.input, out)
+                problem = "document changed after a refused patch: " + d if d else ""
+            if problem:
+                verdict = FAIL
+                detail = "; ".join(x for x in (detail, problem) if x)
     if verdict == PASS and peak is None:
         verdict, detail = UNSUPPORTED, "memory use could not be measured on this platform"
     return {"loose": PASS, "strict": verdict, "detail": detail}

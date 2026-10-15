@@ -114,6 +114,44 @@ class Mutations(unittest.TestCase):
                 res, _ = run([m], answers_from=[c])
                 self.assertEqual((res[0]["loose"], res[0]["strict"]), want, (c.id, v))
 
+    def test_a_wrong_category_is_caught_on_bounded_cases_that_also_accept_a_result(self):
+        # The oracle answers such a case with its result, so the category is never used. Answer
+        # with a refusal in the first listed category instead: it passes strict, and a planted
+        # category that leaves it out fails strict (loose accepts any error).
+        both = [c for c in ALL if c.expect["kind"] == "bounded"
+                and c.expect["accept"] is not None and c.expect["category"] is not None]
+        self.assertGreaterEqual(len(both), 10)
+        caps = set(support.ALL_CAPS)
+        for c in both:
+            cats = list(c.expect["category"])
+            refusal = {"id": c.id, "status": "error", "error": {"category": cats[0]},
+                       "_measure": {"seconds": 0.0, "peak_mb": 0.0}}
+            r = K.evaluate(c, c.expect, refusal, caps)
+            self.assertEqual((r["loose"], r["strict"]), ("pass", "pass"), c.id)
+            other = next(x for x in ("limit", "syntax", "encoding") if x not in cats)
+            planted = [{**c.expect, "category": [other]}]
+            if len(cats) > 1:
+                planted.append({**c.expect, "category": cats[1:]})
+            for e in planted:
+                r = K.evaluate(c, e, refusal, caps)
+                self.assertEqual((r["loose"], r["strict"]), ("pass", "fail"), (c.id, e["category"]))
+                self.assertIn("category", r["detail"], c.id)
+
+    def test_a_bounded_refusal_that_changes_the_document_is_caught(self):
+        stated = [c for c in ALL if c.expect["kind"] == "bounded" and c.expect["unchanged"]]
+        self.assertGreaterEqual(len(stated), 3)
+        caps = set(support.ALL_CAPS)
+        m = {"seconds": 0.0, "peak_mb": 0.0}
+        for c in stated:
+            refusal = {"id": c.id, "status": "error", "error": {"category": c.expect["category"][0]},
+                       "_measure": m}
+            r = K.evaluate(c, c.expect, dict(refusal, output=C.b64(c.input)), caps)
+            self.assertEqual((r["loose"], r["strict"]), ("pass", "pass"), c.id)
+            for output in (C.b64(c.input + b" "), C.b64(c.input[:-1]), None):
+                resp = dict(refusal) if output is None else dict(refusal, output=output)
+                r = K.evaluate(c, c.expect, resp, caps)
+                self.assertEqual((r["loose"], r["strict"]), ("pass", "fail"), c.id)
+
     def test_changing_the_value_of_a_dump_case_fails_it(self):
         # A dump case holds its value in the operation: the same output must stop passing when the
         # value changes, whatever the value is.

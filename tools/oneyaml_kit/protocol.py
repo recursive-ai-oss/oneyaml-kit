@@ -29,6 +29,9 @@ POLL_SECONDS = 0.05
 # The trivial input a fresh bounded-case session answers before the case itself, whatever the
 # answer is: a plain scalar, valid in every operation.
 WARM_UP_INPUT = b"a\n"
+# How many restarts of the shared session may fail one after another before the rest of the run
+# stops trying (see SubprocessAdapter.run).
+MAX_FAILED_STARTS = 3
 
 
 def _status_kb(pid: int, field: str) -> int | None:
@@ -99,6 +102,7 @@ class SubprocessAdapter:
         self._q: queue.Queue = queue.Queue()
         self.restarts = 0
         self.fresh_sessions = 0
+        self.failed_starts = 0
 
     # -- lifecycle
     def start(self) -> dict:
@@ -224,7 +228,18 @@ class SubprocessAdapter:
         for this case, is enforced while the case runs, and makes the response carry `_measure`:
         wall-clock seconds and peak resident-memory growth in MB (None where unmeasurable)."""
         if self.proc is None:
-            self.start()
+            # The session died on an earlier case. A restart that fails fails this case and
+            # nothing else; the next case tries again, up to MAX_FAILED_STARTS times in a row,
+            # after which the rest of the run is refused at once rather than paying a start-up
+            # timeout for every remaining case.
+            if self.failed_starts >= MAX_FAILED_STARTS:
+                return self._not_run(f"adapter is not running: {MAX_FAILED_STARTS} restarts in a row failed", limits)
+            try:
+                self.start()
+            except (AdapterError, OSError, subprocess.SubprocessError) as e:
+                self.failed_starts += 1
+                return self._not_run(f"adapter could not be restarted: {e}", limits)
+            self.failed_starts = 0
             self.restarts += 1
         pid = self.proc.pid
         timeout, watch, base_kb, measurable = self.timeout, None, 0, False
@@ -291,8 +306,7 @@ class SubprocessAdapter:
         self.fresh_sessions += 1
 
         def failed(detail: str) -> dict:
-            return {"status": "crash", "detail": detail,
-                    "_measure": {"seconds": 0.0, "peak_mb": None, "time_bound": limits["time_seconds"]}}
+            return self._not_run(detail, limits)
 
         try:
             try:
@@ -305,6 +319,14 @@ class SubprocessAdapter:
             return one.run(case_id, op, data, args, limits)
         finally:
             one.close()
+
+    @staticmethod
+    def _not_run(detail: str, limits: dict | None) -> dict:
+        """The answer for a case that never reached a running adapter."""
+        out = {"status": "crash", "detail": detail}
+        if limits:
+            out["_measure"] = {"seconds": 0.0, "peak_mb": None, "time_bound": limits["time_seconds"]}
+        return out
 
     def _failed(self, status: str, detail: str) -> dict:
         if self.proc:

@@ -69,7 +69,7 @@ then one response per `run`, with the same `id`:
 | `status` | Fields |
 |---|---|
 | `ok` | `events` (array of lines) for `events`; `value` (list of documents) for `value`; `output` (base64 bytes of the whole stream after the patch) for `patch`; `output` (base64 of the text written) for `dump` |
-| `error` | `error`: `{"category", "message", "line", "column"}` (`line` and `column` optional; the conventions are in the case format's *Positions*). For `events`, also `events`: the lines produced before the error. For `patch`, also `output`: the bytes of the document as the library would now write it, so that "unchanged" can be checked |
+| `error` | `error`: `{"category", "message", "line", "column"}` (`line` and `column` optional; the conventions are in the case format's *Positions*). For `events`, also `events`: the lines produced before the error. For `patch`, also `output`: the bytes of the document as the library would now write it, so that "unchanged" can be checked (by an `error` expectation, and by a `bounded` patch case that states `unchanged`) |
 | `accepted` | (protocol 2) The library took the input and the adapter cannot or need not describe the result. No other field is needed. Only for `events` and `value` cases. See *Accepted without a result* |
 | `unsupported` | `reason`: a short sentence. The adapter declines this case |
 
@@ -230,7 +230,11 @@ in that session (do not detach with `setsid`, a double fork into another session
 container that hides the processes). On Linux this uses `/proc`; where the tree cannot be
 measured the peak is reported as unmeasured and strict reports unsupported. Everything
 in the session is killed when a case fails or the run ends. Adapters do nothing special. A killed or timed-out adapter fails that case
-and a fresh process serves the next one. A bounded case whose process cannot be started,
+and a fresh process serves the next one. When that restart itself fails (the new process cannot be
+started, or does not answer the hello), the case that needed it fails with the reason in
+`detail` and the run goes on: the next case tries the restart again, and after three failed restarts
+in a row the remaining cases fail at once with "adapter is not running" instead of paying a start-up
+wait each. A successful restart ends the count. A bounded case whose process cannot be started,
 dies before it reads the hello, does not complete the handshake or dies on the warm-up request
 fails that case, and nothing else.
 
