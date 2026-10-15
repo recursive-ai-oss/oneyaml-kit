@@ -1,0 +1,40 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-value-of-explicit-null-key-at-end-of-large-mapping",
+ "title": "A value set on an explicit null key with no value of its own goes on a new line, in a mapping longer than 512 bytes",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "189",
+  "190",
+  "191"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.2.2",
+  "YAML 1.2.2 section 7.2",
+  "RFC 6901 section 3",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The mapping holds seventy-five entries `k000: 0` to `k074: 0` and then `? #`, with no line break at the end of the input: 603 bytes in all, past the size at which a library may edit a region of the text instead of the whole document. `? #` is an explicit key with no content, followed by a comment, and no value line (production 189 makes the value optional), so the key is null and so is its value (section 8.2.2). A pointer token matches a mapping key by its scalar text, and the text of a node with no content is empty (section 7.2, an empty node), so the pointer `/`, whose single token is the empty string (RFC 6901 section 3), addresses this key's value; it is not the root, which is the pointer with no characters at all. No other key has an empty text, so the match is unambiguous. The replace gives that value the text ` lead`, which cannot stay plain because of the space at its start, so it is single-quoted (the convention in docs/edit-semantics.md), and because the entry has no value to take the place of, it is written as a new line `: ' lead'` under the key, as production 191 spells it. Nothing else changes, including the comment and the missing final line break. A library that edits only a region must not let its text and its tree disagree: the result read back must be the whole mapping with the key null and the value ` lead`, not a mapping with the key `/` or a lost value. The bytes after the key line, the new line and the quote style rest on the kit's conventions, so the case carries the tag `convention`. Input: `k000: 0` to `k074: 0`, each ending in a line break, then `? #` and nothing more.",
+ "provenance": {
+  "reference": "A patch engine that edited a text region around the changed node and, for an explicit null key with no value in a mapping past its region threshold, produced text whose reading differed from its tree."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/",
+    "value": " lead"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

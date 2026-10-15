@@ -322,6 +322,7 @@
    "edit/set-single-quoted-text": "9f75d00d17c14cd91f2bc252ae78df89e227f7eb47c058e92d02c644817f7661",
    "edit/set-single-quoted-to-boolean": "6983781c34e86a888f506f84a884addb60aa9f6a24b119072ab5a50e17c9a8e5",
    "edit/set-single-quoted-to-integer": "b227f68babacdee504193fc97c02507fe32951b8503091fb8e772ef2b38072bd",
+   "edit/set-value-of-explicit-null-key-at-end-of-large-mapping": "783e74a5381d8bd9576b1de38105c5a09077c6526a1b3afc3fe65fed80cf18a0",
    "edit/test-core-yes-is-a-string": "df29d75f81c33f12dc069147be359a75e94a07288881f975ce5002e18b3fd351",
    "edit/test-error-after-successful-edits": "5f0480225daedbd9d4d5f8b85792b9123f179076edc8a5e2bf49d4dccabb6618",
    "edit/test-error-float-is-not-integer": "4e9c1252c09c4b022842b0eaa6364493e0e2964fe0ccc208ee298cdbe99cad77",
@@ -484,10 +485,12 @@
    "safety/malformed-utf-8-overlong-form": "58f78381c4676720cb255a534068c92153a5b3561b89765245dc5d4d07ef0d68",
    "safety/malformed-utf-8-truncated-sequence-at-the-end": "c15707cfc5475fa72c21823a0f1d923020226ccc405648d7eef0df4a4b70300e",
    "safety/many-anchors-and-aliases": "9acf1dea0291fe835a1615ec0f873755cdcab401cc488d4b46bba6b6d29697f5",
+   "safety/many-anchors-sharing-one-name": "cc8c76ba6e065d35b9038120e0c3555408e6fea59119c7e5471a30690ecf4719",
    "safety/one-line-flow-mapping-many-pairs": "f601feb543d101848e5c9de3e7868318cb4f9768881b1cb17676755575bae5ac",
    "safety/one-line-flow-mapping-ten-megabytes": "247c8a5018365cffa06898bbf6f9ae1382fb7b6922740626fcdc9857747cb982",
    "safety/one-line-flow-mapping-with-duplicate-keys": "5087d29231714c1d09393893b8633c542322a2a58363628155f520c05e87a599",
    "safety/patch-copy-doubling": "2d3d84d5bb7b1cfec05d5b50a0d4bf7a5f7dffabe9d59048bb7232459aa1d55b",
+   "safety/patch-many-appends-into-a-created-flow-sequence": "900e68d4df511ff66890df10db982c09443da295bf192bff4c11954adc568578",
    "safety/plain-scalar-over-twenty-thousand-lines": "531aa561a50025946e2f2d571aac449cbe77158c4578ba6f5a1dbae3d3df206b",
    "safety/shallow-flow-mappings-then-many-lines-unclosed": "59f08bfb66226d12c813466b637324bb80f29005f70c7b7aa27f36546adb1db6",
    "safety/ten-million-digit-plain-scalar-events": "0ce7c4533aa551b1c1faaa1fa9b5d38e9ee8b0a701925bb8a1e9dcfd585573cd",
@@ -544,6 +547,10 @@
    "safety/implicit-key-window-rescan": {
     "bytes": 24002201,
     "sha256": "7caa99ebf42e730a4e32eac92ac555861956acc96e696c39574ce46e3e8009d8"
+   },
+   "safety/many-anchors-sharing-one-name": {
+    "bytes": 2400003,
+    "sha256": "b43a830b13afd72aaaf1b5fcadf048b59e3d381f28da161290906bfd0367a26d"
    },
    "safety/one-line-flow-mapping-ten-megabytes": {
     "bytes": 9788893,

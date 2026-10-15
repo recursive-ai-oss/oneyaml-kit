@@ -763,6 +763,20 @@
    "mode": "strict",
    "verdict": "unsupported",
    "reason": "the library has no byte string it writes as !!binary"
+  },
+  {
+   "case": "own:edit/set-value-of-explicit-null-key-at-end-of-large-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reports that the replace target does not exist: the empty pointer token does not reach the explicit null key"
+  },
+  {
+   "case": "own:edit/set-value-of-explicit-null-key-at-end-of-large-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports that the replace target does not exist: the empty pointer token does not reach the explicit null key"
   }
 ]
 }
