@@ -1,26 +1,33 @@
 {
  "format": "oneyaml-kit-case/2",
  "id": "schema/core-integers-beyond-64-bits",
- "title": "Integers are unbounded: values past 64 bits stay exact integers",
+ "title": "Integers are unbounded: values past 64 bits are exact or refused",
  "category": "schema",
  "origin": "spec",
  "refs": [
-  "YAML 1.2.2 section 10.3.2"
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 10.2.1.4"
  ],
- "notes": "The core schema defines the integer pattern with no upper bound.",
+ "notes": "The core schema defines the integer patterns `[-+]?[0-9]+`, `0o[0-7]+` and `0x[0-9a-fA-F]+` with no upper bound (section 10.3.2), so each value here is the integer in the text. YAML 1.2.2 section 10.2.1.4 lets a processor reject an integer it cannot hold as an error. The kit therefore accepts the exact integer or a refusal (strict: a `limit` error). Truncating or converting the value fails, because the kit cannot see a warning. A crash, a hang, a wrong result, or more than the stated time or memory fails. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The values sit just past each 64-bit limit, as a hexadecimal and an octal form, and at thirty digits. The case first asked for the exact integer only; section 10.2.1.4 allows a refusal, so that is now accepted too.",
  "operation": {
   "type": "value"
  },
  "expect": {
-  "kind": "value",
-  "value": [
-   {
-    "a": 18446744073709551616,
-    "b": -9223372036854775809,
-    "c": 4722366482869645213695,
-    "d": 73786976294838206463,
-    "e": 123456789012345678901234567890
-   }
-  ]
+  "kind": "bounded",
+  "time_seconds": 5,
+  "memory_mb": 512,
+  "error": "limit",
+  "accept": {
+   "kind": "value",
+   "value": [
+    {
+     "a": 18446744073709551616,
+     "b": -9223372036854775809,
+     "c": 4722366482869645213695,
+     "d": 73786976294838206463,
+     "e": 123456789012345678901234567890
+    }
+   ]
+  }
  }
 }

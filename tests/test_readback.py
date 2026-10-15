@@ -334,6 +334,28 @@ class Judging(unittest.TestCase):
         # A folded spelling and a plain one are the same bytes.
         self.assertEqual(R.canonical_binary(read("!!binary |\n  AA\n  EC\n")), read("!!binary AAEC\n"))
 
+    def test_binary_text_is_trimmed_of_yaml_white_space_only_and_compared_by_bytes(self):
+        want = {"$tagged": {"tag": R.BINARY_TAG, "value": "AP/+gIE="}}
+        # Space, tab, CR and LF are the white space a writer folds with; the same bytes written with
+        # other trailing bits are the same bytes.
+        for text in (b"!!binary AP/+gIE=\n", b'!!binary "AP/+\t gI\r\nE="\n', b"!!binary AP/+gIF=\n"):
+            self.assertEqual(evaluate(want, text)[:2], ("pass", "pass"), text)
+        # A no-break space or any other Unicode space is not YAML white space.
+        for text in ("!!binary \"AP/+\u00a0gIE=\"\n", "!!binary \"AP/+\u2003gIE=\"\n", "!!binary \"AP/+\x0bgIE=\"\n"):
+            self.assertEqual(evaluate(want, text.encode())[0], "fail", text)
+            with self.assertRaises(R.ReadError, msg=text):
+                read(text)
+
+    def test_a_mark_that_ends_a_block_scalar_does_not_leave_the_scalar_open(self):
+        bom = "\ufeff"
+        # The mark is at column 0, so the literal ends there; what follows is a comment (productions 202, 211).
+        for text in ("- |\n  a\n" + bom + "  # b\n", "- |\n  a\n" + bom + "  \n", "- |+\n  a\n" + bom + "\n\n",
+                     "- >\n  a\n" + bom + "\t# b\n"):
+            self.assertEqual(read(text), ["a\n"], text)
+        # A mark inside the literal's own lines stays an error.
+        with self.assertRaises(R.ReadError):
+            read("- |\n  a\n" + bom + "  b\n")
+
     def test_one_digit_month_and_day_are_a_timestamp_in_yaml_1_1(self):
         for text in (b"2001-1-1\n", b"2001-12-1\n", b"2001-1-12\n"):
             self.assertEqual(evaluate(text.decode().strip(), text)[:2], ("pass", "fail"), text)

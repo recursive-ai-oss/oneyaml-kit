@@ -3093,28 +3093,28 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 18446744073709551616, got 1.8446744073709552e+19"
+   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 100000000000000000000000000000000000000000000000000000000..., got 1e+99"
   },
   {
    "case": "own:schema/decimal-integers-beyond-64-bits-are-exact-or-refused",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 18446744073709551616, got 1.8446744073709552e+19"
+   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 100000000000000000000000000000000000000000000000000000000..., got 1e+99"
   },
   {
    "case": "own:schema/hexadecimal-and-octal-integers-beyond-64-bits-are-exact-or-refused",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 4722366482869645213695, got '0xFFFFFFFFFFFFFFFFFF'"
+   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 18446744073709551616, got '0x10000000000000000'"
   },
   {
    "case": "own:schema/hexadecimal-and-octal-integers-beyond-64-bits-are-exact-or-refused",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 4722366482869645213695, got '0xFFFFFFFFFFFFFFFFFF'"
+   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 18446744073709551616, got '0x10000000000000000'"
   }
  ]
 }

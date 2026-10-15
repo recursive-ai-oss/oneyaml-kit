@@ -170,7 +170,8 @@ anywhere. **Strict** mode also checks whatever the case states:
 
 - `category`: one of `syntax`, `encoding`, `limit`, `patch-path`, `patch-test`,
   `patch-invalid`, `refused-alias`, `refused-ambiguous`, `unresolved-tag` (a reader
-  refused a tag it cannot resolve, YAML 1.2.2 section 3.3), `duplicate-key` (a mapping
+  refused a tag it cannot resolve, YAML 1.2.2 section 3.3), `limit` (input or a value beyond
+  what the library will hold or spend: depth, size, aliases, digits), `duplicate-key` (a mapping
   holds two equal keys, which YAML 1.2.2 section 3.2.1.1 forbids: the keys of a mapping are
   unique), or `any` (the default).
   Categories are stable names, never message text.
@@ -302,11 +303,22 @@ PyYAML, gopkg.in/yaml.v3 and goccy/go-yaml accept.
 
 A byte string is judged by its bytes. The reader takes a scalar tagged `!!binary` (or with the
 verbatim tag `!<tag:yaml.org,2002:binary>`), strips the white space and line breaks that a writer
-folds the base64 with, and requires padded base64 of the standard alphabet; the bytes it decodes to
-must be the case's bytes. Text with no tag, a list of numbers or a different tag is a different
-value. Loose and strict judge this the same way, because the tag is the only way to tell bytes from
-text and the YAML 1.1 binary type is its only definition. A library that has no byte-string type it
-writes as `!!binary` answers `unsupported` (see `adapter-protocol.md`), which is never a failure.
+folds the base64 with (space, tab, CR and LF only), and requires padded base64 of the standard
+alphabet; the bytes it decodes to must be the case's bytes, whatever the spelling of the text.
+Text with no tag, a list of numbers or a different tag is a different value. Loose and strict
+judge this the same way, because the tag is the only way to tell bytes from text and the YAML 1.1
+binary type is its only definition.
+
+The verdict for a library follows from what its own byte-string route writes:
+
+- it writes the bytes as text that does not read back as those bytes (untagged base64, say):
+  **fail**;
+- its own data model writes a byte array as something else, a list of integers for instance:
+  **unsupported**, with that as the reason, because the case asks for a type the library does not
+  have;
+- it has no byte type at all: **unsupported**.
+
+The adapter never wraps the bytes in a tag, a base64 string or a list itself.
 
 An adapter answers with `output` (base64 of the bytes written); an `error` or a missing
 output is a failure, and `unsupported` is a declined case that must be listed as a known

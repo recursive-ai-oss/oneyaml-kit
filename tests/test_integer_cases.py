@@ -1,14 +1,18 @@
 """The cases that ask for exact integers past 64 bits, or a refusal with a named category."""
 
+import json
 import unittest
+from pathlib import Path
 
 import support
 from oneyaml_kit import cases as C
 from oneyaml_kit import compare as K
 
-IDS = ("own:schema/decimal-integers-beyond-64-bits-are-exact-or-refused",
+IDS = ("own:schema/core-integers-beyond-64-bits",
+       "own:schema/decimal-integers-beyond-64-bits-are-exact-or-refused",
        "own:schema/hexadecimal-and-octal-integers-beyond-64-bits-are-exact-or-refused",
        "own:safety/integer-of-4300-digits-is-exact-or-refused")
+CASES = Path(__file__).resolve().parents[1] / "suites" / "own" / "cases"
 CAPS = set(support.ALL_CAPS)
 MEASURE = {"seconds": 0.1, "peak_mb": 10.0}
 
@@ -45,14 +49,44 @@ class IntegerCases(unittest.TestCase):
             self.assertTrue(all(abs(i) >= 2 ** 63 for i in ints(e["accept"]["value"])), c.id)
 
     def test_the_values_are_the_ones_the_core_schema_gives(self):
-        dec, hexoct, long = load()
+        core, dec, hexoct, long = load()
         # [-+]?[0-9]+, 0o[0-7]+ and 0x[0-9a-fA-F]+ (section 10.3.2) have no upper bound.
-        self.assertEqual(ints(dec.expect["accept"]["value"]),
-                         [2 ** 64, -(2 ** 63) - 1, 123456789012345678901234567890, 10 ** 99])
-        self.assertEqual(ints(hexoct.expect["accept"]["value"]), [2 ** 72 - 1, 2 ** 64, 2 ** 66 - 1])
+        self.assertEqual(ints(core.expect["accept"]["value"]),
+                         [2 ** 64, -(2 ** 63) - 1, 2 ** 72 - 1, 2 ** 66 - 1, 123456789012345678901234567890])
+        self.assertEqual(ints(dec.expect["accept"]["value"]), [10 ** 99])
+        self.assertEqual(ints(hexoct.expect["accept"]["value"]), [2 ** 64, 2 ** 64])
         digits = str(ints(long.expect["accept"]["value"])[0])
         self.assertEqual(len(digits), 4300)
         self.assertEqual(long.input.decode(), "a: " + digits + "\n")
+
+    def test_one_input_has_one_expectation(self):
+        # The same scalar in two cases would be judged twice, and could be judged two ways.
+        seen = {}
+        for c in load():
+            for line in c.input.decode().splitlines():
+                scalar = line.split(":")[-1].lstrip("- ").strip()
+                self.assertNotIn(scalar, seen, (c.id, seen.get(scalar)))
+                seen[scalar] = c.id
+        self.assertEqual(len(seen), 9)
+
+    def test_every_case_cites_the_clause_that_allows_a_refusal(self):
+        for c in load():
+            self.assertIn("YAML 1.2.2 section 10.2.1.4", c.refs, c.id)
+            notes = json.loads((CASES / c.id[len("own:"):] / "case.json").read_text())["notes"]
+            self.assertIn("section 10.2.1.4 lets a processor reject", notes, c.id)
+
+    def test_the_competitor_integer_cases_say_so(self):
+        by = {c.id: c for c in load()}
+        for cid in IDS[1:3]:
+            self.assertEqual(by[cid].origin, "competitor", cid)
+
+    def test_a_crash_is_not_described_as_a_different_value(self):
+        adapters = Path(__file__).resolve().parents[1] / "adapters"
+        for f in sorted(adapters.glob("*/deviations.json")):
+            for e in json.loads(f.read_text(encoding="utf-8"))["entries"]:
+                r = e["reason"]
+                if "different value" in r:
+                    self.assertNotRegex(r, r"adapter exited|exit code|process ended", (f.parent.name, e["case"]))
 
     def test_exact_integers_and_a_limit_error_pass_and_anything_else_fails(self):
         for c in load():

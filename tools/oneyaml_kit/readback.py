@@ -145,6 +145,13 @@ class Parser:
                 rest = line[1:]
                 if prefix or marker(rest, "---") or (blank(rest) and tail[k + 1]):
                     body = rest
+                    if not prefix and blank(rest):
+                        # The mark is at column 0, so it ends a block scalar before it; the rest of
+                        # the line is a comment. Indentation left in front of it would make the
+                        # line a part of that scalar, so the line becomes a comment at column 0.
+                        body = rest.lstrip(" \t") or "#"
+                        if body[0] != "#":
+                            body = "#"
             if prefix:
                 text = body.strip(" \t")
                 if not (text == "" or text[0] in "#%" or marker(body, "...")):
@@ -1056,12 +1063,16 @@ SCHEMAS = {CORE: CoreSchema(), YAML11: Yaml11Schema(), COMMON: CommonSchema()}
 BINARY_TAG = "tag:yaml.org,2002:binary"
 
 
+# Only space, tab, CR and LF are YAML white space; another Unicode space is not part of base64.
+_BINARY_FOLD = re.compile(r"[ \t\r\n]+")
+
+
 def _binary(text: str) -> dict:
     """The kit value of a `!!binary` scalar. No schema here resolves the tag to a kit type, so the
     node is a tagged string; its text is the base64 of the bytes (the YAML 1.1 binary type, RFC 4648
     section 4: standard alphabet, padded), with white space and line breaks ignored. The text is
     checked here and kept as written; `canonical_binary` makes two spellings of the same bytes equal."""
-    body = "".join(text.split())
+    body = _BINARY_FOLD.sub("", text)
     try:
         base64.b64decode(body, validate=True)  # the standard alphabet, padded
     except ValueError as e:
@@ -1070,14 +1081,20 @@ def _binary(text: str) -> dict:
 
 
 def canonical_binary(v):
-    """The value with the text of every binary node as plain padded base64 (the white space that
-    a writer folds the text with is not part of it)."""
+    """The value with the text of every binary node as the padded base64 of its bytes: the white
+    space that a writer folds the text with is not part of it, and two spellings of the same bytes
+    (other trailing bits in the last character) are the same text."""
     if isinstance(v, list):
         return [canonical_binary(x) for x in v]
     if isinstance(v, dict):
         tagged = v.get("$tagged") if len(v) == 1 else None
         if isinstance(tagged, dict) and tagged.get("tag") == BINARY_TAG and isinstance(tagged.get("value"), str):
-            return {"$tagged": {"tag": BINARY_TAG, "value": "".join(tagged["value"].split())}}
+            body = _BINARY_FOLD.sub("", tagged["value"])
+            try:
+                body = base64.b64encode(base64.b64decode(body, validate=True)).decode("ascii")
+            except ValueError:
+                pass  # not base64: kept as it is, and different from any bytes
+            return {"$tagged": {"tag": BINARY_TAG, "value": body}}
         return {k: canonical_binary(x) for k, x in v.items()}
     return v
 

@@ -258,11 +258,12 @@ answered `unsupported` with the reason and listed as a deviation.
 
 A byte string is the value `{"$tagged": {"tag": "tag:yaml.org,2002:binary", "value": <base64>}}`.
 The adapter decodes the base64 and hands the bytes to the library in the type the library itself
-writes as a `!!binary` scalar (or its byte-string type, whatever it writes for it). A library
-with no such type is answered `unsupported` with a reason that says what it does instead (a
-byte array that it writes as a list of integers, bytes that go through JSON); the adapter does
-not wrap the bytes in a tag, a base64 string or a list itself. A library that has the type and
-writes something else for it fails the case.
+writes as a `!!binary` scalar (or its byte-string type, whatever it writes for it). The verdict
+follows from what the library writes (see `case-format.md`): bytes written as text that does not
+read back as those bytes (untagged base64) are a failure; a library whose own data model writes a
+byte array as a list of integers, or that has no byte type, is answered `unsupported` with a
+reason that says what it does instead. The adapter does not wrap the bytes in a tag, a base64
+string or a list itself.
 
 ## Known deviations
 

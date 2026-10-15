@@ -200,7 +200,9 @@ class DotnetAdapters(unittest.TestCase):
             # Whether memory or time runs out first depends on the machine; both are the kit's stop.
             self.assertEqual(r["loose"], "fail", n)
             self.assertIn(r["got"]["status"], ("memory", "timeout"), n)
-            self.assertGreaterEqual(self.res[n]["run"]["adapter_restarts"], 1, n)
+            # A bounded case runs in a session of its own, so the kit stopping it is not a restart of
+            # the main session; what counts is that such sessions were used.
+            self.assertGreaterEqual(self.res[n]["run"]["bounded_sessions"], 1, n)
         # The other two keep the aliases shared, so the adapter answers `accepted`; the case allows only a
         # limit error, so taking the input is the failure, and the measured cost is recorded.
         for n in ("yamldotnet", "vyaml"):

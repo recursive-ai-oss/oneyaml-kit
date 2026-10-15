@@ -1,17 +1,18 @@
 {
  "format": "oneyaml-kit-case/2",
  "id": "schema/hexadecimal-and-octal-integers-beyond-64-bits-are-exact-or-refused",
- "title": "0x and 0o integers past 64 bits are exact or refused, never rounded",
+ "title": "0x and 0o integers of 2^64 are exact or refused, never rounded",
  "category": "schema",
- "origin": "bug",
+ "origin": "competitor",
  "productions": [
   "131"
  ],
  "refs": [
   "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 10.2.1.4",
   "YAML 1.2.2 section 7.3.3"
  ],
- "notes": "The Core schema reads a plain scalar that matches `[-+]?[0-9]+` as an integer and gives that pattern no upper bound (section 10.3.2). A library therefore either returns the exact integer or refuses the scalar with a limit error that says it is too large; turning it into a float, a string or a wrapped 64-bit number changes the data without a word. A library that reads it gives exactly the expected result; one that refuses it says so with a limit error. A crash, a hang, a wrong result, or more than the stated time or memory fails. The resource bounds are the robustness requirement of the kit, not a rule of the specification. This case uses the Core `0x` and `0o` forms (`0x[0-9a-fA-F]+`, `0o[0-7]+`), which have no bound either.",
+ "notes": "The core schema reads a plain scalar that matches `0x[0-9a-fA-F]+` as a hexadecimal integer and one that matches `0o[0-7]+` as an octal integer, and gives neither an upper bound (section 10.3.2). Turning one into a float, a string or a wrapped 64-bit number changes the data without a word. YAML 1.2.2 section 10.2.1.4 lets a processor reject an integer it cannot hold as an error. The kit therefore accepts the exact integer or a refusal (strict: a `limit` error). Truncating or converting the value fails, because the kit cannot see a warning. A crash, a hang, a wrong result, or more than the stated time or memory fails. The resource bounds are the robustness requirement of the kit, not a rule of the specification. Both values are 2^64, the first one that does not fit an unsigned 64-bit integer; longer forms are in `schema/core-integers-beyond-64-bits`.",
  "operation": {
   "type": "value"
  },

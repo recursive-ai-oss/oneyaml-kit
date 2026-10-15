@@ -60,7 +60,9 @@ func main() {
 			},
 		},
 		Events: events, Value: value, Dump: dump,
-		NoBinary: "bytes go through JSON and are written as untagged base64 text",
+		// A byte slice goes through JSON, which writes it as untagged base64 text: the case
+		// judges that text, and it does not read back as the bytes.
+		Binary: func(data []byte) (any, error) { return data, nil },
 	}
 	a.Serve()
 }
