@@ -4627,6 +4627,111 @@
   "mode": "strict",
   "verdict": "fail",
   "reason": "Output differs: first difference at byte 5: expected b' y: 1\\nz:\\n w:\\n q: 1\\n', got b'y: 1\\nz:\\n w:\\n q: 1\\n' (lengths 29 and 27)"
-}
-]
+},
+  {
+   "case": "own:edit/add-below-empty-document-root-is-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "document changed after a failed patch: first difference at byte 0: expected b'--- # c\\n', got b'null\\n' (lengths 8 and 5)"
+  },
+  {
+   "case": "own:edit/remove-entry-after-literal-with-more-indented-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 8: expected b'|\\n    v\\nb: 2\\n', got b'\"v\\\\n\"\\nb: 2\\n' (lengths 21 and 19)"
+  },
+  {
+   "case": "own:edit/remove-entry-after-literal-with-more-indented-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 8: expected b'|\\n    v\\nb: 2\\n', got b'\"v\\\\n\"\\nb: 2\\n' (lengths 21 and 19)"
+  },
+  {
+   "case": "own:edit/replace-empty-document-keeps-marker-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'--- # c\\na: 1\\n', got b'a: 1\\n' (lengths 13 and 5)"
+  },
+  {
+   "case": "own:edit/replace-empty-document-keeps-marker-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'--- # c\\na: 1\\n', got b'a: 1\\n' (lengths 13 and 5)"
+  },
+  {
+   "case": "own:edit/replace-literal-followed-by-blank-line-with-list-keeps-literal",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'  - |\\n    make\\n\\nb: 1\\n', got b'- \"make\\\\n\"\\nb: 1\\n' (lengths 24 and 19)"
+  },
+  {
+   "case": "own:edit/replace-literal-followed-by-blank-line-with-list-keeps-literal",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'  - |\\n    make\\n\\nb: 1\\n', got b'- \"make\\\\n\"\\nb: 1\\n' (lengths 24 and 19)"
+  },
+  {
+   "case": "own:parse/directive-lookalike-line-in-a-block-scalar-before-a-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected 'foo\\n%bar\\n', got 'foo\\n%bar\\n---\\nx\\n'"
+  },
+  {
+   "case": "own:parse/directive-lookalike-line-in-a-block-scalar-before-a-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the value differently: $[0]: expected 'foo\\n%bar\\n', got 'foo\\n%bar\\n---\\nx\\n'"
+  },
+  {
+   "case": "own:schema/duplicate-key-overflowing-float-same-value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects a duplicate-key or limit error."
+  },
+  {
+   "case": "own:schema/duplicate-key-overflowing-float-same-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects a duplicate-key or limit error."
+  },
+  {
+   "case": "own:schema/keys-of-overflowing-floats-with-different-values-are-not-duplicates",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Answers with a different result than the exact one, and no limit error: first difference at byte 7: expected b'a\\n2e400: c\\n', got b'\"a\"\\n2e400: \"c\"\\n' (lengths 18 and 22)"
+  },
+  {
+   "case": "own:schema/keys-of-overflowing-floats-with-different-values-are-not-duplicates",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Answers with a different result than the exact one, and no limit error: first difference at byte 7: expected b'a\\n2e400: c\\n', got b'\"a\"\\n2e400: \"c\"\\n' (lengths 18 and 22)"
+  },
+  {
+   "case": "own:schema/keys-of-underflowing-floats-with-different-values-are-not-duplicates",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Answers with a different result than the exact one, and no limit error: first difference at byte 8: expected b'a\\n2e-400: c\\n', got b'\"a\"\\n2e-400: \"c\"\\n' (lengths 20 and 24)"
+  },
+  {
+   "case": "own:schema/keys-of-underflowing-floats-with-different-values-are-not-duplicates",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Answers with a different result than the exact one, and no limit error: first difference at byte 8: expected b'a\\n2e-400: c\\n', got b'\"a\"\\n2e-400: \"c\"\\n' (lengths 20 and 24)"
+  }
+ ]
 }

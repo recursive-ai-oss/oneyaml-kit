@@ -371,6 +371,14 @@ fn native(j: &Json, depth: usize) -> Result<Value, String> {
             Value::from(v)
         }
         Json::Object(o) => {
+            if let Some(d) = o.get("$bigint").and_then(Json::as_str) {
+                // The library's own value for an integer beyond 64 bits: the digits read as
+                // YAML give its wide integer type, exactly.
+                return match oneyaml::from_str::<Value>(d) {
+                    Ok(v) if v.as_number().is_some_and(|n| n.is_integer()) => Ok(v),
+                    _ => Err("integer the library cannot read".into()),
+                };
+            }
             if let Some(f) = o.get("$float").and_then(Json::as_str) {
                 return Ok(Value::from(match f {
                     "inf" => f64::INFINITY,
@@ -409,12 +417,7 @@ fn native(j: &Json, depth: usize) -> Result<Value, String> {
 }
 
 /// Writes the value with the library's default settings. The text is returned as it is.
-fn dump(args: &Json, big_integer: bool) -> Outcome {
-    // The JSON reader turns an integer beyond 64 bits into a float, so the request text is
-    // checked for one beforehand; such a value is declined, never written rounded.
-    if big_integer {
-        return Outcome::Unsupported("integer beyond 64 bits".into());
-    }
+fn dump(args: &Json) -> Outcome {
     let Some(j) = args.get("value") else {
         return Outcome::Unsupported("no value".into());
     };
@@ -673,7 +676,7 @@ fn handle(req: &Json) -> Option<String> {
                 Some("events") => events(&bytes),
                 Some("value") => value(&bytes),
                 Some("patch") => patch(&bytes, &args),
-                Some("dump") => dump(&args, req.get("big_integer").is_some()),
+                Some("dump") => dump(&args),
                 other => Outcome::Unsupported(format!("operation {other:?}")),
             };
             Some(respond(id, outcome))
@@ -682,9 +685,11 @@ fn handle(req: &Json) -> Option<String> {
     }
 }
 
-/// Whether the JSON text holds an integer literal (no point, no exponent, outside strings)
-/// that fits neither i64 nor u64.
-fn has_big_integer(text: &str) -> bool {
+/// The JSON text with every integer literal (no point, no exponent, outside strings) that fits
+/// neither i64 nor u64 replaced by `{"$bigint":"digits"}`. The JSON reader would turn such a
+/// literal into a float; this keeps its digits for the library's own wide integer.
+fn wrap_big_integers(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
     let mut in_string = false;
     let mut escaped = false;
     let mut token = String::new();
@@ -696,6 +701,7 @@ fn has_big_integer(text: &str) -> bool {
                 (false, '"') => in_string = false,
                 _ => {}
             }
+            out.push(c);
             continue;
         }
         if c.is_ascii_digit() || matches!(c, '-' | '+' | '.' | 'e' | 'E') {
@@ -705,15 +711,20 @@ fn has_big_integer(text: &str) -> bool {
         if !token.is_empty() {
             let integral = !token.contains(['.', 'e', 'E']);
             if integral && token.parse::<i64>().is_err() && token.parse::<u64>().is_err() {
-                return true;
+                out.push_str(&format!("{{\"$bigint\":\"{token}\"}}"));
+            } else {
+                out.push_str(&token);
             }
             token.clear();
         }
         if c == '"' {
             in_string = true;
         }
+        out.push(c);
     }
-    false
+    // Drop the sentinel space added to flush the last token.
+    out.pop();
+    out
 }
 
 fn serve() {
@@ -721,12 +732,14 @@ fn serve() {
     let mut out = std::io::stdout().lock();
     for line in stdin.lock().lines() {
         let Ok(line) = line else { return };
-        let Ok(mut req) = serde_json::from_str::<Json>(&line) else {
+        let line = if line.contains("\"dump\"") {
+            wrap_big_integers(&line)
+        } else {
+            line
+        };
+        let Ok(req) = serde_json::from_str::<Json>(&line) else {
             return;
         };
-        if line.contains("\"dump\"") && has_big_integer(&line) {
-            req["big_integer"] = Json::Bool(true);
-        }
         if req.get("type").and_then(Json::as_str) == Some("bye") {
             return;
         }

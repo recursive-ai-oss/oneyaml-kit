@@ -1,0 +1,41 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-empty-document-keeps-marker-comment",
+ "title": "Replacing an empty document keeps the comment on the start marker line",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "203",
+  "207",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 9.1.4",
+  "YAML 1.2.2 section 6.6",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The document has a start marker with a comment and no content, so its root is empty (null). Replacing the whole document (the empty path, RFC 6902 section 4.3) makes the root a mapping, written after the marker line. The comment is on the marker line, outside the node, and edits do not touch comments outside the value (docs/edit-semantics.md, Comments). A block mapping or a flow mapping `{a: 1}` both read back as the new value, and the specification allows both, so the choice of a block mapping on the next line at indentation 0 is a convention.",
+ "provenance": {
+  "reference": "A patch engine that dropped the comment on the start marker line when it wrote the content of an empty document."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "",
+    "value": {
+     "a": 1
+    }
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -242,6 +242,19 @@ func FromJSON(data []byte) (any, error) {
 // with keys that are not strings cannot be a map[string]any and is declined.
 func Native(raw json.RawMessage) (any, error) { return NativeWith(raw, nil) }
 
+// NativeOptions says what a library can hold beyond the plain Go types.
+type NativeOptions struct {
+	// Binary turns the bytes of a byte string into the value the library writes as !!binary.
+	// Nil: a byte string is declined.
+	Binary func([]byte) (any, error)
+	// BigInt turns the decimal digits of an integer beyond 64 bits into the library's own
+	// integer type. Nil: such an integer is declined.
+	BigInt func(digits string) (any, error)
+	// AnyMaps lets a mapping with keys that are not strings be a map[any]any, which the
+	// library writes with typed keys. False: such a mapping is declined.
+	AnyMaps bool
+}
+
 // BinaryTag is the tag of a kit value that is a byte string: a `$tagged` node with this tag holds
 // the base64 of the bytes.
 const BinaryTag = "tag:yaml.org,2002:binary"
@@ -250,6 +263,11 @@ const BinaryTag = "tag:yaml.org,2002:binary"
 // the bytes into the Go value the library writes as a binary scalar. With nil, a byte string is
 // declined: the adapter reports the case unsupported instead of writing something else.
 func NativeWith(raw json.RawMessage, binary func([]byte) (any, error)) (any, error) {
+	return NativeOpts(raw, NativeOptions{Binary: binary})
+}
+
+// NativeOpts is Native for a library described by o.
+func NativeOpts(raw json.RawMessage, o NativeOptions) (any, error) {
 	if len(raw) == 0 {
 		return nil, errors.New("no value")
 	}
@@ -259,10 +277,10 @@ func NativeWith(raw json.RawMessage, binary func([]byte) (any, error)) (any, err
 	if err := dec.Decode(&v); err != nil {
 		return nil, err
 	}
-	return nativeOf(v, 0, binary)
+	return nativeOf(v, 0, o)
 }
 
-func nativeOf(v any, depth int, binary func([]byte) (any, error)) (any, error) {
+func nativeOf(v any, depth int, o NativeOptions) (any, error) {
 	if depth > 1000 {
 		return nil, errors.New("value nesting too deep for the adapter")
 	}
@@ -275,13 +293,16 @@ func nativeOf(v any, depth int, binary func([]byte) (any, error)) (any, error) {
 			if u, err := strconv.ParseUint(string(x), 10, 64); err == nil {
 				return u, nil
 			}
-			return nil, errors.New("integer beyond 64 bits")
+			if o.BigInt != nil {
+				return o.BigInt(string(x))
+			}
+			return nil, errors.New("the library has no integer type beyond 64 bits")
 		}
 		return strconv.ParseFloat(string(x), 64)
 	case []any:
 		out := make([]any, len(x))
 		for i, e := range x {
-			c, err := nativeOf(e, depth+1, binary)
+			c, err := nativeOf(e, depth+1, o)
 			if err != nil {
 				return nil, err
 			}
@@ -303,21 +324,45 @@ func nativeOf(v any, depth int, binary func([]byte) (any, error)) (any, error) {
 			if tagged["tag"] != BinaryTag || !isText {
 				return nil, errors.New("tagged value")
 			}
-			if binary == nil {
+			if o.Binary == nil {
 				return nil, errors.New("the library has no byte string it writes as !!binary")
 			}
 			data, err := base64.StdEncoding.DecodeString(text)
 			if err != nil {
 				return nil, err
 			}
-			return binary(data)
+			return o.Binary(data)
 		}
-		if _, ok := x["$map"]; ok && len(x) == 1 {
-			return nil, errors.New("mapping with keys that are not strings")
+		if pairs, ok := x["$map"].([]any); ok && len(x) == 1 {
+			if !o.AnyMaps {
+				return nil, errors.New("the library has no mapping with keys that are not strings")
+			}
+			out := make(map[any]any, len(pairs))
+			for _, p := range pairs {
+				kv, ok := p.([]any)
+				if !ok || len(kv) != 2 {
+					return nil, errors.New("a $map entry that is not a [key, value] pair")
+				}
+				k, err := nativeOf(kv[0], depth+1, o)
+				if err != nil {
+					return nil, err
+				}
+				switch k.(type) {
+				case []any, map[string]any, map[any]any:
+					// A Go map key must be comparable; a collection cannot be one.
+					return nil, errors.New("a Go map cannot have a collection as a key")
+				}
+				c, err := nativeOf(kv[1], depth+1, o)
+				if err != nil {
+					return nil, err
+				}
+				out[k] = c
+			}
+			return out, nil
 		}
 		out := make(map[string]any, len(x))
 		for k, e := range x {
-			c, err := nativeOf(e, depth+1, binary)
+			c, err := nativeOf(e, depth+1, o)
 			if err != nil {
 				return nil, err
 			}

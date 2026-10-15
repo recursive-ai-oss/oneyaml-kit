@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-below-empty-document-root-is-refused",
+ "title": "Adding a member to an empty document is refused",
+ "category": "edit",
+ "origin": "spec",
+ "refs": [
+  "RFC 6902 section 4.1",
+  "YAML 1.2.2 section 9.1.4"
+ ],
+ "notes": "RFC 6902 section 4.1: the object that receives a new member has to exist, and it remains an error for that not to be the case. The root of an empty document is the null scalar, not an empty mapping (see edit/add-error-below-null). Replacing the whole document is the way to give it content.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/a",
+    "value": 1
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "patch-path",
+  "unchanged": true
+ }
+}

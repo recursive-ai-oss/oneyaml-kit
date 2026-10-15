@@ -9,7 +9,7 @@ namespace OneYamlKit.Adapter;
 /// object. An integer is a JSON number with no point or exponent; any other number is a double. A byte
 /// string (a node tagged <c>tag:yaml.org,2002:binary</c> that holds base64) is whatever the adapter's
 /// <c>binary</c> function makes of the bytes, and declined (with <c>noBinary</c> as the reason) when there is none.
-/// An integer beyond 64 bits and a mapping with keys that are not strings are declined unless the adapter passes
+/// An integer beyond 64 bits and a mapping with keys that are not strings are an adapter gap unless the adapter passes
 /// <c>big</c> (the type that holds the integer) or <c>pairs</c> (the mapping type built from the key/value pairs).</summary>
 public static class Native
 {
@@ -41,7 +41,7 @@ public static class Native
                     if (e.TryGetInt64(out var l)) return l;
                     if (e.TryGetUInt64(out var u)) return u;
                     if (big != null) return big(BigInteger.Parse(raw, CultureInfo.InvariantCulture));
-                    throw new NotSupportedException("integer beyond 64 bits");
+                    throw new NotSupportedException("the adapter does not yet pass an integer beyond 64 bits to the library");
                 }
                 return double.Parse(raw, CultureInfo.InvariantCulture);
             case JsonValueKind.Array:
@@ -67,7 +67,7 @@ public static class Native
                 }
                 if (e.TryGetProperty("$map", out var entries))
                 {
-                    if (pairs == null || entries.ValueKind != JsonValueKind.Array) throw new NotSupportedException("mapping with keys that are not strings");
+                    if (pairs == null || entries.ValueKind != JsonValueKind.Array) throw new NotSupportedException("the adapter does not yet pass a mapping with keys that are not strings to the library");
                     var list2 = new List<KeyValuePair<object?, object?>>();
                     foreach (var kv in entries.EnumerateArray())
                     {

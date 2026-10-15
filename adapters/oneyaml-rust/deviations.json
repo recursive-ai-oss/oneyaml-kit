@@ -812,6 +812,48 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Error position differs: expected 1:5, no position reported for the malformed bytes"
+  },
+  {
+   "case": "own:edit/remove-entry-after-literal-with-more-indented-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library refused the patch: 'the edit at a.x would not read back as the edited tree'"
+  },
+  {
+   "case": "own:edit/remove-entry-after-literal-with-more-indented-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library refused the patch: 'the edit at a.x would not read back as the edited tree'"
+  },
+  {
+   "case": "own:edit/replace-empty-document-keeps-marker-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: whole-document patch"
+  },
+  {
+   "case": "own:edit/replace-empty-document-keeps-marker-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: whole-document patch"
+  },
+  {
+   "case": "own:schema/keys-of-overflowing-floats-with-different-values-are-not-duplicates",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected limit, got duplicate-key"
+  },
+  {
+   "case": "own:schema/keys-of-underflowing-floats-with-different-values-are-not-duplicates",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected limit, got duplicate-key"
   }
 ]
 }

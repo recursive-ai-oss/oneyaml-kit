@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/directive-lookalike-lines-continue-a-plain-scalar-before-a-document",
+ "title": "Lines that start with a percent sign inside a bare document are scalar text, also before a following document",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "130",
+  "134",
+  "207",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 9.1.3",
+  "YAML 1.2.2 section 9.2",
+  "YAML 1.2.2 section 6.8"
+ ],
+ "notes": "A directive is read only where a document can start: at the start of the stream or after a document end marker `...` (l-yaml-stream, production 211). The text `%x` and `%y` follows the plain scalar `a` in a bare document, so they are continuation lines of that scalar (ns-plain-char, production 130, admits `%`, and a continuation line may start with it, production 134), folded to single spaces: the first document is `a %x %y`. `---` then starts the second document, which needs no `...` before it (production 211: an explicit document may follow a bare one).",
+ "provenance": {
+  "reference": "A reader that stopped the scalar at a line starting with a percent sign and failed or dropped the lines. The yaml-test-suite case XLQ9 covers a lone lookalike line only."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   "a %x %y",
+   "b"
+  ]
+ }
+}

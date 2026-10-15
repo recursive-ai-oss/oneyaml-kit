@@ -358,3 +358,29 @@ func TestByteStringsGoToTheLibrariesHookOrAreDeclined(t *testing.T) {
 		t.Errorf("reason: %v", err)
 	}
 }
+
+func TestNativeOptsNonStringKeysAndBigIntegers(t *testing.T) {
+	raw := []byte(`{"$map": [[1, "one"], [true, "yes"]]}`)
+	if _, err := NativeOpts(raw, NativeOptions{}); err == nil {
+		t.Fatal("a mapping with non-string keys must be declined without AnyMaps")
+	}
+	v, err := NativeOpts(raw, NativeOptions{AnyMaps: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, ok := v.(map[any]any)
+	if !ok || len(m) != 2 || m[int64(1)] != "one" || m[true] != "yes" {
+		t.Fatalf("got %#v", v)
+	}
+	if _, err := NativeOpts([]byte(`{"$map": [[[1], 2]]}`), NativeOptions{AnyMaps: true}); err == nil {
+		t.Fatal("a collection key must be declined")
+	}
+	big := []byte(`[18446744073709551616]`)
+	if _, err := NativeOpts(big, NativeOptions{}); err == nil {
+		t.Fatal("an integer beyond 64 bits must be declined without BigInt")
+	}
+	v, err = NativeOpts(big, NativeOptions{BigInt: func(d string) (any, error) { return "big:" + d, nil }})
+	if err != nil || v.([]any)[0] != "big:18446744073709551616" {
+		t.Fatalf("got %#v, %v", v, err)
+	}
+}

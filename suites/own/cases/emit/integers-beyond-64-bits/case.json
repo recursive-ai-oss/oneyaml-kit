@@ -1,0 +1,24 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/integers-beyond-64-bits",
+ "title": "Integers beyond 64 bits",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "131"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "notes": "One more than the largest unsigned 64-bit integer, and one less than the smallest signed one, are written in full, in decimal, and read back as the same integers: the Core schema integer has no upper bound (section 10.3.2). A library that cannot hold them declines the case.",
+ "operation": {
+  "type": "dump",
+  "value": [
+   18446744073709551616,
+   -9223372036854775809
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}
