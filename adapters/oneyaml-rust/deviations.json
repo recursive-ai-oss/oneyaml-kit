@@ -665,6 +665,48 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Rejects valid input: 'tabs cannot be used for block indentation' at 2:1"
+  },
+  {
+   "case": "own:edit/set-plain-to-multiline-string",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes a multi-line string over a plain scalar in a style other than double quotes: first difference at byte 3: expected b'\"x\\\\ny\"\\n', got b'|-\\n  x\\n  y\\n' (lengths 10 and 14)"
+  },
+  {
+   "case": "own:edit/set-plain-to-multiline-string",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes a multi-line string over a plain scalar in a style other than double quotes: first difference at byte 3: expected b'\"x\\\\ny\"\\n', got b'|-\\n  x\\n  y\\n' (lengths 10 and 14)"
+  },
+  {
+   "case": "own:edit/set-root-literal-keeps-style",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "whole-document patch"
+  },
+  {
+   "case": "own:edit/set-root-literal-keeps-style",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "whole-document patch"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-collection",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects the input but reports the error at a position other than the first character that cannot belong: position: expected 1:3, got 1:1"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-mapping-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects the input but reports the error at a position other than the first character that cannot belong: position: expected 1:6, got 1:4"
   }
 ]
 }

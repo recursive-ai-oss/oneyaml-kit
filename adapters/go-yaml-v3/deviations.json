@@ -593,5 +593,103 @@
   {"case": "own:parse/tab-only-line-after-block-scalar-at-end", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: found a tab character where an indentation space is expected'"},
   {"case": "own:parse/tab-only-line-after-block-scalar-at-end", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: found a tab character where an indentation space is expected'"},
   {"case": "own:parse/verbatim-tag-with-fragment", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: \"yaml: did not find the expected '>'\""},
-  {"case": "own:parse/verbatim-tag-with-fragment", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"yaml: did not find the expected '>'\""}
+  {"case": "own:parse/verbatim-tag-with-fragment", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"yaml: did not find the expected '>'\""},
+  {
+   "case": "own:diagnostics/bom-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a comment: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:diagnostics/bom-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a comment: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:diagnostics/bom-in-block-scalar-or-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a literal block scalar: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:diagnostics/bom-in-block-scalar-or-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a literal block scalar: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:edit/set-plain-to-multiline-string",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes a multi-line string over a plain scalar in a style other than double quotes: first difference at byte 3: expected b'\"x\\\\ny\"\\n', got b'|-\\n  x\\n  y\\n' (lengths 10 and 14)"
+  },
+  {
+   "case": "own:edit/set-plain-to-multiline-string",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes a multi-line string over a plain scalar in a style other than double quotes: first difference at byte 3: expected b'\"x\\\\ny\"\\n', got b'|-\\n  x\\n  y\\n' (lengths 10 and 14)"
+  },
+  {
+   "case": "own:edit/set-root-literal-keeps-style",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "a patch of the whole document"
+  },
+  {
+   "case": "own:edit/set-root-literal-keeps-style",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "a patch of the whole document"
+  },
+  {
+   "case": "own:parse/non-c0-characters-allowed-in-quoted-scalars",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects a character outside the printable set inside a quoted scalar, which the specification allows: unexpected error: 'yaml: control characters are not allowed'"
+  },
+  {
+   "case": "own:parse/non-c0-characters-allowed-in-quoted-scalars",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects a character outside the printable set inside a quoted scalar, which the specification allows: unexpected error: 'yaml: control characters are not allowed'"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-collection",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a tag written directly against the opening bracket of a flow sequence: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-collection",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a tag written directly against the opening bracket of a flow sequence: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:parse/top-level-literal-with-indentation-indicator",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the indentation indicator of a top-level block scalar as an absolute column and drops the leading space: $[0]: expected ' foo\\n', got 'foo\\n'"
+  },
+  {
+   "case": "own:parse/top-level-literal-with-indentation-indicator",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the indentation indicator of a top-level block scalar as an absolute column and drops the leading space: $[0]: expected ' foo\\n', got 'foo\\n'"
+  }
 ]}

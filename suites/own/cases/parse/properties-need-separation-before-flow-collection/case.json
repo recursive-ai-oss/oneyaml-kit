@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/properties-need-separation-before-flow-collection",
+ "title": "A tag must be separated from the flow sequence it marks",
+ "category": "parse",
+ "origin": "bug",
+ "productions": [
+  "40",
+  "96",
+  "97",
+  "137",
+  "160",
+  "161"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9",
+  "YAML 1.2.2 section 7.4"
+ ],
+ "notes": "The tag `!a` ends at `[`: a flow indicator is not a tag character (production 40 takes the characters of a local tag from the URI characters, minus `!` and the flow indicators). In a flow node, properties are followed by white space and then the content (production 161), or by nothing at all, an empty node; a collection cannot follow an empty node. So `[` is the first character that cannot belong, column 3. The control with a space, `!a [b]`, is valid (parse/tag-separated-from-flow-sequence-by-a-space).",
+ "provenance": {
+  "reference": "A reader that accepted a tag written directly against the opening bracket of a flow sequence."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 3
+ }
+}

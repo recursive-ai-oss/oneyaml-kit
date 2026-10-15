@@ -3801,6 +3801,90 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Error category differs: expected one of limit, syntax, got other"
+  },
+  {
+   "case": "own:diagnostics/bom-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a comment: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:diagnostics/bom-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a comment: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:diagnostics/bom-in-block-scalar-or-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a literal block scalar: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:diagnostics/bom-in-block-scalar-or-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a literal block scalar: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:parse/non-c0-characters-allowed-in-quoted-scalars",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Changes or drops a character outside the printable set inside a quoted scalar: $[2][0]: expected '\\ufffe', got 'ÿFE'"
+  },
+  {
+   "case": "own:parse/non-c0-characters-allowed-in-quoted-scalars",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Changes or drops a character outside the printable set inside a quoted scalar: $[2][0]: expected '\\ufffe', got 'ÿFE'"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-collection",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a tag written directly against the opening bracket of a flow sequence: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-collection",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a tag written directly against the opening bracket of a flow sequence: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-mapping-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects the input but reports the error at a position other than the first character that cannot belong: position: expected 1:6, got 1:4"
+  },
+  {
+   "case": "own:parse/top-level-literal-with-indentation-indicator",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the indentation indicator of a top-level block scalar as an absolute column and drops the leading space: $[0]: expected ' foo\\n', got 'foo\\x00'"
+  },
+  {
+   "case": "own:parse/top-level-literal-with-indentation-indicator",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the indentation indicator of a top-level block scalar as an absolute column and drops the leading space: $[0]: expected ' foo\\n', got 'foo\\x00'"
+  },
+  {
+   "case": "own:safety/deep-flow-mappings-999999",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Refuses the input with an error category other than limit or syntax: category: expected one of limit, syntax, got other"
   }
 ]
 }

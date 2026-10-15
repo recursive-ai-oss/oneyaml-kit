@@ -1701,6 +1701,83 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Over the time bound: the same 140,608 lines took 0.5 s at depth 100, 0.6 s at 1,000 and 4 s at 9,000 (shared host, load about 13), so the time grows with the number of open flow mappings"
+  },
+  {
+   "case": "own:diagnostics/bom-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a comment: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:diagnostics/bom-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a comment: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:diagnostics/bom-in-block-scalar-or-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a literal block scalar: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:diagnostics/bom-in-block-scalar-or-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a byte order mark inside a literal block scalar: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-collection",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a tag written directly against the opening bracket of a flow sequence: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-collection",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a tag written directly against the opening bracket of a flow sequence: expected an error, the input was accepted"
+  },
+  {
+   "case": "own:parse/properties-need-separation-before-flow-mapping-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects the input but reports the error at a position other than the first character that cannot belong: position: expected 1:6, got 1:4"
+  },
+  {
+   "case": "own:parse/top-level-literal-with-indentation-indicator",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Reads the indentation indicator of a top-level block scalar as an absolute column and drops the leading space: $[0]: expected ' foo\\n', got 'foo\\n'"
+  },
+  {
+   "case": "own:parse/top-level-literal-with-indentation-indicator",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reads the indentation indicator of a top-level block scalar as an absolute column and drops the leading space: $[0]: expected ' foo\\n', got 'foo\\n'"
+  },
+  {
+   "case": "own:safety/deep-flow-mappings-999999",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: no answer within 10 s"
+  },
+  {
+   "case": "own:safety/deep-flow-mappings-999999",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: no answer within 10 s"
   }
 ]
 }

@@ -283,5 +283,47 @@
   {"case": "own:edit/replace-anchored-flow-collection-with-null", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 3: expected b'&s null\\n', got b'null\\n' (lengths 11 and 8)"},
   {"case": "own:edit/replace-anchored-flow-collection-with-null", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 3: expected b'&s null\\n', got b'null\\n' (lengths 11 and 8)"},
   {"case": "own:edit/replace-custom-tagged-scalar-then-edit-neighbour", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 3: expected b'!foo z\\nb: 1\\nc: 2\\n', got b'z\\nb: 1\\nc: 2\\n' (lengths 20 and 15)"},
-  {"case": "own:edit/replace-custom-tagged-scalar-then-edit-neighbour", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 3: expected b'!foo z\\nb: 1\\nc: 2\\n', got b'z\\nb: 1\\nc: 2\\n' (lengths 20 and 15)"}
+  {"case": "own:edit/replace-custom-tagged-scalar-then-edit-neighbour", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 3: expected b'!foo z\\nb: 1\\nc: 2\\n', got b'z\\nb: 1\\nc: 2\\n' (lengths 20 and 15)"},
+  {
+   "case": "own:edit/add-key-longer-than-1024-characters-uses-an-explicit-key",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Does not write a key over 1024 characters as an explicit key: first difference at byte 5: expected b'? kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk', got b'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk' (lengths 1112 and 1109)"
+  },
+  {
+   "case": "own:edit/add-key-longer-than-1024-characters-uses-an-explicit-key",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Does not write a key over 1024 characters as an explicit key: first difference at byte 5: expected b'? kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk', got b'kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk' (lengths 1112 and 1109)"
+  },
+  {
+   "case": "own:edit/set-plain-to-multiline-string",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes a multi-line string over a plain scalar in a style other than double quotes: first difference at byte 3: expected b'\"x\\\\ny\"\\n', got b'|-\\n  x\\n  y\\n' (lengths 10 and 14)"
+  },
+  {
+   "case": "own:edit/set-plain-to-multiline-string",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes a multi-line string over a plain scalar in a style other than double quotes: first difference at byte 3: expected b'\"x\\\\ny\"\\n', got b'|-\\n  x\\n  y\\n' (lengths 10 and 14)"
+  },
+  {
+   "case": "own:edit/set-root-literal-keeps-style",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Refuses to replace the whole document: 'path must begin with leading slash'"
+  },
+  {
+   "case": "own:edit/set-root-literal-keeps-style",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Refuses to replace the whole document: 'path must begin with leading slash'"
+  }
 ]}

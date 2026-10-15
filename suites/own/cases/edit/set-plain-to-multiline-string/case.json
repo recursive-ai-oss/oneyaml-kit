@@ -1,0 +1,34 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-plain-to-multiline-string",
+ "title": "A plain scalar set to a string with a line break becomes double-quoted",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "109",
+  "131"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.3.1",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "A plain scalar can hold a line break only by folding it, and the value must read back exactly, so the plain style cannot stay. YAML allows several styles for the new text (double-quoted, single-quoted with a blank line, a literal or folded block). The kit chooses double quotes with the `\\n` escape: the text stays on the line of the key and nothing else in the document moves. This is a convention shared by the family, not a rule of the specification.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "x\ny"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}
