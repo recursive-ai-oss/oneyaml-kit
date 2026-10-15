@@ -854,6 +854,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Error category differs: expected limit, got duplicate-key"
+  },
+  {
+   "case": "own:safety/early-error-in-first-line-then-64-mebibytes",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
+  },
+  {
+   "case": "own:safety/early-error-in-first-line-then-64-mebibytes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"
   }
 ]
 }
