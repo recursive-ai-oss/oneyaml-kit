@@ -1,2 +1,453 @@
-{"format": "oneyaml-kit-deviations/1",
- "entries": []}
+{
+ "format": "oneyaml-kit-deviations/1",
+ "entries": [
+  {
+   "case": "own:edit/alias-refusal-after-successful-edit",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/alias-refusal-after-successful-edit",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/atomic-add-then-remove-missing",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/atomic-add-then-remove-missing",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/atomic-failure",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/atomic-failure",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/atomic-missing-value-member",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/atomic-missing-value-member",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/atomic-remove-then-replace-removed",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/atomic-remove-then-replace-removed",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/atomic-second-document-keeps-whole-stream",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/atomic-second-document-keeps-whole-stream",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/keep-comment-after-value-spacing",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/keep-comment-after-value-spacing",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-after-success",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/pointer-error-ambiguous-after-success",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/pointer-escapes",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/pointer-escapes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/replace-custom-tagged-scalar-then-edit-neighbour",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/replace-custom-tagged-scalar-then-edit-neighbour",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/sequential-add-then-replace",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/sequential-add-then-replace",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/sequential-removals-see-each-other",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/sequential-removals-see-each-other",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/unknown-operation",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:edit/unknown-operation",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined: the patch has more than one operation. The adapter answers a single add, remove or replace until YamlDocument.ApplyPatch is wired."
+  },
+  {
+   "case": "own:safety/alias-byte-expansion-bomb",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Followed aliases without a limit error. YamlNode.Target charges the alias budget on each call, not across a walk, so a walk over the whole expansion is not refused; Deserialize<object> on the same node does refuse it."
+  },
+  {
+   "case": "own:safety/alias-byte-expansion-bomb",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Followed aliases without a limit error. YamlNode.Target charges the alias budget on each call, not across a walk, so a walk over the whole expansion is not refused; Deserialize<object> on the same node does refuse it."
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Followed aliases without a limit error. YamlNode.Target charges the alias budget on each call, not across a walk, so a walk over the whole expansion is not refused; Deserialize<object> on the same node does refuse it."
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Followed aliases without a limit error. YamlNode.Target charges the alias budget on each call, not across a walk, so a walk over the whole expansion is not refused; Deserialize<object> on the same node does refuse it."
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb-ten-by-ten",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Followed aliases without a limit error. YamlNode.Target charges the alias budget on each call, not across a walk, so a walk over the whole expansion is not refused; Deserialize<object> on the same node does refuse it."
+  },
+  {
+   "case": "own:safety/alias-expansion-bomb-ten-by-ten",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Followed aliases without a limit error. YamlNode.Target charges the alias budget on each call, not across a walk, so a walk over the whole expansion is not refused; Deserialize<object> on the same node does refuse it."
+  },
+  {
+   "case": "own:schema/duplicate-keys-differing-in-style-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "YamlDocument reads a mapping with the same key twice without an error; only the serializer paths reject duplicate keys so far."
+  },
+  {
+   "case": "own:schema/duplicate-keys-differing-in-style-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "YamlDocument reads a mapping with the same key twice without an error; only the serializer paths reject duplicate keys so far."
+  },
+  {
+   "case": "own:schema/duplicate-keys-equal-after-resolution-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "YamlDocument reads a mapping with the same key twice without an error; only the serializer paths reject duplicate keys so far."
+  },
+  {
+   "case": "own:schema/duplicate-keys-equal-after-resolution-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "YamlDocument reads a mapping with the same key twice without an error; only the serializer paths reject duplicate keys so far."
+  },
+  {
+   "case": "own:schema/duplicate-keys-in-a-flow-mapping-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "YamlDocument reads a mapping with the same key twice without an error; only the serializer paths reject duplicate keys so far."
+  },
+  {
+   "case": "own:schema/duplicate-keys-in-a-flow-mapping-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "YamlDocument reads a mapping with the same key twice without an error; only the serializer paths reject duplicate keys so far."
+  },
+  {
+   "case": "own:schema/duplicate-plain-keys-are-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "YamlDocument reads a mapping with the same key twice without an error; only the serializer paths reject duplicate keys so far."
+  },
+  {
+   "case": "own:schema/duplicate-plain-keys-are-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "YamlDocument reads a mapping with the same key twice without an error; only the serializer paths reject duplicate keys so far."
+  },
+  {
+   "case": "yts:8G76",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:8G76",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:8G76@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:8G76@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:98YD",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:98YD",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:98YD@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:98YD@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:AVM7",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:AVM7",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:AVM7@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:AVM7@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:HWV9",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:HWV9",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:HWV9@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:HWV9@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:P76L@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A %TAG directive that redefines the !! handle is not applied: !!int still names the core integer tag, so the scalar \"1 - 3\" is refused with a tag-does-not-fit error."
+  },
+  {
+   "case": "yts:P76L@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "A %TAG directive that redefines the !! handle is not applied: !!int still names the core integer tag, so the scalar \"1 - 3\" is refused with a tag-does-not-fit error."
+  },
+  {
+   "case": "yts:QT73",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:QT73",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:QT73@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:QT73@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "A stream with no document (empty, or only comments) is read as one empty document; the case expects no document."
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The upstream value reads 450.00 as the integer 450; the library reads the float 450.0, which is right under the core schema (the corrected expectation passes)."
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The upstream value reads 450.00 as the integer 450; the library reads the float 450.0, which is right under the core schema (the corrected expectation passes)."
+  }
+ ]
+}

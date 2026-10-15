@@ -359,7 +359,7 @@ class OptionalAdapter(unittest.TestCase):
         m = load_manifest(OPTIONAL)
         self.assertEqual(m["language"], "csharp")
         self.assertEqual(m["requires_env"], [VAR])
-        self.assertEqual(load_deviations(m), [])
+        load_deviations(m)  # the list loads; its entries are checked against a run below
         d = ADAPTERS / OPTIONAL
         proj = (d / "OneYamlAdapter.csproj").read_text(encoding="utf-8")
         self.assertNotIn("PackageReference", proj)  # the library is a checkout, not a package
@@ -389,14 +389,16 @@ class OptionalAdapter(unittest.TestCase):
 @unittest.skipUnless(os.environ.get("KIT_ADAPTER_TESTS") == "1" and HAVE_DOTNET and os.environ.get(VAR),
                      f"needs KIT_ADAPTER_TESTS=1, dotnet and {VAR}")
 class OptionalAdapterRun(unittest.TestCase):
-    def test_it_builds_declares_nothing_and_fails_nothing(self):
+    def test_it_builds_and_every_failure_is_listed(self):
         res = run_adapter(OPTIONAL, C.load_all(), complete=True)
         self.assertEqual(validate_result(res), [])
-        self.assertEqual(res["adapter"]["capabilities"], [])
+        caps = set(res["adapter"]["capabilities"])
+        # What is wired: events, values, errors with category and position, and single-operation patches.
+        self.assertTrue({"events", "value", "error-category", "error-position"} <= caps)
         self.assertEqual(res["adapter"]["info"]["linked"], "yes")
         d = res["deviations"]
-        self.assertEqual((d["ok"], d["listed"], d["unlisted"], d["stale"], d["unknown"]), (True, 0, [], [], []))
-        self.assertTrue(all(r["loose"] == "unsupported" and r["strict"] == "unsupported" for r in res["cases"]))
+        self.assertEqual((d["ok"], d["unlisted"], d["stale"], d["unknown"]), (True, [], [], []))
+        self.assertTrue(any(r["loose"] == "pass" for r in res["cases"]))
 
 
 if __name__ == "__main__":

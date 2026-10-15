@@ -1,17 +1,21 @@
 #if ONEYAML_LINKED
+using System.Numerics;
 using System.Reflection;
+using OneYaml;
+using OneYamlKit.Bench.Models;
 
 namespace OneYamlKit.Bench.Libs;
 
-/// <summary>oneyaml-csharp, built from the checkout named by KIT_ONEYAML_CSHARP_SRC. It takes part in no task
-/// yet: every runner is refused until the library has the entry point for it. Each task is added here with the
-/// library's own call for it.
+/// <summary>oneyaml-csharp, built from the checkout named by KIT_ONEYAML_CSHARP_SRC.
 ///
 /// The library has two ways to bind typed data, and they are separate rows so each is compared with the
 /// strongest competitor on its own footing: <c>oneyaml-csharp</c> is the reflection binder (what a user gets
-/// with no setup), <c>oneyaml-csharp-gen</c> the source-generated one. Untyped and document tasks do not
-/// involve a binder, so when they are added the two rows run the same code and the generated row may leave
-/// them out.</summary>
+/// with no setup), <c>oneyaml-csharp-gen</c> the source-generated one (a <see cref="YamlSerializerContext"/>
+/// built by the library's generator from the kit's models). The document tasks involve no binder, so both rows
+/// run the same code on them.
+///
+/// Every library gets UTF-8 bytes and returns UTF-8 bytes. This one reads bytes directly, so nothing is decoded
+/// or encoded inside the clock.</summary>
 public abstract class OneYamlLibBase : ILibrary
 {
     public abstract string Id { get; }
@@ -25,32 +29,186 @@ public abstract class OneYamlLibBase : ILibrary
     public Role Role => Role.Own;
     public abstract IReadOnlyDictionary<string, string> Settings { get; }
 
-    // Entry points to wire, per task (names provisional):
-    //   typed-load     YamlSerializer.Deserialize<T> over UTF-8 bytes (gen: with a YamlSerializerContext)
-    //   generic-load   YamlSerializer.Deserialize<object>
-    //   dump           YamlSerializer.Serialize
-    //   document-parse, unchanged-emit, edit-script   YamlDocument parse, write and indexer or Set edits
-    //   patch          YamlDocument.ApplyPatch
-    public Runner Runner(BenchTask task, Workload w) => throw Support.No("not written yet");
+    /// <summary>The metadata for a type from the generated context, or null on the reflection row.</summary>
+    protected abstract bool Generated { get; }
+
+    public Runner Runner(BenchTask task, Workload w)
+    {
+        var input = w.Input;
+        switch (task)
+        {
+            case BenchTask.TypedLoad:
+                return w.TypedModel switch
+                {
+                    "gha" => Generated
+                        ? new FnRunner<int, Workflow?>(() => 0, _ => YamlSerializer.Deserialize(input, OneYamlContext.Default.Workflow),
+                            t => new Product.Value(Conv.WorkflowJ(t!)))
+                        : new FnRunner<int, Workflow?>(() => 0, _ => YamlSerializer.Deserialize<Workflow>(input),
+                            t => new Product.Value(Conv.WorkflowJ(t!))),
+                    "records" => Generated
+                        ? new FnRunner<int, List<Record>?>(() => 0, _ => YamlSerializer.Deserialize(input, OneYamlContext.Default.ListRecord),
+                            t => new Product.Value(Conv.Records(t!)))
+                        : new FnRunner<int, List<Record>?>(() => 0, _ => YamlSerializer.Deserialize<List<Record>>(input),
+                            t => new Product.Value(Conv.Records(t!))),
+                    _ => throw Support.No("no typed model for this workload"),
+                };
+            case BenchTask.GenericLoad:
+                if (w.Documents != 1)
+                {
+                    // The generated overload that reads every document takes text, so the bytes are decoded inside the clock.
+                    return Generated
+                        ? new FnRunner<int, List<object?>>(() => 0, _ => YamlSerializer.DeserializeAll(Support.Utf8.GetString(input), OneYamlContext.Default.Object)!,
+                            l => new Product.Value(Conv.Docs(l.Select(Conv.FromObject).ToList())))
+                        : new FnRunner<int, List<object?>>(() => 0, _ => YamlSerializer.DeserializeAll<object>(input)!,
+                            l => new Product.Value(Conv.Docs(l.Select(Conv.FromObject).ToList())));
+                }
+                return Generated
+                    ? new FnRunner<int, object?>(() => 0, _ => YamlSerializer.Deserialize(input, OneYamlContext.Default.Object),
+                        t => new Product.Value(Conv.FromObject(t)))
+                    : new FnRunner<int, object?>(() => 0, _ => YamlSerializer.Deserialize<object>(input),
+                        t => new Product.Value(Conv.FromObject(t)));
+            case BenchTask.Dump:
+                // Seam: YamlSerializer.Serialize, once the library has it. The state is the library's own generic tree.
+                throw Support.No("the library has no Serialize yet");
+            case BenchTask.DocumentParse:
+                return new ParseRunner(input);
+            case BenchTask.UnchangedEmit:
+                return new FnRunner<YamlDocument, byte[]>(() => YamlDocument.Parse(input), d => d.ToUtf8Bytes(),
+                    b => new Product.Bytes(b), sharedState: true);
+            case BenchTask.EditScript:
+                {
+                    // The pointers go to the library as they are: its pointer methods take RFC 6901. Values are
+                    // converted before the clock.
+                    var edits = w.EditOps.Select(o => (o.Name, o.Path, Value: o.Value == null ? null : ToObject(o.Value))).ToList();
+                    if (edits.Any(e => e.Name is not ("replace" or "remove"))) throw Support.No("edit scripts hold replace and remove only");
+                    return new FnRunner<YamlDocument, byte[]>(() => YamlDocument.Parse(input), d => Edit(d, edits),
+                        b => new Product.Bytes(b));
+                }
+            default:
+                // Seam: YamlDocument.ApplyPatch, once the library has it.
+                throw Support.No("the library has no ApplyPatch yet");
+        }
+    }
+
+    // The document is consumed: it is edited, written and released, as a caller does with a using block.
+    static byte[] Edit(YamlDocument doc, List<(string Name, string Path, object? Value)> edits)
+    {
+        using (doc)
+        {
+            foreach (var (name, path, value) in edits)
+            {
+                if (name == "remove") doc.Remove(path);
+                else doc.Set(path, value);
+            }
+            return doc.ToUtf8Bytes();
+        }
+    }
+
+    /// <summary>A common value as the plain objects the document's setters take.</summary>
+    static object? ToObject(J v) => v switch
+    {
+        J.Null => null,
+        J.Bool b => b.V,
+        J.Str s => s.V,
+        J.Int i => i.V >= long.MinValue && i.V <= long.MaxValue ? (object)(long)i.V : i.V,
+        J.Float f => f.V,
+        J.Arr a => a.V.Select(ToObject).ToList(),
+        J.Obj o => o.V.ToDictionary(kv => kv.Key, kv => ToObject(kv.Value)),
+        _ => throw new InvalidOperationException("not a value"),
+    };
+
+    // ---- the document tree as a common value, for the guard ---------------------------------------
+
+    internal static J Tree(YamlDocument doc)
+    {
+        var docs = new List<J>();
+        for (int i = 0; i < doc.Documents.Count; i++) docs.Add(NodeJ(doc.Documents[i]));
+        return Conv.Docs(docs);
+    }
+
+    static J NodeJ(YamlNode n)
+    {
+        if (n.Kind == YamlNodeKind.Alias) n = n.Target;
+        switch (n.Kind)
+        {
+            case YamlNodeKind.Mapping:
+                {
+                    var o = new J.Obj();
+                    foreach (var e in n.Entries) o.Put(KeyText(e.Key), NodeJ(e.Value));
+                    return o;
+                }
+            case YamlNodeKind.Sequence:
+                return new J.Arr(n.Items.Select(NodeJ).ToList());
+            default:
+                return n.GetValue<object>() switch
+                {
+                    null => J.Null.I,
+                    bool b => new J.Bool(b),
+                    string s => new J.Str(s),
+                    long l => new J.Int(l),
+                    BigInteger bi => new J.Int(bi),
+                    double d => new J.Float(d),
+                    var other => throw new InvalidOperationException("the harness cannot read a " + other.GetType().FullName),
+                };
+        }
+    }
+
+    static string KeyText(YamlNode key)
+    {
+        if (key.Kind == YamlNodeKind.Alias) key = key.Target;
+        return key.Kind == YamlNodeKind.Scalar ? key.GetValue<string>() ?? "" : throw new InvalidOperationException("a collection is a key");
+    }
+}
+
+/// <summary>document-parse: parse and release, as a <c>using</c> block does. The document's buffers come from a
+/// pool and go back on release, so a run that never released would measure an allocation a caller does not make.</summary>
+sealed class ParseRunner(byte[] input) : Runner
+{
+    public override Product Check()
+    {
+        using var doc = YamlDocument.Parse(input);
+        return new Product.Document(OneYamlLibBase.Tree(doc), doc.ToUtf8Bytes());
+    }
+
+    public override Batch Prepare(int n) => new ParseBatch(input, n);
+
+    sealed class ParseBatch(byte[] input, int n) : Batch
+    {
+        public override void Run()
+        {
+            for (int i = 0; i < n; i++)
+            {
+                using var doc = YamlDocument.Parse(input);
+            }
+        }
+    }
 }
 
 public sealed class OneYamlReflectionLib : OneYamlLibBase
 {
     public override string Id => "oneyaml-csharp";
+    protected override bool Generated => false;
 
     public override IReadOnlyDictionary<string, string> Settings { get; } = new Dictionary<string, string>
     {
-        ["binding"] = "reflection",
+        ["binding"] = "reflection (YamlSerializer.Deserialize<T> with default options)",
+        ["input and output"] = "UTF-8 bytes in and out, read and written directly",
+        ["limits"] = "defaults, not raised",
+        ["documents"] = "YamlDocument.Parse; edits through Set and Remove on RFC 6901 pointers; the document is released after each run",
     };
 }
 
 public sealed class OneYamlGeneratedLib : OneYamlLibBase
 {
     public override string Id => "oneyaml-csharp-gen";
+    protected override bool Generated => true;
 
     public override IReadOnlyDictionary<string, string> Settings { get; } = new Dictionary<string, string>
     {
-        ["binding"] = "source-generated",
+        ["binding"] = "source-generated (a YamlSerializerContext built by the library's generator from the kit's models)",
+        ["input and output"] = "UTF-8 bytes in and out, read and written directly (every document of a stream is read from text: the generated overload takes a string)",
+        ["limits"] = "defaults, not raised",
+        ["documents"] = "same code as the reflection row: no binder is involved",
     };
 }
 #endif

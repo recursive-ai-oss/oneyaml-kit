@@ -17,7 +17,7 @@ its project file, and `packages.lock.json` fixes the rest; once a lock file exis
 it, so a version moves only on purpose (delete the lock file, change the version, check the diff).
 
 A fifth, `oneyaml-csharp`, is optional: it links the oneyaml-csharp library from a local checkout
-(see [its README](../oneyaml-csharp/README.md)) and declares nothing yet.
+(see [its README](../oneyaml-csharp/README.md)) and declares events, values, errors and single-operation patches.
 
 ## Running
 
