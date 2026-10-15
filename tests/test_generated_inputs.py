@@ -28,6 +28,10 @@ def write_case(root: Path, name: str, recipe, extra=None) -> Path:
     return d
 
 
+# A bytes result belongs to a patch operation; an empty patch is the way a round trip is asked for.
+PATCH = {"operation": {"type": "patch", "patch": []}}
+
+
 class Recipe(unittest.TestCase):
     def test_a_recipe_builds_exactly_these_bytes(self):
         out = C.generate_input([
@@ -179,6 +183,35 @@ class InCases(unittest.TestCase):
         with self.assertRaises(C.CaseError):
             C.load_own_case(d2, self.tmp)
 
+    def test_an_expected_byte_string_can_come_from_a_recipe(self):
+        recipe = [{"text": "a: "}, {"numbers": {"count": 3, "suffix": ","}}, {"text": "\n"}]
+        exp = {"kind": "bounded", "time_seconds": 1, "memory_mb": 64, "error": "limit",
+               "accept": {"kind": "bytes", "recipe": recipe}}
+        d = write_case(self.tmp, "b", [{"text": "a"}], {"expect": exp, **PATCH})
+        self.assertEqual(C.load_own_case(d, self.tmp).expect["accept"]["bytes"], b"a: 0,1,2,\n")
+        # The same bytes in a file are the same expectation.
+        (d / "x.yaml").write_bytes(b"a: 0,1,2,\n")
+        stored = {**exp, "accept": {"kind": "bytes", "file": "x.yaml"}}
+        d1 = write_case(self.tmp, "b1", [{"text": "a"}], {"expect": stored, **PATCH})
+        (d1 / "x.yaml").write_bytes(b"a: 0,1,2,\n")
+        self.assertEqual(C.load_own_case(d1, self.tmp).expect, C.load_own_case(d, self.tmp).expect)
+        # A file and a recipe together, or neither, are refused; so is a recipe that is too large.
+        for n, accept in enumerate(({"kind": "bytes", "recipe": recipe, "file": "x.yaml"}, {"kind": "bytes"},
+                                    {"kind": "bytes", "recipe": [{"text": "x", "repeat": C.MAX_GENERATED_BYTES + 1}]},
+                                    {"kind": "bytes", "recipe": [{"text": 5}]})):
+            dd = write_case(self.tmp, "bad%d" % n, [{"text": "a"}],
+                            {"expect": {**exp, "accept": accept}, **PATCH})
+            (dd / "x.yaml").write_bytes(b"a")
+            with self.assertRaises(C.CaseError, msg=repr(accept)):
+                C.load_own_case(dd, self.tmp)
+
+    def test_a_bad_result_recipe_is_reported_as_a_recipe_not_an_input(self):
+        exp = {"kind": "bounded", "time_seconds": 1, "memory_mb": 64, "error": "limit",
+               "accept": {"kind": "bytes", "recipe": []}}
+        d = write_case(self.tmp, "m", [{"text": "a"}], {"expect": exp, **PATCH})
+        with self.assertRaisesRegex(C.CaseError, r"recipe must be a list"):
+            C.load_own_case(d, self.tmp)
+
 
 class Pins(unittest.TestCase):
     def setUp(self):
@@ -203,6 +236,31 @@ class Pins(unittest.TestCase):
             # The recipe text is pinned with the case, the bytes it builds are pinned apart.
             self.assertNotEqual(now[0], before[0], recipe)
             self.assertEqual(now[1] == before[1], same_bytes, recipe)
+
+    def test_a_result_recipe_has_a_pin_of_the_bytes_it_builds(self):
+        exp = {"kind": "bounded", "time_seconds": 1, "memory_mb": 64, "error": "limit",
+               "accept": {"kind": "bytes", "recipe": [{"text": "ab", "repeat": 3}]}}
+        d = write_case(self.tmp, "r", [{"text": "a"}], {"expect": exp, **PATCH})
+        self.assertEqual(C.generated_result_digests(self.tmp),
+                         {"safety/r": {"bytes": 6, "sha256": hashlib.sha256(b"ababab").hexdigest()}})
+        case = d / "case.json"
+        original = json.loads(case.read_text())
+        before = self.digests()
+        for recipe, same_bytes in (([{"text": "ab", "repeat": 4}], False), ([{"text": "ba", "repeat": 3}], False),
+                                   ([{"text": "ab"}, {"text": "ab", "repeat": 2}], True)):
+            changed = json.loads(json.dumps(original))
+            changed["expect"]["accept"]["recipe"] = recipe
+            case.write_text(json.dumps(changed))
+            now = C.generated_result_digests(self.tmp)
+            self.assertEqual(now["safety/r"] == {"bytes": 6, "sha256": hashlib.sha256(b"ababab").hexdigest()},
+                             same_bytes, recipe)
+            self.assertNotEqual(self.digests()[0], before[0], recipe)  # the recipe text is pinned with the case
+
+    def test_the_pins_file_holds_the_digest_of_every_generated_result_in_the_kit(self):
+        pinned = json.loads((support.ROOT / "tests" / "pins.json").read_bytes())["own"]["generated_results"]
+        self.assertEqual(sorted(pinned), sorted(C.generated_result_digests()))
+        self.assertIn("safety/patch-many-large-appends-into-a-created-flow-sequence", pinned)
+        self.assertGreaterEqual(len(pinned), 4)
 
     def test_only_generated_inputs_get_a_generated_pin(self):
         d = write_case(self.tmp, "stored", None, {"input": "input.yaml"})

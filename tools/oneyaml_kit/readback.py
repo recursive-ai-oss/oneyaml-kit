@@ -502,13 +502,7 @@ class Parser:
                 explicit = int(c)
                 self.i += 1
         self.end_of_line()
-        raw: list[str] = []
-        j = self.i
-        while j + 1 < self.n:
-            k = self.s.find("\n", j + 1)
-            k = self.n if k < 0 else k
-            raw.append(self.s[j + 1:k])
-            j = k
+        start = self.i
         ind = None if explicit is None else max(parent, -1) + explicit
         if ind is not None and ind < 0:
             ind = 0
@@ -516,13 +510,23 @@ class Parser:
         used = 0
         idx = 0
         if ind is None:
-            while idx < len(raw) and raw[idx].strip(" ") == "":
-                idx += 1
-            if idx < len(raw):
-                lead = len(raw[idx]) - len(raw[idx].lstrip(" "))
-                if lead > parent and not (lead == 0 and self.line_is_marker(raw[idx])):
+            # The lines are taken one at a time from the end of the header: the scalar ends long
+            # before the end of the text, and copying the rest of the text for every scalar would make
+            # the time grow with the square of the number of scalars.
+            leading: list[str] = []
+            first = None
+            for line in self._lines_after(start):
+                if line.strip(" ") == "":
+                    leading.append(line)
+                else:
+                    first = line
+                    break
+            idx = len(leading)
+            if first is not None:
+                lead = len(first) - len(first.lstrip(" "))
+                if lead > parent and not (lead == 0 and self.line_is_marker(first)):
                     ind = lead
-                    if any(len(blank) > lead for blank in raw[:idx]):
+                    if any(len(blank) > lead for blank in leading):
                         raise ReadError("a leading empty line of a block scalar has more spaces than its first "
                                         "text line; the scalar needs an indentation indicator")
             if ind is None:
@@ -530,7 +534,7 @@ class Parser:
                 lines = [""] * idx
                 used = idx
         if ind is not None:
-            for idx2, line in enumerate(raw):
+            for idx2, line in enumerate(self._lines_after(start)):
                 blank = line.strip(" ") == ""
                 spaces = len(line) - len(line.lstrip(" "))
                 if blank:
@@ -551,7 +555,8 @@ class Parser:
         # (s-indent is spaces, and l-trail-comments needs a `#`), so it is an error when more of the
         # document follows; after the last node of a document such a line is a comment line of the
         # stream (production 211).
-        after = self.s[j + 1:self.s.find("\n", j + 1) if "\n" in self.s[j + 1:] else self.n] if j < self.n else ""
+        end = self.s.find("\n", j + 1)
+        after = self.s[j + 1:self.n if end < 0 else end] if j < self.n else ""
         if after.lstrip(" ").startswith("\t") and self._more_of_document(j + 1):
             raise ReadError(f"a tab after a block scalar at line {self.line() + 1}: only spaces indent")
         lines = lines[:used]
@@ -577,12 +582,29 @@ class Parser:
     def _more_of_document(self, start: int) -> bool:
         """Whether, from the line at `start`, a line with content comes before the end of the text or a
         `...` or `---` marker. Blank lines and comment lines are not content."""
-        for line in self.s[start:].split("\n"):
+        for line in self._lines_at(start):
             body = line.strip(" \t")
             if body == "" or body[0] == "#":
                 continue
             return not self.line_is_marker(line)
         return False
+
+    def _lines_at(self, start: int):
+        """The lines from the one that begins at `start`, one at a time and without a copy of the rest."""
+        while start <= self.n:
+            end = self.s.find("\n", start)
+            end = self.n if end < 0 else end
+            yield self.s[start:end]
+            start = end + 1
+
+    def _lines_after(self, j: int):
+        """The lines after position j, which is at a line break or at the end: what follows the header
+        of a block scalar. A final line break does not begin another line."""
+        while j + 1 < self.n:
+            k = self.s.find("\n", j + 1)
+            k = self.n if k < 0 else k
+            yield self.s[j + 1:k]
+            j = k
 
     def line_is_marker(self, line: str) -> bool:
         return line[:3] in ("---", "...") and _is_ws_or_end(line[3:4])
