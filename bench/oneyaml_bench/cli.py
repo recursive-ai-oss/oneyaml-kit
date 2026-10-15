@@ -130,7 +130,7 @@ def cmd_run(a: argparse.Namespace) -> int:
     t0 = time.monotonic()
     try:
         result = run.run(a.mode, out, a.lang or None, a.library or [], a.task or [], a.workload or [],
-                         a.pin, a.counters)
+                         a.pin, a.counters, memory_processes=a.memory_processes)
     except run.HarnessError as e:
         print(f"bench: {e}", file=sys.stderr)
         return 2
@@ -264,6 +264,9 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--workload", action="append")
     r.add_argument("--pin", type=int, help="pin the harness to one CPU")
     r.add_argument("--counters", action="store_true", help="also count instructions with callgrind")
+    r.add_argument("--memory-processes", type=int, metavar="N",
+                   help="processes that measure memory for a harness whose figure differs between processes "
+                        "(default: what its harness.json declares for the mode)")
     r.set_defaults(fn=cmd_run)
     g = sub.add_parser("report", help="render a report from a results file")
     g.add_argument("result")

@@ -378,6 +378,12 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
              "task is still the one compared with when it is ahead: it is named with a † and its reason, and "
              "a loss to it is a loss. A gap inside the measurement noise "
              "(at least 2% for time, 1% for memory) is a tie. Cells without a number say why.\n")
+    multi = sorted({c["language"] for c in cells if c["status"] == "ok" and (c["memory"].get("processes"))})
+    if multi:
+        L.append(f"Memory in {', '.join(multi)} was measured in several processes, because the runtime's "
+                 "figure differs between them. A memory figure is the median over the processes, and the "
+                 "result file keeps every process's figure. A memory gap that lies inside the range the "
+                 "processes gave, ours or the rival's, is a tie.\n")
     summ = []
     own_langs = own_languages(cells)
     base_langs = sorted({c["language"] for c in cells} - own_langs)

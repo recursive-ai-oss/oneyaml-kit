@@ -428,5 +428,70 @@ class KnownDeviations(unittest.TestCase):
         self.assertEqual(len(R.verify_known([], k, "rust")), 1)
 
 
+def with_processes(c, peaks):
+    """The cell as a harness that measured memory in several processes publishes it."""
+    c["memory"]["peak_bytes"] = sorted(peaks)[len(peaks) // 2]
+    c["memory"]["allocated_bytes"] = c["memory"]["peak_bytes"]
+    c["memory"]["processes"] = {"count": len(peaks), "peak_bytes": list(peaks), "allocated_bytes": list(peaks)}
+    return c
+
+
+class MemoryAcrossProcesses(unittest.TestCase):
+    def test_a_gap_inside_the_observed_range_is_a_tie_and_one_beyond_it_is_decided(self):
+        # Ours moves between 420,816 and 467,216 bytes (median 444,016); the rival sits at 440,000, 1% below.
+        # Without the range the median alone would call a loss; the rival lies inside our range, so it is a tie.
+        self.assertEqual(R.memory_verdict(444016, 440000), "tie")
+        self.assertEqual(R.memory_verdict(446000, 400000), "loss")
+        self.assertEqual(R.memory_verdict(446000, 400000, (420816, 467216), (400000, 400000)), "loss")
+        self.assertEqual(R.memory_verdict(446000, 430000, (420816, 467216), (430000, 430000)), "tie")
+        self.assertEqual(R.memory_verdict(400000, 430000, (380000, 440000), (430000, 430000)), "tie")
+        self.assertEqual(R.memory_verdict(400000, 430000, (380000, 420000), (430000, 430000)), "win")
+        # The rival's own spread counts as well.
+        self.assertEqual(R.memory_verdict(400000, 430000, (380000, 420000), (410000, 450000)), "tie")
+
+    def test_rows_use_the_ranges_of_both_cells(self):
+        ours = with_processes(cell("ours", "own", peak=0), [420816, 444016, 444016, 467216, 444016])
+        rival = with_processes(cell("rival", peak=0), [430000] * 5)
+        [row] = R.compare_rows([ours, rival])
+        self.assertEqual(row["own"][0]["memory"]["verdict"], "tie")  # 3% apart, but the rival is inside our range
+        far = with_processes(cell("rival", peak=0), [300000] * 5)
+        [row] = R.compare_rows([ours, far])
+        self.assertEqual(row["own"][0]["memory"]["verdict"], "loss")
+        far = with_processes(cell("rival", peak=0), [500000] * 5)
+        [row] = R.compare_rows([ours, far])
+        self.assertEqual(row["own"][0]["memory"]["verdict"], "win")
+        # A cell measured in one process behaves as before.
+        [row] = R.compare_rows([cell("ours", "own", peak=1000), cell("rival", peak=1005)])
+        self.assertEqual(row["own"][0]["memory"]["verdict"], "tie")
+
+    def test_the_median_of_the_processes_is_published_and_every_figure_is_kept(self):
+        c = cell("lib", peak=444016)
+        c["memory"]["allocated_bytes"] = 444016
+        R.merge_memory_processes(c, [{"peak_bytes": 467216, "allocated_bytes": 467216},
+                                     {"peak_bytes": 444080, "allocated_bytes": 444016},
+                                     {"peak_bytes": 420816, "allocated_bytes": 420816}])
+        m = c["memory"]
+        self.assertEqual(m["processes"]["count"], 4)
+        self.assertEqual(m["processes"]["allocated_bytes"], [444016, 467216, 444016, 420816])
+        self.assertEqual(m["allocated_bytes"], 444016)  # the median of four is the mean of the middle two
+        self.assertEqual(R.memory_range(c, "allocated_bytes"), (420816, 467216))
+        self.assertEqual(R.memory_range(cell("one", peak=7), "peak_bytes"), (7, 7))
+        c2 = cell("lib", peak=5)
+        R.merge_memory_processes(c2, [])
+        self.assertNotIn("processes", c2["memory"])
+
+    def test_the_result_is_refused_when_the_published_figure_is_not_the_median(self):
+        good = with_processes(cell("lib"), [900, 1000, 1000, 1100, 1000])
+        R.validate(result([good]))
+        for edit in (lambda m: m.update(peak_bytes=1100),
+                     lambda m: m["processes"].update(count=3),
+                     lambda m: m["processes"]["allocated_bytes"].append(1),
+                     lambda m: m["processes"].update(peak_bytes=[1000, "x", 1000, 1000, 1000])):
+            bad = with_processes(cell("lib"), [900, 1000, 1000, 1100, 1000])
+            edit(bad["memory"])
+            with self.assertRaises(R.ResultError):
+                R.validate(result([bad]))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -31,7 +31,8 @@ NON_NUMBER = ("differs", "rejects", "unsupported", "unjudged", "error")
 TIME_FLOOR = 0.02
 # How many median absolute deviations of noise a gap must exceed to count.
 NOISE_MADS = 3.0
-# Heap figures are deterministic, so only rounding-level gaps are ties.
+# A heap figure is nearly exact within a process, so only rounding-level gaps are ties; a harness whose figure
+# moves between processes declares it, and a gap inside the cells' observed ranges is a tie as well.
 MEMORY_FLOOR = 0.01
 
 # The publishability rule. A run is labelled publishable only when every condition
@@ -82,13 +83,65 @@ def time_verdict(own_median: float, own_mad: float, other_median: float, other_m
     return "tie"
 
 
-def memory_verdict(own_bytes: float, other_bytes: float) -> str:
+def memory_verdict(own_bytes: float, other_bytes: float,
+                   own_range: tuple[float, float] | None = None,
+                   other_range: tuple[float, float] | None = None) -> str:
+    """`win`, `loss` or `tie` on memory. The gap must exceed the floor and, where a cell carries the figures of
+    several processes (see `memory_range`), also lie outside both cells' observed range: a win needs our
+    highest figure below the rival's lowest, a loss our lowest above the rival's highest."""
     r = ratio(own_bytes, other_bytes)
-    if r < 1 - MEMORY_FLOOR:
+    own_lo, own_hi = own_range or (own_bytes, own_bytes)
+    other_lo, other_hi = other_range or (other_bytes, other_bytes)
+    if r < 1 - MEMORY_FLOOR and own_hi < other_lo:
         return "win"
-    if r > 1 + MEMORY_FLOOR:
+    if r > 1 + MEMORY_FLOOR and own_lo > other_hi:
         return "loss"
     return "tie"
+
+
+def memory_range(cell: dict, key: str = "peak_bytes") -> tuple[float, float]:
+    """The lowest and highest figure the cell's memory took in the processes that measured it; the published
+    figure twice when it was measured in one."""
+    m = cell["memory"]
+    seen = (m.get("processes") or {}).get(key)
+    return (min(seen), max(seen)) if seen else (m[key], m[key])
+
+
+def _median_int(values: list[int]) -> int:
+    v = sorted(values)
+    n = len(v)
+    return v[n // 2] if n % 2 else (v[n // 2 - 1] + v[n // 2]) // 2
+
+
+def merge_memory_processes(cell: dict, others: list[dict]) -> None:
+    """Gives an ok cell the memory figures of further processes. `others` are the `memory` objects of the same
+    cell from those processes. The published `peak_bytes` and `allocated_bytes` become the medians over all the
+    processes (this one first), and `memory.processes` keeps every process's figure, so the spread is in the
+    result. Times are left as they are."""
+    if not others:
+        return
+    m = cell["memory"]
+    peaks = [m["peak_bytes"]] + [o["peak_bytes"] for o in others]
+    allocs = [m["allocated_bytes"]] + [o["allocated_bytes"] for o in others]
+    m["processes"] = {"count": len(peaks), "peak_bytes": peaks, "allocated_bytes": allocs}
+    m["peak_bytes"] = _median_int(peaks)
+    m["allocated_bytes"] = _median_int(allocs)
+
+
+def check_memory_processes(ident: tuple, m: dict) -> None:
+    p = m.get("processes")
+    if p is None:
+        return
+    count = p.get("count")
+    if not isinstance(count, int) or count < 2:
+        raise ResultError(f"cell {ident} has memory.processes.count {count!r} (at least 2)")
+    for key in ("peak_bytes", "allocated_bytes"):
+        v = p.get(key)
+        if (not isinstance(v, list) or len(v) != count
+                or any(not isinstance(x, int) or isinstance(x, bool) or x < 0 for x in v)):
+            raise ResultError(f"cell {ident} has a bad memory.processes.{key}")
+        if m.get(key) != _median_int(v):
+            raise ResultError(f"cell {ident}: {key} {m.get(key)!r} is not the median of its {count} processes")
 
 
 def cell_key(c: dict) -> tuple:
@@ -196,7 +249,8 @@ def compare_rows(cells: list[dict]) -> list[dict]:
                 entry["memory"] = None if bm is None else {
                     "ratio": ratio(max(m["peak_bytes"], 1), max(bm["memory"]["peak_bytes"], 1)),
                     "vs": bm["library"], "vs_mark": row["best_memory_mark"],
-                    "verdict": memory_verdict(max(m["peak_bytes"], 1), max(bm["memory"]["peak_bytes"], 1)),
+                    "verdict": memory_verdict(max(m["peak_bytes"], 1), max(bm["memory"]["peak_bytes"], 1),
+                                              memory_range(c), memory_range(bm)),
                 }
             row["own"].append(entry)
         out.append(row)
@@ -352,6 +406,7 @@ def validate(result: dict) -> None:
             if run["mode"] == "full" and c["time"]["samples"] < MIN_FULL_SAMPLES:
                 raise ResultError(f"cell {ident} took {c['time']['samples']} samples in a full run "
                                   f"(at least {MIN_FULL_SAMPLES} are required)")
+            check_memory_processes(ident, c["memory"])
             r = c["memory"].get("retained_bytes")
             if r is not None and (not isinstance(r, int) or r < 0):
                 raise ResultError(f"cell {ident} has a bad retained_bytes")

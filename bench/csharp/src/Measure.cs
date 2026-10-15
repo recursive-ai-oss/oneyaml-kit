@@ -210,6 +210,16 @@ public static class Measure
         return new Timing(iters, taken, warm, one);
     }
 
+    /// <summary>The memory figures of a cell in a process that does not time it: the same warm-up the timed run
+    /// does (it is what the runtime's profile-guided choices follow from), then the memory pass. Used by the
+    /// extra processes of a full run, which exist because the allocated bytes differ between processes.</summary>
+    public static Usage WarmedMemory(Runner r, Config cfg)
+    {
+        long cap = Math.Min(Math.Max(1, cfg.MaxPreparedBytes / Math.Max(StateBytes(r), 1)), cfg.MaxIters);
+        WarmUp(r, cfg, cap);
+        return Memory(r);
+    }
+
     /// <summary>The bytes the task requests on this thread over one run of a throw-away state.</summary>
     static long Requested(Runner r)
     {

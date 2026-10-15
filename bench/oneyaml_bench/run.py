@@ -9,6 +9,11 @@ A harness is a program with a fixed command line and output (docs/benchmarks.md)
 
 `run` writes JSON lines: one `harness` record, then for each cell a `begin` mark followed
 by a `cell` record. The mark lets this driver name the cell that killed the process.
+
+A harness whose memory figure differs between processes declares `"memory_processes": {"full": 5}` in its
+harness.json (the number of processes per mode). After its run the driver starts it again, that many times
+less one, with `--mode memory`: the guard, the warm-up and the memory pass of every cell that was measured, and no
+timing. Each cell then carries the memory figures of every process (see results.merge_memory_processes).
 """
 
 from __future__ import annotations
@@ -25,7 +30,7 @@ from pathlib import Path
 from . import environment, results, workloads
 
 ROOT = Path(__file__).resolve().parents[1]
-STALL_SECONDS = {"quick": 120, "full": 1800}
+STALL_SECONDS = {"quick": 120, "full": 1800, "memory": 1800}
 ADDRESS_SPACE_LIMIT = 24 * 1024 ** 3
 
 
@@ -93,14 +98,14 @@ def parse_lines(path: Path) -> tuple[dict | None, list[dict], list[str]]:
 def run_harness(h: dict, build_dir: Path, workloads_dir: Path, mode: str, out_dir: Path,
                 sampler: environment.Sampler | None, pin_cpu: int | None = None,
                 libraries: list[str] = (), tasks: list[str] = (), only: list[str] = (),
-                log=print) -> tuple[dict, list[dict], int]:
+                log=print, skip_cells: list[str] = ()) -> tuple[dict, list[dict], int]:
     """Runs the harness to completion, restarting past any cell that kills it.
 
     Returns the harness record, every cell, and the number of restarts.
     """
     lang = h["language"]
     harness, cells, restarts = None, [], 0
-    skip: list[str] = []
+    skip: list[str] = list(skip_cells)
     part = 0
     while True:
         out = out_dir / f"{lang}.part{part}.jsonl"
@@ -214,9 +219,36 @@ def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[st
     return res
 
 
+def memory_process_count(h: dict, mode: str, override: int | None) -> int:
+    """How many processes measure memory for this harness in this mode: what the user asked for, else what the
+    harness declares, else one."""
+    if override is not None:
+        return max(override, 1)
+    return max(int((h.get("memory_processes") or {}).get(mode, 1)), 1)
+
+
+def add_memory_processes(h: dict, build_dir: Path, wl_dir: Path, out_dir: Path, sampler, pin_cpu, libraries, tasks,
+                         only, cells: list[dict], n: int, log) -> None:
+    """Runs the harness n-1 more times in memory mode and merges what it measured into the ok cells."""
+    ok = {f"{c['library']}/{c['task']}/{c['workload']}": c for c in cells if c["status"] == "ok"}
+    not_ok = [f"{c['library']}/{c['task']}/{c['workload']}" for c in cells if c["status"] != "ok"]
+    extra: dict[str, list[dict]] = {k: [] for k in ok}
+    for i in range(n - 1):
+        log(f"measuring memory in process {i + 2} of {n}")
+        _, got, _ = run_harness(h, build_dir, wl_dir, "memory", out_dir, sampler, pin_cpu, libraries, tasks, only,
+                                log, skip_cells=not_ok)
+        for c in got:
+            k = f"{c['library']}/{c['task']}/{c['workload']}"
+            if c["status"] == "ok" and k in extra and "memory" in c:
+                extra[k].append(c["memory"])
+    for k, cell in ok.items():
+        results.merge_memory_processes(cell, extra[k])
+
+
 def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries: list[str] = (),
         tasks: list[str] = (), only: list[str] = (), pin_cpu: int | None = None,
-        counters: bool = False, build_dir: Path | None = None, log=print) -> dict:
+        counters: bool = False, build_dir: Path | None = None, log=print,
+        memory_processes: int | None = None) -> dict:
     """The whole pipeline up to the result dict."""
     t0 = time.monotonic()
     harnesses = discover()
@@ -235,7 +267,7 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
     sampler = environment.Sampler()
     load_start = environment.loadavg()[0]
     sampler.start()
-    records, cells_by_lang, restarts, n_libs = {}, {}, 0, 0
+    records, cells_by_lang, restarts, n_libs, mem_procs = {}, {}, 0, 0, {}
     try:
         for l in langs:
             h = harnesses[l]
@@ -245,6 +277,11 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
             rec, cells, r = run_harness(h, build_dir, wl_dir, mode, out_dir, sampler, pin_cpu,
                                         libraries, tasks, only, log)
             records[l], cells_by_lang[l], restarts = rec, cells, restarts + r
+            n_mem = memory_process_count(h, mode, memory_processes)
+            if n_mem > 1:
+                mem_procs[l] = n_mem
+                add_memory_processes(h, build_dir, wl_dir, out_dir, sampler, pin_cpu, libraries, tasks, only,
+                                     cells, n_mem, log)
             n_libs += len([x for x in rec.get("libraries", []) if not libraries or x["id"] in libraries])
             if counters:
                 log("counting instructions")
@@ -255,8 +292,11 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
         samples = sampler.stop()
     load_end = environment.loadavg()[0]
     wanted = sum(len([t for t in m["tasks"] if not tasks or t in tasks]) for m in metas) * max(n_libs, 1)
-    return assemble(mode, records, cells_by_lang, metas, samples, load_start, load_end,
-                    time.monotonic() - t0, restarts, wanted, pin_cpu, counters)
+    res = assemble(mode, records, cells_by_lang, metas, samples, load_start, load_end,
+                   time.monotonic() - t0, restarts, wanted, pin_cpu, counters)
+    if mem_procs:
+        res["run"]["memory_processes"] = mem_procs
+    return res
 
 
 def write(result: dict, path: Path) -> None:
