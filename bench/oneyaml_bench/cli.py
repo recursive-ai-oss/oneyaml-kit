@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 
 from . import freeze as freeze_mod
-from . import readme, report, results, run, workloads
+from . import readme, report, results, run, shards, workloads
 
 ROOT = Path(__file__).resolve().parents[1]
 KIT_ROOT = ROOT.parent
@@ -134,12 +134,23 @@ def known_counts(result: dict, problems: list[str]) -> dict[str, int]:
     return {"listed": listed, "unlisted": unlisted, "stale": stale, "other": len(problems) - unlisted - stale}
 
 
+def parse_shard(text: str) -> tuple[int, int]:
+    """`I/N` -> (I, N), 1-based."""
+    try:
+        i, n = (int(x) for x in text.split("/"))
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r} is not I/N, for example 2/4") from None
+    if not 1 <= i <= n:
+        raise argparse.ArgumentTypeError(f"shard {i} of {n}: the index must be between 1 and the count")
+    return i, n
+
+
 def cmd_run(a: argparse.Namespace) -> int:
     out = Path(a.out) if a.out else default_out()
     t0 = time.monotonic()
     try:
         result = run.run(a.mode, out, a.lang or None, a.library or [], a.task or [], a.workload or [],
-                         a.pin, a.counters, memory_processes=a.memory_processes)
+                         a.pin, a.counters, memory_processes=a.memory_processes, shard=a.shard)
     except run.HarnessError as e:
         print(f"bench: {e}", file=sys.stderr)
         return 2
@@ -176,6 +187,52 @@ def cmd_run(a: argparse.Namespace) -> int:
         return 1
     if problems:
         print("known deviations do not match this run:\n  " + "\n  ".join(problems), file=sys.stderr)
+        return 1
+    return 0
+
+
+def cmd_plan(a: argparse.Namespace) -> int:
+    harnesses = run.discover()
+    langs = a.lang or sorted(harnesses)
+    unknown = [l for l in langs if l not in harnesses]
+    if unknown:
+        print(f"bench: no harness for {unknown[0]!r}; have {sorted(harnesses)}", file=sys.stderr)
+        return 2
+    try:
+        plan = shards.plan_for(harnesses, langs, a.mode, a.library or [], a.task or [], a.workload or [], a.shards)
+    except shards.PlanError as e:
+        print(f"bench: {e}", file=sys.stderr)
+        return 2
+    print(json.dumps(shards.describe(plan), indent=1))
+    return 0
+
+
+def cmd_merge(a: argparse.Namespace) -> int:
+    parts = []
+    for d in a.shard_dirs:
+        path = Path(d)
+        path = path / "results.json" if path.is_dir() else path
+        try:
+            parts.append(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"bench: cannot read {path}: {e}", file=sys.stderr)
+            return 1
+    try:
+        result = shards.merge(parts, allow_incomplete=a.allow_incomplete)
+    except shards.MergeError as e:
+        print("bench: refusing to merge:\n  " + "\n  ".join(e.problems), file=sys.stderr)
+        return 1
+    out = Path(a.out)
+    run.write(result, out / "results.json")
+    files = write_report(result, out)
+    hits = public_text_hits(files)
+    pub = result["run"]["publishability"]
+    print(f"merged {len(parts)} shards: {len(result['cells'])} cells; label: {pub['label']}")
+    for r in pub["reasons"]:
+        print(f"  not publishable: {r}")
+    print(f"results: {out / 'results.json'}\nreport:  {out / 'report.md'}")
+    if hits:
+        print("public-text check failed on generated output:\n  " + "\n  ".join(hits), file=sys.stderr)
         return 1
     return 0
 
@@ -304,7 +361,24 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--memory-processes", type=int, metavar="N",
                    help="processes that measure memory for a harness whose figure differs between processes "
                         "(default: what its harness.json declares for the mode)")
+    r.add_argument("--shard", type=parse_shard, metavar="I/N",
+                   help="measure only shard I of N of the comparison rows (see `bench plan`); "
+                        "combine the shards with `bench merge`")
     r.set_defaults(fn=cmd_run)
+    pl = sub.add_parser("plan", help="show how a run is split into shards, as JSON")
+    pl.add_argument("--shards", type=int, required=True, metavar="N")
+    pl.add_argument("--mode", choices=("quick", "full"), default="full")
+    pl.add_argument("--lang", action="append")
+    pl.add_argument("--library", action="append")
+    pl.add_argument("--task", action="append", choices=report.TASK_ORDER)
+    pl.add_argument("--workload", action="append")
+    pl.set_defaults(fn=cmd_plan)
+    m = sub.add_parser("merge", help="combine the results of the shards of one plan into one result and report")
+    m.add_argument("--out", required=True)
+    m.add_argument("--allow-incomplete", action="store_true",
+                   help="merge although shards are missing; the result is then never publishable")
+    m.add_argument("shard_dirs", nargs="+", metavar="SHARD_DIR")
+    m.set_defaults(fn=cmd_merge)
     g = sub.add_parser("report", help="render a report from a results file")
     g.add_argument("result")
     g.add_argument("--out")

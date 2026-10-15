@@ -345,6 +345,11 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
         L.append("Selection: " + "; ".join(
             f"{k} {sel[k] if isinstance(sel[k], str) else ', '.join(sel[k])}"
             for k in ("languages", "libraries", "tasks", "workloads")) + ".\n")
+    shard = run.get("shard")
+    if shard:
+        total = len(shard["plan"]["groups"])
+        L.append(f"This is shard {shard['index']} of {shard['count']}: {len(sel['groups'])} of {total} "
+                 "comparison rows (language and workload). Merge the shards to get a result that can be published.\n")
     if not pub["reasons"]:
         m = pub["measured"]
         L.append(f"The host was quiet: other work kept at most {m['foreign_busy_cores_p95']} cores busy for 95% of "
@@ -365,6 +370,19 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
         ["Kit revision", str(env.get("kit_revision"))],
     ]))
     L.append("")
+    if run.get("shards"):
+        L.append(f"**Shards.** Merged from {run['merged']['count']} shards; plan {run['merged']['plan_digest'][:19]}. "
+                 "The environment above is the same on every shard (the merge refuses otherwise); "
+                 "load and pinning are those of each shard.\n")
+        L.append(md_table(["Shard", "Rows", "Started", "Seconds", "Load (1 min) before, after",
+                           "Foreign busy cores p95, max", "Governor", "Pinned"], [
+            [str(s["index"]), str(len(s["groups"])), s["date"], str(s["seconds"]),
+             f"{s['load']['before']}, {s['load']['after']}",
+             f"{s['measured']['foreign_busy_cores_p95']}, {s['measured']['foreign_busy_cores_max']}",
+             s["measured"]["governor"],
+             "no" if s["measured"]["pinned_cpu"] is None else str(s["measured"]["pinned_cpu"])]
+            for s in run["shards"]]))
+        L.append("")
     for lang, h in sorted(result["harnesses"].items()):
         cfg = h["config"]
         L.append(f"**{lang} harness** `{h['name']} {h['version']}`, {h['runtime']}, target {h['target']}, "

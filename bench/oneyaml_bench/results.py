@@ -299,6 +299,62 @@ def percentile(values: list[float], p: float) -> float:
     return s[lo] + (s[hi] - s[lo]) * (k - lo)
 
 
+LEFT_OUT_PREFIX = "the run was filtered and left out "
+
+
+def left_out_reasons(left_out: dict[str, list[str]] | None) -> list[str]:
+    """One reason for each kind of thing a filter (or a missing shard) left out of the run."""
+    reasons = []
+    for kind, names in (left_out or {}).items():
+        if names:
+            shown = ", ".join(names[:5]) + (f" and {len(names) - 5} more" if len(names) > 5 else "")
+            reasons.append(f"{LEFT_OUT_PREFIX}{len(names)} {kind} ({shown}); "
+                           "only a run of everything a harness offers can be published")
+    return reasons
+
+
+def assess_measured(mode: str, p95: float, worst: float, n_samples: int, load1_start: float, load1_end: float,
+                    pinned_cpu: int | None, governor: str, selftest_build: bool = False,
+                    complete: bool = True) -> list[str]:
+    """The reasons the publishing rule gives against a run, from what was measured about its host."""
+    reasons = []
+    rule = PUBLISH_RULE
+    if mode != rule["mode"]:
+        reasons.append(f"the run was a {mode} run; only a full run can be published")
+    if selftest_build:
+        reasons.append("the harness was built with its self-test controls")
+    if not complete:
+        reasons.append("the run did not finish every cell it set out to measure")
+    if n_samples < rule["min_load_samples"]:
+        reasons.append(f"the host load was sampled only {n_samples} times, fewer than {rule['min_load_samples']}")
+    if rule["pinned"] and pinned_cpu is None:
+        reasons.append("the harness was not pinned to one CPU, so the scheduler may move it between cores "
+                       "(use --pin)")
+    if governor not in rule["governors"]:
+        reasons.append(f"the CPU frequency governor is {governor!r}, not one of {rule['governors']}: "
+                       "clock speed can change during the run")
+    if p95 > rule["foreign_busy_cores_p95_max"]:
+        reasons.append(f"other work kept {p95:.1f} cores busy for the slowest 5% of the run "
+                       f"(limit {rule['foreign_busy_cores_p95_max']})")
+    if worst > rule["foreign_busy_cores_max"]:
+        reasons.append(f"other work peaked at {worst:.1f} busy cores (limit {rule['foreign_busy_cores_max']})")
+    for name, v in (("start", load1_start), ("end", load1_end)):
+        if v > rule["load1_max"]:
+            reasons.append(f"the one-minute load average was {v:.1f} at the {name} of the run "
+                           f"(limit {rule['load1_max']})")
+    return reasons
+
+
+def revision_reasons(revision: str | None) -> list[str]:
+    """Why a kit revision cannot back a published number: none recorded, or edits on top of it."""
+    if not revision:
+        return ["the kit revision is unknown, so the code that was measured is not identified"]
+    if "+modified" in revision:
+        return [f"the kit had uncommitted changes (revision {revision}), so the code that was measured "
+                "is not the revision named"]
+    return []
+
+
 def assess_publishability(mode: str, samples: list[float], load1_start: float, load1_end: float,
                           complete: bool, selftest_build: bool = False, pinned_cpu: int | None = None,
                           governor: str = "unknown",
@@ -309,43 +365,15 @@ def assess_publishability(mode: str, samples: list[float], load1_start: float, l
     libraries, tasks and workloads a filter removed: a README compares every row with its
     strongest competitor, which a narrowed run cannot show.
     """
-    reasons = []
-    for kind, names in (left_out or {}).items():
-        if names:
-            shown = ", ".join(names[:5]) + (f" and {len(names) - 5} more" if len(names) > 5 else "")
-            reasons.append(f"the run was filtered and left out {len(names)} {kind} ({shown}); "
-                           "only a run of everything a harness offers can be published")
-    rule = PUBLISH_RULE
-    if mode != rule["mode"]:
-        reasons.append(f"the run was a {mode} run; only a full run can be published")
-    if selftest_build:
-        reasons.append("the harness was built with its self-test controls")
-    if not complete:
-        reasons.append("the run did not finish every cell it set out to measure")
-    if len(samples) < rule["min_load_samples"]:
-        reasons.append(f"the host load was sampled only {len(samples)} times, fewer than {rule['min_load_samples']}")
-    if rule["pinned"] and pinned_cpu is None:
-        reasons.append("the harness was not pinned to one CPU, so the scheduler may move it between cores "
-                       "(use --pin)")
-    if governor not in rule["governors"]:
-        reasons.append(f"the CPU frequency governor is {governor!r}, not one of {rule['governors']}: "
-                       "clock speed can change during the run")
     p95 = percentile(samples, 0.95)
     worst = max(samples) if samples else 0.0
-    if p95 > rule["foreign_busy_cores_p95_max"]:
-        reasons.append(f"other work kept {p95:.1f} cores busy for the slowest 5% of the run "
-                       f"(limit {rule['foreign_busy_cores_p95_max']})")
-    if worst > rule["foreign_busy_cores_max"]:
-        reasons.append(f"other work peaked at {worst:.1f} busy cores (limit {rule['foreign_busy_cores_max']})")
-    for name, v in (("start", load1_start), ("end", load1_end)):
-        if v > rule["load1_max"]:
-            reasons.append(f"the one-minute load average was {v:.1f} at the {name} of the run "
-                           f"(limit {rule['load1_max']})")
+    reasons = left_out_reasons(left_out) + assess_measured(
+        mode, p95, worst, len(samples), load1_start, load1_end, pinned_cpu, governor, selftest_build, complete)
     return {
         "publishable": not reasons,
         "label": "publishable" if not reasons else "smoke",
         "reasons": reasons,
-        "rule": dict(rule),
+        "rule": dict(PUBLISH_RULE),
         "measured": {"foreign_busy_cores_p95": round(p95, 2), "foreign_busy_cores_max": round(worst, 2),
                      "load1_start": load1_start, "load1_end": load1_end, "load_samples": len(samples),
                      "pinned_cpu": pinned_cpu, "governor": governor},
