@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import shutil
 import tempfile
 import unittest
@@ -73,6 +74,72 @@ class Recipe(unittest.TestCase):
             with self.assertRaises(C.CaseError, msg=repr(r)):
                 C.generate_input(r, "t")
         del at
+
+
+class Memory(unittest.TestCase):
+    def test_pieces_are_small_and_add_up_to_the_input(self):
+        recipe = [{"text": "ab", "repeat": 3_000_000},
+                  {"numbers": {"count": 200_000, "prefix": "k", "suffix": ": v, "}}]
+        pieces = list(C.iter_input(recipe, "t"))
+        self.assertGreater(len(pieces), 3)
+        self.assertLessEqual(max(len(p) for p in pieces), 2 * 1024 * 1024)
+        self.assertEqual(b"".join(pieces), C.generate_input(recipe, "t"))
+
+    def test_building_numbers_stays_near_the_size_of_the_output(self):
+        # Joining one bytes object per number before anything is written held about thirty times
+        # the output at once.
+        import tracemalloc
+        recipe = [{"numbers": {"count": 1_000_000, "prefix": "=VAL :", "suffix": "\n=VAL :v\n"}}]
+        tracemalloc.start()
+        try:
+            out = C.generate_input(recipe, "t")
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+        self.assertLess(peak, 3 * len(out) + 8 * 1024 * 1024, (peak, len(out)))
+
+    def test_the_digest_of_a_generated_input_is_taken_without_holding_it(self):
+        import tracemalloc
+        tmp = Path(tempfile.mkdtemp())
+        try:
+            write_case(tmp, "big", [{"text": "x", "repeat": 30_000_000}])
+            tracemalloc.start()
+            try:
+                got = C.generated_input_digests(tmp)
+                _, peak = tracemalloc.get_traced_memory()
+            finally:
+                tracemalloc.stop()
+            self.assertEqual(got["safety/big"]["sha256"], hashlib.sha256(b"x" * 30_000_000).hexdigest())
+            self.assertLess(peak, 8 * 1024 * 1024, peak)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
+class Slow(unittest.TestCase):
+    def test_a_slow_case_is_not_built_unless_asked_for(self):
+        tmp = Path(tempfile.mkdtemp())
+        try:
+            write_case(tmp, "fast", [{"text": "a"}])
+            write_case(tmp, "big", [{"text": "x", "repeat": 50_000_000}], {"tags": ["slow"]})
+            self.assertEqual([c.id for c in C.load_own(tmp, include_slow=False)], ["own:safety/fast"])
+            self.assertEqual(len(C.load_own(tmp)), 2)
+            self.assertEqual(C.slow_ids(tmp), {"own:safety/big"})
+            self.assertIsNone(C.load_own_case(tmp / "safety" / "big", tmp, skip_slow=True))
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_the_kit_leaves_its_large_cases_out_of_the_fast_tier(self):
+        slow = C.slow_ids()
+        self.assertGreaterEqual(len(slow), 3)
+        old = os.environ.pop("KIT_SLOW", None)
+        try:
+            self.assertFalse(slow & {c.id for c in C.load_all()})
+            os.environ["KIT_SLOW"] = "1"
+            self.assertTrue(slow <= {c.id for c in C.load_all()})
+        finally:
+            os.environ.pop("KIT_SLOW", None)
+            if old is not None:
+                os.environ["KIT_SLOW"] = old
 
 
 class InCases(unittest.TestCase):

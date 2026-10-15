@@ -40,7 +40,7 @@ def select(cases, args):
 
 def cmd_run(args) -> int:
     try:
-        cases, complete = select(load_all(include_slow=args.slow), args)
+        cases, complete = select(load_all(include_slow=args.slow or None), args)
     except CaseError as e:
         print(f"case error: {e}", file=sys.stderr)
         return 2
@@ -159,7 +159,7 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--case", action="append", help="case id (repeatable)")
         p.add_argument("--out", help="output directory (default: $KIT_OUT or ./out)")
         p.add_argument("--timeout", type=float, help="per-case timeout in seconds")
-        p.add_argument("--slow", action="store_true", help="include cases tagged slow")
+        p.add_argument("--slow", action="store_true", help="include cases tagged slow (also on when KIT_SLOW is set)")
         p.add_argument("--no-build", action="store_true", help="do not run the adapter build step")
 
     p = sub.add_parser("fast", help="run the fast mode and write results and the report")

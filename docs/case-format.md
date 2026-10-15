@@ -287,6 +287,13 @@ is written to disk. `tests/pins.json` pins the size and the SHA-256 of every gen
 change to the recipe, or to what a recipe builds, fails the kit's tests until the pins are
 regenerated and the diff is checked.
 
+The large generated cases carry the tag `slow`. A run leaves them out, without building their
+inputs or expected results, unless `--slow` is given or the environment variable `KIT_SLOW` is
+set (to anything but empty or `0`). The full gate sets it, so the large cases run there and not in
+the hand-over tier. A run without them skips deviation entries that name them instead of calling
+them stale; an entry for an id that is no case is still an error. Inputs are built in pieces of
+about a megabyte, so building one holds little more than its own bytes.
+
 ## Pins
 
 `tests/pins.json` records the digest of the vendored data, of the corrections file

@@ -415,8 +415,7 @@
    "safety/deep-flow-sequences-100000-value": "23a45de7c68270e2bb5fd7a05bccab9a678b03e112c8c75086b991112d63ce4a",
    "safety/deep-indented-mappings-600": "f00a831cff266da52505d6b3f8b0012fc03aaa2dcea069f7912e2bcf747453b1",
    "safety/deeply-nested-flow-sequences": "1099f73774b234e1af45b428dced8c1680415af5627bcd0a1332c6a74adc1de7",
-   "safety/huge-integer-literal": "0d938ef9d344360aa88c335b5ea3d62bdc04cdfa614af85d6a9fa8f192fed01a",
-   "safety/implicit-key-window-rescan": "b92c85ffaf2779c81098c16190fdc5010edce434472af97ee0c70374aefffea9",
+   "safety/implicit-key-window-rescan": "637281ec42ef9fe7c9e3f92c9a270140489ec89bfac6cf16ad2506966e21902b",
    "safety/invalid-utf-8-byte": "d1f288d229ee85d8dd0bd15a272e3769358e8174b3e47b350077ca9b8588d461",
    "safety/long-anchor-name": "ba20fc4138b403c3ff263feb9203dec1dad0666193450bb63526fad93be0e6d8",
    "safety/long-double-quoted-scalar": "2aedfdc6d5d4ac7b7792273cf863b32d638cf9bfe6b257cd5cb29317eddec531",
@@ -439,10 +438,11 @@
    "safety/malformed-utf-8-truncated-sequence-at-the-end": "c15707cfc5475fa72c21823a0f1d923020226ccc405648d7eef0df4a4b70300e",
    "safety/many-anchors-and-aliases": "9acf1dea0291fe835a1615ec0f873755cdcab401cc488d4b46bba6b6d29697f5",
    "safety/one-line-flow-mapping-many-pairs": "f601feb543d101848e5c9de3e7868318cb4f9768881b1cb17676755575bae5ac",
-   "safety/one-line-flow-mapping-ten-megabytes": "0bb2beba77d67f49a9f14e881e703200213d53c04bc442a78f8baedcdaea66f7",
-   "safety/one-line-flow-mapping-with-duplicate-keys": "e64d450587a6a1a7e9a6fc344412f46b5cedcdece3eb01166e5e90221b64c7ce",
+   "safety/one-line-flow-mapping-ten-megabytes": "247c8a5018365cffa06898bbf6f9ae1382fb7b6922740626fcdc9857747cb982",
+   "safety/one-line-flow-mapping-with-duplicate-keys": "5087d29231714c1d09393893b8633c542322a2a58363628155f520c05e87a599",
    "safety/plain-scalar-over-twenty-thousand-lines": "531aa561a50025946e2f2d571aac449cbe77158c4578ba6f5a1dbae3d3df206b",
    "safety/shallow-flow-mappings-then-many-lines-unclosed": "59f08bfb66226d12c813466b637324bb80f29005f70c7b7aa27f36546adb1db6",
+   "safety/ten-million-digit-plain-scalar-events": "0ce7c4533aa551b1c1faaa1fa9b5d38e9ee8b0a701925bb8a1e9dcfd585573cd",
    "safety/two-thousand-documents": "9a34fd7ca74e8d8eea9ceb3382ac9caa2506fe82fa6911312bc244205ebcb7b6",
    "safety/wide-flow-sequence-30000": "fe72eff37b86d553bd6ec047847fe6e1b11ae02dde278b8adb0b4fbee9e15811",
    "safety/wide-mapping-20000-keys": "c577a0035e237898a911b0790d9b891d9314935ab87eac958b21b49a721a0e77",
@@ -491,10 +491,6 @@
    "schema/unresolved-tag-is-kept": "184bfc2ec2a1fe67dfdae3a475802134a4a6c61af87909c5fcc81646c9e1e2d0"
   },
   "generated_inputs": {
-   "safety/huge-integer-literal": {
-    "bytes": 10000001,
-    "sha256": "3f294670b34e468cb7cdce79381fdc27dd5aad383c06918a1246e10ca2dd0260"
-   },
    "safety/implicit-key-window-rescan": {
     "bytes": 24002201,
     "sha256": "7caa99ebf42e730a4e32eac92ac555861956acc96e696c39574ce46e3e8009d8"
@@ -502,6 +498,10 @@
    "safety/one-line-flow-mapping-ten-megabytes": {
     "bytes": 9788893,
     "sha256": "41a2320eae7b1cc8b33f4860cab30196a15ad223c9b264a6767e61e53929121f"
+   },
+   "safety/ten-million-digit-plain-scalar-events": {
+    "bytes": 10000001,
+    "sha256": "3f294670b34e468cb7cdce79381fdc27dd5aad383c06918a1246e10ca2dd0260"
    }
   }
  },

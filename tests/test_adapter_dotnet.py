@@ -271,7 +271,7 @@ class DotnetAdapters(unittest.TestCase):
                 self.assertFalse(verify_deviations(cases, stale, True)["ok"], n)
 
     def test_every_deviation_has_a_reason_and_names_a_real_case(self):
-        ids = {c.id for c in C.load_all()}
+        ids = {c.id for c in C.load_all()} | C.slow_ids()  # the fast tier leaves slow cases out
         for n in NAMES:
             for e in load_deviations(load_manifest(n)):
                 self.assertIn(e["case"], ids, n)

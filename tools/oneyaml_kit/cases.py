@@ -16,6 +16,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -263,12 +264,8 @@ def _int(v, where: str, name: str, lo: int = 0) -> int:
     return v
 
 
-def generate_input(recipe, where: str) -> bytes:
-    """The bytes a recipe describes: parts in order, each either
-    {"text": s, "repeat": n} (the UTF-8 text n times; n defaults to 1) or
-    {"numbers": {"count": n, "start": k, "prefix": p, "suffix": s, "width": w}}, which writes
-    p + the number + s for k, k+1, ... (n numbers), the number zero-padded to w digits.
-    The total size is limited to MAX_GENERATED_BYTES."""
+def _plan(recipe, where: str) -> list:
+    """Check a recipe and work out its size before a byte is built; returns the parts to write."""
     if not isinstance(recipe, list) or not recipe or len(recipe) > MAX_RECIPE_PARTS:
         raise CaseError(f"{where}: input_recipe must be a list of 1 to {MAX_RECIPE_PARTS} parts")
     plan, total = [], 0
@@ -301,17 +298,48 @@ def generate_input(recipe, where: str) -> bytes:
             raise CaseError(f"{w} is a text part or a numbers part")
         if total > MAX_GENERATED_BYTES:
             raise CaseError(f"{where}: the generated input is larger than {MAX_GENERATED_BYTES} bytes")
-    out = bytearray()
-    for kind, a, n in plan:
+    return plan
+
+
+# Pieces are built about this big, so building a large input never holds a second copy of one
+# part, and a digest of the input can be taken without holding the input at all.
+_CHUNK_BYTES = 1 << 20
+_NUMBERS_PER_CHUNK = 1 << 14
+
+
+def iter_input(recipe, where: str):
+    """The bytes a recipe describes, in pieces of about a megabyte (see generate_input)."""
+    for kind, a, n in _plan(recipe, where):
         if kind == "text":
-            out += a * n
+            if not a:
+                continue
+            per = max(1, _CHUNK_BYTES // len(a))
+            for _ in range(n // per):
+                yield a * per
+            if n % per:
+                yield a * (n % per)
         else:
             pre, suf, start, width = a
-            out += b"".join(pre + b"%0*d" % (width, k) + suf for k in range(start, start + n))
+            for lo in range(start, start + n, _NUMBERS_PER_CHUNK):
+                hi = min(lo + _NUMBERS_PER_CHUNK, start + n)
+                yield b"".join(pre + b"%0*d" % (width, k) + suf for k in range(lo, hi))
+
+
+def generate_input(recipe, where: str) -> bytes:
+    """The bytes a recipe describes: parts in order, each either
+    {"text": s, "repeat": n} (the UTF-8 text n times; n defaults to 1) or
+    {"numbers": {"count": n, "start": k, "prefix": p, "suffix": s, "width": w}}, which writes
+    p + the number + s for k, k+1, ... (n numbers), the number zero-padded to w digits.
+    The total size is limited to MAX_GENERATED_BYTES."""
+    out = bytearray()
+    for piece in iter_input(recipe, where):
+        out += piece
     return bytes(out)
 
 
-def load_own_case(case_dir: Path, cases_root: Path = OWN_DIR) -> Case:
+def load_own_case(case_dir: Path, cases_root: Path = OWN_DIR, skip_slow: bool = False) -> Case | None:
+    """One own case. With `skip_slow`, a case tagged slow comes back as None before its
+    generated input and expectation are built, which is most of the cost of the large ones."""
     rel = case_dir.relative_to(cases_root).as_posix()
     where = f"own:{rel}"
     try:
@@ -348,6 +376,8 @@ def load_own_case(case_dir: Path, cases_root: Path = OWN_DIR) -> Case:
     for k in need:
         if k not in prov:
             raise CaseError(f"{where}: a {d['origin']} case records provenance.{k}")
+    if skip_slow and "slow" in d.get("tags", []):
+        return None
     op, args = _check_operation(d.get("operation"), where)
     if "input_recipe" in d:
         if "input" in d:
@@ -369,12 +399,26 @@ def load_own_case(case_dir: Path, cases_root: Path = OWN_DIR) -> Case:
     )
 
 
-def load_own(cases_root: Path = OWN_DIR) -> list[Case]:
+def load_own(cases_root: Path = OWN_DIR, include_slow: bool = True) -> list[Case]:
     out = []
     if not cases_root.is_dir():
         return out
     for cj in sorted(cases_root.rglob("case.json")):
-        out.append(load_own_case(cj.parent, cases_root))
+        c = load_own_case(cj.parent, cases_root, skip_slow=not include_slow)
+        if c is not None:
+            out.append(c)
+    return out
+
+
+def slow_ids(cases_root: Path = OWN_DIR) -> set[str]:
+    """Ids of the own cases tagged slow, read without building any of them. A run that leaves
+    them out uses this to tell a deviation entry for a case it skipped from one for a case
+    that does not exist."""
+    out = set()
+    if cases_root.is_dir():
+        for cj in sorted(cases_root.rglob("case.json")):
+            if "slow" in kitjson.loads(cj.read_bytes()).get("tags", []):
+                out.add("own:" + cj.parent.relative_to(cases_root).as_posix())
     return out
 
 
@@ -524,8 +568,19 @@ def load_yts(root: Path = YTS_DIR, corrections: dict[str, dict] | None = None) -
     return cases
 
 
-def load_all(include_slow: bool = False) -> list[Case]:
-    cases = load_yts() + load_own()
+def slow_requested() -> bool:
+    """True when the environment asks for the slow cases too (KIT_SLOW set to anything but 0 or
+    empty). The full gate sets it, so the adapter test modules run them without each one
+    growing an option."""
+    return os.environ.get("KIT_SLOW", "") not in ("", "0")
+
+
+def load_all(include_slow: bool | None = None) -> list[Case]:
+    """Every case. The ones tagged slow are left out, and not even built, unless
+    `include_slow` is true or, when it is None, KIT_SLOW asks for them."""
+    if include_slow is None:
+        include_slow = slow_requested()
+    cases = load_yts() + load_own(include_slow=include_slow)
     ids = [c.id for c in cases]
     if len(ids) != len(set(ids)):
         raise CaseError("duplicate case ids")
@@ -566,12 +621,19 @@ def b64(b: bytes) -> str:
 
 def generated_input_digests(cases_root: Path = OWN_DIR) -> dict[str, dict]:
     """The size and digest of every generated input, so a change in what a recipe builds shows
-    even when the recipe text does not change."""
+    even when the recipe text does not change. The input is hashed as it is built."""
     out = {}
-    for c in load_own(cases_root):
-        raw = kitjson.loads((cases_root / c.id[len("own:"):] / "case.json").read_bytes())
-        if "input_recipe" in raw:
-            out[c.id[len("own:"):]] = {"bytes": len(c.input), "sha256": hashlib.sha256(c.input).hexdigest()}
+    if cases_root.is_dir():
+        for cj in sorted(cases_root.rglob("case.json")):
+            raw = kitjson.loads(cj.read_bytes())
+            if "input_recipe" not in raw:
+                continue
+            rel = cj.parent.relative_to(cases_root).as_posix()
+            h, n = hashlib.sha256(), 0
+            for piece in iter_input(raw["input_recipe"], f"own:{rel}"):
+                h.update(piece)
+                n += len(piece)
+            out[rel] = {"bytes": n, "sha256": h.hexdigest()}
     return out
 
 

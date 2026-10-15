@@ -12,7 +12,7 @@ from pathlib import Path
 
 from . import compare
 from .cases import (Case, ROOT, YTS_RELEASE, SUITE_YTS, corpus_digest, current_pins, kit_version,
-                    yts_revision)
+                    slow_ids, yts_revision)
 from . import speed, vocabulary
 from .protocol import PROTOCOL, SUPPORTED_PROTOCOLS, SubprocessAdapter
 
@@ -163,15 +163,21 @@ def evaluate_case(case: Case, resp: dict, caps: set, wall_us: int, emulates: set
     return r
 
 
-def verify_deviations(results: list[dict], deviations: list[dict], complete: bool) -> dict:
-    """Every non-passing verdict must be listed, and every listed entry must still hold."""
+def verify_deviations(results: list[dict], deviations: list[dict], complete: bool,
+                      deferred: frozenset | set | None = None) -> dict:
+    """Every non-passing verdict must be listed, and every listed entry must still hold.
+    `deferred` holds the ids of cases a run may leave out because they are slow (by default
+    every case tagged slow): an entry for one of them that is not in the results is neither
+    checked nor unknown, but an entry for an id that is no case at all still is."""
+    if deferred is None:
+        deferred = slow_ids()
     by_id = {r["id"]: r for r in results}
     listed = {(e["case"], e["expectation"], e["mode"]): e for e in deviations}
     unlisted, stale, unknown = [], [], []
     for key, e in listed.items():
         r = by_id.get(key[0])
         if r is None:
-            if complete:
+            if complete and key[0] not in deferred:
                 unknown.append(f"{key[0]}: not a case of this run")
             continue
         src = r if key[1] == "primary" else r.get("corrected")

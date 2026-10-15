@@ -130,6 +130,8 @@ class Choosing(unittest.TestCase):
         core_tests = next(s for s in steps if s.name == "kit tests")
         self.assertIn("KIT_ADAPTER_TESTS", core_tests.drop_env)
         steps = gate.build_steps(["go"], {"go": None}, ROOT, OUT)
+        self.assertEqual(steps[0].env, {"KIT_ADAPTER_TESTS": "1", "KIT_SLOW": "1"})  # a full-tier plan
+        steps = gate.build_steps(["go"], {"go": None}, ROOT, OUT, full=False)
         self.assertEqual(steps[0].env, {"KIT_ADAPTER_TESTS": "1"})
 
 
@@ -313,6 +315,17 @@ class Tiers(unittest.TestCase):
         extra = {s.name for s in plan(False)} - full
         self.assertEqual(extra, {"benchmark rust smoke run", "benchmark go smoke run",
                                  "benchmark csharp smoke run", "benchmark .NET harness files"})
+
+    def test_only_the_full_tier_runs_the_slow_cases(self):
+        langs = [s for s in plan(True) if s.area not in ("core",) and not s.area.startswith("bench")]
+        self.assertTrue(any("kit run and checks" in s.name for s in langs))
+        for s in langs:
+            self.assertEqual(s.env.get("KIT_SLOW"), "1", s.name)
+        for s in plan(False):
+            self.assertNotIn("KIT_SLOW", s.env, s.name)
+        for s in plan(True):
+            if s.area == "core" or s.area.startswith("bench"):
+                self.assertNotIn("KIT_SLOW", s.env, s.name)
 
     def test_the_full_tier_runs_every_hand_over_step_that_is_not_a_stand_in(self):
         full = {ident(s) for s in plan(True)}

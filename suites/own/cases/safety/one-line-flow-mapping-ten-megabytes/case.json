@@ -14,7 +14,7 @@
   "YAML 1.2.2 section 7.4.2",
   "YAML 1.2.2 section 7.4.3"
  ],
- "notes": "The input is valid: the keys are the numbers 0 to 899999, all different. An implicit key is at most 1024 characters on one line, so a pending key candidate expires once it is that far behind, and memory must stay in proportion to the result, not to the length of the line. A reader that kept every candidate of the line pending used 507 MB for the parser alone on this line, and 931 MB on a ten megabyte line of shorter pairs, where a linear reader needs next to nothing. The bound is set above what the readers measured here need to hold the 1.8 million events of the answer (up to 480 MB) and below that cost plus the parser's. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The input is generated from the recipe in case.json (docs/case-format.md).",
+ "notes": "The input is valid: the keys are the numbers 0 to 899999, all different. An implicit key is at most 1024 characters on one line, so a pending key candidate expires once it is that far behind, and memory must stay in proportion to the result, not to the length of the line. A reader that kept every candidate of the line pending used 507 MB for the parser alone on this line, and 931 MB on a ten megabyte line of shorter pairs, where a linear reader needs next to nothing. The readers measured need 160 MB to 1.5 GB to hold the 1.8 million events of the answer, so the memory bound (2048 MB) is a guard against runaway growth; it does not by itself separate a reader that keeps every key candidate pending. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The input is generated from the recipe in case.json (docs/case-format.md).",
  "provenance": {
   "reference": "A reader that kept every possible implicit key of a long one-line flow mapping in a queue, using 931 MB for a ten megabyte line."
  },
@@ -38,7 +38,7 @@
  "expect": {
   "kind": "bounded",
   "time_seconds": 10,
-  "memory_mb": 768,
+  "memory_mb": 2048,
   "error": "limit",
   "accept": {
    "kind": "events",
@@ -58,5 +58,8 @@
     }
    ]
   }
- }
+ },
+ "tags": [
+  "slow"
+ ]
 }

@@ -40,10 +40,20 @@ class Safety(unittest.TestCase):
         for c in ALL:
             if c.expect["kind"] == "bounded":
                 self.assertLessEqual(c.expect["time_seconds"], 20, c.id)
-                self.assertLessEqual(c.expect["memory_mb"], 1024, c.id)
+                # A memory bound sits clear of what an honest reader needs to hold a large answer:
+                # the largest generated case measures honest readers up to 1.5 GB.
+                self.assertLessEqual(c.expect["memory_mb"], 2048, c.id)
 
     def test_seeded_cases_are_fast_tier(self):
-        self.assertEqual([c.id for c in ALL if "slow" in c.tags], [])
+        # Only the large generated inputs are slow; a case copied from another project is small.
+        seeded = [c for c in ALL if c.provenance.get("source")]
+        self.assertEqual([c.id for c in seeded if "slow" in c.tags], [])
+
+    def test_every_large_generated_input_is_slow(self):
+        # A big input in the fast tier costs every hand-over run; it belongs to the full gate.
+        for c in ALL:
+            if len(c.input) > 1_000_000:
+                self.assertIn("slow", c.tags, c.id)
 
 
 class Provenance(unittest.TestCase):
