@@ -487,6 +487,7 @@
    "safety/malformed-utf-8-truncated-sequence-at-the-end": "c15707cfc5475fa72c21823a0f1d923020226ccc405648d7eef0df4a4b70300e",
    "safety/many-anchors-and-aliases": "9acf1dea0291fe835a1615ec0f873755cdcab401cc488d4b46bba6b6d29697f5",
    "safety/many-anchors-sharing-one-name": "cc8c76ba6e065d35b9038120e0c3555408e6fea59119c7e5471a30690ecf4719",
+   "safety/merge-patch-many-deletions-from-a-large-mapping": "e2eae9f9e60cb1cd896518d4b486b160cfa86faad790e8f71ba2c86460f03b56",
    "safety/one-line-flow-mapping-many-pairs": "f601feb543d101848e5c9de3e7868318cb4f9768881b1cb17676755575bae5ac",
    "safety/one-line-flow-mapping-ten-megabytes": "247c8a5018365cffa06898bbf6f9ae1382fb7b6922740626fcdc9857747cb982",
    "safety/one-line-flow-mapping-with-duplicate-keys": "5087d29231714c1d09393893b8633c542322a2a58363628155f520c05e87a599",
@@ -554,6 +555,10 @@
     "bytes": 2400003,
     "sha256": "b43a830b13afd72aaaf1b5fcadf048b59e3d381f28da161290906bfd0367a26d"
    },
+   "safety/merge-patch-many-deletions-from-a-large-mapping": {
+    "bytes": 7500000,
+    "sha256": "568ef4c5b2ae72bbfc2e31ecdbcea979982372874d38c6f491e17d29937689e0"
+   },
    "safety/one-line-flow-mapping-ten-megabytes": {
     "bytes": 9788893,
     "sha256": "41a2320eae7b1cc8b33f4860cab30196a15ad223c9b264a6767e61e53929121f"
@@ -567,6 +572,10 @@
    "safety/implicit-key-window-rescan": {
     "bytes": 24014327,
     "sha256": "225792848119600f48dbf9dd254d2e5199ee496fff1dfd0708bd3688463f7a85"
+   },
+   "safety/merge-patch-many-deletions-from-a-large-mapping": {
+    "bytes": 7320000,
+    "sha256": "72c90116aa3904cfe3724db9c7b7cf4fee6811d6461139ec6b823f2ae7c66828"
    },
    "safety/one-line-flow-mapping-ten-megabytes": {
     "bytes": 18788923,

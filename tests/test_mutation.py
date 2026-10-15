@@ -126,6 +126,9 @@ class Mutations(unittest.TestCase):
             cats = list(c.expect["category"])
             refusal = {"id": c.id, "status": "error", "error": {"category": cats[0]},
                        "_measure": {"seconds": 0.0, "peak_mb": 0.0}}
+            if c.expect.get("unchanged"):
+                # A refused patch that must leave the document alone reports the document as it was.
+                refusal["output"] = C.b64(c.input)
             r = K.evaluate(c, c.expect, refusal, caps)
             self.assertEqual((r["loose"], r["strict"]), ("pass", "pass"), c.id)
             other = next(x for x in ("limit", "syntax", "encoding") if x not in cats)
