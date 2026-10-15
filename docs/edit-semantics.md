@@ -67,7 +67,7 @@ having got YAML wrong.
   an integer.
 - **An empty key is addressed by the empty pointer token.** A token matches a key by its
   scalar text, and a key with no content has the empty text.
-- **A value for an explicit key that has none** is written on a new line at the key's indentation, as `: value`, after the key line and its comment; a missing final line break stays missing.
+- **A value for an explicit key that has none** goes on its own line at the key's indentation, as `: value`, after the key line and its comment (the specification requires the separate line for a `?` key). The convention is only that a missing final line break stays missing; the quote follows the rule above.
 
 ## The value keeps its style, and what follows from exactness
 
