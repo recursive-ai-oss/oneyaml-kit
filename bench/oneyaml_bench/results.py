@@ -99,6 +99,18 @@ def memory_verdict(own_bytes: float, other_bytes: float,
     return "tie"
 
 
+def memory_complete(cell: dict) -> bool:
+    """True when the cell's memory was measured in as many processes as its harness declares for the run (always
+    for a harness that declares none). A cell measured in fewer has no observed spread, and a verdict that rests
+    on a spread it lacks would be a guess."""
+    m = cell["memory"]
+    declared = m.get("processes_declared") or 1
+    return declared <= 1 or (m.get("processes") or {}).get("count", 1) >= declared
+
+
+INCOMPLETE_MEMORY = "memory was measured in fewer processes than the harness declares, so its spread is unknown"
+
+
 def memory_range(cell: dict, key: str = "peak_bytes") -> tuple[float, float]:
     """The lowest and highest figure the cell's memory took in the processes that measured it; the published
     figure twice when it was measured in one."""
@@ -252,6 +264,9 @@ def compare_rows(cells: list[dict]) -> list[dict]:
                     "verdict": memory_verdict(max(m["peak_bytes"], 1), max(bm["memory"]["peak_bytes"], 1),
                                               memory_range(c), memory_range(bm)),
                 }
+                if entry["memory"] is not None and not (memory_complete(c) and memory_complete(bm)):
+                    entry["memory"]["verdict"] = "tie"
+                    entry["memory"]["reason"] = INCOMPLETE_MEMORY
             row["own"].append(entry)
         out.append(row)
     return out
@@ -407,6 +422,17 @@ def validate(result: dict) -> None:
                 raise ResultError(f"cell {ident} took {c['time']['samples']} samples in a full run "
                                   f"(at least {MIN_FULL_SAMPLES} are required)")
             check_memory_processes(ident, c["memory"])
+            declared_run = (run.get("memory_processes") or {}).get(c["language"])
+            if declared_run:
+                want, used = declared_run["declared"], declared_run["used"]
+                if c["memory"].get("processes_declared") != want:
+                    raise ResultError(f"cell {ident} does not say how many processes its harness declares ({want})")
+                got = (c["memory"].get("processes") or {}).get("count", 1)
+                if got != used:
+                    raise ResultError(f"cell {ident} was measured in {got} processes where the run used {used}")
+                if used < want and pub["publishable"]:
+                    raise ResultError(f"cell {ident} was measured in {used} processes where the harness declares "
+                                      f"{want}, but the run is marked publishable")
             r = c["memory"].get("retained_bytes")
             if r is not None and (not isinstance(r, int) or r < 0):
                 raise ResultError(f"cell {ident} has a bad retained_bytes")

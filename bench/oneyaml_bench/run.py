@@ -233,16 +233,34 @@ def add_memory_processes(h: dict, build_dir: Path, wl_dir: Path, out_dir: Path, 
     ok = {f"{c['library']}/{c['task']}/{c['workload']}": c for c in cells if c["status"] == "ok"}
     not_ok = [f"{c['library']}/{c['task']}/{c['workload']}" for c in cells if c["status"] != "ok"]
     extra: dict[str, list[dict]] = {k: [] for k in ok}
+    failed: dict[str, str] = {}
     for i in range(n - 1):
         log(f"measuring memory in process {i + 2} of {n}")
         _, got, _ = run_harness(h, build_dir, wl_dir, "memory", out_dir, sampler, pin_cpu, libraries, tasks, only,
                                 log, skip_cells=not_ok)
+        seen = {}
         for c in got:
-            k = f"{c['library']}/{c['task']}/{c['workload']}"
-            if c["status"] == "ok" and k in extra and "memory" in c:
+            seen[f"{c['library']}/{c['task']}/{c['workload']}"] = c
+        for k in ok:
+            c = seen.get(k)
+            if k in failed:
+                continue
+            if c is None:
+                failed[k] = f"not ok in memory process {i + 2}: missing (the process gave no result for it)"
+            elif c["status"] != "ok" or "memory" not in c:
+                failed[k] = f"not ok in memory process {i + 2}: {c['status']} {c.get('detail', '')}".rstrip()
+            else:
                 extra[k].append(c["memory"])
     for k, cell in ok.items():
-        results.merge_memory_processes(cell, extra[k])
+        if k in failed:
+            # A cell that did not hold up in another process has no figure to publish: a median over the
+            # processes that happened to work would look complete.
+            cell["status"] = "error"
+            cell["detail"] = failed[k]
+            for key in ("time", "memory", "variant"):
+                cell.pop(key, None)
+        else:
+            results.merge_memory_processes(cell, extra[k])
 
 
 def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries: list[str] = (),
@@ -278,8 +296,13 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
                                         libraries, tasks, only, log)
             records[l], cells_by_lang[l], restarts = rec, cells, restarts + r
             n_mem = memory_process_count(h, mode, memory_processes)
+            declared = memory_process_count(h, mode, None)
+            if declared > 1 or n_mem > 1:
+                mem_procs[l] = {"declared": declared, "used": n_mem}
+                for c in cells:
+                    if c["status"] == "ok":
+                        c["memory"]["processes_declared"] = declared
             if n_mem > 1:
-                mem_procs[l] = n_mem
                 add_memory_processes(h, build_dir, wl_dir, out_dir, sampler, pin_cpu, libraries, tasks, only,
                                      cells, n_mem, log)
             n_libs += len([x for x in rec.get("libraries", []) if not libraries or x["id"] in libraries])
@@ -296,6 +319,11 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
                    time.monotonic() - t0, restarts, wanted, pin_cpu, counters)
     if mem_procs:
         res["run"]["memory_processes"] = mem_procs
+        short = [f"{l} (declares {v['declared']}, used {v['used']})" for l, v in mem_procs.items()
+                 if v["used"] < v["declared"]]
+        if short:
+            results.add_reasons(res, ["memory was measured in fewer processes than the harness declares: "
+                                      + ", ".join(short)])
     return res
 
 

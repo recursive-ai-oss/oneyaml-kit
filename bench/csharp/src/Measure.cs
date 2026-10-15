@@ -212,7 +212,13 @@ public static class Measure
 
     /// <summary>The memory figures of a cell in a process that does not time it: the same warm-up the timed run
     /// does (it is what the runtime's profile-guided choices follow from), then the memory pass. Used by the
-    /// extra processes of a full run, which exist because the allocated bytes differ between processes.</summary>
+    /// extra processes of a full run, which exist because the allocated bytes differ between processes.
+    ///
+    /// The peak is the state plus the allocated bytes in every process, but the state reading (a difference of two
+    /// live-heap readings) is 0 in the timed process and 64 bytes in these, because the heap the timed run left
+    /// behind is not the heap a fresh process has: one small object the runtime allocates between the two readings
+    /// is counted in one and not in the other. At 0.01% of a typical figure it is far below the memory floor, and
+    /// the published median and the observed range absorb it.</summary>
     public static Usage WarmedMemory(Runner r, Config cfg)
     {
         long cap = Math.Min(Math.Max(1, cfg.MaxPreparedBytes / Math.Max(StateBytes(r), 1)), cfg.MaxIters);

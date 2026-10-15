@@ -378,6 +378,10 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
              "task is still the one compared with when it is ahead: it is named with a † and its reason, and "
              "a loss to it is a loss. A gap inside the measurement noise "
              "(at least 2% for time, 1% for memory) is a tie. Cells without a number say why.\n")
+    short = [c for c in cells if c["status"] == "ok" and not results.memory_complete(c)]
+    if short:
+        L.append(f"{len(short)} cells have memory from fewer processes than their harness declares; a memory "
+                 "verdict that involves one is a tie, because its spread is unknown.\n")
     multi = sorted({c["language"] for c in cells if c["status"] == "ok" and (c["memory"].get("processes"))})
     if multi:
         L.append(f"Memory in {', '.join(multi)} was measured in several processes, because the runtime's "

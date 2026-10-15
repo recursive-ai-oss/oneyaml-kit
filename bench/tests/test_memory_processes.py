@@ -72,13 +72,102 @@ class Merge(unittest.TestCase):
         full = {"language": "csharp", "role": "competitor", "input_bytes": 1, "variant": "spec", **a}
         R.check_memory_processes(("csharp", "a", "generic-load", "w"), full["memory"])
 
-    def test_a_process_that_lost_a_cell_leaves_the_others_to_count(self):
+    def test_a_cell_that_is_not_ok_in_a_memory_process_becomes_an_error(self):
+        # Ok in the timed process; the guard then says differs in one memory process, and a crash restart gives an
+        # error in another. A median over the processes that happened to work must not be published.
+        for later in (bad("a"), {**bad("a"), "status": "error", "detail": "the process died"}):
+            cells = [ok("a", 1000), ok("b", 2000)]
+            answers = iter([[ok("a", 1100), ok("b", 2100)], [later, ok("b", 2000)], [ok("a", 900), ok("b", 1900)]])
+
+            def run_harness(*args, **kw):
+                return {}, next(answers), 0
+            run.run_harness = run_harness
+            run.add_memory_processes({}, Path("b"), Path("w"), Path("o"), None, None, [], [], [], cells, 4,
+                                     lambda *_: None)
+            a, b = cells
+            self.assertEqual(a["status"], "error")
+            self.assertIn("not ok in memory process 3", a["detail"])
+            self.assertTrue(a["detail"].rstrip().endswith(later["detail"]) or later["status"] in a["detail"])
+            for key in ("time", "memory", "variant"):
+                self.assertNotIn(key, a)
+            self.assertEqual(b["status"], "ok")  # the other cell held up
+            self.assertEqual(b["memory"]["processes"]["count"], 4)
+
+    def test_a_cell_missing_from_a_memory_process_becomes_an_error(self):
         cells = [ok("a", 1000), ok("b", 2000)]
         self.fake([[1200, None, None], [800, 2100, None]])
         run.add_memory_processes({}, Path("b"), Path("w"), Path("o"), None, None, [], [], [], cells, 3, lambda *_: None)
+        self.assertEqual(cells[1]["status"], "error")
+        self.assertIn("process 2", cells[1]["detail"])
+        self.assertIn("missing", cells[1]["detail"])
+        self.assertEqual(cells[0]["status"], "ok")  # present in every process
         self.assertEqual(cells[0]["memory"]["processes"]["count"], 3)
-        self.assertEqual(cells[1]["memory"]["processes"]["count"], 2)
-        self.assertEqual(cells[1]["memory"]["peak_bytes"], 2050)
+
+
+def full_result(cells, declared=5, used=5, publishable=False):
+    r = R_result(cells)
+    r["run"]["memory_processes"] = {"csharp": {"declared": declared, "used": used}}
+    r["run"]["publishability"]["publishable"] = publishable
+    if publishable:
+        r["run"]["publishability"]["reasons"] = []
+    return r
+
+
+def R_result(cells):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import test_results
+    return test_results.result(cells, mode="full", publishable=False, reasons=("test",))
+
+
+def counted(lib, n, declared=5, peak=1000, role="competitor"):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import test_results
+    c = test_results.cell(lib, role=role, language="csharp", peak=peak)
+    if n > 1:
+        test_results.with_processes(c, [peak] * n)
+    c["time"]["samples"] = 30
+    c["memory"]["processes_declared"] = declared
+    return c
+
+
+class Declared(unittest.TestCase):
+    def test_a_verdict_needs_both_cells_at_the_declared_count(self):
+        complete = R.compare_rows([counted("ours", 5, role="own", peak=900), counted("rival", 5, peak=1000)])
+        self.assertEqual(complete[0]["own"][0]["memory"]["verdict"], "win")
+        # Ours at five processes against a rival measured in one (say, a rerun with the count overridden).
+        short = R.compare_rows([counted("ours", 5, role="own", peak=900), counted("rival", 1, peak=1000)])
+        m = short[0]["own"][0]["memory"]
+        self.assertEqual(m["verdict"], "tie")
+        self.assertIn("fewer processes", m["reason"])
+        both = R.compare_rows([counted("ours", 1, role="own", peak=900), counted("rival", 1, peak=1000)])
+        self.assertEqual(both[0]["own"][0]["memory"]["verdict"], "tie")
+        # A harness that declares nothing is unaffected.
+        plain = R.compare_rows([counted("ours", 1, declared=1, role="own", peak=900),
+                                counted("rival", 1, declared=1, peak=1000)])
+        self.assertEqual(plain[0]["own"][0]["memory"]["verdict"], "win")
+
+    def test_every_ok_cell_must_have_the_count_the_run_used(self):
+        R.validate(full_result([counted("a", 5), counted("b", 5)]))
+        with self.assertRaises(R.ResultError):
+            R.validate(full_result([counted("a", 5), counted("b", 3)]))  # a cell with fewer than the run used
+        with self.assertRaises(R.ResultError):
+            R.validate(full_result([counted("a", 5), counted("b", 1)]))  # a cell with none
+        unstamped = counted("a", 5)
+        del unstamped["memory"]["processes_declared"]
+        with self.assertRaises(R.ResultError):
+            R.validate(full_result([unstamped]))
+
+    def test_a_run_below_the_declared_count_is_never_publishable(self):
+        low = [counted("a", 1), counted("b", 1)]
+        R.validate(full_result(low, used=1))  # a smoke result is allowed to be low
+        with self.assertRaises(R.ResultError):
+            R.validate(full_result(low, used=1, publishable=True))
+        R.validate(full_result([counted("a", 5)], used=5, publishable=True))
+
+    def test_the_driver_marks_a_run_below_the_declared_count(self):
+        h = {"memory_processes": {"full": 5}}
+        self.assertEqual(run.memory_process_count(h, "full", 1), 1)
+        self.assertEqual(run.memory_process_count(h, "full", None), 5)
 
 
 if __name__ == "__main__":
