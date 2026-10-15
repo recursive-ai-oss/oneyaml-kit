@@ -6,6 +6,7 @@
  "origin": "bug",
  "productions": [
   "170",
+  "173",
   "75",
   "187"
  ],
@@ -18,7 +19,7 @@
   "convention",
   "comment-ownership"
  ],
- "notes": "The literal scalar of `a` has two lines, `x` and `# in`, both indented two spaces. A line of a block scalar is content (production 170, l-literal-content), whatever it starts with, so `  # in` is part of the text, not a comment: the value is `x\\n# in\\n`. The line `# h` is at column 0, which ends the scalar, and is a comment directly above the entry `b`. Removing `/b` takes the entry and, by the kit's convention for comments (docs/edit-semantics.md: a comment on the line directly above an entry, with no blank line between, goes with it), that comment; the specification gives comments no owner, so the case carries the tags `convention` and `comment-ownership`. The scalar of `a`, with `  # in`, is not touched and `c: 2` stays: a library that takes `  # in` for the comment above `b`, or that stops the scalar early, removes a line that is data.",
+ "notes": "The literal scalar of `a` has two lines, `x` and `# in`, both indented two spaces. A line of a block scalar is content (production 173, l-literal-content), whatever it starts with, so `  # in` is part of the text, not a comment: the value is `x\\n# in\\n`. The line `# h` is at column 0, which ends the scalar, and is a comment directly above the entry `b`. The grammar places it among the trailing comments of the literal scalar (productions 169 and 167, clip chomping), so a library that follows the grammar alone would keep it; the kit's comment convention gives it to `b` instead. Removing `/b` takes the entry and, by the kit's convention for comments (docs/edit-semantics.md: a comment on the line directly above an entry, with no blank line between, goes with it), that comment; the specification gives comments no owner, so the case carries the tags `convention` and `comment-ownership`. The scalar of `a`, with `  # in`, is not touched and `c: 2` stays: a library that takes `  # in` for the comment above `b`, or that stops the scalar early, removes a line that is data.",
  "provenance": {
   "reference": "A patch engine that took the hash lines at the end of a block scalar for the comments above the next entry and removed them with it, or kept the comment that belongs to the removed entry."
  },
