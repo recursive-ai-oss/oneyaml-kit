@@ -29,8 +29,9 @@ func fail(err error) gokit.Result {
 	switch {
 	case errors.As(err, &se):
 		cat := "syntax"
-		if se.Category == "encoding" {
-			cat = "encoding"
+		switch se.Category {
+		case "encoding", "duplicate-key":
+			cat = se.Category
 		}
 		return gokit.Err(cat, se.Error(), se.Line, se.Column)
 	case errors.As(err, &le):
