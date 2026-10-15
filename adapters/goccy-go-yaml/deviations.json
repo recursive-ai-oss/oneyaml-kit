@@ -504,5 +504,7 @@
   {"case": "own:emit/strings-with-indicators-are-quoted", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Writes text that does not read back as the value: $[1]: expected '? a', got {'a': None}"},
   {"case": "own:emit/strings-with-indicators-are-quoted", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Writes text that does not read back as the value: $[1]: expected '? a', got {'a': None}"},
   {"case": "own:emit/yaml-1-1-number-strings-are-quoted", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[2]: expected '1:30.5', got 90.5"},
-  {"case": "own:emit/yaml-1-1-timestamp-and-merge-strings-are-quoted", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[1]: expected '2001-1-1', got '<a timestamp in YAML 1.1>'"}
+  {"case": "own:emit/yaml-1-1-timestamp-and-merge-strings-are-quoted", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[1]: expected '2001-1-1', got '<a timestamp in YAML 1.1>'"},
+  {"case": "own:edit/set-value-of-explicit-null-key-at-end-of-large-mapping", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: '[76:1] undefined map key' at the explicit key with no content"},
+  {"case": "own:edit/set-value-of-explicit-null-key-at-end-of-large-mapping", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: '[76:1] undefined map key' at the explicit key with no content"}
 ]}

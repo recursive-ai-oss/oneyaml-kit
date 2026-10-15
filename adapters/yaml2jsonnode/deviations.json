@@ -4403,6 +4403,34 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Grows past the memory bound of the case while writing the aliases out, where the only answer is a limit error"
+  },
+  {
+   "case": "own:edit/set-value-of-explicit-null-key-at-end-of-large-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rewrites the document and writes the explicit null key as the empty string '' with the comment dropped, so the key is no longer null: first difference at byte 600"
+  },
+  {
+   "case": "own:edit/set-value-of-explicit-null-key-at-end-of-large-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rewrites the document and writes the explicit null key as the empty string '' with the comment dropped, so the key is no longer null: first difference at byte 600"
+  },
+  {
+   "case": "own:safety/patch-many-appends-into-a-created-flow-sequence",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rewrites the document with every scalar double-quoted, where the copied plain string stays plain: first difference at byte 8"
+  },
+  {
+   "case": "own:safety/patch-many-appends-into-a-created-flow-sequence",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rewrites the document with every scalar double-quoted, where the copied plain string stays plain: first difference at byte 8"
   }
 ]
 }

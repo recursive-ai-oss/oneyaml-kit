@@ -4018,6 +4018,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[0]: expected '2001-12-14', got '<a timestamp in YAML 1.1>'"
+  },
+  {
+   "case": "own:edit/set-value-of-explicit-null-key-at-end-of-large-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the value on the key line after the comment, where it is no longer a value: first difference at byte 603"
+  },
+  {
+   "case": "own:edit/set-value-of-explicit-null-key-at-end-of-large-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the value on the key line after the comment, where it is no longer a value: first difference at byte 603"
   }
  ]
 }

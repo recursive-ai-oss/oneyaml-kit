@@ -1,0 +1,48 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/many-anchors-sharing-one-name",
+ "title": "Two hundred and forty thousand definitions of one anchor name, each used once",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "101",
+  "104",
+  "137"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.2.2",
+  "YAML 1.2.2 section 7.1"
+ ],
+ "tags": [
+  "slow"
+ ],
+ "notes": "The input is valid. A flow sequence holds the pair `&a 0, *a, ` two hundred and forty thousand times. Every `&a` gives the name `a` to a new node, and the alias after it refers to the most recent node with that name (section 3.2.2.2: an alias refers to the most recent anchor; section 7.1: an anchor may be defined again, and the alias before the next definition still means the earlier one). Every item is therefore the integer 0, 480,000 of them. A reader that looks a name up by scanning the earlier anchors of that name, or that keeps every definition in a list per name, does work that grows with the square of the number of definitions: 240,000 definitions are about 29 billion steps. A reader may also refuse the input with a limit error. The time bound is derived from the siblings: safety/one-line-flow-mapping-ten-megabytes allows 20 seconds for 10 megabytes, which is 2 seconds per megabyte, and this input is 2.4 megabytes, so a linear reader is inside 5 seconds and the bound is the common 10 seconds. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The input is generated from the recipe in case.json (docs/case-format.md); the expected result is `[[0, 0, ...]]`, one document of 480,000 zeros, stored without spaces to stay under the size a stored file may have. Fast mode leaves this case out, as it does every case with a generated input; the full gate and a run with --slow include it.",
+ "provenance": {
+  "reference": "A reader that kept every definition of an anchor name in a list and searched it for each alias, so many definitions of one name took quadratic time."
+ },
+ "input_recipe": [
+  {
+   "text": "["
+  },
+  {
+   "text": "&a 0, *a, ",
+   "repeat": 240000
+  },
+  {
+   "text": "]\n"
+  }
+ ],
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "value",
+   "file": "expected.json"
+  }
+ }
+}
