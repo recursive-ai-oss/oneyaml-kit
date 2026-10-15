@@ -14,20 +14,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The upstream value reads 450.00 as the integer 450; the library reads the float 450.0, which is right under the core schema (the corrected expectation passes)."
-  },
-  {
-   "case": "own:edit/add-below-empty-document-root-is-refused",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "The patch was applied; the case expects it to be refused."
-  },
-  {
-   "case": "own:edit/add-below-empty-document-root-is-refused",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The patch was applied; the case expects it to be refused."
   }
  ]
 }
