@@ -79,6 +79,7 @@ func events(in []byte) gokit.Result {
 		if root := doc.Root(); root.IsValid() {
 			lines = walk(lines, root)
 		} else {
+			// A document with no root node is the spec's empty node: a plain empty scalar.
 			lines = append(lines, "=VAL :")
 		}
 		if doc.ExplicitEnd() {
