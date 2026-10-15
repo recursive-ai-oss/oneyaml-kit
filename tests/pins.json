@@ -219,6 +219,7 @@
    "edit/pointer-tilde-in-key": "74a0383fb126b039ff862fa3e337bef692e3bc64abd1974c43973af9acf501f6",
    "edit/pointer-without-leading-slash": "5ad88cd60720d39d0d4d81a463ef991862824fbc37cb5d864cab77d7906d4cf5",
    "edit/read-nonspecific-tag-is-string": "1bc8f48021ba151c2a405aeb2a5660dc01a63ccc5f5654654b7124f6201410bc",
+   "edit/refuse-ambiguous-empty-token": "23a43eb063a6155af103bcb6bde8e44ff5c7e1eded73eb7f453a2ff517c0eacb",
    "edit/refuse-ambiguous-key": "847e6ddc528f8237fd41267beb3488120dc97f910b119896b4dcc5fd20e3b9a3",
    "edit/refuse-write-through-alias": "e4e4d8460dba476ddf85ade9a809d950eb539af04502512f5a039171bb49d7d5",
    "edit/remove-anchored-key-without-aliases": "44f367919768bedadec491aabc723ba3414127c7b08df76e1d3485cdd5ef9b59",

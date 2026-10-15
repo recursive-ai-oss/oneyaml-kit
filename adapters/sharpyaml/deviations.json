@@ -4102,6 +4102,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Writes the value on the key line after the comment, where it is no longer a value: first difference at byte 603"
+  },
+  {
+   "case": "own:edit/refuse-ambiguous-empty-token",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:edit/refuse-ambiguous-empty-token",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The patch was applied; the case expects it to be refused."
   }
  ]
 }

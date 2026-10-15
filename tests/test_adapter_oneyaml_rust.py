@@ -82,7 +82,8 @@ class OneyamlRust(unittest.TestCase):
     def test_a_byte_string_is_declined_not_written_as_a_mapping(self):
         r = self.by_id["own:emit/binary-values-are-tagged-base64"]
         self.assertEqual((r["loose"], r["strict"]), ("unsupported", "unsupported"))
-        self.assertIn("byte string", r["detail"])
+        # serialize_bytes in oneyaml 1.1.0 writes a sequence of integers, as serde_yaml does.
+        self.assertIn("list of integers", r["detail"])
 
     def test_an_integer_beyond_64_bits_is_declined_not_turned_into_a_float(self):
         from oneyaml_kit.protocol import SubprocessAdapter

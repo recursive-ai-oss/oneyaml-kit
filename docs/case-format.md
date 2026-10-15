@@ -279,8 +279,8 @@ and flow collections, plain, quoted and block scalars, `? ` keys, comments and o
 Anchors, aliases, custom tags, tag directives and several documents are refused by name,
 because a written value has no shared nodes; so is a raw character that is not printable. It
 is checked against yaml-test-suite: it reads the same values as the suite records for more than
-200 valid documents, and refuses at least 89 of the 94 invalid ones. It is a judge of what a writer
-wrote, not a validator.
+200 valid documents, and refuses all 94 invalid ones. It is a judge of what a writer wrote, not a
+validator, so only the suite's invalid documents are promised.
 
 The text is read three ways, and the verdicts are split like this:
 
