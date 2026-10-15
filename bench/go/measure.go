@@ -47,8 +47,9 @@ type Timing struct {
 	Chunk int
 	// SamplesNS is the per-iteration time of each sample, sorted.
 	SamplesNS []float64
-	// AllocsPerOp and BytesPerOp are what testing.B counted over all samples, for the
-	// agreement check with the memory pass.
+	// AllocsPerOp and BytesPerOp are the median over the samples of what testing.B counted per
+	// operation in each (see medianOf). They are the published allocation figures, and the
+	// ones the agreement check compares with the memory pass.
 	AllocsPerOp float64
 	BytesPerOp  float64
 	Panic       any
@@ -156,7 +157,7 @@ func timeRunner(r Runner, cfg Config) Timing {
 	}
 	setBenchtime(fmt.Sprintf("%dx", n))
 	t := Timing{Chunk: chunk}
-	var totalN, totalAllocs, totalBytes uint64
+	var perAllocs, perBytes []float64
 	for i := 0; i < cfg.Samples && panicked == nil; i++ {
 		res := testing.Benchmark(fn)
 		if res.N == 0 {
@@ -164,14 +165,13 @@ func timeRunner(r Runner, cfg Config) Timing {
 		}
 		t.SamplesNS = append(t.SamplesNS, float64(res.T.Nanoseconds())/float64(res.N))
 		t.ItersPerSample = res.N
-		totalN += uint64(res.N)
-		totalAllocs += res.MemAllocs
-		totalBytes += res.MemBytes
+		perAllocs = append(perAllocs, float64(res.MemAllocs)/float64(res.N))
+		perBytes = append(perBytes, float64(res.MemBytes)/float64(res.N))
 	}
 	sort.Float64s(t.SamplesNS)
-	if totalN > 0 {
-		t.AllocsPerOp = float64(totalAllocs) / float64(totalN)
-		t.BytesPerOp = float64(totalBytes) / float64(totalN)
+	if len(perAllocs) > 0 {
+		t.AllocsPerOp = medianOf(perAllocs)
+		t.BytesPerOp = medianOf(perBytes)
 	}
 	t.Panic = panicked
 	return t
@@ -194,6 +194,18 @@ func warmUp(r Runner) uint64 {
 	b.Run()
 	runtime.ReadMemStats(&m1)
 	return m1.Mallocs - m0.Mallocs
+}
+
+// medianOf is the middle value of the figures, taken in groups that each start from a collection
+// and a warm-up run. A library that keeps state in a sync.Pool can lose it when a natural
+// collection lands between two of its calls, and then allocates the state again in one run: a
+// group that has such a run reads several times the steady state, the groups around it do not. A
+// mean would count that rare event in whichever pass happened to meet it, and the two passes would
+// disagree by chance; the median of the groups is the steady state of an ordinary group in both.
+func medianOf(v []float64) float64 {
+	s := append([]float64(nil), v...)
+	sort.Float64s(s)
+	return median(s)
 }
 
 // Memory is the result of the memory pass.
@@ -293,30 +305,31 @@ func memoryPass(r Runner, runs, group int) Memory {
 	runtime.KeepAlive(batch)
 	batch = nil
 
-	var allocBytes, mallocs, total, first uint64
+	var perBytes, perCalls []float64
+	var first uint64
 	for left := runs; left > 0; {
 		k := min(left, group)
 		avg := r.Prepare(k)
 		runtime.GC()
-		if n := warmUp(r); total == 0 {
+		if n := warmUp(r); len(perCalls) == 0 {
 			first = n
 		}
 		runtime.ReadMemStats(&before)
 		avg.Run()
 		runtime.ReadMemStats(&after)
 		runtime.KeepAlive(avg)
-		allocBytes += after.TotalAlloc - before.TotalAlloc
-		mallocs += after.Mallocs - before.Mallocs
-		total += uint64(k)
+		perBytes = append(perBytes, float64(after.TotalAlloc-before.TotalAlloc)/float64(k))
+		perCalls = append(perCalls, float64(after.Mallocs-before.Mallocs)/float64(k))
 		left -= k
 	}
 	return Memory{RetainedBytes: retained, PeakBytes: peak,
-		AllocatedBytes: (allocBytes + total/2) / total,
-		Allocations:    (mallocs + total/2) / total, FirstRunAllocations: first}
+		AllocatedBytes:      uint64(math.Round(medianOf(perBytes))),
+		Allocations:         uint64(math.Round(medianOf(perCalls))),
+		FirstRunAllocations: first}
 }
 
 // agree checks the memory pass against the allocation counts testing.B took in the timed
-// runs, which are averages over many more runs. The number of calls must agree within 5%; the
+// runs, both medians over groups of runs that start the same way. The number of calls must agree within 5%; the
 // bytes within 25%, because a library that keeps buffers in a pool allocates fewer bytes the
 // longer the heap stays unchanged, and the two runs do not see the same number of collections.
 // A few bytes and calls of slack cover rounding and the runtime's own bookkeeping. A larger

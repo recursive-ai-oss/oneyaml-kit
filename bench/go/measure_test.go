@@ -165,3 +165,61 @@ func TestWarmedMemoryPassStillRefusesARealDisagreement(t *testing.T) {
 		t.Errorf("a doubled allocation count was accepted: %+v", m)
 	}
 }
+
+var (
+	lostRuns  int
+	lostSink  [][]byte
+	lostEvery = 61
+)
+
+// lossyPoolRunner stands for a library whose pooled state is dropped now and then, when a natural
+// collection lands between two calls: every 61st run (counted over the whole process) allocates the
+// state again, 2000 calls and about 200 kB. It takes about 300 microseconds a run, so a sample holds
+// a few runs and a miss lands in one sample or one group, never in most.
+func lossyPoolRunner() Runner {
+	return newRunner(func() struct{} { return struct{}{} },
+		func(*struct{}) ([]byte, error) {
+			lostRuns++
+			for t0 := time.Now(); time.Since(t0) < 300*time.Microsecond; {
+			}
+			poolSink = make([]byte, 8)
+			if lostRuns%lostEvery == 0 {
+				lostSink = lostSink[:0]
+				for i := 0; i < 2000; i++ {
+					lostSink = append(lostSink, make([]byte, 100))
+				}
+			}
+			return make([]byte, 64), nil
+		}, bytesProduct)
+}
+
+// A refill that one run in 61 pays is not what a run costs: the figure of both passes is the
+// middle of the groups, which is 2 calls a run. A mean of the same runs reads 2 + 2000/61 = 35.
+func TestARareRefillDoesNotMoveEitherPass(t *testing.T) {
+	r := lossyPoolRunner()
+	tm := timeRunner(r, quickConfig())
+	m := memoryPass(r, avgRunsFor(tm, quickConfig()), min(tm.ItersPerSample, tm.Chunk))
+	if tm.AllocsPerOp != 2 {
+		t.Errorf("the timed figure is %.1f calls a run, the steady state is 2", tm.AllocsPerOp)
+	}
+	if m.Allocations != 2 {
+		t.Errorf("the memory pass counted %d calls a run, the steady state is 2", m.Allocations)
+	}
+	if d := agree(tm, m); d != "" {
+		t.Error(d)
+	}
+}
+
+// With the refill in every group the median is the refill, in both passes: it is a cost of the
+// library, and the check still catches a real difference between the passes.
+func TestAMedianStillRefusesARealDisagreement(t *testing.T) {
+	tm := Timing{ItersPerSample: 3, Chunk: 3, AllocsPerOp: 4, BytesPerOp: 4 * 112}
+	lostRuns = 0
+	m := memoryPass(lossyPoolRunner(), 63, 3)
+	if m.Allocations != 2 {
+		t.Fatalf("expected the steady 2 calls, got %d", m.Allocations)
+	}
+	if agree(tm, m) == "" {
+		t.Error("a timed figure of twice the memory pass was accepted")
+	}
+}

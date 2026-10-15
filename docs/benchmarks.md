@@ -119,7 +119,8 @@ places and are written to `out/bench/workloads/` before a run:
   The Go harness cannot count through an allocator, so it reads `runtime.MemStats` instead
   and says so in each cell's method (`runtime.MemStats, sampled`); its peak is the highest
   heap reading seen and is not the same quantity as the Rust one. Its allocation figures are
-  `testing.B` per-op averages in steady state: after each collection the harness makes one unmeasured
+  `testing.B` per-op figures in steady state (the median over the timed samples, so a refill that a
+  natural collection forces in one sample does not count): after each collection the harness makes one unmeasured
   run, so the pools and caches a library refills after a collection are full when counting starts.
   A program that calls the library once, or rarely between collections, also pays that refill, which
   these figures leave out. What a library keeps in its pools shows in `retained_bytes`, and the
