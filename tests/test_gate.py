@@ -87,6 +87,14 @@ class Choosing(unittest.TestCase):
         self.assertEqual(areas(["bench/tests/test_pipeline.py"])[0], ["core", "bench-rust"])
         self.assertEqual(areas(["bench/tests/test_csharp.py"])[0], ["core", "bench-csharp"])
 
+    def test_a_change_to_the_oneyaml_csharp_adapter_also_runs_the_csharp_harness_area(self):
+        got, _, _ = areas(["adapters/oneyaml-csharp/Lib.cs"])
+        self.assertEqual(got, ["core", "csharp", "bench-csharp"])
+        self.assertEqual(areas(["adapters/vyaml/Program.cs"])[0], ["core", "csharp"])
+
+    def test_the_linked_build_tests_run_in_the_hand_over_tier(self):
+        self.assertIn("benchmark .NET linked builds", {s.name for s in plan(False)})
+
     def test_several_changes_add_up_in_a_stable_order(self):
         got, touched, _ = areas(["adapters/vyaml/Program.cs", "adapters/go-yaml-v2/main.go", "bench/x.py"])
         self.assertEqual(got, ["core", "csharp", "go", "bench", "bench-rust"])
@@ -314,7 +322,8 @@ class Tiers(unittest.TestCase):
         # The hand-over tier's only extras are quick stand-ins that the full tier's slow steps subsume.
         extra = {s.name for s in plan(False)} - full
         self.assertEqual(extra, {"benchmark rust smoke run", "benchmark go smoke run",
-                                 "benchmark csharp smoke run", "benchmark .NET harness files"})
+                                 "benchmark csharp smoke run", "benchmark .NET harness files",
+                                 "benchmark .NET linked builds"})
 
     def test_only_the_full_tier_runs_the_slow_cases(self):
         langs = [s for s in plan(True) if s.area not in ("core",) and not s.area.startswith("bench")]

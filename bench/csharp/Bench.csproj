@@ -36,7 +36,11 @@
     <OneYamlProject>$([System.IO.Path]::GetFullPath('$(OneYamlSrc)/src/OneYaml/OneYaml.csproj'))</OneYamlProject>
   </PropertyGroup>
   <PropertyGroup Condition="'$(OneYamlProject)' != '' And Exists('$(OneYamlProject)')">
-    <DefineConstants>$(DefineConstants);ONEYAML_LINKED</DefineConstants>
+    <!-- The kit's own build tests link an empty stand-in checkout to test the build (paths with spaces, the
+         lock check). The library-facing sources cannot compile against it, so they set
+         KIT_LINK_WITHOUT_LIBRARY_SOURCES=1: the reference and its restore stay, the sources that call the
+         library are left out, as in a build with no checkout. -->
+    <DefineConstants Condition="'$(KIT_LINK_WITHOUT_LIBRARY_SOURCES)' != '1'">$(DefineConstants);ONEYAML_LINKED</DefineConstants>
     <NuGetLockFilePath>$(MSBuildProjectExtensionsPath)packages.linked.lock.json</NuGetLockFilePath>
     <RestoreLockedMode>false</RestoreLockedMode>
     <OneYamlRevision Condition="'$(OneYamlRevision)' == ''">devel</OneYamlRevision>
