@@ -19,6 +19,23 @@ public static class SelfTests
     // Writing to a static keeps the optimiser from removing an allocation whose result is never read.
     static volatile byte[]? Sink;
 
+    /// <summary>A 32-byte element: seven integers and four bytes, padded.</summary>
+#pragma warning disable CS0649
+    struct PoolStruct { public int A, B, C, D, E, F, G; public byte H, I, J, K; }
+#pragma warning restore CS0649
+
+    /// <summary>The bytes the pool listener counts for one warm rent of an array of the length.</summary>
+    static long PooledOnce<T>(int length)
+    {
+        var warm = System.Buffers.ArrayPool<T>.Shared.Rent(length);
+        System.Buffers.ArrayPool<T>.Shared.Return(warm);
+        using var l = new Measure.PoolListener();
+        var a = System.Buffers.ArrayPool<T>.Shared.Rent(length);
+        System.Buffers.ArrayPool<T>.Shared.Return(a);
+        l.Stop();
+        return l.ReusedBytes;
+    }
+
     static void Check(bool ok, string what) { if (!ok) throw new Failure(what); }
     static void Equal<T>(T got, T want, string what)
     {
@@ -309,6 +326,39 @@ public static class SelfTests
             Check(u2.PeakBytes is >= (2 << 20) and < (2 << 20) + 16384, "the state counts toward the peak: " + u2.PeakBytes);
             // The same cell measured twice agrees to the byte.
             Equal(Measure.Memory(alloc).AllocatedBytes, u1.AllocatedBytes, "repeatable");
+            // A megabyte taken from the shared array pool allocates nothing once the pool holds it, and is still
+            // working memory: the peak holds it, the allocated bytes do not.
+            var pooled = new FnRunner<int, int>(() => 0,
+                _ => { var a = System.Buffers.ArrayPool<byte>.Shared.Rent(1 << 20); a[0] = 1; int n = a.Length; System.Buffers.ArrayPool<byte>.Shared.Return(a); return n; },
+                _ => new Product.Bytes([]));
+            var u3 = Measure.Memory(pooled);
+            Equal(u3.AllocatedBytes, 0L, "a rent from a full pool allocates nothing");
+            Check(u3.PeakBytes >= (1 << 20), "pooled buffers count toward the peak: " + u3.PeakBytes);
+        }),
+        ("pooled buffers are counted in bytes for every element type", () =>
+        {
+            Equal(PooledOnce<byte>(1 << 20), (1L << 20), "byte[]");
+            Equal(PooledOnce<char>(1 << 19), (1L << 19) * 2, "char[]");
+            Equal(PooledOnce<int>(1 << 18), (1L << 18) * 4, "int[]");
+            Equal(PooledOnce<long>(1 << 17), (1L << 17) * 8, "long[]");
+            Equal(PooledOnce<PoolStruct>(1 << 15), (1L << 15) * 32, "a 32-byte struct array");
+            Equal(PooledOnce<string>(1 << 15), (1L << 15) * IntPtr.Size, "a reference array");
+            // A rent on another thread is not the task's.
+            var other = new FnRunner<int, int>(() => 0, _ =>
+            {
+                int n = 0;
+                var t = new Thread(() => { var a = System.Buffers.ArrayPool<long>.Shared.Rent(1 << 20); n = a.Length; System.Buffers.ArrayPool<long>.Shared.Return(a); });
+                t.Start(); t.Join();
+                return n;
+            }, _ => new Product.Bytes([]));
+            var u = Measure.Memory(other);
+            Check(u.PeakBytes < (1 << 20), "a rent on another thread stays out of the peak: " + u.PeakBytes);
+            // Through the whole measurement: a pooled struct array reaches the peak at its size in bytes.
+            var structs = new FnRunner<int, int>(() => 0,
+                _ => { var a = System.Buffers.ArrayPool<PoolStruct>.Shared.Rent(1 << 15); int n = a.Length; System.Buffers.ArrayPool<PoolStruct>.Shared.Return(a); return n; },
+                _ => new Product.Bytes([]));
+            var us = Measure.Memory(structs);
+            Check(us.PeakBytes >= (1L << 15) * 32, "the struct array counts at 32 bytes an element: " + us.PeakBytes);
         }),
         ("a runner shares one state only if the task leaves it alone", () =>
         {

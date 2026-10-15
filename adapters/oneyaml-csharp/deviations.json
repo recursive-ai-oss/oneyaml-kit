@@ -1,2 +1,19 @@
-{"format": "oneyaml-kit-deviations/1",
- "entries": []}
+{
+ "format": "oneyaml-kit-deviations/1",
+ "entries": [
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The upstream value reads 450.00 as the integer 450; the library reads the float 450.0, which is right under the core schema (the corrected expectation passes)."
+  },
+  {
+   "case": "yts:UGM3@value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The upstream value reads 450.00 as the integer 450; the library reads the float 450.0, which is right under the core schema (the corrected expectation passes)."
+  }
+ ]
+}

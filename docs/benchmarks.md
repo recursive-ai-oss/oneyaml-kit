@@ -126,7 +126,7 @@ places and are written to `out/bench/workloads/` before a run:
   What a library keeps in its pools shows in `retained_bytes`. The exact method is in
   [benchmark-adapters.md](benchmark-adapters.md#memory), and a table never mixes methods.
 - **Memory in .NET** is not an allocator count: allocated bytes are exact, the peak is the starting
-  state plus every byte the task requested, measured in a no-GC region so that it does not depend on the
+  state plus every byte the task requested plus the shared-pool buffers it took, in bytes (so a document held in pooled arrays counts), measured in a no-GC region so that it does not depend on the
   collector's earlier state (see [benchmark-adapters.md](benchmark-adapters.md#memory)), `retained_bytes`
   is what the library keeps after a run (pools, caches), and the number of allocation calls is not
   available. Do not compare it with the Rust or Go figures. The allocated bytes of one process are
