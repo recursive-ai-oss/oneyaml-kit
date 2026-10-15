@@ -117,6 +117,17 @@ class DotnetAdapters(unittest.TestCase):
         self.assertEqual((r["loose"], r["strict"]), ("pass", "pass"))
         self.assertIn("style", r["emulated"])
 
+    def test_byte_strings_are_declined_or_judged_by_what_the_library_writes(self):
+        # YamlDotNet and SharpYaml write a byte array as a list of integers: not judged. VYaml has a byte
+        # string and writes it as untagged base64 text, which reads back as a string: a failure.
+        cid = "own:emit/binary-values-are-tagged-base64"
+        for n in ("yamldotnet", "sharpyaml"):
+            r = self.by_id[n][cid]
+            self.assertEqual((r["loose"], r["strict"]), ("unsupported", "unsupported"), n)
+            self.assertIn("list of integers", r["detail"], n)
+        r = self.by_id["vyaml"][cid]
+        self.assertEqual((r["loose"], r["strict"]), ("fail", "fail"))
+
     def test_columns_count_characters_not_utf16_code_units(self):
         # A character outside the Basic Multilingual Plane is two UTF-16 code units. YamlDotNet and SharpYaml
         # count code units; the adapters convert, so a library that reports the right character passes.

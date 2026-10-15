@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -47,6 +48,11 @@ type Adapter struct {
 	Patch  func(input []byte, args PatchArgs) Result
 	// Dump writes a value, converted by Native, with the library's default settings.
 	Dump func(value any) Result
+	// Binary turns the bytes of a byte-string value into the Go value that the library writes as
+	// a `!!binary` scalar. Nil when the library has no such way: the case is then unsupported.
+	Binary func(data []byte) (any, error)
+	// NoBinary says why Binary is nil: what the library does with a byte slice instead.
+	NoBinary string
 }
 
 // Result is one response. Build it with the constructors below.
@@ -175,6 +181,14 @@ func nonNil(l []string) []string {
 	return l
 }
 
+// binary is the function that makes a byte-string value, or one that declines with the reason.
+func (a *Adapter) binary() func([]byte) (any, error) {
+	if a.Binary != nil || a.NoBinary == "" {
+		return a.Binary
+	}
+	return func([]byte) (any, error) { return nil, errors.New(a.NoBinary) }
+}
+
 func (a *Adapter) handle(q request) Result {
 	input, err := base64.StdEncoding.DecodeString(q.Input)
 	if err != nil {
@@ -202,7 +216,7 @@ func (a *Adapter) handle(q request) Result {
 		}
 	case "dump":
 		if a.Dump != nil {
-			v, err := Native(args.Value)
+			v, err := NativeWith(args.Value, a.binary())
 			if err != nil {
 				return Unsupported(err.Error())
 			}

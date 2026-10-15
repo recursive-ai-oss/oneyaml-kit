@@ -60,6 +60,7 @@ func main() {
 			},
 		},
 		Events: events, Value: value, Dump: dump,
+		NoBinary: "bytes go through JSON and are written as untagged base64 text",
 	}
 	a.Serve()
 }

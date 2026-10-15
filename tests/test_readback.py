@@ -166,7 +166,7 @@ class AgreesWithTheSuite(unittest.TestCase):
             except (R.ReadError, UnicodeDecodeError):
                 pass
         # It is a judge of what a writer wrote, not a validator; this records how far it is one.
-        self.assertLessEqual(len(accepted), 14, accepted)
+        self.assertLessEqual(len(accepted), 5, accepted)
 
 
 class Judging(unittest.TestCase):
@@ -274,13 +274,65 @@ class Judging(unittest.TestCase):
         for text in (bom + "- a\n", "# c\n" + bom + "- a\n", "%YAML 1.2\n" + bom + "---\n- a\n"):
             self.assertEqual(evaluate(["a"], text.encode())[:2], ("pass", "pass"), text)
         self.assertEqual(evaluate(["a"], ("- a\n...\n" + bom + "# end\n").encode())[:2], ("pass", "pass"))
-        # After content, in the middle of a line, or twice in a row it is text and not allowed.
-        for text in ("---\n" + bom + "- a\n", "- a" + bom + "\n", bom + bom + "- a\n", "- a\n" + bom + "# x\n"):
+        # Every l-document-prefix may start with a mark (productions 202 and 211): also after the
+        # last content, before comments, blank lines and the end of the stream.
+        for text in ("- a\n" + bom + "# x\n", "- a\n" + bom + "\n", "- a\n# c\n" + bom + "# x\n# y\n",
+                     "- a\n...\n" + bom + "\n"):
+            self.assertEqual(evaluate(["a"], text.encode())[:2], ("pass", "pass"), text)
+        # A mark before `---` is a prefix mark too; the document that follows is then a second one.
+        self.assertIn("more than one document", evaluate(["a"], ("- a\n" + bom + "---\n- b\n").encode())[2])
+        # After the first content of a document, in the middle of a line, twice in a row, or before
+        # more content, it is text and not allowed.
+        for text in ("---\n" + bom + "- a\n", "- a" + bom + "\n", bom + bom + "- a\n",
+                     "- a\n" + bom + "# x\n- b\n", "- |\n  a\n" + bom + "  b\n"):
             self.assertEqual(evaluate(["a"], text.encode())[0], "fail", text)
 
     def test_one_or_two_digits_in_each_time_field_are_a_timestamp_in_yaml_1_1(self):
         for text in (b"2001-1-1 1:2:3\n", b"2001-12-14 1:02:03\n", b"2001-12-14t21:5:43.10-05:00\n"):
             self.assertEqual(evaluate(text.decode().strip(), text)[:2], ("pass", "fail"), text)
+
+    def test_a_timestamp_is_what_some_reader_takes_as_one(self):
+        # The 1.1 type page and PyYAML need two digits for minute and second; gopkg.in/yaml.v3 and
+        # v4 take one in every field, but a `t` or `T` form only with a zone, and a space form
+        # only without one. Text that no reader takes as a timestamp is a string, not a quoting duty.
+        for text in ("2001-12-14t21:5:43", "2001-12-14t21:5:43 Z", "2001-12-14 21:5:43 Z", "2001-1-1\t1:2:3",
+                     "2001-12-14t1:2:3.", "2001-1-1 1:2", "20011-1-1", "2001-1-1x"):
+            self.assertEqual(evaluate(text, (text + "\n").encode())[:2], ("pass", "pass"), text)
+        for text in ("2001-12-14  1:2:3", "2001-1-1T1:2:3Z", "2001-12-14t21:5:43.10-05:00", "2001-12-14 21:59:43.10 -5",
+                     "2001-12-14\t21:59:43", "2001-12-14 1:02:03 +5"):
+            self.assertEqual(evaluate(text, (text + "\n").encode())[:2], ("pass", "fail"), text)
+
+    def test_tabs_separate_but_never_indent(self):
+        # White space, tabs included, separates a node from what comes before it (s-separate-in-line),
+        # so a tab may stand before a flow collection or a scalar; production 126 starts a plain
+        # scalar with a non-space character, so `- \ta` is the scalar `a`.
+        for text, want in (("\t[\n\t]\n", []), ("\t{}\n", {}), ("foo:\n \tbar\n", {"foo": "bar"}),
+                           ("- \ta\n", ["a"]), ("a:\n \t\n b\n", {"a": "b"})):
+            self.assertEqual(read(text), want, text)
+        # Block collections start after spaces only.
+        for text in ("a:\n\tb: 1\n", "-\t- a\n", "- \t- a\n", "\ta: 1\n", "a:\n  \t- x\n", "- a\n\t- b\n",
+                     "a: 1\n\tb: 2\n"):
+            with self.assertRaises(R.ReadError, msg=text):
+                read(text)
+        # So a string that starts with a tab and is written plain reads back without it.
+        self.assertEqual(evaluate(["\ta"], b"- \ta\n")[:2], ("fail", "fail"))
+
+    def test_a_binary_scalar_is_judged_by_its_bytes(self):
+        want = {"$tagged": {"tag": R.BINARY_TAG, "value": "//4AAYA="}}
+        for text in (b"- !!binary //4AAYA=\n", b"- !!binary |\n  //4A\n  AYA=\n", b'- !!binary "//4A\\\n  AYA="\n',
+                     b"- !<tag:yaml.org,2002:binary> '//4AAYA='\n", b"- !!binary >\n  //4AAY\n  A=\n"):
+            self.assertEqual(evaluate([want], text)[:2], ("pass", "pass"), text)
+        # Bytes, not the spelling: other bytes, a missing tag, a wrong tag and bad base64 all fail.
+        for text in (b"- !!binary //4AAYE=\n", b"- //4AAYA=\n", b"- !!str //4AAYA=\n", b"- !!binary //4AAYA\n",
+                     b"- !!binary //4A*YA=\n", b"- !!binary '_-4AAYA='\n", b"- [255, 254, 0, 1, 128]\n",
+                     b"- !!binary [a]\n", b"- !!binary {a: b}\n", b"- !!binary //4AAYA=\n- 1\n"):
+            self.assertEqual(evaluate([want], text)[0], "fail", text)
+        # The tag with text that is not base64 of any bytes is no value at all.
+        with self.assertRaises(R.ReadError):
+            read("!!binary abc\n")
+        self.assertEqual(read("!!binary AAEC\n"), {"$tagged": {"tag": R.BINARY_TAG, "value": "AAEC"}})
+        # A folded spelling and a plain one are the same bytes.
+        self.assertEqual(R.canonical_binary(read("!!binary |\n  AA\n  EC\n")), read("!!binary AAEC\n"))
 
     def test_one_digit_month_and_day_are_a_timestamp_in_yaml_1_1(self):
         for text in (b"2001-1-1\n", b"2001-12-1\n", b"2001-1-12\n"):

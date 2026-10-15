@@ -256,6 +256,14 @@ is what is judged. A value the language cannot hold (an integer beyond its wides
 mapping with a key that is not a string, where the library's mapping type needs strings) is
 answered `unsupported` with the reason and listed as a deviation.
 
+A byte string is the value `{"$tagged": {"tag": "tag:yaml.org,2002:binary", "value": <base64>}}`.
+The adapter decodes the base64 and hands the bytes to the library in the type the library itself
+writes as a `!!binary` scalar (or its byte-string type, whatever it writes for it). A library
+with no such type is answered `unsupported` with a reason that says what it does instead (a
+byte array that it writes as a list of integers, bytes that go through JSON); the adapter does
+not wrap the bytes in a tag, a base64 string or a list itself. A library that has the type and
+writes something else for it fails the case.
+
 ## Known deviations
 
 `adapters/<name>/deviations.json`:

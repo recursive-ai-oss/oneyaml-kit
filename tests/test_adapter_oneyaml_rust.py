@@ -79,6 +79,11 @@ class OneyamlRust(unittest.TestCase):
     def test_report_mentions_the_scored_suite(self):
         self.assertIn("data-2022-01-17", report.render([self.res]))
 
+    def test_a_byte_string_is_declined_not_written_as_a_mapping(self):
+        r = self.by_id["own:emit/binary-values-are-tagged-base64"]
+        self.assertEqual((r["loose"], r["strict"]), ("unsupported", "unsupported"))
+        self.assertIn("byte string", r["detail"])
+
     def test_an_integer_beyond_64_bits_is_declined_not_turned_into_a_float(self):
         from oneyaml_kit.protocol import SubprocessAdapter
         from oneyaml_kit.runner import load_manifest

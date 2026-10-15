@@ -330,3 +330,31 @@ func TestNativeDeclinesWhatAdaptersCannotWrite(t *testing.T) {
 		}
 	}
 }
+
+func TestByteStringsGoToTheLibrariesHookOrAreDeclined(t *testing.T) {
+	raw := `[{"$tagged": {"tag": "tag:yaml.org,2002:binary", "value": "//4AAYA="}}]`
+	v, err := NativeWith([]byte(raw), InvalidUTF8String)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := v.([]any)[0]; got != "\xff\xfe\x00\x01\x80" {
+		t.Errorf("got %q", got)
+	}
+	// No hook: declined, never written as text or numbers.
+	if _, err := Native([]byte(raw)); err == nil {
+		t.Error("a byte string was accepted without a hook")
+	}
+	// Bytes that are valid UTF-8 would be written as text by the string route.
+	if _, err := NativeWith([]byte(`{"$tagged": {"tag": "tag:yaml.org,2002:binary", "value": "aGVsbG8="}}`), InvalidUTF8String); err == nil {
+		t.Error("valid UTF-8 bytes were handed to the string route")
+	}
+	// Any other tag is not something the adapters write.
+	if _, err := NativeWith([]byte(`{"$tagged": {"tag": "!color", "value": "red"}}`), InvalidUTF8String); err == nil {
+		t.Error("a custom tag was accepted")
+	}
+	// The adapter's reason reaches the answer.
+	a := &Adapter{NoBinary: "bytes are written as a list", Dump: func(any) Result { return Unsupported("not reached") }}
+	if _, err := NativeWith([]byte(raw), a.binary()); err == nil || err.Error() != "bytes are written as a list" {
+		t.Errorf("reason: %v", err)
+	}
+}

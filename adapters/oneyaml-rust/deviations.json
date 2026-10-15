@@ -735,6 +735,34 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[0]: expected '0b-1', got '<a number to common readers>'"
+  },
+  {
+   "case": "own:emit/binary-value-as-the-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "the library has no byte string it writes as !!binary"
+  },
+  {
+   "case": "own:emit/binary-value-as-the-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "the library has no byte string it writes as !!binary"
+  },
+  {
+   "case": "own:emit/binary-values-are-tagged-base64",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "the library has no byte string it writes as !!binary"
+  },
+  {
+   "case": "own:emit/binary-values-are-tagged-base64",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "the library has no byte string it writes as !!binary"
   }
 ]
 }

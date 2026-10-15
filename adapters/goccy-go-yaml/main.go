@@ -310,6 +310,7 @@ func main() {
 			},
 		},
 		Events: events, Value: value, Patch: patch, Dump: dump,
+		NoBinary: "a byte slice is written as a list of integers",
 	}
 	a.Serve()
 }

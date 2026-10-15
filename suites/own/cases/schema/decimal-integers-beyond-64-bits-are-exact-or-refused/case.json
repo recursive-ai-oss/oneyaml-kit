@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/decimal-integers-beyond-64-bits-are-exact-or-refused",
+ "title": "Decimal integers past 64 bits are exact or refused, never rounded",
+ "category": "schema",
+ "origin": "bug",
+ "productions": [
+  "131"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 7.3.3"
+ ],
+ "notes": "The Core schema reads a plain scalar that matches `[-+]?[0-9]+` as an integer and gives that pattern no upper bound (section 10.3.2). A library therefore either returns the exact integer or refuses the scalar with a limit error that says it is too large; turning it into a float, a string or a wrapped 64-bit number changes the data without a word. A library that reads it gives exactly the expected result; one that refuses it says so with a limit error. A crash, a hang, a wrong result, or more than the stated time or memory fails. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The values sit just past each 64-bit limit, then at thirty and a hundred digits, so a reader that wraps, rounds to a double or keeps a string shows which step it stops at.",
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 5,
+  "memory_mb": 512,
+  "error": "limit",
+  "accept": {
+   "kind": "value",
+   "file": "expected.json"
+  }
+ },
+ "provenance": {
+  "reference": "Integers past 64 bits read as floats (1.8446744073709552e+19), as strings or as rounded numbers in several libraries; a refusal with a limit error would be correct, and this case allows it."
+ }
+}

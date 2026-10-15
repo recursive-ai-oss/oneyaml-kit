@@ -3045,6 +3045,76 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[0]: expected '2001-12-14', got '<a timestamp in YAML 1.1>'"
+  },
+  {
+   "case": "own:emit/binary-value-as-the-document",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: $: expected {'$tagged': {'tag': 'tag:yaml.org,2002:binary', 'value': ..., got 'AP/+gIE='"
+  },
+  {
+   "case": "own:emit/binary-value-as-the-document",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: $: expected {'$tagged': {'tag': 'tag:yaml.org,2002:binary', 'value': ..., got 'AP/+gIE='"
+  },
+  {
+   "case": "own:emit/binary-values-are-tagged-base64",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:binary', 'value': ..., got '//4AAYA='"
+  },
+  {
+   "case": "own:emit/binary-values-are-tagged-base64",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:binary', 'value': ..., got '//4AAYA='"
+  },
+  {
+   "case": "own:safety/integer-of-4300-digits-is-exact-or-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0].a: expected 123456789012345678901234567890123456789012345678901234567..., got {'$float': 'inf'}"
+  },
+  {
+   "case": "own:safety/integer-of-4300-digits-is-exact-or-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0].a: expected 123456789012345678901234567890123456789012345678901234567..., got {'$float': 'inf'}"
+  },
+  {
+   "case": "own:schema/decimal-integers-beyond-64-bits-are-exact-or-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 18446744073709551616, got 1.8446744073709552e+19"
+  },
+  {
+   "case": "own:schema/decimal-integers-beyond-64-bits-are-exact-or-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 18446744073709551616, got 1.8446744073709552e+19"
+  },
+  {
+   "case": "own:schema/hexadecimal-and-octal-integers-beyond-64-bits-are-exact-or-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 4722366482869645213695, got '0xFFFFFFFFFFFFFFFFFF'"
+  },
+  {
+   "case": "own:schema/hexadecimal-and-octal-integers-beyond-64-bits-are-exact-or-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 4722366482869645213695, got '0xFFFFFFFFFFFFFFFFFF'"
   }
  ]
 }

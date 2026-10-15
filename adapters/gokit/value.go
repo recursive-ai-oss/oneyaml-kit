@@ -2,6 +2,7 @@ package gokit
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Documents writes a list of Go values, one per YAML document, as a kit value.
@@ -238,7 +240,16 @@ func FromJSON(data []byte) (any, error) {
 // for a library to write: an integer is an int64 (a uint64 above that), a number with a point
 // or an exponent is a float64, an object is a map[string]any and an array a []any. A mapping
 // with keys that are not strings cannot be a map[string]any and is declined.
-func Native(raw json.RawMessage) (any, error) {
+func Native(raw json.RawMessage) (any, error) { return NativeWith(raw, nil) }
+
+// BinaryTag is the tag of a kit value that is a byte string: a `$tagged` node with this tag holds
+// the base64 of the bytes.
+const BinaryTag = "tag:yaml.org,2002:binary"
+
+// NativeWith is Native for a library that has a way to write a byte string. The function turns
+// the bytes into the Go value the library writes as a binary scalar. With nil, a byte string is
+// declined: the adapter reports the case unsupported instead of writing something else.
+func NativeWith(raw json.RawMessage, binary func([]byte) (any, error)) (any, error) {
 	if len(raw) == 0 {
 		return nil, errors.New("no value")
 	}
@@ -248,10 +259,10 @@ func Native(raw json.RawMessage) (any, error) {
 	if err := dec.Decode(&v); err != nil {
 		return nil, err
 	}
-	return nativeOf(v, 0)
+	return nativeOf(v, 0, binary)
 }
 
-func nativeOf(v any, depth int) (any, error) {
+func nativeOf(v any, depth int, binary func([]byte) (any, error)) (any, error) {
 	if depth > 1000 {
 		return nil, errors.New("value nesting too deep for the adapter")
 	}
@@ -270,7 +281,7 @@ func nativeOf(v any, depth int) (any, error) {
 	case []any:
 		out := make([]any, len(x))
 		for i, e := range x {
-			c, err := nativeOf(e, depth+1)
+			c, err := nativeOf(e, depth+1, binary)
 			if err != nil {
 				return nil, err
 			}
@@ -287,12 +298,26 @@ func nativeOf(v any, depth int) (any, error) {
 			}
 			return math.NaN(), nil
 		}
+		if tagged, ok := x["$tagged"].(map[string]any); ok && len(x) == 1 {
+			text, isText := tagged["value"].(string)
+			if tagged["tag"] != BinaryTag || !isText {
+				return nil, errors.New("tagged value")
+			}
+			if binary == nil {
+				return nil, errors.New("the library has no byte string it writes as !!binary")
+			}
+			data, err := base64.StdEncoding.DecodeString(text)
+			if err != nil {
+				return nil, err
+			}
+			return binary(data)
+		}
 		if _, ok := x["$map"]; ok && len(x) == 1 {
 			return nil, errors.New("mapping with keys that are not strings")
 		}
 		out := make(map[string]any, len(x))
 		for k, e := range x {
-			c, err := nativeOf(e, depth+1)
+			c, err := nativeOf(e, depth+1, binary)
 			if err != nil {
 				return nil, err
 			}
@@ -301,4 +326,14 @@ func nativeOf(v any, depth int) (any, error) {
 		return out, nil
 	}
 	return v, nil
+}
+
+// InvalidUTF8String hands bytes to a library as a Go string, for libraries that write a string
+// that is not valid UTF-8 as a `!!binary` scalar. Bytes that are valid UTF-8 would be written as
+// text, so they are declined: the library has no way to write them as binary.
+func InvalidUTF8String(data []byte) (any, error) {
+	if utf8.Valid(data) {
+		return nil, errors.New("bytes that are valid UTF-8 are written as text, not as !!binary")
+	}
+	return string(data), nil
 }
