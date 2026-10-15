@@ -4494,6 +4494,41 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Rewrites the document with every scalar double-quoted, where the copied plain string stays plain: first difference at byte 8"
+  },
+  {
+   "case": "own:edit/remove-entry-after-block-scalar-with-hash-lines",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\n  x\\n  # in\\nc: 2\\n', got b'\"x\\\\n# in\\\\n\"\\nc: 2\\n' (lengths 21 and 20)"
+  },
+  {
+   "case": "own:edit/remove-entry-after-block-scalar-with-hash-lines",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|\\n  x\\n  # in\\nc: 2\\n', got b'\"x\\\\n# in\\\\n\"\\nc: 2\\n' (lengths 21 and 20)"
+  },
+  {
+   "case": "own:parse/invalid-utf8-after-c1-in-quoted-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 1:6, no position reported for the malformed bytes"
+  },
+  {
+   "case": "own:parse/invalid-utf8-after-del-in-quoted-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 1:6, no position reported for the malformed bytes"
+  },
+  {
+   "case": "own:parse/invalid-utf8-after-noncharacter-in-double-quoted-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 1:5, no position reported for the malformed bytes"
   }
 ]
 }

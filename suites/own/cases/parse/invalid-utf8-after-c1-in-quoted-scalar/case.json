@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/invalid-utf8-after-c1-in-quoted-scalar",
+ "title": "Invalid UTF-8 right after a C1 control character inside a single-quoted scalar is an encoding error at the byte",
+ "category": "parse",
+ "origin": "bug",
+ "productions": [
+  "2",
+  "120",
+  "121"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 5.1",
+  "YAML 1.2.2 section 7.3.2"
+ ],
+ "notes": "The input is `a: '`, the character U+0080 (bytes 0xC2 0x80), the byte 0xEF, which begins a three-byte sequence, and `'`, which is not a continuation byte. U+0080 is a C1 control character, so it is not printable (production 1 allows only U+0085 of that range), but it is a character of nb-json (production 2) and so acceptable in a quoted scalar; the sequence that begins with 0xEF never completes. The column counts the decoded characters before the fault, and the invalid byte is the next one: the shortest prefix that no continuation can make valid ends at it, so it sits at column 6. The text is not valid UTF-8, which the stream must be (YAML 1.2.2 section 5.2), so the category is `encoding`; a reader that stops at the earlier character, or that reports the byte as a syntax error, or that takes the stream as valid, fails the case.",
+ "provenance": {
+  "reference": "A scanner that, after a character that quoted scalars allow but that is not printable, no longer checked the bytes after it as UTF-8 and so took malformed text as valid."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "encoding",
+  "line": 1,
+  "column": 6
+ }
+}

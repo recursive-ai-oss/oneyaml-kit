@@ -3115,6 +3115,48 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Answers with a different value for an integer past 64 bits, not the exact integer or a limit error: $[0][0]: expected 18446744073709551616, got '0x10000000000000000'"
+  },
+  {
+   "case": "own:parse/invalid-utf8-after-c1-in-quoted-scalar",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/invalid-utf8-after-c1-in-quoted-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/invalid-utf8-after-del-in-quoted-scalar",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/invalid-utf8-after-del-in-quoted-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/invalid-utf8-after-noncharacter-in-double-quoted-scalar",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/invalid-utf8-after-noncharacter-in-double-quoted-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
   }
  ]
 }

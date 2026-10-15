@@ -4116,6 +4116,27 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The patch was applied; the case expects it to be refused."
+  },
+  {
+   "case": "own:parse/invalid-utf8-after-c1-in-quoted-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 1:6, no position reported for the malformed bytes"
+  },
+  {
+   "case": "own:parse/invalid-utf8-after-del-in-quoted-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 1:6, no position reported for the malformed bytes"
+  },
+  {
+   "case": "own:parse/invalid-utf8-after-noncharacter-in-double-quoted-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 1:5, no position reported for the malformed bytes"
   }
  ]
 }
