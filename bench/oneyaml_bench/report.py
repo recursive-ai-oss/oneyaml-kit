@@ -42,6 +42,8 @@ def fmt_bytes(b: float) -> str:
 
 
 def fmt_ratio(r: float) -> str:
+    if r < 0.01:
+        return "<0.01×"
     return f"{r:.2f}×" if r < 10 else f"{r:.1f}×"
 
 

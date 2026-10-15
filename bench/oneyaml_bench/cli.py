@@ -117,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--task", action="append", choices=report.TASK_ORDER)
     r.add_argument("--workload", action="append")
     r.add_argument("--smoke", action="store_true", default=None,
-                   help="label the run a smoke result (always so in quick mode), for a full run on a shared machine")
+                   help="label the run a smoke result; it always is in quick mode and outside the cloud machine")
     r.set_defaults(fn=cmd_run)
     g = sub.add_parser("report", help="render a report from a results file")
     g.add_argument("result")

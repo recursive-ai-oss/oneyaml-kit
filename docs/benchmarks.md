@@ -20,7 +20,7 @@ Output goes to `$KIT_OUT/bench` (default `./out/bench`, never committed): `resul
 `$CARGO_TARGET_DIR`, or to `out/bench/target`.
 
 Quick mode runs each tool with a short setting. Full mode is the tools' defaults and adds the
-large scaling inputs. A quick run, or a full run taken on a shared machine (`--smoke`), is a
+large scaling inputs. A quick run, or any run outside the cloud machine (or one started with `--smoke`, or from `bin/bench-cloud --here`), is a
 **smoke result** and its report says so.
 
 ## What is measured
@@ -41,7 +41,10 @@ the same code twice: once for the correctness guard, and then many times under t
 | `patch` | a parsed lossless document | apply an RFC 6902 patch atomically, write the bytes | the bytes equal the expected bytes, and a second patch with a failing step leaves the document unchanged and reports an error |
 
 The state each task starts from is built fresh for every iteration, outside the clock, and
-is released after the clock stops. The result of every iteration (a value tree, an output
+is released after the clock stops. The one exception is the Go `unchanged-emit` task: writing out an unchanged
+document can take nanoseconds, so the harness shares one parsed document between runs, but only for a library
+whose write of a used document allocates the same as a write of a fresh one (checked before timing, within 2%).
+A library that does less the second time gets a fresh document for every run. The result of every iteration (a value tree, an output
 buffer) is dropped inside the clock, as a caller's would be. Edit paths are resolved from the
 workload's pointers once, before the clock, into the library's own path syntax.
 
@@ -157,8 +160,8 @@ listed with its reason in the report's table of cells without a number.
 
 Every result records the date, the versions of every library and of the harness, the tool, the
 compiler or runtime, the CPU, the operating system and the host load before and after. A quick run
-is always labelled **SMOKE RESULT**; `bin/bench run --mode full --smoke` labels a full run on a
-shared machine the same way. `bin/bench readme` refuses a smoke result unless `--allow-smoke` is
+is always labelled **SMOKE RESULT**; A full run anywhere but the cloud machine
+(`KIT_INSTANCE_TYPE` unset), or one shipped with `--here`, is labelled the same way. `bin/bench readme` refuses a smoke result unless `--allow-smoke` is
 given, because a README is public and a smoke number is easily quoted as a claim.
 
 ## Running on a rented machine

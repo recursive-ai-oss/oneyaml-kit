@@ -26,6 +26,7 @@ import hashlib
 import hmac
 import json
 import os
+import signal
 import subprocess
 import sys
 import tarfile
@@ -104,6 +105,7 @@ def user_data(cfg: dict, mode: str, put_url: str, log_url: str, archive_url: str
     kit = (f'mkdir kit && curl -fsSL "{archive_url}" | tar -xz -C kit' if archive_url else
            f'git clone {cfg["KIT_CLOUD_KIT_REPO"]} kit && git -C kit checkout {cfg["KIT_CLOUD_KIT_REV"]}')
     # The kit has no history when it was shipped as files, so the launcher names its revision.
+    smoke = "export KIT_SMOKE=1\n" if archive_url else ""
     rev = "shipped-checkout" if archive_url else '$(git -C kit rev-parse --short=12 HEAD)'
     return f"""#!/bin/bash
 # Whatever happens, the machine is gone after the limit.
@@ -123,7 +125,7 @@ curl -fsSL https://dot.net/v1/dotnet-install.sh | bash -s -- --version {cfg["KIT
 git clone {cfg["KIT_CLOUD_GO_REPO"]} oneyaml-go && git -C oneyaml-go checkout {cfg["KIT_CLOUD_GO_REV"]}
 git clone {cfg["KIT_CLOUD_CSHARP_REPO"]} oneyaml-csharp && git -C oneyaml-csharp checkout {cfg["KIT_CLOUD_CSHARP_REV"]}
 export KIT_ONEYAML_GO_SRC=/root/oneyaml-go KIT_ONEYAML_CSHARP_SRC=/root/oneyaml-csharp
-export KIT_REVISION="{rev}" KIT_INSTANCE_TYPE="{cfg["KIT_CLOUD_INSTANCE_TYPE"]}"
+{smoke}export KIT_REVISION="{rev}" KIT_INSTANCE_TYPE="{cfg["KIT_CLOUD_INSTANCE_TYPE"]}"
 export KIT_ONEYAML_GO_REV=$(git -C oneyaml-go rev-parse --short=12 HEAD) KIT_ONEYAML_CSHARP_REV=$(git -C oneyaml-csharp rev-parse --short=12 HEAD)
 cd kit && timeout {max(limit - 8, 5)}m python3 bin/bench run --mode {mode} --out /root/out/bench
 }} > /root/run.log 2>&1
@@ -186,6 +188,10 @@ def main() -> int:
 
     tarball = out / "results.tgz"
     ok = False
+    terminate_failed = False
+    # Ending the script by a signal still runs the clean-up below.
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, lambda n, _f: sys.exit(128 + n))
     try:
         while time.time() - started < (limit + 5) * 60:
             time.sleep(30)
@@ -199,11 +205,19 @@ def main() -> int:
                 print("the instance stopped without uploading results", file=sys.stderr)
                 break
     finally:
-        aws("ec2", "terminate-instances", "--region", region, "--instance-ids", instance, check=False)
+        # A machine that stays up keeps costing money, so a failed terminate is said loudly.
+        r = subprocess.run(["aws", "ec2", "terminate-instances", "--region", region, "--instance-ids", instance],
+                           capture_output=True, text=True)
+        if r.returncode:
+            print(f"bench-cloud: FAILED TO TERMINATE {instance}; terminate it by hand in {region}: "
+                  f"{r.stderr.strip()[-300:]}", file=sys.stderr)
+            terminate_failed = True
     aws("s3", "cp", f"s3://{bucket}/{prefix}/run.log", str(out / "run.log"), "--region", region, "--only-show-errors", check=False)
     minutes = (time.time() - started) / 60
     price = cfg.get("KIT_CLOUD_PRICE_PER_HOUR")
     print(f"ran {minutes:.1f} minutes" + (f", about ${minutes / 60 * float(price):.2f} at ${price}/hour" if price else ""))
+    if terminate_failed:
+        return 3
     if not ok:
         return 1
     with tarfile.open(tarball) as tar:

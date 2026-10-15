@@ -240,7 +240,7 @@ public sealed class OneYamlGeneratedLib : OneYamlLibBase
     public override IReadOnlyDictionary<string, string> Settings { get; } = new Dictionary<string, string>
     {
         ["binding"] = "source-generated (a YamlSerializerContext built by the library's generator from the kit's models)",
-        ["input and output"] = "UTF-8 bytes in and out, read and written directly (every document of a stream is read from text: the generated overload takes a string)",
+        ["input and output"] = "UTF-8 bytes in and out, read and written directly",
         ["limits"] = "defaults, not raised",
         ["documents"] = "same code as the reflection row: no binder is involved",
     };

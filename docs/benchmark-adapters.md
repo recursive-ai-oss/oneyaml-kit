@@ -105,8 +105,8 @@ running as `error` and starts `run` again with `--skip` for the cells already be
    with the complete comparison: all of the value, every output byte. Time it only if it passed.
    The code judged and the code timed must be the same code.
 2. **Convert outside the clock.** Conversion to the common JSON form is for the guard and never timed.
-3. **Build the starting state outside the clock**, fresh for every run, and release it after the
-   clock stops; drop each result inside the clock.
+3. **Build the starting state outside the clock**, fresh for every run (a task that does not change the state may share one if a second use costs the
+   same as the first, checked before timing), and release it after the clock stops; drop each result inside the clock.
 4. **Judge the whole answer.**
    - `typed-load` and `generic-load`: value equality, where an integer is not the float with the
      same digits and `"1"` is not `1`. For a stream, an array of documents.

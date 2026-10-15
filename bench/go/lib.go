@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"reflect"
+	"runtime"
 	"runtime/debug"
 	"sync"
 )
@@ -234,16 +235,26 @@ func (l *yamlLib) docRunner(task Task, w *Workload) (Runner, string) {
 				return p
 			}), ""
 	case UnchangedEmit:
-		// Writing out an unchanged document does not touch it, and it can take a few
-		// nanoseconds, which makes the benchmark ask for millions of runs. Parsing a fresh
-		// document for each of them (outside the clock) would take far longer than the
-		// measurement, so every run starts from one parsed document.
+		// Writing out an unchanged document does not touch it and can take a few nanoseconds,
+		// which makes the benchmark ask for millions of runs; parsing a fresh document for each
+		// of them (outside the clock) would take far longer than the measurement. So when a
+		// write of a used document costs the same allocations as a write of a fresh one, every
+		// run shares one parsed document. A library that does less on the second write (it
+		// keeps a rendering) gets a fresh document per run, or its figures would be too good.
 		var once sync.Once
 		var shared any
-		return newRunner(func() any {
-			once.Do(func() { shared = parseState() })
-			return shared
-		},
+		var reuse bool
+		setup := func() any {
+			once.Do(func() {
+				shared = parseState()
+				reuse = emitCostsTheSame(d.emit, parseState)
+			})
+			if reuse {
+				return shared
+			}
+			return parseState()
+		}
+		return newRunner(setup,
 			func(doc *any) ([]byte, error) {
 				if err, bad := (*doc).(error); bad {
 					return nil, err
@@ -307,4 +318,36 @@ func (l *yamlLib) patchRunner(w *Workload) (Runner, string) {
 			_, err := pa.apply(held, bad)
 			return FailedPatch{Errored: err != nil, Bytes: held}
 		}), ""
+}
+
+// emitCostsTheSame says whether writing out a document that was already written 20 times
+// allocates what writing a freshly parsed one does (within 2%). A document that cannot be
+// parsed or written counts as not the same, so the guard reports it from fresh states.
+func emitCostsTheSame(emit func(any) ([]byte, error), parse func() any) bool {
+	mallocs := func(doc any) (uint64, bool) {
+		if _, bad := doc.(error); bad {
+			return 0, false
+		}
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		_, err := emit(doc)
+		runtime.ReadMemStats(&after)
+		return after.Mallocs - before.Mallocs, err == nil
+	}
+	fresh, ok := mallocs(parse())
+	if !ok {
+		return false
+	}
+	used := parse()
+	for i := 0; i < 20; i++ {
+		if _, ok := mallocs(used); !ok {
+			return false
+		}
+	}
+	again, _ := mallocs(used)
+	diff := float64(fresh) - float64(again)
+	if diff < 0 {
+		diff = -diff
+	}
+	return diff <= 0.02*float64(fresh)+2
 }

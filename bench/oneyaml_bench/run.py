@@ -161,7 +161,12 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
         build(h, build_dir)
         log(f"measuring {l} ({mode})")
         records[l], cells_by_lang[l] = run_harness(h, build_dir, wl_dir, mode, out_dir, libraries, tasks, only, log)
-    return assemble(mode, mode == "quick" if smoke is None else (smoke or mode == "quick"),
+    if smoke is None:
+        smoke = False
+    # Only a run on the machine that `bin/bench-cloud` launches, from the pushed kit, counts as a
+    # measurement; anywhere else the machine may be shared or the code may not be pushed.
+    on_cloud = bool(os.environ.get("KIT_INSTANCE_TYPE")) and not os.environ.get("KIT_SMOKE")
+    return assemble(mode, smoke or mode == "quick" or not on_cloud,
                     records, cells_by_lang, metas, load_start, environment.loadavg()[0], time.monotonic() - t0)
 
 

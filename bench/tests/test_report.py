@@ -230,6 +230,10 @@ class BaselineReportTests(unittest.TestCase):
         self.assertIn("Allocated memory per operation", md)
         self.assertNotIn("peak", md.lower().replace("strongest", ""))
 
+    def test_a_tiny_ratio_is_not_printed_as_zero(self):
+        self.assertEqual(P.fmt_ratio(0.001), "<0.01×")
+        self.assertEqual(P.fmt_ratio(0.5), "0.50×")
+
 
 if __name__ == "__main__":
     unittest.main()
