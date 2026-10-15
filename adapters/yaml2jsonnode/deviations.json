@@ -4340,6 +4340,34 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: adapter exited (code -6)"
+  },
+  {
+   "case": "own:edit/add-nested-copies-sibling-indent-past-256",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rewrites the whole document with every scalar double-quoted: first difference at byte 4: expected b'v\\nk1: v\\nk2: v\\nk3: v\\nk4: v\\nk5: v\\nk6: v\\nk7', got b'\"v\"\\nk1: \"v\"\\nk2: \"v\"\\nk3: \"v\"\\nk4: \"v\"\\nk5: ' (lengths 2346 and "
+  },
+  {
+   "case": "own:edit/add-nested-copies-sibling-indent-past-256",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rewrites the whole document with every scalar double-quoted: first difference at byte 4: expected b'v\\nk1: v\\nk2: v\\nk3: v\\nk4: v\\nk5: v\\nk6: v\\nk7', got b'\"v\"\\nk1: \"v\"\\nk2: \"v\"\\nk3: \"v\"\\nk4: \"v\"\\nk5: ' (lengths 2346 and "
+  },
+  {
+   "case": "own:edit/sequence-item-set-equal-to-next-keeps-keep-chomp",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rewrites the whole document with every scalar double-quoted: first difference at byte 2: expected b'a\\n- - |+\\n    tail\\n\\n- - |+\\n    tail\\n\\n- - ', got b'\"a\"\\n- - \"tail\\\\n\\\\n\"\\n- - \"tail\\\\n\\\\n\"\\n- - \"t' (lengths 701 and"
+  },
+  {
+   "case": "own:edit/sequence-item-set-equal-to-next-keeps-keep-chomp",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rewrites the whole document with every scalar double-quoted: first difference at byte 2: expected b'a\\n- - |+\\n    tail\\n\\n- - |+\\n    tail\\n\\n- - ', got b'\"a\"\\n- - \"tail\\\\n\\\\n\"\\n- - \"tail\\\\n\\\\n\"\\n- - \"t' (lengths 701 and"
   }
 ]
 }

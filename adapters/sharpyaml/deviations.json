@@ -3892,6 +3892,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Refuses the input with an error category other than limit or syntax: category: expected one of limit, syntax, got other"
+  },
+  {
+   "case": "own:edit/sequence-item-set-equal-to-next-keeps-keep-chomp",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "a collection value needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/sequence-item-set-equal-to-next-keeps-keep-chomp",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "a collection value needs the adapter to write block or flow YAML"
   }
  ]
 }
