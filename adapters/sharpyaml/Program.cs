@@ -16,7 +16,7 @@ sealed class SharpYamlKitAdapter : IAdapter
 
     public string Version { get; } = PackageVersions.Of("SharpYaml");
 
-    public string[] Capabilities => ["events", "value", "patch:replace", "error-category", "error-position", "error-events"];
+    public string[] Capabilities => ["events", "value", "dump", "patch:replace", "error-category", "error-position", "error-events"];
 
     // Only SharpYaml's own exception hierarchy is a rejection; anything else escaping the library is a
     // defect, and the process ends so the kit records a crash.
@@ -39,10 +39,21 @@ sealed class SharpYamlKitAdapter : IAdapter
         ["runtime"] = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
     };
 
+    // The library writes the text; the adapter only converts the value and returns the text as it is.
+    static Outcome Dump(Request r)
+    {
+        object? v;
+        try { v = Native.Of(r); }
+        catch (NotSupportedException e) { return Outcome.Unsupported(e.Message); }
+        try { return Outcome.OutputOk(new UTF8Encoding(false).GetBytes(Host.Library(() => YamlSerializer.Serialize<object?>(v)))); }
+        catch (Exception e) { return Outcome.Error(new Failure("other", e.Message[..Math.Min(300, e.Message.Length)])); }
+    }
+
     public Outcome Run(Request r)
     {
         if (r.Profile != "core") return Outcome.Unsupported("profile " + r.Profile);
         if (r.Op == "patch") return Edit.Patch(r);
+        if (r.Op == "dump") return Dump(r);
         if (r.Op != "events" && r.Op != "value") return Outcome.Unsupported("operation " + r.Op);
 
         var d = InputDecoder.Decode(r.Input);

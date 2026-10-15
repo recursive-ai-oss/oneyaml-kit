@@ -1,0 +1,38 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/core-number-strings-are-quoted",
+ "title": "Strings that the Core schema reads as numbers",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "131",
+  "109",
+  "120"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 7.3.3"
+ ],
+ "notes": "Each of these resolves to an integer or a float under the Core schema when plain, so as strings they are quoted.",
+ "operation": {
+  "type": "dump",
+  "value": [
+   "123",
+   "-5",
+   "+5",
+   "1.5",
+   ".5",
+   "1e3",
+   "1E5",
+   "0x1F",
+   "0o17",
+   "0.",
+   "-.inf",
+   ".NaN",
+   "08"
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

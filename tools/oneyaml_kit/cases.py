@@ -26,10 +26,10 @@ from . import kitjson
 CASE_FORMAT = "oneyaml-kit-case/2"
 CORRECTIONS_FORMAT = "oneyaml-kit-corrections/2"
 
-CATEGORIES = ("parse", "schema", "edit", "diagnostics", "safety", "compat", "roundtrip")
+CATEGORIES = ("parse", "schema", "edit", "diagnostics", "safety", "compat", "roundtrip", "emit")
 ORIGINS = ("spec", "bug", "fuzz", "real-world", "competitor", "upstream")
-OPERATIONS = ("events", "value", "patch")
-EXPECT_KINDS = ("events", "value", "bytes", "error", "bounded")
+OPERATIONS = ("events", "value", "patch", "dump")
+EXPECT_KINDS = ("events", "value", "bytes", "error", "bounded", "readback")
 # Error categories a case may name. "any" means "an error of any kind".
 ERROR_CATEGORIES = (
     "any",
@@ -163,6 +163,9 @@ def _expect_from_json(d: Any, base: Path | None, where: str, nested: bool = Fals
             raise CaseError(f"{where}: value must be a list of documents")
         check_kit_value(v, where)
         return {"kind": "value", "value": v, "tags": "keep"}
+    if kind == "readback":
+        only()
+        return {"kind": "readback"}
     if kind == "bounded":
         only("time_seconds", "memory_mb", "accept", "error")
         ts, mb = _positive(d, "time_seconds", where), _positive(d, "memory_mb", where)
@@ -207,6 +210,11 @@ def _check_operation(op: dict, where: str) -> tuple[str, dict]:
     typ = op["type"]
     args = {k: v for k, v in op.items() if k != "type"}
     allowed = {"profile"}
+    if typ == "dump":
+        allowed |= {"value"}
+        if "value" not in args:
+            raise CaseError(f"{where}: a dump operation needs a value")
+        check_kit_value(args["value"], where)
     if typ == "patch":
         allowed |= {"format", "patch", "document"}
         fmt = args.get("format", "json-patch")
@@ -229,7 +237,9 @@ def _check_operation(op: dict, where: str) -> tuple[str, dict]:
 
 def _check_pairing(op: str, expect: dict, where: str) -> None:
     k = expect["kind"]
-    result = {"events": "events", "value": "value", "patch": "bytes"}[op]
+    result = {"events": "events", "value": "value", "patch": "bytes", "dump": "readback"}[op]
+    if op == "dump" and k != "readback":
+        raise CaseError(f"{where}: a dump operation is judged by reading its output back (readback)")
     if k not in (result, "error", "bounded"):
         raise CaseError(f"{where}: a {op} operation cannot expect {k}")
     if k == "bounded" and expect["accept"] is not None and expect["accept"]["kind"] != result:
@@ -379,7 +389,12 @@ def load_own_case(case_dir: Path, cases_root: Path = OWN_DIR, skip_slow: bool = 
     if skip_slow and "slow" in d.get("tags", []):
         return None
     op, args = _check_operation(d.get("operation"), where)
-    if "input_recipe" in d:
+    if op == "dump":
+        # Nothing is read: the value is in the operation, and the library writes the text.
+        if "input" in d or "input_recipe" in d:
+            raise CaseError(f"{where}: a dump case has no input")
+        data = b""
+    elif "input_recipe" in d:
         if "input" in d:
             raise CaseError(f"{where}: a case has an input file or an input_recipe, not both")
         data = generate_input(d["input_recipe"], where)

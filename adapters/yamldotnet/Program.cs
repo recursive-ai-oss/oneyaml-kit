@@ -15,7 +15,7 @@ sealed class YamlDotNetKitAdapter : IAdapter
 
     public string Version { get; } = PackageVersions.Of("YamlDotNet");
 
-    public string[] Capabilities => ["events", "value", "error-category", "error-position", "error-events"];
+    public string[] Capabilities => ["events", "value", "dump", "error-category", "error-position", "error-events"];
 
     // Only YamlDotNet's own exception hierarchy is a rejection. Anything else escaping the library (it throws
     // InvalidOperationException from its scanner on some inputs) is a defect, and the process ends.
@@ -29,6 +29,7 @@ sealed class YamlDotNetKitAdapter : IAdapter
     {
         ["events"] = "YamlDotNet.Core.Parser over a StringReader",
         ["value"] = "DeserializerBuilder().WithAttemptingUnquotedStringTypeDeserialization() into object, one call per document",
+        ["dump"] = "SerializerBuilder().Build().Serialize over Dictionary<string, object>, List<object>, long, double, default settings",
         ["library stack"] = $"{Host.LibraryStackBytes / (1024 * 1024)} MiB thread",
         ["runtime"] = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
     };
@@ -39,12 +40,25 @@ sealed class YamlDotNetKitAdapter : IAdapter
     public Outcome Run(Request r)
     {
         if (r.Profile != "core") return Outcome.Unsupported("profile " + r.Profile);
+        if (r.Op == "dump") return Dump(r);
         if (r.Op != "events" && r.Op != "value") return Outcome.Unsupported("operation " + r.Op);
 
         var d = InputDecoder.Decode(r.Input);
         if (d.Failure != null) return Outcome.Error(d.Failure, r.Op == "events" ? [] : null).Emulating("decode");
         var o = r.Op == "events" ? Events(d.Text!) : Value(d.Text!);
         return d.Transformed ? o.Emulating("decode") : o;
+    }
+
+    static readonly ISerializer Serializer = new SerializerBuilder().Build();
+
+    // The library writes the text; the adapter only converts the value and returns the text as it is.
+    static Outcome Dump(Request r)
+    {
+        object? v;
+        try { v = Native.Of(r); }
+        catch (NotSupportedException e) { return Outcome.Unsupported(e.Message); }
+        try { return Outcome.OutputOk(new UTF8Encoding(false).GetBytes(Host.Library(() => Serializer.Serialize(v)))); }
+        catch (Exception e) { return Outcome.Error(new Failure("other", e.Message[..Math.Min(300, e.Message.Length)])); }
     }
 
     const string UnresolvedTagMessage = "Encountered an unresolved tag";

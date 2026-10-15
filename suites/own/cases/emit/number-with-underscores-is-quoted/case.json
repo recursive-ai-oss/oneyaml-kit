@@ -1,0 +1,36 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/number-with-underscores-is-quoted",
+ "title": "Strings that are a number once the underscores are removed",
+ "category": "emit",
+ "origin": "bug",
+ "productions": [
+  "131",
+  "109",
+  "120"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 7.3.3"
+ ],
+ "notes": "Some readers remove every underscore from a plain scalar before they parse it as a number, so strings such as `+_1`, `1e3_` and `0_x123` read as numbers there, although the Core schema reads them as strings; the family quotes every string that is a number once its underscores are removed. The Core-schema reading (loose) is the specification. The reading under YAML 1.1 and the number forms that some common readers accept (strict) is a writing convention of the family: a string is written plain only when it reads as that same string there too.",
+ "provenance": {
+  "reference": "Strings such as +_1 and 1e3_ written without quotes; Go readers that strip underscores before parsing read them as numbers."
+ },
+ "tags": [
+  "strict-convention"
+ ],
+ "operation": {
+  "type": "dump",
+  "value": [
+   "+_1",
+   "1e3_",
+   "0_x123",
+   "1_0.5",
+   "_1"
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

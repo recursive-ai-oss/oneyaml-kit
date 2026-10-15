@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/empty-collections-nested",
+ "title": "Empty collections inside other collections",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "137",
+  "140"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.1",
+  "YAML 1.2.2 section 7.4.2"
+ ],
+ "notes": "Empty collections inside a block mapping or sequence are written in flow form (`[]`, `{}`), which is the only way to write them.",
+ "operation": {
+  "type": "dump",
+  "value": {
+   "a": [],
+   "b": {},
+   "c": [
+    [],
+    {}
+   ],
+   "d": [
+    {
+     "e": []
+    }
+   ]
+  }
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

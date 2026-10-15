@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/unicode-strings-read-back",
+ "title": "Strings with non-ASCII characters",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "109",
+  "131"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.1"
+ ],
+ "notes": "Non-ASCII printable characters are written as they are or as escapes; either way they read back as the same text.",
+ "operation": {
+  "type": "dump",
+  "value": [
+   "\u00e9",
+   "\u65e5\u672c\u8a9e",
+   "\ud83d\ude00",
+   "\u00a0",
+   "emoji \ud83d\ude00 text"
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

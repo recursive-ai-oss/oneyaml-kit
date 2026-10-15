@@ -48,6 +48,11 @@ class OwnCases(unittest.TestCase):
         self.assertEqual(crlf.expect["bytes"], b"\xef\xbb\xbfa: 3\r\nb: 2\r\n")
         for c in self.cases.values():
             d = C.OWN_DIR / c.id[len("own:"):]
+            if c.op == "dump":
+                # A written value has no input: the case holds the value to write.
+                self.assertEqual(c.input, b"", c.id)
+                self.assertEqual(sorted(p.name for p in d.iterdir()), ["case.json"], c.id)
+                continue
             recipe = json.loads((d / "case.json").read_bytes()).get("input_recipe")
             if recipe is not None:
                 # A generated input has no file; it is exactly what its recipe builds.

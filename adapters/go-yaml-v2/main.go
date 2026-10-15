@@ -50,19 +50,30 @@ func value(in []byte) gokit.Result {
 	return gokit.OKValue(out)
 }
 
+// dump writes the value with the library's ordinary Marshal and default settings; the text is
+// returned as it is.
+func dump(v any) gokit.Result {
+	b, err := yaml.Marshal(v)
+	if err != nil {
+		return gokit.Err("other", err.Error(), 0, 0)
+	}
+	return gokit.OKOutput(b)
+}
+
 func main() {
 	a := gokit.Adapter{
 		Hello: gokit.Hello{
 			Name: "go-yaml-v2", Version: version,
-			Capabilities: []string{"outcome:events", "value"},
+			Capabilities: []string{"outcome:events", "value", "dump"},
 			Info: map[string]string{
+				"dump":   "yaml.Marshal, default settings",
 				"module": "gopkg.in/yaml.v2 " + version,
 				"events": "no event stream: accept or reject is a generic load of every document",
 				"value":  "Decoder.Decode into any, every document",
 				"errors": "plain error strings: no category and no position are reported",
 			},
 		},
-		Events: events, Value: value,
+		Events: events, Value: value, Dump: dump,
 	}
 	a.Serve()
 }

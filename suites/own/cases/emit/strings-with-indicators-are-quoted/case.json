@@ -1,0 +1,48 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/strings-with-indicators-are-quoted",
+ "title": "Strings that start like a YAML construct",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "131",
+  "109",
+  "120"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.3.3",
+  "YAML 1.2.2 section 5.3"
+ ],
+ "notes": "Each of these is a different value or a syntax error when plain: an entry, a key, a comment, an anchor, an alias, a tag, a block scalar header, a directive, a reserved indicator, a quote, a flow collection or a document marker. They are quoted.",
+ "operation": {
+  "type": "dump",
+  "value": [
+   "- a",
+   "? a",
+   ": a",
+   "a: b",
+   "a #b",
+   "#a",
+   "&a",
+   "*a",
+   "!a",
+   "|",
+   ">",
+   "%a",
+   "@a",
+   "`a",
+   "'a",
+   "\"a",
+   "[a",
+   "{a",
+   "---",
+   "...",
+   "-",
+   "?",
+   "a:"
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

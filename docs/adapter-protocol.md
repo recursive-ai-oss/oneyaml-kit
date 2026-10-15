@@ -51,7 +51,8 @@ Kit to adapter:
 ```
 
 `input` is the exact input bytes, base64. A case that generates its input (docs/case-format.md) is sent the same way, so an input of tens of megabytes is one long line; read the line whole. `args` is the operation object of the case
-without `type`: for `patch`, `patch`, `format`, `document`; and `profile` when set.
+without `type`: for `patch`, `patch`, `format`, `document`; for `dump`, `value` (a kit value, see
+the case format; the input is empty); and `profile` when set.
 
 Adapter to kit, first line. `protocol` is the version the adapter speaks: 2, or 1 for an
 adapter that has not moved yet (see *Protocol versions*):
@@ -67,7 +68,7 @@ then one response per `run`, with the same `id`:
 
 | `status` | Fields |
 |---|---|
-| `ok` | `events` (array of lines) for `events`; `value` (list of documents) for `value`; `output` (base64 bytes of the whole stream after the patch) for `patch` |
+| `ok` | `events` (array of lines) for `events`; `value` (list of documents) for `value`; `output` (base64 bytes of the whole stream after the patch) for `patch`; `output` (base64 of the text written) for `dump` |
 | `error` | `error`: `{"category", "message", "line", "column"}` (`line` and `column` optional; the conventions are in the case format's *Positions*). For `events`, also `events`: the lines produced before the error. For `patch`, also `output`: the bytes of the document as the library would now write it, so that "unchanged" can be checked |
 | `accepted` | (protocol 2) The library took the input and the adapter cannot or need not describe the result. No other field is needed. Only for `events` and `value` cases. See *Accepted without a result* |
 | `unsupported` | `reason`: a short sentence. The adapter declines this case |
@@ -95,6 +96,7 @@ The hello lists what the adapter can do:
 |---|---|
 | `events` | event streams |
 | `value` | values |
+| `dump` | writing a value (`dump` cases): the text the library writes with its default settings. The kit reads it back with its own reader, so the adapter converts the kit value to the library's native one (integers stay integers, floats stay floats), calls the library's ordinary dump and returns the text unchanged |
 | `patch:add`, `patch:remove`, `patch:replace`, `patch:move`, `patch:copy`, `patch:test` | RFC 6902 operations |
 | `patch:merge` | RFC 7396 merge patches |
 | `error-category` | errors carry a category that follows the kit's names |
@@ -240,6 +242,19 @@ is graded like any other (and an unterminated or malformed one fails only its ow
 Build output goes under the output directory by default (`target`, `gobin` and `artifacts`
 inside it) unless `CARGO_TARGET_DIR`, `KIT_GO_BIN` or `KIT_DOTNET_ARTIFACTS` say
 otherwise.
+
+## Dump
+
+A `dump` request has an empty `input` and `args.value`, a kit value (docs/case-format.md): JSON,
+with `{"$float": "inf" | "-inf" | "nan"}` for non-finite floats and `{"$map": [[key, value], ...]}`
+for a mapping that JSON cannot write. The adapter turns it into the library's native data, with
+the types the value has (a JSON number with no point or exponent is an integer, any other is a
+float), calls the library's ordinary dump with its default settings, and answers
+`{"status": "ok", "output": <base64 of the text>}`. It does not adjust the text, quote or
+escape anything itself, or choose options to make the output safer: the library's own writer
+is what is judged. A value the language cannot hold (an integer beyond its widest type, a
+mapping with a key that is not a string, where the library's mapping type needs strings) is
+answered `unsupported` with the reason and listed as a deviation.
 
 ## Known deviations
 

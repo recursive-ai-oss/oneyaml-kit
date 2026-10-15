@@ -1,0 +1,54 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/nested-collections-keep-their-shape",
+ "title": "Nested sequences and mappings",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "183",
+  "187",
+  "137",
+  "140"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.2"
+ ],
+ "notes": "Nesting, order of items and the type of every item are kept. The Core-schema reading (loose) is the specification. The reading under YAML 1.1 and the number forms that some common readers accept (strict) is a writing convention of the family: a string is written plain only when it reads as that same string there too.",
+ "tags": [
+  "strict-convention"
+ ],
+ "operation": {
+  "type": "dump",
+  "value": {
+   "a": [
+    {
+     "b": [
+      1,
+      [
+       2,
+       3
+      ]
+     ],
+     "c": {}
+    },
+    [],
+    {
+     "d": null
+    }
+   ],
+   "e": "x",
+   "f": {
+    "g": {
+     "h": [
+      true,
+      1.5,
+      "s"
+     ]
+    }
+   }
+  }
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

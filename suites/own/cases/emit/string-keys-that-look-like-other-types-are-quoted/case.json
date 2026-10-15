@@ -1,0 +1,36 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/string-keys-that-look-like-other-types-are-quoted",
+ "title": "Mapping keys that are strings but look like other types",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "131",
+  "109",
+  "120",
+  "154"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.1 types (yaml.org/type): bool, int, float, timestamp, merge, value"
+ ],
+ "notes": "A key is resolved like any other scalar, so the same quoting rules apply to it. Keys that are strings but read as booleans, numbers or null when plain are quoted, and the empty key is written as an empty quoted scalar. The Core-schema reading (loose) is the specification. The reading under YAML 1.1 and the number forms that some common readers accept (strict) is a writing convention of the family: a string is written plain only when it reads as that same string there too.",
+ "tags": [
+  "strict-convention"
+ ],
+ "operation": {
+  "type": "dump",
+  "value": {
+   "true": 1,
+   "1": 2,
+   "null": 3,
+   "": 4,
+   "1.5": 5,
+   "yes": 6,
+   "~": 7
+  }
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

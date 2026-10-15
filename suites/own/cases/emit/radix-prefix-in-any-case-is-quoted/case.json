@@ -1,0 +1,36 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/radix-prefix-in-any-case-is-quoted",
+ "title": "Strings with an upper-case radix prefix",
+ "category": "emit",
+ "origin": "bug",
+ "productions": [
+  "131",
+  "109",
+  "120"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 7.3.3"
+ ],
+ "notes": "The Core schema accepts only the lower-case prefixes 0x and 0o, and YAML 1.1 only 0x and 0b, so these are strings under both. Some readers accept an upper-case prefix (`0B1`, `0XFF`, `0O7` read as numbers in yaml.v2 and v3); the family also quotes a prefix followed by a sign. The Core-schema reading (loose) is the specification. The reading under YAML 1.1 and the number forms that some common readers accept (strict) is a writing convention of the family: a string is written plain only when it reads as that same string there too.",
+ "provenance": {
+  "reference": "Strings with an upper-case radix prefix written without quotes; common readers that detect the base take them as numbers."
+ },
+ "tags": [
+  "strict-convention"
+ ],
+ "operation": {
+  "type": "dump",
+  "value": [
+   "0B1",
+   "0XFF",
+   "0O7",
+   "0X-F",
+   "0B+1"
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/yaml-1-1-number-strings-are-quoted",
+ "title": "Strings that YAML 1.1 reads as numbers",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "131",
+  "109",
+  "120"
+ ],
+ "refs": [
+  "YAML 1.1 types (yaml.org/type): bool, int, float, timestamp, merge, value",
+  "YAML 1.2.2 section 7.3.3"
+ ],
+ "notes": "The Core schema reads these as strings. YAML 1.1 reads them as numbers: integers with underscores, base-60 integers and floats such as `1:30`, binary integers, and hexadecimal integers with a sign. As strings they are quoted. The Core-schema reading (loose) is the specification. The reading under YAML 1.1 and the number forms that some common readers accept (strict) is a writing convention of the family: a string is written plain only when it reads as that same string there too.",
+ "tags": [
+  "strict-convention"
+ ],
+ "operation": {
+  "type": "dump",
+  "value": [
+   "1_000",
+   "1:30",
+   "1:30.5",
+   "0b101",
+   "-0x1F",
+   "190:20:30",
+   "+1_0.5"
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

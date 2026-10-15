@@ -114,6 +114,18 @@ class Mutations(unittest.TestCase):
                 res, _ = run([m], answers_from=[c])
                 self.assertEqual((res[0]["loose"], res[0]["strict"]), want, (c.id, v))
 
+    def test_changing_the_value_of_a_dump_case_fails_it(self):
+        # A dump case holds its value in the operation: the same output must stop passing when the
+        # value changes, whatever the value is.
+        dumps = [c for c in ALL if c.op == "dump"]
+        self.assertGreaterEqual(len(dumps), 25)
+        for c in dumps:
+            for changed in ([c.args["value"]], {"k": c.args["value"]}):
+                m = copy.copy(c)
+                m.args = {**c.args, "value": changed}
+                res, _ = run([m], answers_from=[c])
+                self.assertEqual((res[0]["loose"], res[0]["strict"]), ("fail", "fail"), c.id)
+
     def test_unchanged_is_enforced(self):
         refusals = [c for c in ALL if c.expect["kind"] == "error" and c.expect["unchanged"]]
         self.assertGreaterEqual(len(refusals), 5)

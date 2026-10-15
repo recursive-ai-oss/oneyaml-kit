@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/sixty-four-bit-edge-integers",
+ "title": "Integers at the edges of 64 bits",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "131"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "notes": "The largest signed and unsigned 64-bit integers and the smallest signed one are written in full, in decimal, and read back as the same integers.",
+ "operation": {
+  "type": "dump",
+  "value": [
+   0,
+   -1,
+   1,
+   9223372036854775807,
+   -9223372036854775808,
+   18446744073709551615
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

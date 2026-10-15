@@ -14,7 +14,7 @@ sealed class VYamlKitAdapter : IAdapter
 
     public string Version { get; } = PackageVersions.Of("VYaml");
 
-    public string[] Capabilities => ["events", "value", "error-category", "error-events"];
+    public string[] Capabilities => ["events", "value", "dump", "error-category", "error-events"];
 
     // Only VYaml's own exception hierarchy is a rejection. Anything else escaping the library (it lets a
     // duplicate mapping key surface as the runtime's ArgumentException, for instance) is a defect, and the
@@ -40,9 +40,20 @@ sealed class VYamlKitAdapter : IAdapter
     /// <summary>The adapter cannot tell a fact the library does not give.</summary>
     sealed class Unknown(string why) : Exception(why);
 
+    // The library writes the text; the adapter only converts the value and returns the text as it is.
+    static Outcome Dump(Request r)
+    {
+        object? v;
+        try { v = Native.Of(r); }
+        catch (NotSupportedException e) { return Outcome.Unsupported(e.Message); }
+        try { return Outcome.OutputOk(new UTF8Encoding(false).GetBytes(Host.Library(() => YamlSerializer.SerializeToString<object?>(v)))); }
+        catch (Exception e) { return Outcome.Error(new Failure("other", e.Message[..Math.Min(300, e.Message.Length)])); }
+    }
+
     public Outcome Run(Request r)
     {
         if (r.Profile != "core") return Outcome.Unsupported("profile " + r.Profile);
+        if (r.Op == "dump") return Dump(r);
         if (r.Op != "events" && r.Op != "value") return Outcome.Unsupported("operation " + r.Op);
 
         // Bytes go to the library as they are when they are UTF-8, so its own handling of a byte order

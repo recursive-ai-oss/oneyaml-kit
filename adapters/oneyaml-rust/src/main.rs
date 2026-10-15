@@ -7,7 +7,7 @@
 
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine as _;
-use oneyaml::{Document, NodeKind, Path, Stream, Value};
+use oneyaml::{Document, Mapping, NodeKind, Path, Stream, Value};
 use oneyaml_core::{ColumnUnit, Diagnostic, LineIndex};
 use oneyaml_syntax::event::{CollectionStyle, EventKind, ScalarStyle};
 use serde_json::Value as Json;
@@ -16,6 +16,7 @@ use std::io::{BufRead, Write};
 const CAPABILITIES: &[&str] = &[
     "events",
     "value",
+    "dump",
     "patch:replace",
     "patch:remove",
     "error-category",
@@ -340,6 +341,90 @@ fn value(bytes: &[u8]) -> Outcome {
     Outcome::Value(out)
 }
 
+// ---- dump -----------------------------------------------------------------
+
+/// The library's own value for a kit value: a JSON number with no point or exponent is an
+/// integer, any other is a float; `{"$float": ..}` is a non-finite float and `{"$map": ..}` a
+/// mapping with any keys.
+fn native(j: &Json, depth: usize) -> Result<Value, String> {
+    if depth > 1000 {
+        return Err("value nesting too deep for the adapter".into());
+    }
+    Ok(match j {
+        Json::Null => Value::Null,
+        Json::Bool(b) => Value::Bool(*b),
+        Json::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                Value::from(i)
+            } else if let Some(u) = n.as_u64() {
+                Value::from(u)
+            } else {
+                Value::from(n.as_f64().ok_or("number beyond f64")?)
+            }
+        }
+        Json::String(s) => Value::String(s.clone()),
+        Json::Array(a) => {
+            let mut v = Vec::with_capacity(a.len());
+            for x in a {
+                v.push(native(x, depth + 1)?);
+            }
+            Value::from(v)
+        }
+        Json::Object(o) => {
+            if let Some(f) = o.get("$float").and_then(Json::as_str) {
+                return Ok(Value::from(match f {
+                    "inf" => f64::INFINITY,
+                    "-inf" => f64::NEG_INFINITY,
+                    _ => f64::NAN,
+                }));
+            }
+            let mut m = Mapping::new();
+            if let Some(pairs) = o.get("$map").and_then(Json::as_array) {
+                for p in pairs {
+                    let kv = p
+                        .as_array()
+                        .filter(|a| a.len() == 2)
+                        .ok_or("bad $map pair")?;
+                    m.insert(native(&kv[0], depth + 1)?, native(&kv[1], depth + 1)?);
+                }
+            } else {
+                for (k, x) in o {
+                    m.insert(Value::String(k.clone()), native(x, depth + 1)?);
+                }
+            }
+            Value::from(m)
+        }
+    })
+}
+
+/// Writes the value with the library's default settings. The text is returned as it is.
+fn dump(args: &Json, big_integer: bool) -> Outcome {
+    // The JSON reader turns an integer beyond 64 bits into a float, so the request text is
+    // checked for one beforehand; such a value is declined, never written rounded.
+    if big_integer {
+        return Outcome::Unsupported("integer beyond 64 bits".into());
+    }
+    let Some(j) = args.get("value") else {
+        return Outcome::Unsupported("no value".into());
+    };
+    let v = match native(j, 0) {
+        Ok(v) => v,
+        Err(m) => return Outcome::Unsupported(m),
+    };
+    match v.to_yaml_string() {
+        Ok(text) => Outcome::Output(text.into_bytes()),
+        Err(e) => Outcome::Failed(
+            Failure {
+                category: "other",
+                position: None,
+                message: e.to_string(),
+                emulated: &[],
+            },
+            Extra::None,
+        ),
+    }
+}
+
 // ---- patch ----------------------------------------------------------------
 
 /// A failed patch. `own` is true when the adapter produced the error itself.
@@ -577,6 +662,7 @@ fn handle(req: &Json) -> Option<String> {
                 Some("events") => events(&bytes),
                 Some("value") => value(&bytes),
                 Some("patch") => patch(&bytes, &args),
+                Some("dump") => dump(&args, req.get("big_integer").is_some()),
                 other => Outcome::Unsupported(format!("operation {other:?}")),
             };
             Some(respond(id, outcome))
@@ -585,14 +671,51 @@ fn handle(req: &Json) -> Option<String> {
     }
 }
 
+/// Whether the JSON text holds an integer literal (no point, no exponent, outside strings)
+/// that fits neither i64 nor u64.
+fn has_big_integer(text: &str) -> bool {
+    let mut in_string = false;
+    let mut escaped = false;
+    let mut token = String::new();
+    for c in text.chars().chain(std::iter::once(' ')) {
+        if in_string {
+            match (escaped, c) {
+                (true, _) => escaped = false,
+                (false, '\\') => escaped = true,
+                (false, '"') => in_string = false,
+                _ => {}
+            }
+            continue;
+        }
+        if c.is_ascii_digit() || matches!(c, '-' | '+' | '.' | 'e' | 'E') {
+            token.push(c);
+            continue;
+        }
+        if !token.is_empty() {
+            let integral = !token.contains(['.', 'e', 'E']);
+            if integral && token.parse::<i64>().is_err() && token.parse::<u64>().is_err() {
+                return true;
+            }
+            token.clear();
+        }
+        if c == '"' {
+            in_string = true;
+        }
+    }
+    false
+}
+
 fn serve() {
     let stdin = std::io::stdin();
     let mut out = std::io::stdout().lock();
     for line in stdin.lock().lines() {
         let Ok(line) = line else { return };
-        let Ok(req) = serde_json::from_str::<Json>(&line) else {
+        let Ok(mut req) = serde_json::from_str::<Json>(&line) else {
             return;
         };
+        if line.contains("\"dump\"") && has_big_integer(&line) {
+            req["big_integer"] = Json::Bool(true);
+        }
         if req.get("type").and_then(Json::as_str) == Some("bye") {
             return;
         }

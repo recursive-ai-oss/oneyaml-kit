@@ -46,14 +46,14 @@ cases are `yts:<ID>` (`yts:DK95/06` for numbered sub-cases); where the suite shi
 | `format` | Always `oneyaml-kit-case/2`. |
 | `id` | Must equal the directory path below `cases/`. |
 | `title` | One line describing the behaviour, not the input. |
-| `category` | `parse`, `schema`, `edit`, `diagnostics`, `safety`, `compat` or `roundtrip`. |
+| `category` | `parse`, `schema`, `edit`, `diagnostics`, `safety`, `compat`, `roundtrip` or `emit`. |
 | `origin` | `spec`, `bug`, `fuzz`, `real-world`, `competitor` or `upstream`. |
 | `productions` | YAML 1.2.2 production numbers the case exercises, as strings. Optional; used by a future spec-coverage report. |
 | `refs` | Citations: spec sections, RFC sections, or a page of these docs. A `spec` case must have at least one. |
-| `tags` | Free labels. `slow` keeps a case out of the fast mode. `convention` marks a case whose exact bytes rest on a rule the kit chose where the specification leaves a choice (listed in [edit-semantics.md](edit-semantics.md)); `comment-ownership` is the more specific label for the rules about which comments go with a removed entry, and such a case carries both. A case whose notes call something a convention or open carries `convention`. Tags are copied into result records and reports count the cases apart, so a library is not failed on taste unnoticed. |
+| `tags` | Free labels. `slow` keeps a case out of the fast mode. `convention` marks a case whose exact bytes rest on a rule the kit chose where the specification leaves a choice (listed in [edit-semantics.md](edit-semantics.md)); `strict-convention` marks an `emit` case whose loose verdict is the specification but whose strict verdict adds the family's writing convention; `comment-ownership` is the more specific label for the rules about which comments go with a removed entry, and such a case carries both. A case whose notes call something a convention or open carries `convention`. Tags are copied into result records and reports count the cases apart, so a library is not failed on taste unnoticed. |
 | `notes` | Optional reasoning for a reader. |
 | `provenance` | Where the case comes from: optional `source` (URL), `revision`, `licence` and `reference` (a report, issue or paper), all non-empty strings. A `bug`, `fuzz` or `competitor` case must have `reference`; a `real-world` case must have `source` and `licence`. A case written for the kit says so in `reference`. |
-| `input` | Input file name; default `input.yaml`. |
+| `input` | Input file name; default `input.yaml`. A `dump` case has no input. |
 | `input_recipe` | Instead of an input file: a list of parts that describe the input bytes, for an input too large to store. See *Generated inputs*. A case has an input file or a recipe, not both. |
 | `operation` | What to do with the input, see below. |
 | `expect` | What must come back, see below. |
@@ -70,11 +70,15 @@ Expectations come from the specification (YAML 1.2.2, the RFCs, the edit rules i
 | `events` | a YAML stream | the event stream in yaml-test-suite notation, or an error |
 | `value` | a YAML stream | the list of documents as kit values (below), or an error |
 | `patch` | a YAML stream | the stream's bytes after applying the patch, or an error |
+| `dump` | none: the operation holds a `value` | the text the library writes for the value, with its default settings |
 
 `patch` takes `patch` (an RFC 6902 array, or an RFC 7396 document when
 `format` is `merge-patch`), `format` (`json-patch`, the default, or `merge-patch`)
 and `document` (index of the document in the stream, default 0). Pointers are RFC
 6901. A patch is atomic: when any operation fails the document is unchanged.
+
+`dump` takes `value`, a kit value (below) that is one document: the library writes it, and
+the kit reads the text back (see *Written values*). Integers beyond 64 bits are not used.
 
 Any operation may set `profile` to name a behaviour profile; the default is `core`
 (YAML 1.2 core schema, spec-correct defaults). Compat cases name the profile they
@@ -155,6 +159,7 @@ A position is a 1-based `line` and `column`.
 | `bytes` | `file` | no error, and every output byte is equal |
 | `error` | `category`, `line`, `column`, `events_file`, `unchanged` | an error is reported (see below) |
 | `bounded` | `time_seconds`, `memory_mb`, `accept`, `error` | see below |
+| `readback` | none (`dump` operations only) | the written text reads back as the value, see *Written values* |
 
 For `error`, **loose** mode only requires that an error is reported, of any kind,
 anywhere. **Strict** mode also checks whatever the case states:
@@ -252,9 +257,52 @@ The recorded trees that disagree with the rule are corrected (4H7K, BS4K, EB22);
 ones that agree (9JBA, KS4U, 3HFZ, QLJ7) are left as recorded. Other timing differences
 between libraries (how far ahead a parser reads) are not corrected and not claimed.
 
+## Written values
+
+An `emit` case gives a value and asks the library to write it. The layout is the library's
+choice, so the expectation is not a set of bytes: the kit reads the text back with its own
+reader (`tools/oneyaml_kit/readback.py`) and compares the result with the value. The reader
+is independent of every library, because a library that reads its own output agrees with its
+own mistakes, and it follows the rules of YAML 1.2.2 for the constructs a writer uses: block
+and flow collections, plain, quoted and block scalars, `? ` keys, comments and one document.
+Anchors, aliases, custom tags, tag directives and several documents are refused by name,
+because a written value has no shared nodes; so is a raw character that is not printable. It
+is checked against yaml-test-suite: it reads the same values as the suite records for more than
+200 valid documents, and refuses at least 80 of the 94 invalid ones. It is a judge of what a writer
+wrote, not a validator.
+
+The text is read three ways, and the verdicts are split like this:
+
+* **Loose**: the text is valid YAML and means the value under the YAML 1.2 Core schema. The
+  value must be equal in full: types (`1` and `1.0` and `"1"` are three values), strings,
+  order of sequences, keys of mappings. An implicit key (a key without `? `) must be on one
+  line and at most 1024 characters long, counting its quotes; a lenient reader accepts a
+  longer one, so the kit checks the length itself. A parse error is a failure.
+* **Strict** adds the family's writing convention, which is a rule the family chose and not
+  a requirement of the specification: the text must also mean the value under YAML 1.1
+  (`yes`, `on`, `0755`, `1_000`, `1:30`, timestamps, `<<` and `=` are not strings there; a
+  float needs a point and a signed exponent: `1.0e+17`, not `1E+17`), and a plain string must
+  not have one of the listed number forms that some common readers accept although neither
+  schema reads it as a number: a
+  `0x`, `0o` or `0b` prefix in any case with a sign before or after it, a number after two
+  or more signs, a number once every `_` is removed. NEL, LS, PS and a byte order mark
+  are written as escapes, because YAML 1.1 reads the first three as line breaks.
+
+A problem under the convention only is therefore loose pass, strict fail. The loose verdict is
+the specification. A raw control character, a raw byte order mark outside a quoted scalar, a
+string written as a number, or a float written as an integer fails it. Only the strict layer is
+the family convention, and the `emit` cases where the two can differ carry the
+`strict-convention` tag, so reports count them apart. The reader's forms are listed in
+the module; it follows the YAML 1.1 type pages (`yaml.org/type`) and the number syntax that
+PyYAML, gopkg.in/yaml.v3 and goccy/go-yaml accept.
+
+An adapter answers with `output` (base64 of the bytes written); an `error` or a missing
+output is a failure, and `unsupported` is a declined case that must be listed as a known
+deviation.
+
 ## Capabilities a case needs
 
-The runner works out what an adapter must support from the case: `events`, `value`,
+The runner works out what an adapter must support from the case: `events`, `value`, `dump`,
 `patch:<op>` for every RFC 6902 operation in the patch (`patch:merge` for a merge patch),
 and `profile:<name>`. An operation name outside RFC 6902 can only be refused, so it
 needs just some `patch:*` capability, and so does an empty patch (the way a round trip is
