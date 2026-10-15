@@ -9,6 +9,7 @@ import (
 	"io"
 	"reflect"
 	"runtime/debug"
+	"sync"
 )
 
 type docAPI struct {
@@ -233,7 +234,16 @@ func (l *yamlLib) docRunner(task Task, w *Workload) (Runner, string) {
 				return p
 			}), ""
 	case UnchangedEmit:
-		return newRunner(parseState,
+		// Writing out an unchanged document does not touch it, and it can take a few
+		// nanoseconds, which makes the benchmark ask for millions of runs. Parsing a fresh
+		// document for each of them (outside the clock) would take far longer than the
+		// measurement, so every run starts from one parsed document.
+		var once sync.Once
+		var shared any
+		return newRunner(func() any {
+			once.Do(func() { shared = parseState() })
+			return shared
+		},
 			func(doc *any) ([]byte, error) {
 				if err, bad := (*doc).(error); bad {
 					return nil, err

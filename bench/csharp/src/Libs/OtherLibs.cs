@@ -49,7 +49,7 @@ public sealed class VYamlLib : ILibrary
                 if (!single) throw Support.No("dump is defined for one document");
                 return new FnRunner<object?, ReadOnlyMemory<byte>>(() => VYaml.Serialization.YamlSerializer.Deserialize<object>(bytes),
                     tree => VYaml.Serialization.YamlSerializer.Serialize<object?>(tree),
-                    m => new Product.Bytes(m.ToArray()), sharedState: true);
+                    m => new Product.Bytes(m.ToArray()));
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
                 throw Support.No("no lossless document: comments and layout are discarded");
             default:
@@ -108,7 +108,7 @@ public sealed class Yaml2JsonNodeLib : ILibrary
                 if (!single) throw Support.No("dump is defined for one document");
                 return new FnRunner<System.Text.Json.Nodes.JsonNode?, byte[]>(
                     () => Yaml2JsonNode.YamlSerializer.Parse(text).ToJsonNode().First(), WriteBytes,
-                    b => new Product.Bytes(b), sharedState: true);
+                    b => new Product.Bytes(b));
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
                 throw Support.No("no lossless document: the tree is data, and comments and layout are discarded");
             default:
@@ -132,8 +132,7 @@ public sealed class Yaml2JsonNodeLib : ILibrary
                             var doc = Load();
                             var r = failing.Apply(doc);
                             return new FailedPatch(!r.IsSuccess, WriteBytes(doc));
-                        },
-                        sharedState: true);
+                        });
                 }
         }
     }

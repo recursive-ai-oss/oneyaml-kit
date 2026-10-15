@@ -29,14 +29,13 @@ struct Args {
     tasks: Vec<String>,
     only: Vec<String>,
     skip: Vec<String>,
-    file: Option<PathBuf>,
 }
 
 fn parse_args() -> Result<Args, String> {
     let mut it = std::env::args().skip(1);
     let cmd = it
         .next()
-        .ok_or("usage: oneyaml-bench-rust <run|once|list|candidates> [options]")?;
+        .ok_or("usage: oneyaml-bench-rust <run|list> [options]")?;
     let mut a = Args {
         cmd,
         workloads: PathBuf::from("workloads"),
@@ -46,7 +45,6 @@ fn parse_args() -> Result<Args, String> {
         tasks: vec![],
         only: vec![],
         skip: vec![],
-        file: None,
     };
     while let Some(k) = it.next() {
         let mut val = || it.next().ok_or(format!("{k} needs a value"));
@@ -58,7 +56,6 @@ fn parse_args() -> Result<Args, String> {
             "--task" => a.tasks.push(val()?),
             "--workload" => a.only.push(val()?),
             "--skip" => a.skip.push(val()?),
-            f if !f.starts_with("--") && a.file.is_none() => a.file = Some(f.into()),
             other => return Err(format!("unknown option {other}")),
         }
     }
@@ -110,7 +107,7 @@ fn panic_text(p: Box<dyn std::any::Any + Send>) -> String {
         .unwrap_or_else(|| "panic".into())
 }
 
-fn harness_record(a: &Args, cfg: &measure::Config, libs: &[Box<dyn Library>]) -> Value {
+fn harness_record(a: &Args, libs: &[Box<dyn Library>]) -> Value {
     json!({
         "type": "harness",
         "name": "oneyaml-bench-rust",
@@ -118,16 +115,10 @@ fn harness_record(a: &Args, cfg: &measure::Config, libs: &[Box<dyn Library>]) ->
         "language": "rust",
         "runtime": env!("BENCH_RUSTC_VERSION"),
         "target": env!("BENCH_TARGET"),
-        "flags": {"profile": env!("BENCH_PROFILE"), "opt_level": env!("BENCH_OPT_LEVEL"), "lto": "thin", "codegen_units": 1},
         "mode": a.mode,
-        "config": {
-            "warmup_ms": cfg.warmup.as_millis() as u64,
-            "samples": cfg.samples,
-            "sample_target_ms": cfg.sample_target.as_millis() as u64,
-        },
-        "timer": "std::time::Instant, batches of prepared iterations, median and median absolute deviation",
-        "memory": "counting global allocator: peak live heap, bytes requested, allocation calls",
-        "selftest_build": cfg!(feature = "selftest"),
+        "tool": "criterion",
+        "timer": "mean time per run from criterion at its defaults (shorter warm-up and measurement in quick mode)",
+        "memory": "bytes requested and allocation calls of one run, counted by a global allocator",
         "libraries": libs.iter().map(|l| {
             let (pkg, ver) = l.package();
             json!({"id": l.id(), "package": pkg, "version": ver, "role": l.role().id(), "settings": l.settings()})
@@ -135,11 +126,16 @@ fn harness_record(a: &Args, cfg: &measure::Config, libs: &[Box<dyn Library>]) ->
     })
 }
 
+/// A scratch directory for criterion's files of one cell.
+fn cell_dir() -> PathBuf {
+    std::env::temp_dir().join(format!("oneyaml-bench-criterion-{}", std::process::id()))
+}
+
 fn cell_name(l: &str, t: Task, w: &str) -> String {
     format!("{l}/{}/{w}", t.id())
 }
 
-fn one_cell(lib: &dyn Library, task: Task, w: &'static Workload, cfg: &measure::Config) -> Value {
+fn one_cell(lib: &dyn Library, task: Task, w: &'static Workload, quick: bool) -> Value {
     let base = json!({"library": lib.id(), "task": task.id(), "workload": w.id, "input_bytes": w.input.len()});
     let mut rec = base.as_object().cloned().unwrap_or_default();
     rec.insert("type".into(), "cell".into());
@@ -181,33 +177,28 @@ fn one_cell(lib: &dyn Library, task: Task, w: &'static Workload, cfg: &measure::
     );
     if let guard::Verdict::Ok { variant } = &verdict {
         rec.insert("variant".into(), variant.clone().into());
+        let dir = cell_dir();
         let measured = catch_unwind(AssertUnwindSafe(|| {
-            (measure::time(&*runner, cfg), measure::memory(&*runner))
+            (
+                measure::time(&*runner, quick, &dir),
+                measure::memory(&*runner),
+            )
         }));
+        let _ = std::fs::remove_dir_all(&dir);
         match measured {
-            Ok((t, m)) => {
+            Ok((Ok(t), m)) => {
                 rec.insert(
                     "time".into(),
-                    json!({
-                        "iters_per_sample": t.iters_per_sample,
-                        "samples": t.samples_ns.len(),
-                        "median_ns": t.median(),
-                        "mad_ns": t.mad(),
-                        "min_ns": t.samples_ns.first(),
-                        "max_ns": t.samples_ns.last(),
-                        "samples_ns": t.samples_ns,
-                    }),
+                    json!({"ns": t.mean_ns, "stat": "mean", "median_ns": t.median_ns}),
                 );
                 rec.insert(
                     "memory".into(),
-                    json!({
-                        "method": "counting global allocator",
-                    "peak_bytes": m.peak_bytes,
-                        "allocated_bytes": m.allocated_bytes,
-                        "allocations": m.allocations,
-                        "retained_bytes": m.retained_bytes,
-                    }),
+                    json!({"allocated_bytes": m.allocated_bytes, "allocations": m.allocations}),
                 );
+            }
+            Ok((Err(e), _)) => {
+                rec.insert("status".into(), "error".into());
+                rec.insert("detail".into(), format!("criterion: {e}").into());
             }
             Err(p) => {
                 rec.insert("status".into(), "error".into());
@@ -222,9 +213,9 @@ fn one_cell(lib: &dyn Library, task: Task, w: &'static Workload, cfg: &measure::
 }
 
 fn run(a: &Args) -> Result<(), String> {
-    let cfg = match a.mode.as_str() {
-        "quick" => measure::Config::quick(),
-        "full" => measure::Config::full(),
+    let quick = match a.mode.as_str() {
+        "quick" => true,
+        "full" => false,
         m => return Err(format!("unknown mode {m}")),
     };
     let workloads = load_workloads(&a.workloads, &a.only)?;
@@ -243,7 +234,7 @@ fn run(a: &Args) -> Result<(), String> {
             .and_then(|()| out.flush())
             .map_err(|e| e.to_string())
     };
-    emit(&harness_record(a, &cfg, &libs))?;
+    emit(&harness_record(a, &libs))?;
     std::panic::set_hook(Box::new(|_| {}));
     for w in &workloads {
         for task in w
@@ -260,47 +251,10 @@ fn run(a: &Args) -> Result<(), String> {
                 // A crash cannot be caught, so mark the cell first; the driver reads the
                 // last mark to find the cell that killed the process.
                 emit(&json!({"type": "begin", "cell": name}))?;
-                emit(&one_cell(lib.as_ref(), task, w, &cfg))?;
+                emit(&one_cell(lib.as_ref(), task, w, quick))?;
             }
         }
     }
-    Ok(())
-}
-
-/// Runs one cell for instruction counting: no guard, no clock, one iteration.
-fn once(a: &Args) -> Result<(), String> {
-    let (Some(lib), Some(task), Some(wl)) = (a.libraries.first(), a.tasks.first(), a.only.first())
-    else {
-        return Err("once needs --library, --task and --workload".into());
-    };
-    let task = Task::parse(task).ok_or("unknown task")?;
-    let w = load_workloads(&a.workloads, std::slice::from_ref(wl))?
-        .pop()
-        .ok_or("unknown workload")?;
-    let libs = libs::all();
-    let lib = libs
-        .iter()
-        .find(|l| l.id() == lib)
-        .ok_or("unknown library")?;
-    let r = lib.runner(task, w).map_err(|u| u.0.to_string())?;
-    let mut b = r.prepare(1);
-    measure::oneyaml_bench_region(&mut *b);
-    Ok(())
-}
-
-/// Prints what the two reference parsers read from a file, for freezing an expectation.
-fn candidates(a: &Args) -> Result<(), String> {
-    let f = a.file.as_ref().ok_or("candidates needs a file")?;
-    let bytes = std::fs::read(f).map_err(|e| e.to_string())?;
-    let show = |r: Result<Value, String>| match r {
-        Ok(v) => json!({"value": v}),
-        Err(e) => json!({"error": e}),
-    };
-    let out = json!({
-        "oneyaml": show(libs::oneyaml::generic_json(&bytes)),
-        "saphyr": show(libs::saphyr::generic_json(&bytes)),
-    });
-    println!("{out}");
     Ok(())
 }
 
@@ -316,8 +270,6 @@ fn list(a: &Args) -> Result<(), String> {
 fn main() {
     let result = parse_args().and_then(|a| match a.cmd.as_str() {
         "run" => run(&a),
-        "once" => once(&a),
-        "candidates" => candidates(&a),
         "list" => list(&a),
         c => Err(format!("unknown command {c}")),
     });
@@ -357,14 +309,13 @@ mod control_tests {
 
     #[test]
     fn controls_are_judged_on_every_task() {
-        let cfg = measure::Config::quick();
         for task in Task::ALL {
-            let right = one_cell(&Control::Correct, task, tiny(), &cfg);
+            let right = one_cell(&Control::Correct, task, tiny(), true);
             assert_eq!(right["status"], "ok", "{task:?}: {right}");
-            assert!(right["time"]["median_ns"].as_f64().unwrap_or(0.0) > 0.0);
+            assert!(right["time"]["ns"].as_f64().unwrap_or(0.0) > 0.0);
             assert!(right["memory"].is_object());
 
-            let wrong = one_cell(&Control::Wrong, task, tiny(), &cfg);
+            let wrong = one_cell(&Control::Wrong, task, tiny(), true);
             assert_eq!(wrong["status"], "differs", "{task:?}: {wrong}");
             assert!(
                 wrong.get("time").is_none() && wrong.get("memory").is_none(),
@@ -372,7 +323,7 @@ mod control_tests {
             );
             assert!(!wrong["detail"].as_str().unwrap_or("").is_empty());
 
-            let rej = one_cell(&Control::Reject, task, tiny(), &cfg);
+            let rej = one_cell(&Control::Reject, task, tiny(), true);
             assert_eq!(rej["status"], "rejects", "{task:?}: {rej}");
             assert!(rej.get("time").is_none());
         }

@@ -55,9 +55,8 @@ public abstract class OneYamlLibBase : ILibrary
             case BenchTask.GenericLoad:
                 if (w.Documents != 1)
                 {
-                    // The generated overload that reads every document takes text, so the bytes are decoded inside the clock.
                     return Generated
-                        ? new FnRunner<int, List<object?>>(() => 0, _ => YamlSerializer.DeserializeAll(Support.Utf8.GetString(input), OneYamlContext.Default.Object)!,
+                        ? new FnRunner<int, List<object?>>(() => 0, _ => YamlSerializer.DeserializeAll(input, OneYamlContext.Default.Object)!,
                             l => new Product.Value(Conv.Docs(l.Select(Conv.FromObject).ToList())))
                         : new FnRunner<int, List<object?>>(() => 0, _ => YamlSerializer.DeserializeAll<object>(input)!,
                             l => new Product.Value(Conv.Docs(l.Select(Conv.FromObject).ToList())));
@@ -72,14 +71,14 @@ public abstract class OneYamlLibBase : ILibrary
                 if (w.Documents != 1) throw Support.No("dump is defined for one document");
                 return Generated
                     ? new FnRunner<object?, byte[]>(() => YamlSerializer.Deserialize(input, OneYamlContext.Default.Object),
-                        tree => YamlSerializer.SerializeToUtf8Bytes(tree, OneYamlContext.Default.Object), b => new Product.Bytes(b), sharedState: true)
+                        tree => YamlSerializer.SerializeToUtf8Bytes(tree, OneYamlContext.Default.Object), b => new Product.Bytes(b))
                     : new FnRunner<object?, byte[]>(() => YamlSerializer.Deserialize<object>(input),
-                        tree => YamlSerializer.SerializeToUtf8Bytes(tree), b => new Product.Bytes(b), sharedState: true);
+                        tree => YamlSerializer.SerializeToUtf8Bytes(tree), b => new Product.Bytes(b));
             case BenchTask.DocumentParse:
                 return new ParseRunner(input);
             case BenchTask.UnchangedEmit:
                 return new FnRunner<YamlDocument, byte[]>(() => YamlDocument.Parse(input), d => d.ToUtf8Bytes(),
-                    b => new Product.Bytes(b), sharedState: true);
+                    b => new Product.Bytes(b));
             case BenchTask.EditScript:
                 {
                     // The pointers go to the library as they are: its pointer methods take RFC 6901. Values are

@@ -131,18 +131,10 @@ public abstract class Runner
 {
     /// <summary>Runs the task once, as it is timed, and converts the result for the guard.</summary>
     public abstract Product Check();
-    /// <summary>Builds <paramref name="n"/> starting states, outside the clock: independent ones, or one state
-    /// that every run shares when <see cref="SharedState"/> is set.</summary>
+    /// <summary>Builds <paramref name="n"/> independent starting states, outside the clock.</summary>
     public abstract Batch Prepare(int n);
     /// <summary>For patch runners: applies the failing patch and reports the outcome.</summary>
     public virtual FailedPatch? CheckFailing() => null;
-    /// <summary>True when the task only reads its starting state, so a batch may run all its tasks over one
-    /// state instead of building one per task. A runner is believed only after its second answer equals a copy of
-    /// its first and a used state costs what a fresh one does.</summary>
-    public virtual bool SharedState => false;
-    /// <summary>Why a runner that asked to share one state was given fresh states instead; null when it shares or
-    /// did not ask. Not an error: the library's answers are right.</summary>
-    public virtual string? SharedStateRefusal => null;
     /// <summary>The variant a correct answer is reported as, when it is not the guard's (for example
     /// <c>harness-rendered</c>); null keeps the guard's.</summary>
     public virtual string? Variant => null;
@@ -160,100 +152,21 @@ public interface ILibrary
 }
 
 /// <summary>A runner built from three functions: make a starting state, do the timed work on it, and
-/// convert the result for the guard.
-///
-/// A runner that asks to share one starting state across a batch is not believed. Before it shares, two things
-/// are checked, and a runner that fails either is run over fresh states instead (its answers are right, so the
-/// cell is still measured):
-/// the answer of a second run over a used state equals a copy of the first answer taken before that run (so a
-/// buffer the task rewrites in place cannot pass by being compared with itself), and a run over a used state
-/// allocates the same as a run over a fresh one (so a task that remembers its result, or that strips parts of its
-/// state and so does less work later, cannot pass an answer-only check).</summary>
+/// convert the result for the guard.</summary>
 public sealed class FnRunner<TState, TOut>(
     Func<TState> setup, Func<TState, TOut> run, Func<TOut, Product> product,
-    Func<FailedPatch>? failing = null, bool sharedState = false, string? variant = null) : Runner
+    Func<FailedPatch>? failing = null, string? variant = null) : Runner
 {
-    SharingVerdict? sharing;
-
-    public override bool SharedState => sharedState && Sharing.Shares;
-    public override string? SharedStateRefusal => sharedState && !Sharing.Shares ? Sharing.Reason : null;
     public override string? Variant => variant;
 
-    SharingVerdict Sharing => sharing ??= VerifySharing();
-
-    public override Product Check()
-    {
-        var state = setup();
-        var first = product(run(state));
-        if (sharedState) _ = Sharing;
-        return first;
-    }
-
-    /// <summary>Allocation may differ by this much between a fresh and a used state: one part in a hundred and a
-    /// few bytes for the boxes and strings a run makes by the way.</summary>
-    public static bool CostsAgree(long fresh, long used) => Math.Abs(fresh - used) <= Math.Max(fresh, used) / 100 + 256;
-
-    long Allocated(TState state)
-    {
-        long a0 = GC.GetAllocatedBytesForCurrentThread();
-        var r = run(state);
-        long a1 = GC.GetAllocatedBytesForCurrentThread();
-        GC.KeepAlive(r);
-        return a1 - a0;
-    }
-
-    SharingVerdict VerifySharing()
-    {
-        // Answers: the first is copied before the second run, because a task may hand back a buffer it owns.
-        var state = setup();
-        var firstCopy = Snapshot(product(run(state)));
-        var second = Snapshot(product(run(state)));
-        if (firstCopy != second)
-            return new SharingVerdict(false, "the task changed its starting state: a second run over the same state gave another answer");
-
-        // Cost: warm the code on throw-away states first, then compare a fresh state with the same state used again.
-        // Taking the least of several readings of each keeps a one-off allocation (a pool filling, a first call)
-        // from deciding the result, and cannot hide a task that is cheaper on a used state every time.
-        var warm = setup();
-        run(warm); run(warm);
-        var clock = System.Diagnostics.Stopwatch.StartNew();
-        long fresh = long.MaxValue, used = long.MaxValue;
-        for (int round = 0; round < 3 && (round < 2 || clock.ElapsedMilliseconds < 500); round++)
-        {
-            var s = setup();
-            fresh = Math.Min(fresh, Allocated(s));
-            used = Math.Min(used, Allocated(s));
-            Allocated(s); // a third and fourth use: a state that wears away does so over several runs
-            used = Math.Min(used, Allocated(s));
-        }
-        if (!CostsAgree(fresh, used))
-            return new SharingVerdict(false, $"a run over a used state allocates {used} bytes against {fresh} over a fresh one, so the task changes its starting state or remembers its result");
-        return new SharingVerdict(true, "");
-    }
-
-    /// <summary>A copy of everything the guard would look at, taken now: bytes by value, trees as their text.</summary>
-    static string Snapshot(Product p) => p switch
-    {
-        Product.Bytes x => "B:" + Convert.ToBase64String(x.Data),
-        Product.Value x => "V:" + x.Tree.ToJson(),
-        Product.Document x => "D:" + Convert.ToBase64String(x.Emitted) + ":" + (x.Tree == null ? "-" : x.Tree.ToJson()),
-        _ => throw new InvalidOperationException("unknown product"),
-    };
-
-    sealed record SharingVerdict(bool Shares, string Reason);
+    public override Product Check() => product(run(setup()));
 
     public override FailedPatch? CheckFailing() => failing?.Invoke();
 
     public override Batch Prepare(int n)
     {
         var states = new TState[n];
-        if (SharedState)
-        {
-            var one = setup();
-            Array.Fill(states, one);
-        }
-        else
-            for (int i = 0; i < n; i++) states[i] = setup();
+        for (int i = 0; i < n; i++) states[i] = setup();
         return new FnBatch(states, run);
     }
 

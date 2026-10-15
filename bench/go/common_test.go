@@ -191,17 +191,6 @@ func TestNodeEditFollowsAliasesAndTakesTheFirstKey(t *testing.T) {
 
 // ---- the loop adds nothing -----------------------------------------------------------------
 
-func TestTheTimedLoopAddsNoAllocations(t *testing.T) {
-	sink := []byte("x")
-	r := newRunner(func() struct{} { return struct{}{} },
-		func(*struct{}) ([]byte, error) { return sink, nil },
-		bytesProduct)
-	b := r.Prepare(1000)
-	if n := testing.AllocsPerRun(5, b.Run); n != 0 {
-		t.Errorf("the batch loop allocated %.0f times for 1000 iterations", n)
-	}
-}
-
 func TestABatchRecoversAPanicInTheTask(t *testing.T) {
 	r := newRunner(func() struct{} { return struct{}{} },
 		func(*struct{}) ([]byte, error) { panic("boom") },
@@ -273,19 +262,6 @@ func TestValueOnlyIsAVariantNotAPass(t *testing.T) {
 	}
 }
 
-func TestAgreementCheck(t *testing.T) {
-	tm := Timing{AllocsPerOp: 100, BytesPerOp: 10000}
-	if d := agree(tm, Memory{Allocations: 103, AllocatedBytes: 11500}); d != "" {
-		t.Error(d)
-	}
-	if agree(tm, Memory{Allocations: 120, AllocatedBytes: 10000}) == "" {
-		t.Error("allocation counts that differ by 20% were accepted")
-	}
-	if agree(tm, Memory{Allocations: 100, AllocatedBytes: 20000}) == "" {
-		t.Error("bytes that differ by a factor of two were accepted")
-	}
-}
-
 func TestALongPathDoesNotCutOffTheValues(t *testing.T) {
 	deep := func(leaf any) any {
 		v := leaf
@@ -297,5 +273,26 @@ func TestALongPathDoesNotCutOffTheValues(t *testing.T) {
 	d := firstDiff(deep(1.0), deep(Int("1")), "")
 	if !strings.Contains(d, "got 1 (float), expected 1") || !strings.HasPrefix(d, "at …") {
 		t.Errorf("got %s", d)
+	}
+}
+
+func TestExplainBytesNamesTheKindOfDifference(t *testing.T) {
+	for _, c := range []struct{ got, want, says string }{
+		{"a: 1\nb: 2\n", "a: 1\n\nb: 2\n", "only in blank lines"},
+		{"a:\n  b: 1\n", "a:\n    b: 1\n", "only in indentation"},
+		{"a: 'x'\n", "a: x\n", "only in quoting"},
+		{"a: {x: 1,   y: 2}\n", "a: {x: 1, y: 2}\n", "only in spacing inside lines"},
+		{"a: 1\r\nb: 2\r\n", "a: 1\nb: 2\n", "only in line breaks"},
+		{"a: 1\nb: 2\n", "a: 1\n\n  b: 2\n", "only in blank lines and indentation"},
+		{"a: 1\nb: 2\n", "a: 1\nb: 3\n", `line 2: got "b: 2", expected "b: 3"`},
+		{"a: 1\n", "a: 1\nb: 3\n", `expected "b: 3"`},
+	} {
+		d := bytesDiff([]byte(c.got), []byte(c.want))
+		if !strings.Contains(d, c.says) {
+			t.Errorf("%q vs %q: %s", c.got, c.want, d)
+		}
+	}
+	if bytesDiff([]byte("same"), []byte("same")) != "" {
+		t.Error("equal texts differ")
 	}
 }

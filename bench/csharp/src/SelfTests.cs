@@ -1,6 +1,4 @@
 #if SELFTEST
-using System.Diagnostics.Tracing;
-using System.Runtime;
 using System.Text;
 using OneYamlKit.Bench.Libs;
 using SharpYaml.Syntax;
@@ -10,31 +8,10 @@ namespace OneYamlKit.Bench;
 /// <summary>The harness's own tests. They exist only in the self-test build and run with
 /// <c>selftest</c>; the kit's test run builds that assembly and checks that none fails. They prove that
 /// the guard accepts a right answer and refuses a wrong one for every task, that the reference parsers
-/// and the core-schema resolver read what the specification says, that edits are worked out exactly, and
-/// that the memory figures are exact where they claim to be.</summary>
+/// and the core-schema resolver read what the specification says, and that edits are worked out exactly.</summary>
 public static class SelfTests
 {
     sealed class Failure(string message) : Exception(message);
-
-    // Writing to a static keeps the optimiser from removing an allocation whose result is never read.
-    static volatile byte[]? Sink;
-
-    /// <summary>A 32-byte element: seven integers and four bytes, padded.</summary>
-#pragma warning disable CS0649
-    struct PoolStruct { public int A, B, C, D, E, F, G; public byte H, I, J, K; }
-#pragma warning restore CS0649
-
-    /// <summary>The bytes the pool listener counts for one warm rent of an array of the length.</summary>
-    static long PooledOnce<T>(int length)
-    {
-        var warm = System.Buffers.ArrayPool<T>.Shared.Rent(length);
-        System.Buffers.ArrayPool<T>.Shared.Return(warm);
-        using var l = new Measure.PoolListener();
-        var a = System.Buffers.ArrayPool<T>.Shared.Rent(length);
-        System.Buffers.ArrayPool<T>.Shared.Return(a);
-        l.Stop();
-        return l.ReusedBytes;
-    }
 
     static void Check(bool ok, string what) { if (!ok) throw new Failure(what); }
     static void Equal<T>(T got, T want, string what)
@@ -61,38 +38,6 @@ public static class SelfTests
         Guard.Judge(t, w, () => p, () => f, referee ?? NoReferee);
     static Product V(string json) => new Product.Value(P(json));
     static Product B(string s) => new Product.Bytes(Encoding.UTF8.GetBytes(s));
-
-    /// <summary>Collects the runtime's method-load events: for each method, the sequence of versions the JIT
-    /// produced. In .NET 10 the tier is bits 7 to 9 of the event's flags: 3 is unoptimised, 6 is unoptimised
-    /// and instrumented, 4 is optimised. A method that ends in 4 after a 6 was optimised with a profile.</summary>
-    sealed class TierListener : EventListener
-    {
-        readonly Dictionary<ulong, (string Ns, string Seq)> _methods = new();
-
-        protected override void OnEventSourceCreated(EventSource source)
-        {
-            if (source.Name == "Microsoft-Windows-DotNETRuntime") EnableEvents(source, EventLevel.Verbose, (EventKeywords)0x10);
-        }
-
-        protected override void OnEventWritten(EventWrittenEventArgs e)
-        {
-            if (e.EventName == null || !e.EventName.StartsWith("MethodLoadVerbose", StringComparison.Ordinal) || e.Payload == null || e.PayloadNames == null) return;
-            ulong id = Convert.ToUInt64(e.Payload[e.PayloadNames.IndexOf("MethodID")]);
-            var ns = e.Payload[e.PayloadNames.IndexOf("MethodNamespace")] as string ?? "";
-            uint tier = (Convert.ToUInt32(e.Payload[e.PayloadNames.IndexOf("MethodFlags")]) >> 7) & 7;
-            lock (_methods) _methods[id] = (ns, _methods.TryGetValue(id, out var old) ? old.Seq + tier : tier.ToString());
-        }
-
-        public int Loads(string ns)
-        {
-            lock (_methods) return _methods.Values.Where(m => m.Ns.StartsWith(ns, StringComparison.Ordinal)).Sum(m => m.Seq.Length);
-        }
-
-        public int Optimised(string ns)
-        {
-            lock (_methods) return _methods.Values.Count(m => m.Ns.StartsWith(ns, StringComparison.Ordinal) && m.Seq.EndsWith('4') && m.Seq.Contains('6'));
-        }
-    }
 
     static readonly List<(string, Action)> Tests =
     [
@@ -228,14 +173,6 @@ public static class SelfTests
             }
             Equal(Pointer.Segments(v, "/new", true).Count, 1, "a new key may be named by an add");
         }),
-        ("median and spread are not moved by one slow sample", () =>
-        {
-            Equal(Timing.MedianSorted([1, 2, 9]), 2.0, "odd");
-            Equal(Timing.MedianSorted([1, 2, 3, 10]), 2.5, "even");
-            var t = new Timing(1, [10, 10, 10, 20, 30]);
-            Equal(t.Median, 10.0, "median");
-            Equal(t.Mad, 0.0, "mad");
-        }),
         ("a batch builds one state per iteration and runs each exactly once", () =>
         {
             int built = 0, ran = 0;
@@ -306,229 +243,6 @@ public static class SelfTests
                 Check(false, "removal inside a flow mapping was prepared");
             }
             catch (Unsupported) { }
-        }),
-        ("the memory figures are exact where they claim to be", () =>
-        {
-            // Nothing is allocated: both figures are zero apart from the starting state.
-            var idle = new FnRunner<int, int>(() => 0, s => s + 1, _ => new Product.Bytes([]));
-            var u0 = Measure.Memory(idle);
-            Equal(u0.AllocatedBytes, 0L, "an idle task allocates nothing");
-            Check(u0.PeakBytes < 4096, "an idle task has no peak to speak of: " + u0.PeakBytes);
-            // One megabyte, dropped at once: allocated is that, and the heap grew by that much.
-            var alloc = new FnRunner<int, byte[]>(() => 0, _ => new byte[1 << 20], _ => new Product.Bytes([]));
-            var u1 = Measure.Memory(alloc);
-            Check(u1.AllocatedBytes is >= (1 << 20) and < (1 << 20) + 256, "allocated bytes: " + u1.AllocatedBytes);
-            Check(u1.PeakBytes >= u1.AllocatedBytes, "peak at least what was allocated without a collection: " + u1.PeakBytes);
-            // A starting state of two megabytes is part of the peak but not of what the task allocated.
-            var held = new FnRunner<byte[], int>(() => new byte[2 << 20], s => s.Length, _ => new Product.Bytes([]));
-            var u2 = Measure.Memory(held);
-            Equal(u2.AllocatedBytes, 0L, "the state is not the task's allocation");
-            Check(u2.PeakBytes is >= (2 << 20) and < (2 << 20) + 16384, "the state counts toward the peak: " + u2.PeakBytes);
-            // The same cell measured twice agrees to the byte.
-            Equal(Measure.Memory(alloc).AllocatedBytes, u1.AllocatedBytes, "repeatable");
-            // A megabyte taken from the shared array pool allocates nothing once the pool holds it, and is still
-            // working memory: the peak holds it, the allocated bytes do not.
-            var pooled = new FnRunner<int, int>(() => 0,
-                _ => { var a = System.Buffers.ArrayPool<byte>.Shared.Rent(1 << 20); a[0] = 1; int n = a.Length; System.Buffers.ArrayPool<byte>.Shared.Return(a); return n; },
-                _ => new Product.Bytes([]));
-            var u3 = Measure.Memory(pooled);
-            Equal(u3.AllocatedBytes, 0L, "a rent from a full pool allocates nothing");
-            Check(u3.PeakBytes >= (1 << 20), "pooled buffers count toward the peak: " + u3.PeakBytes);
-        }),
-        ("pooled buffers are counted in bytes for every element type", () =>
-        {
-            Equal(PooledOnce<byte>(1 << 20), (1L << 20), "byte[]");
-            Equal(PooledOnce<char>(1 << 19), (1L << 19) * 2, "char[]");
-            Equal(PooledOnce<int>(1 << 18), (1L << 18) * 4, "int[]");
-            Equal(PooledOnce<long>(1 << 17), (1L << 17) * 8, "long[]");
-            Equal(PooledOnce<PoolStruct>(1 << 15), (1L << 15) * 32, "a 32-byte struct array");
-            Equal(PooledOnce<string>(1 << 15), (1L << 15) * IntPtr.Size, "a reference array");
-            // A rent on another thread is not the task's.
-            var other = new FnRunner<int, int>(() => 0, _ =>
-            {
-                int n = 0;
-                var t = new Thread(() => { var a = System.Buffers.ArrayPool<long>.Shared.Rent(1 << 20); n = a.Length; System.Buffers.ArrayPool<long>.Shared.Return(a); });
-                t.Start(); t.Join();
-                return n;
-            }, _ => new Product.Bytes([]));
-            var u = Measure.Memory(other);
-            Check(u.PeakBytes < (1 << 20), "a rent on another thread stays out of the peak: " + u.PeakBytes);
-            // Through the whole measurement: a pooled struct array reaches the peak at its size in bytes.
-            var structs = new FnRunner<int, int>(() => 0,
-                _ => { var a = System.Buffers.ArrayPool<PoolStruct>.Shared.Rent(1 << 15); int n = a.Length; System.Buffers.ArrayPool<PoolStruct>.Shared.Return(a); return n; },
-                _ => new Product.Bytes([]));
-            var us = Measure.Memory(structs);
-            Check(us.PeakBytes >= (1L << 15) * 32, "the struct array counts at 32 bytes an element: " + us.PeakBytes);
-        }),
-        ("a runner shares one state only if the task leaves it alone", () =>
-        {
-            int built = 0;
-            // Allocates the same on every run, as a library that reads its input does.
-            var honest = new FnRunner<int[], byte[]>(() => { built++; return [7]; },
-                s => { Sink = new byte[4096]; return [(byte)s[0]]; }, b => new Product.Bytes(b), sharedState: true);
-            honest.Check();
-            Equal(honest.SharedState, true, "a task that only reads its state shares it");
-            Equal(honest.SharedStateRefusal, null, "and is not refused");
-            int before = built;
-            var batch = honest.Prepare(5);
-            Equal(built, before + 1, "one state for the whole batch");
-            batch.Run();
-            var own = new FnRunner<int[], byte[]>(() => [0], s => [(byte)(++s[0])], b => new Product.Bytes(b));
-            Equal(own.Check() is Product.Bytes, true, "a runner with a state per task may change it");
-            Equal(own.SharedState, false, "and never asks to share");
-        }),
-        ("a task whose second answer differs falls back to fresh states and keeps its cell", () =>
-        {
-            int built = 0;
-            var mutating = new FnRunner<int[], byte[]>(() => { built++; return [0]; }, s => [(byte)(++s[0])], b => new Product.Bytes(b), sharedState: true);
-            Check(mutating.Check() is Product.Bytes, "the check gives the first answer, not an error");
-            Equal(mutating.SharedState, false, "a task that changes its state does not share it");
-            Check(mutating.SharedStateRefusal!.Contains("another answer"), mutating.SharedStateRefusal);
-            int before = built;
-            mutating.Prepare(5);
-            Equal(built, before + 5, "each run gets a state of its own");
-        }),
-        ("a task that remembers its result is not given a shared state, though every answer is right", () =>
-        {
-            // The second run returns what the first computed: same answer, almost no work.
-            var memo = new FnRunner<byte[][], byte[]>(() => new byte[1][],
-                s => s[0] ??= new byte[50_000], b => new Product.Bytes(b), sharedState: true);
-            memo.Check();
-            Equal(memo.SharedState, false, "a memoising runner does not share");
-            Check(memo.SharedStateRefusal!.Contains("allocates"), memo.SharedStateRefusal);
-        }),
-        ("a task that rewrites a buffer it owns is not given a shared state", () =>
-        {
-            // Both answers are the same array, so comparing the second with the first compares it with itself.
-            var buffer = new FnRunner<(byte[] Buf, int[] N), byte[]>(() => (new byte[8], new int[1]),
-                s => { s.Buf[0] = (byte)(++s.N[0]); return s.Buf; }, b => new Product.Bytes(b), sharedState: true);
-            buffer.Check();
-            Equal(buffer.SharedState, false, "an in-place buffer does not share");
-            Check(buffer.SharedStateRefusal!.Contains("another answer"), buffer.SharedStateRefusal);
-        }),
-        ("a task that wears its state away with an identical answer is not given a shared state", () =>
-        {
-            // Like a dump that strips parts of the tree it is given: the output never changes, later runs do less.
-            var wearing = new FnRunner<List<int>, byte[]>(() => Enumerable.Range(0, 2000).ToList(),
-                s =>
-                {
-                    Sink = new byte[s.Count * 100];
-                    if (s.Count > 1) s.RemoveRange(0, s.Count / 2);
-                    return [1];
-                }, b => new Product.Bytes(b), sharedState: true);
-            wearing.Check();
-            Equal(wearing.SharedState, false, "a runner whose later runs cost less does not share");
-            Check(wearing.SharedStateRefusal!.Contains("allocates"), wearing.SharedStateRefusal);
-            Check(FnRunner<int, int>.CostsAgree(100_000, 100_900), "a difference of under a hundredth is the same cost");
-            Check(!FnRunner<int, int>.CostsAgree(100_000, 102_000), "two hundredths is not");
-        }),
-        ("a batch is never smaller than the sample target asks for, however slow its states are to build", () =>
-        {
-            // The states take about 2 ms to build and the task about 5 us. A budget on set-up time used to cut the
-            // batch to a handful, which made the cost of one invocation the answer.
-            var slow = new FnRunner<int, long>(
-                () => { var t = System.Diagnostics.Stopwatch.StartNew(); while (t.Elapsed.TotalMilliseconds < 2) { } return 0; },
-                _ => { long x = 0; for (int i = 0; i < 3000; i++) x += i; return x; }, _ => new Product.Bytes([]));
-            Measure.ArtifactsPath = Path.Combine(Path.GetTempPath(), "oneyaml-bench-selftest-" + Environment.ProcessId);
-            var cfg = Config.Quick with { WarmupMaxMs = 300, SettleWindowMs = 20 };
-            var t = Measure.Time(slow, cfg);
-            // Judged on the estimate the batch was sized from, not on the speed the samples then ran at: the JIT
-            // keeps optimising for as long as it likes (on a slow or busy machine for longer), and the test config
-            // here cuts the warm-up short. What the test is about is that the cost of building states does not
-            // shrink the batch below what the target asks for.
-            Check(t.ItersPerSample * t.CalibratedNs >= 0.9 * cfg.SampleTargetMs * 1e6,
-                  $"a batch of {t.ItersPerSample} tasks of an estimated {t.CalibratedNs:F0} ns is shorter than the {cfg.SampleTargetMs} ms target");
-            Equal(t.SamplesNs.Length, cfg.MinSamples, "samples are cut only down to the minimum");
-        }),
-        ("the peak is the starting state plus what the task requested, whatever the collector did before", () =>
-        {
-            // 300 MB of small objects, dropped as they are made: more than any young generation holds, so a
-            // collection inside the run frees most of it, and a peak read from the heap would depend on when
-            // the collection happened.
-            var churn = new FnRunner<byte[], int>(() => new byte[1 << 20], s =>
-            {
-                int n = 0;
-                for (int i = 0; i < 300_000; i++) { Sink = new byte[1000]; n++; }
-                return n + s.Length;
-            }, _ => new Product.Bytes([]));
-            var a = Measure.Memory(churn);
-            Equal(a.PeakBytes, a.StateBytes + a.AllocatedBytes, "peak is the state plus what was requested");
-            Check(a.AllocatedBytes >= 300_000_000, "allocated bytes: " + a.AllocatedBytes);
-            // Fill the young generation with other work, then measure again, and again after a full collection.
-            for (int i = 0; i < 2000; i++) GC.KeepAlive(new byte[40_000]);
-            var b = Measure.Memory(churn);
-            GC.Collect();
-            var c = Measure.Memory(churn);
-            // What the task requested is exact; the state is a difference of two live-size readings and can move by a
-            // few kilobytes with what else is alive.
-            Equal(b.AllocatedBytes, a.AllocatedBytes, "requested after other allocation");
-            Equal(c.AllocatedBytes, a.AllocatedBytes, "requested after a full collection");
-            Check(Math.Abs(b.PeakBytes - a.PeakBytes) < a.PeakBytes / 100, $"peak after other allocation: {b.PeakBytes} against {a.PeakBytes}");
-            Check(Math.Abs(c.PeakBytes - a.PeakBytes) < a.PeakBytes / 100, $"peak after a full collection: {c.PeakBytes} against {a.PeakBytes}");
-        }),
-        ("what a library keeps after a run is reported apart from the peak", () =>
-        {
-            var keep = new List<byte[]>();
-            var keeper = new FnRunner<int, int>(() => 0, _ => { keep.Add(new byte[1 << 20]); return 1; }, _ => new Product.Bytes([]));
-            var tidy = new FnRunner<int, byte[]>(() => 0, _ => new byte[1 << 20], _ => new Product.Bytes([]));
-            // The figure comes with the memory pass: the live heap one collection after one run, less the live heap
-            // just before it, with the starting state held (the definition every harness shares).
-            long kept = Measure.Memory(keeper).RetainedBytes;
-            Check(kept >= (1 << 20), "a buffer the library holds on to is retained: " + kept);
-            long garbage = Measure.Memory(tidy).RetainedBytes;
-            Check(garbage < 64 * 1024, "garbage is not retained: " + garbage);
-            GC.KeepAlive(keep);
-        }),
-        ("the starting state is held in both readings, so it is not what the run retained", () =>
-        {
-            // A large state that the task only reads: it is live before and after, and the run leaves nothing.
-            var big = new FnRunner<byte[], int>(() => new byte[8 << 20], s => s[0], _ => new Product.Bytes([]));
-            long kept = Measure.Memory(big).RetainedBytes;
-            Check(kept < 64 * 1024, "a state the run only reads is not retained: " + kept);
-        }),
-        ("a full run keeps at least thirty samples, and fewer are allowed only in quick mode", () =>
-        {
-            Check(Config.Full.MinSamples >= 30, "full-mode floor: " + Config.Full.MinSamples);
-            Check(Config.Full.Samples >= Config.Full.MinSamples, "full-mode target: " + Config.Full.Samples);
-            Check(Config.Quick.MinSamples < 30, "quick mode is the smoke tier");
-        }),
-        ("warming up under the full-mode policy reaches optimised, profiled code and the JIT then goes quiet", () =>
-        {
-            // The same function the harness calls before it times a cell, with the full-mode settings, on a real
-            // library. A method that is called often goes through three versions: unoptimised, instrumented for
-            // the profile, and optimised with the profile's help. The runtime reports each as a method load.
-            var text = Encoding.UTF8.GetBytes(string.Concat(Enumerable.Range(0, 120).Select(i => $"key{i}: [1, 2.5, 'x']\nm{i}:\n  a: b\n  c: [true, null]\n")));
-            var vyaml = new FnRunner<int, object?>(() => 0, _ => VYaml.Serialization.YamlSerializer.Deserialize<object>(new ReadOnlyMemory<byte>(text)), _ => new Product.Bytes([]));
-            var sharp = new FnRunner<int, object?>(() => 0, _ => SharpYaml.YamlSerializer.Deserialize<object>(Encoding.UTF8.GetString(text)), _ => new Product.Bytes([]));
-            using var tiers = new TierListener();
-            // A policy that stops after 30 ms cannot get there: the runtime waits 100 ms before it even counts calls.
-            var hasty = Measure.WarmUp(sharp, Config.Quick with { WarmupMaxMs = 30, SettleWindowMs = 0, SettleWindows = 0 }, 1000);
-            Equal(hasty.Settled, true, "a policy with no window settles at once");
-            System.Threading.Thread.Sleep(300);
-            Equal(tiers.Optimised("SharpYaml"), 0, "optimised methods after a 30 ms warm-up");
-            var full = Measure.WarmUp(vyaml, Config.Full, 1000);
-            Check(full.Settled, $"the full-mode warm-up did not settle in {full.Ms:F0} ms");
-            System.Threading.Thread.Sleep(300);
-            int optimised = tiers.Optimised("VYaml");
-            Check(optimised >= 5, $"methods that reached optimised code after instrumentation: {optimised}");
-            // Quiet: another stretch of the same work makes the JIT produce no new version of any VYaml method.
-            int loads = tiers.Loads("VYaml");
-            var clock = System.Diagnostics.Stopwatch.StartNew();
-            while (clock.ElapsedMilliseconds < 500) vyaml.Prepare(1).Run();
-            System.Threading.Thread.Sleep(300);
-            Equal(tiers.Loads("VYaml"), loads, "VYaml methods compiled after the warm-up");
-        }),
-        ("a timed cell takes the configured number of samples and reports time per task", () =>
-        {
-            var spin = new FnRunner<int, long>(() => 0, _ => { long x = 0; for (int i = 0; i < 20000; i++) x += i; return x; },
-                _ => new Product.Bytes([]));
-            var cfg = Config.Quick;
-            Measure.ArtifactsPath = Path.Combine(Path.GetTempPath(), "oneyaml-bench-selftest-" + Environment.ProcessId);
-            var t = Measure.Time(spin, cfg);
-            Equal(t.SamplesNs.Length, cfg.Samples, "samples");
-            Check(t.SamplesNs.SequenceEqual(t.SamplesNs.OrderBy(x => x)), "sorted");
-            Check(t.Median > 1_000 && t.Median < 5_000_000, "20000 additions take microseconds, not " + t.Median + " ns");
-            Check(t.ItersPerSample >= 1, "iterations per sample");
         }),
     ];
 

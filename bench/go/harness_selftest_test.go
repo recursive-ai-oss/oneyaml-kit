@@ -10,7 +10,7 @@ import "testing"
 func controlCell(t *testing.T, b behaviour, task Task) map[string]any {
 	t.Helper()
 	w := tinyWorkload(t)
-	return oneCell(control{"c", b}, task, w, quickConfig())
+	return oneCell(control{"c", b}, task, w, "quick")
 }
 
 func TestControlsAreJudgedOnEveryTask(t *testing.T) {
@@ -20,7 +20,7 @@ func TestControlsAreJudgedOnEveryTask(t *testing.T) {
 			t.Errorf("%s: the right answer got %v: %v", task, right["status"], right["detail"])
 			continue
 		}
-		if tm := right["time"].(map[string]any); tm["median_ns"].(float64) <= 0 {
+		if tm := right["time"].(map[string]any); tm["ns"].(float64) <= 0 {
 			t.Errorf("%s: no time", task)
 		}
 		if _, ok := right["memory"].(map[string]any); !ok {
@@ -56,10 +56,7 @@ func TestControlsAreJudgedOnEveryTask(t *testing.T) {
 	}
 }
 
-func TestASelftestBuildSaysSo(t *testing.T) {
-	if !selftestBuild {
-		t.Error("a build with the selftest tag must say so")
-	}
+func TestControlsAreInTheSelftestBuild(t *testing.T) {
 	n := 0
 	for _, l := range allLibraries() {
 		if l.Role() == "control" {

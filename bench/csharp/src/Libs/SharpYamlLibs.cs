@@ -51,7 +51,7 @@ public sealed class SharpYamlLib : ILibrary
                 if (w.Documents != 1) throw Support.No("dump is defined for one document");
                 return new FnRunner<object?, byte[]>(() => YamlSerializer.Deserialize<object>(text, LoadOptions),
                     tree => Support.Utf8.GetBytes(YamlSerializer.Serialize<object?>(tree, DumpOptions)),
-                    b => new Product.Bytes(b), sharedState: true);
+                    b => new Product.Bytes(b));
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
                 throw Support.No("the serializer keeps no comments or layout; see sharpyaml-syntax");
             default:
@@ -90,7 +90,7 @@ public sealed class SharpYamlModelLib : ILibrary
                 if (w.Documents != 1) throw Support.No("dump is defined for one document");
                 return new FnRunner<YamlStream, byte[]>(() => YamlStream.Load(new StringReader(text)),
                     s => Support.Utf8.GetBytes(s[0].Contents!.ToString()),
-                    b => new Product.Bytes(b), sharedState: true);
+                    b => new Product.Bytes(b));
             case BenchTask.TypedLoad:
                 throw Support.No("the node model is untyped; see sharpyaml");
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
@@ -159,7 +159,7 @@ public sealed class SharpYamlSyntaxLib : ILibrary
             case BenchTask.UnchangedEmit:
                 return new FnRunner<YamlSyntaxTree, byte[]>(() => YamlSyntaxTree.Parse(text, Options),
                     t => Support.Utf8.GetBytes(t.ToFullString()),
-                    b => new Product.Bytes(b), sharedState: true);
+                    b => new Product.Bytes(b));
             case BenchTask.EditScript:
                 {
                     var ops = w.EditOps;
@@ -168,7 +168,7 @@ public sealed class SharpYamlSyntaxLib : ILibrary
                     SharpYamlEdits.Apply(YamlSyntaxTree.Parse(text, Options), ops);
                     return new FnRunner<YamlSyntaxTree, byte[]>(() => YamlSyntaxTree.Parse(text, Options),
                         t => Support.Utf8.GetBytes(SharpYamlEdits.Apply(t, ops).ToFullString()),
-                        b => new Product.Bytes(b), sharedState: true, variant: HarnessRendered);
+                        b => new Product.Bytes(b), variant: HarnessRendered);
                 }
             case BenchTask.TypedLoad or BenchTask.GenericLoad or BenchTask.Dump:
                 throw Support.No("the syntax tree gives no values; see sharpyaml");

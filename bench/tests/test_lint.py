@@ -7,7 +7,7 @@ from pathlib import Path
 
 BENCH = Path(__file__).resolve().parents[1]
 FILES = sorted([p for p in BENCH.rglob("*.py") if "__pycache__" not in p.parts]
-               + [BENCH.parent / "bin" / "bench"])
+               + [BENCH.parent / "bin" / "bench", BENCH.parent / "bin" / "bench-cloud"])
 MAX = 160
 
 

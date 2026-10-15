@@ -148,17 +148,17 @@ def aggregate(result: dict, library: str, rows: list[dict]) -> list[dict]:
             if ent["time"] is None:
                 e["no_rival"].append(r["workload"])
             else:
-                best = r["best_time"]
-                e["t_own"].append(mine["time"]["median_ns"])
-                e["t_best"].append(best["time"]["median_ns"])
+                best = r["best"]["time"]
+                e["t_own"].append(mine["time"]["ns"])
+                e["t_best"].append(best["time"]["ns"])
                 e["tally"][ent["time"]["verdict"]] += 1
                 e["vs"][best["library"]] = e["vs"].get(best["library"], 0) + 1
                 if results.non_reference_label(best):
                     e["marks"].add(f"{best['library']}: {results.non_reference_label(best)}")
             if ent["memory"] is not None:
-                bm = r["best_memory"]
-                e["m_own"].append(max(mine["memory"]["peak_bytes"], 1))
-                e["m_best"].append(max(bm["memory"]["peak_bytes"], 1))
+                bm = r["best"]["memory"]
+                e["m_own"].append(max(mine["memory"]["allocated_bytes"], 1))
+                e["m_best"].append(max(bm["memory"]["allocated_bytes"], 1))
                 e["m_tally"][ent["memory"]["verdict"]] += 1
                 e["m_vs"][bm["library"]] = e["m_vs"].get(bm["library"], 0) + 1
                 if results.non_reference_label(bm):
@@ -187,9 +187,8 @@ class Ctx:
         self.result, self.library, self.kit_version = result, library, kit_version
         self.conformance, self.chart_dir, self.allow_smoke = conformance, chart_dir, allow_smoke
         self.run = result["run"]
-        self.pub = self.run["publishability"]
-        if not self.pub["publishable"] and not allow_smoke:
-            raise ReadmeError("this is a quick or smoke result and is not publishable; a README is public, so it "
+        if self.run["smoke"] and not allow_smoke:
+            raise ReadmeError("this is a smoke result; a README is public, so it "
                               "is refused unless --allow-smoke is given (the block is then labelled)")
         self.lang = featured_language(result, library)
         self.harness = result["harnesses"][self.lang]
@@ -222,27 +221,22 @@ class Ctx:
 
 
 def smoke_notice(ctx: Ctx) -> list[str]:
-    if ctx.pub["publishable"]:
+    if not ctx.run["smoke"]:
         return []
-    why = "; ".join(ctx.pub["reasons"])
-    return ["> **SMOKE RESULT, NOT PUBLISHABLE.**" + (f" {why}" if why else ""), ""]
+    return ["> **SMOKE RESULT.** Quick, or taken on a shared machine: not a claim about speed.", ""]
 
 
 def method_strip(ctx: Ctx) -> list[str]:
     run, env, h = ctx.run, ctx.run["environment"], ctx.harness
-    cfg = h["config"]
-    label = "PUBLISHABLE" if ctx.pub["publishable"] else "SMOKE RESULT, NOT PUBLISHABLE"
-    flags = ", ".join(f"{k}={v}" for k, v in sorted(h["flags"].items())) or "none"
+    label = "SMOKE RESULT" if run["smoke"] else "full run"
     comps = [l for l in ctx.libs() if l["id"] != ctx.library]
     return [
         f"Method: {run['mode']} run of {run['date']}, **{label}**. {ctx.kit_text()}. "
         f"`{ctx.version_of(ctx.library)}`; competitors "
         + ", ".join(f"`{ctx.version_of(l['id'])}`" for l in comps) + ". "
-        f"Runtime {h['runtime']} (target {h['target']}, flags {flags}), harness {h['name']} {h['version']}: "
-        f"warm-up {cfg['warmup_ms']} ms, {cfg['samples']} samples of about {cfg['sample_target_ms']} ms, "
-        f"each time is the median of the samples; {h['timer']}. Memory: {h['memory']}. "
+        f"Runtime {h['runtime']} (target {h['target']}), measured with {h['tool']}: {h['timer']}. Memory: {h['memory']}. "
         f"{env['cpu']} ({env['cpus']} logical CPUs, {env['memory_gb']} GiB), {env['os']} ({env['machine']}), "
-        f"CPU governor {env['governor']}, boost {env['boost']}; host load (1 min) {run['load']['before']} before, "
+        f"host load (1 min) {run['load']['before']} before, "
         f"{run['load']['after']} after."]
 
 
@@ -342,7 +336,7 @@ def render_hero(ctx: Ctx, chart_rel: str, **_) -> str:
             mem = (f"{report.fmt_bytes(a['own_mem'])} vs {report.fmt_bytes(a['best_mem'])}, "
                    f"{report.fmt_ratio(a['m_ratio'])} {verdict_text(a['m_verdict'])}; "
                    f"{mt['win']} better, {mt['tie']} level, {mt['loss']} worse of {sum(mt.values())}; "
-                   f"smallest peak: {names(a['m_vs'], False)}")
+                   f"least allocated: {names(a['m_vs'], False)}")
         mark = verdict_text(a["verdict"]) + (" (partial: a workload has no number)" if a["missing"] else "")
         t = a["tally"]
         per = f"{t['win']} better, {t['tie']} level, {t['loss']} worse of {used}" + (

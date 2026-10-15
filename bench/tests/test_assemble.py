@@ -9,77 +9,58 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from oneyaml_bench import results, run  # noqa: E402
 
 
-def harness():
-    return {"name": "h", "version": "1", "libraries": [{"id": "ours", "role": "own"}, {"id": "rival", "role": "competitor"}]}
+def harness(extra=()):
+    return {"name": "h", "version": "1", "libraries": [{"id": "ours", "role": "own"}, {"id": "rival", "role": "competitor"},
+                                                     *extra]}
 
 
-def ok(lib, wl):
+def ok(lib, wl="w", ns=1.0):
     return {"type": "cell", "library": lib, "task": "generic-load", "workload": wl, "status": "ok", "input_bytes": 1,
-            "time": {"median_ns": 1.0, "mad_ns": 0.0, "samples": 31},
-            "memory": {"method": "m", "peak_bytes": 1, "allocated_bytes": 1, "allocations": 1}}
+            "time": {"ns": ns, "stat": "mean"}, "memory": {"allocated_bytes": 1, "allocations": 1}}
 
 
-def bad(lib, wl):
-    return {"type": "cell", "library": lib, "task": "generic-load", "workload": wl, "status": "error",
-            "detail": "the process died", "input_bytes": None}
+METAS = [{"id": "w", "kind": "generated", "tier": "quick", "description": "d", "documents": 1,
+          "input_bytes": 1, "tasks": ["generic-load"], "source": {}}]
 
 
-def assemble(cells, expected):
-    metas = [{"id": "w", "kind": "generated", "tier": "quick", "description": "d", "documents": 1,
-              "input_bytes": 1, "tasks": ["generic-load"], "source": {}}]
-    return run.assemble("full", {"rust": harness()}, {"rust": cells}, metas, [0.1] * 10, 0.5, 0.5, 1.0, 0, expected, 2, False)
+def assemble(cells, h=None, mode="quick", smoke=True):
+    return run.assemble(mode, smoke, {"go": h or harness()}, {"go": cells}, METAS, 0.5, 0.5, 1.0)
 
 
-def unsettled(lib, wl):
-    c = ok(lib, wl)
-    c["time"] = dict(c["time"], warmup_settled=False)
-    return c
-
-class Complete(unittest.TestCase):
-    def reasons(self, res):
-        return res["run"]["publishability"]["reasons"]
-
-    def test_every_cell_measured_is_complete(self):
-        res = assemble([ok("ours", "w"), ok("rival", "w")], 2)
-        self.assertFalse([r for r in self.reasons(res) if "finish" in r])
+class Assemble(unittest.TestCase):
+    def test_roles_come_from_the_harness_record_and_the_result_validates(self):
+        res = assemble([ok("ours"), ok("rival")])
+        self.assertEqual({c["library"]: c["role"] for c in res["cells"]}, {"ours": "own", "rival": "competitor"})
         results.validate(res)
 
-    def test_a_missing_cell_is_incomplete(self):
-        res = assemble([ok("ours", "w")], 2)
-        self.assertTrue([r for r in self.reasons(res) if "did not finish" in r])
-
-    def test_a_crashed_cell_is_incomplete_even_though_it_has_a_record(self):
-        res = assemble([ok("ours", "w"), bad("rival", "w")], 2)
-        self.assertTrue([r for r in self.reasons(res) if "did not finish" in r])
-        self.assertFalse(res["run"]["publishability"]["publishable"])
-
-    def test_pinning_is_recorded_and_judged(self):
-        res = assemble([ok("ours", "w"), ok("rival", "w")], 2)
-        self.assertEqual(res["run"]["environment"]["pinned_cpu"], 2)
-        self.assertEqual(res["run"]["publishability"]["measured"]["pinned_cpu"], 2)
-        self.assertFalse([r for r in self.reasons(res) if "pinned" in r])
-
-
-class TextApi(unittest.TestCase):
     def test_a_library_that_takes_and_returns_text_is_flagged_so_it_never_sets_the_best(self):
-        h = harness()
-        h["libraries"].append({"id": "patcher", "role": "competitor", "settings": {"state": "the text"}})
-        metas = [{"id": "w", "kind": "generated", "tier": "quick", "description": "d", "documents": 1,
-                  "input_bytes": 1, "tasks": ["generic-load"], "source": {}}]
-        res = run.assemble("quick", {"go": h}, {"go": [ok("ours", "w"), ok("rival", "w"), ok("patcher", "w")]},
-                           metas, [0.1] * 10, 0.5, 0.5, 1.0, 0, 3, None, False)
+        h = harness([{"id": "patcher", "role": "competitor", "settings": {"state": "the text"}}])
+        res = assemble([ok("ours"), ok("rival", ns=5.0), ok("patcher", ns=1.0)], h)
         by = {c["library"]: c for c in res["cells"]}
         self.assertEqual(by["patcher"]["state"], "text")
         self.assertNotIn("state", by["rival"])
         [row] = results.compare_rows(res["cells"])
-        self.assertEqual(row["best_time"]["library"], "rival")
+        # Faster, so it is the one compared with; the mark says it did less.
+        self.assertEqual(row["own"][0]["time"]["vs"], "patcher")
+        self.assertEqual(row["own"][0]["time"]["vs_mark"], "text API")
 
-    def test_an_unsettled_warmup_makes_a_full_run_unpublishable(self):
-        res = assemble([ok("ours", "w"), unsettled("rival", "w")], 2)
-        pub = res["run"]["publishability"]
-        self.assertFalse(pub["publishable"])
-        self.assertTrue([r for r in pub["reasons"] if "warm-up settled" in r])
-        results.validate(res)
+    def test_a_quick_run_is_a_smoke_run_whatever_is_asked(self):
+        self.assertTrue(assemble([ok("ours")])["run"]["smoke"])
+
+    def test_a_crashed_cell_keeps_its_record_and_no_numbers(self):
+        bad = {"type": "cell", "library": "rival", "task": "generic-load", "workload": "w", "status": "error",
+               "detail": "the process died", "input_bytes": None}
+        results.validate(assemble([ok("ours"), bad]))
+
+
+class ParseLines(unittest.TestCase):
+    def test_a_line_cut_short_by_a_crash_is_ignored_and_the_cell_in_flight_is_named(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "x.jsonl"
+            p.write_text('{"type": "harness", "name": "h"}\n{"type": "begin", "cell": "a/b/c"}\n{"type": "ce', encoding="utf-8")
+            h, cells, begun = run.parse_lines(p)
+        self.assertEqual((h["name"], cells, begun), ("h", [], ["a/b/c"]))
 
 
 if __name__ == "__main__":

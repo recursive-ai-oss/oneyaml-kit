@@ -8,11 +8,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"runtime"
-	"runtime/debug"
 	"sort"
 )
 
@@ -29,7 +27,7 @@ type args struct {
 
 func parseArgs(argv []string) (*args, error) {
 	if len(argv) == 0 {
-		return nil, fmt.Errorf("usage: oneyaml-bench-go <run|once|list> [options]")
+		return nil, fmt.Errorf("usage: oneyaml-bench-go <run|list> [options]")
 	}
 	a := &args{cmd: argv[0], workloads: "workloads", mode: "quick"}
 	for i := 1; i < len(argv); i++ {
@@ -100,41 +98,23 @@ func (l lineWriter) write(v any) error {
 	return err
 }
 
-func harnessRecord(a *args, cfg Config, libs []Library) map[string]any {
+func harnessRecord(a *args, libs []Library) map[string]any {
 	var ls []map[string]any
 	for _, l := range libs {
 		ls = append(ls, map[string]any{"id": l.ID(), "package": l.Package(), "version": moduleVersion(l.Package()),
 			"role": l.Role(), "settings": l.Settings()})
 	}
-	gogc := os.Getenv("GOGC")
-	if gogc == "" {
-		gogc = "100"
-	}
-	flags := map[string]any{"GOMAXPROCS": runtime.GOMAXPROCS(0), "GOGC": gogc, "trimpath": true}
-	if bi, ok := debug.ReadBuildInfo(); ok {
-		for _, s := range bi.Settings {
-			if s.Key == "GOAMD64" || s.Key == "CGO_ENABLED" {
-				flags[s.Key] = s.Value
-			}
-		}
-	}
 	return map[string]any{
-		"type": "harness", "name": "oneyaml-bench-go", "version": "0.1.0", "language": "go",
-		"runtime": runtime.Version(), "target": runtime.GOOS + "/" + runtime.GOARCH,
-		"flags": flags, "mode": a.mode,
-		"config": map[string]any{"warmup_ms": cfg.Warmup.Milliseconds(), "samples": cfg.Samples,
-			"sample_target_ms": cfg.SampleTarget.Milliseconds()},
-		"timer":          "testing.Benchmark, chunks of prepared iterations, median and median absolute deviation of the samples",
-		"memory":         memoryMethod,
-		"selftest_build": selftestBuild,
-		"libraries":      ls,
+		"type": "harness", "name": "oneyaml-bench-go", "version": "0.2.0", "language": "go",
+		"runtime": runtime.Version(), "target": runtime.GOOS + "/" + runtime.GOARCH, "mode": a.mode,
+		"tool":      "testing.B",
+		"timer":     "ns/op from testing.Benchmark at its default benchtime (20 ms in quick mode)",
+		"memory":    "B/op and allocs/op from testing.B (ReportAllocs)",
+		"libraries": ls,
 	}
 }
 
-// memoryMethod names how the memory figures are taken; the report prints it.
-const memoryMethod = "runtime.MemStats, sampled"
-
-func oneCell(lib Library, task Task, w *Workload, cfg Config) map[string]any {
+func oneCell(lib Library, task Task, w *Workload, mode string) map[string]any {
 	rec := map[string]any{"type": "cell", "library": lib.ID(), "task": string(task), "workload": w.ID,
 		"input_bytes": len(w.Input)}
 	put := func(status, detail string) { rec["status"], rec["detail"] = status, detail }
@@ -177,31 +157,14 @@ func oneCell(lib Library, task Task, w *Workload, cfg Config) map[string]any {
 		return rec
 	}
 	rec["variant"] = v.Variant
-	if why := shareState(task, runner); why != "" {
-		// A runner that is not shared is not a failure; the note says why its batches build a state per run.
-		put("ok", "starting state not shared between runs: "+why)
-	}
-
-	t := timeRunner(runner, cfg)
-	if t.Panic != nil {
-		put("error", fmt.Sprint("panic while timing: ", t.Panic))
+	m := measure(runner, mode)
+	if m.Panic != nil {
+		put("error", fmt.Sprint("panic while timing: ", m.Panic))
 		delete(rec, "variant")
 		return rec
 	}
-	m := memoryPass(runner, avgRunsFor(t, cfg), min(t.ItersPerSample, t.Chunk))
-	if d := crossCheck(t, m, runner); d != "" {
-		put("error", d)
-		delete(rec, "variant")
-		return rec
-	}
-	rec["time"] = map[string]any{"iters_per_sample": t.ItersPerSample, "samples": len(t.SamplesNS),
-		"median_ns": t.Median(), "mad_ns": t.MAD(), "min_ns": t.SamplesNS[0],
-		"max_ns": t.SamplesNS[len(t.SamplesNS)-1], "samples_ns": t.SamplesNS}
-	// Peak comes from the memory pass. The bytes and calls are testing.B's averages over all the
-	// timed runs, which the memory pass has just confirmed.
-	rec["memory"] = map[string]any{"method": memoryMethod, "peak_bytes": m.PeakBytes, "retained_bytes": m.RetainedBytes,
-		"allocated_bytes": uint64(math.Round(t.BytesPerOp)), "allocations": uint64(math.Round(t.AllocsPerOp)),
-		"first_run_allocations": m.FirstRunAllocations}
+	rec["time"] = map[string]any{"ns": m.NsPerOp, "stat": "mean", "iterations": m.Iterations}
+	rec["memory"] = map[string]any{"allocated_bytes": m.BytesPerOp, "allocations": m.AllocsPerOp}
 	return rec
 }
 
@@ -216,10 +179,6 @@ func selectLibs(want []string) []Library {
 }
 
 func run(a *args) error {
-	cfg := quickConfig()
-	if a.mode == "full" {
-		cfg = fullConfig()
-	}
 	f, err := os.Create(a.out)
 	if err != nil {
 		return err
@@ -231,7 +190,7 @@ func run(a *args) error {
 		return err
 	}
 	libs := selectLibs(a.libraries)
-	if err := out.write(harnessRecord(a, cfg, libs)); err != nil {
+	if err := out.write(harnessRecord(a, libs)); err != nil {
 		return err
 	}
 	for _, id := range ids {
@@ -254,35 +213,12 @@ func run(a *args) error {
 				if err := out.write(map[string]any{"type": "begin", "cell": name}); err != nil {
 					return err
 				}
-				if err := out.write(oneCell(lib, task, w, cfg)); err != nil {
+				if err := out.write(oneCell(lib, task, w, a.mode)); err != nil {
 					return err
 				}
 			}
 		}
 	}
-	return nil
-}
-
-// once runs one iteration of one cell, with no guard and no clock.
-func once(a *args) error {
-	if len(a.libraries) != 1 || len(a.tasks) != 1 || len(a.only) != 1 {
-		return fmt.Errorf("once needs one --library, one --task and one --workload")
-	}
-	w, err := loadWorkload(filepath.Join(a.workloads, a.only[0]))
-	if err != nil {
-		return fmt.Errorf("workload %s: %v", a.only[0], err)
-	}
-	libs := selectLibs(a.libraries)
-	task, _ := parseTask(a.tasks[0])
-	if len(libs) != 1 {
-		return fmt.Errorf("no library %s", a.libraries[0])
-	}
-	r, why := libs[0].Runner(task, w)
-	if r == nil {
-		return fmt.Errorf("unsupported: %s", why)
-	}
-	b := r.Prepare(1)
-	b.Run()
 	return nil
 }
 
@@ -304,8 +240,6 @@ func main() {
 		switch a.cmd {
 		case "run":
 			err = run(a)
-		case "once":
-			err = once(a)
 		case "list":
 			err = list()
 		default:

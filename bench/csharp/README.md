@@ -42,7 +42,7 @@ A task a library cannot do is `unsupported`, with the reason: there is no lossle
 YamlDotNet, VYaml or Yaml2JsonNode, and no patch engine except JsonPatch.Net's. `yaml2jsonnode` is the
 patch baseline of the ecosystem and is **not lossless**: it parses the document into a JSON tree, applies
 the patch there and writes a new document, so comments, blank lines, quoting and layout are gone and its
-patch cells are `differs`. They are listed as known deviations; they carry no number.
+patch cells are `differs`. They carry no number.
 
 Each library is driven the way its documentation shows, with its defaults. The choices that matter are
 recorded in each library's `settings` in the result file:
@@ -59,7 +59,7 @@ recorded in each library's `settings` in the result file:
   before the clock, writes the new value's text (the library replaces a range of characters and has no path
   or value API) and applies the text changes, last edit first, all inside the clock. The lookup and the writing
   of the new text (style, quoting, block header, chomping) are the harness's own code, not the library's, so
-  these cells carry the variant **`harness-rendered`**: they are listed as known deviations, shown apart from
+  these cells carry the variant **`harness-rendered`**: shown apart from
   the other rows, marked †, and never called the best of a row (a row is still compared with them when they are ahead).
 - Limits are never raised. SharpYaml's depth limit of 64 and YamlDotNet's serializer limit of 50 are defaults
   a user gets, so a workload that nests deeper is `rejects` with the reason "default limit, not raised".
@@ -79,55 +79,19 @@ cell is `unjudged`.
 
 ## Time and memory
 
-The runtime runs with its defaults: tiered compilation, quick JIT and dynamic PGO are on, as in a user's
-program. A method then runs as unoptimised code, then as instrumented code, then as optimised code shaped by
-the profile, and each step waits for a timer (100 ms without new unoptimised code) and a call count. So every
-cell is warmed first: it runs until the number of methods the JIT has compiled has not changed for a whole
-settle window (250 ms; two windows in full mode, at least 300 ms and at most 12 s), and only then is the batch
-calibrated and sampled. Each cell records `warmup_ms`, `warmup_settled` and `warmup_compiled_methods`, and the
-harness record says in `flags` that quick JIT, tiered compilation and PGO are on and how the warm-up ends. A
-cell that did not settle within the limit says so and its number should be read with that in mind.
-Quick mode uses one settle window and a smaller limit; it is a smoke result.
+Timing is BenchmarkDotNet's default job run in process (its dry job in quick mode), with
+`MemoryDiagnoser`: the mean time per task and the bytes allocated per task. One invocation per
+iteration runs a batch of prepared tasks (`IterationSetup` builds the starting states, `IterationCleanup`
+releases them) and the figures are divided by the batch size. The number of allocation calls is not
+available.
 
 **Equivalent work.** Every library gets UTF-8 bytes (the form of a file) and returns UTF-8 bytes, so
 libraries that work on strings decode the input and encode the output inside the timed work, and VYaml,
-which works on bytes, does not. This is stated in each library's settings. A task that only reads its
-starting state (dump, unchanged-emit, edit-script, patch) runs every task of a batch over one shared state
-instead of building one per task: the guard runs such a task twice over one state and refuses a runner whose
-second answer differs (the contract allows this option in every harness, on this condition). A batch is always as
-large as the sample target needs, however slow the states are to build; a cell whose states are slow to build
-takes fewer samples in quick mode, and in full mode never fewer than 30 (`min_samples`), and not fewer tasks per
-sample, because a one-task batch measures the fixed cost of an invocation.
-
-**Memory.** The memory pass runs after the timing, so it sees the optimised code a user's program runs (unoptimised
-code allocates more). `allocated_bytes` is exact (the bytes the task's own thread requested). `peak_bytes` is the
-starting state (live bytes after a full collection) plus every byte the task requested, taken in a no-GC
-region sized from an earlier run, so no collection happens during the run and the figure is the same
-whatever ran before it and however the cells are filtered or ordered. Buffers taken from the shared array pools
-(`ArrayPool<T>.Shared` and the other pools of that event source) are working memory too, but a rent from a pool that already
-holds the buffer allocates nothing, so the allocation count alone would leave out a document a library builds in
-pooled buffers. The peak therefore adds the size in bytes of every distinct pooled buffer one run takes from the pool (counted once, as if none were returned; buffers taken one after another are summed, so this is an upper bound like the rest of the peak). The event reports a length in elements and names the pool only by its hash code, so the harness matches that code against `ArrayPool<T>.Shared` for the primitive types and every type of the loaded non-framework assemblies, and multiplies by the element size the runtime lays out for that type (a struct array counts at its real size). A pool it cannot match fails the cell instead of being guessed. Only rents on the measuring thread count; the tasks start no threads. They are found by one run of their own with a listener on
-the pool's event source (`System.Buffers.ArrayPoolEventSource`, `BufferRented` and `BufferAllocated`), outside the
-no-GC region because delivering events allocates; a buffer the pool had to allocate is not added twice. The same
-measure applies to every library in the harness; `allocated_bytes` stays the exact thread count. A library
-that keeps working memory in a pool of its own, not in these pools, is seen only through the other figures. It counts garbage the collector has
-not yet freed, as the Go figure does, and is an upper bound on the live heap. `retained_bytes` is what one run leaves
-live (pools of reusable arrays, caches): the live bytes one full collection after the run, less the live bytes just
-before it, with the starting state held, the same quantity every harness reports. It has a pass of its own, after the
-others, because the collections it needs would trim the pools they use. The
-number of allocation calls is not available. Within a process the figures repeat to the byte; between processes
-the bytes a task requests move by a few percent in steps, because dynamic PGO changes how many objects the JIT
-keeps on the stack (without the profile they repeat to the byte). The definition, and what it hides, is in the adapter contract's
-memory section.
-
-Timing is BenchmarkDotNet (see the adapter contract for how a cell is run).
-
-`--mode guard` runs only the guard and writes verdicts without numbers; the recorder of the known deviations
-uses it, and it is not a measurement.
+which works on bytes, does not. This is stated in each library's settings.
 
 ## Self-tests
 
 `SELFTEST=1 ./build.sh BUILD_DIR` builds the self-test assembly: the control libraries (a right one, a
-wrong one, a refusing one and one that ends the process) and the `selftest` command. It is a different
-assembly name, so it cannot be mistaken for a measurement build. `bench/tests/test_csharp.py` builds it and
-runs it.
+wrong one, a refusing one and one that ends the process) and the `selftest` command, which checks the
+guard, the reference parsers and the edit resolution. It is a different assembly name, so it cannot be
+mistaken for a measurement build. `bench/tests/test_pipeline.py` builds it and runs the controls.

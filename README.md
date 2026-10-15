@@ -36,7 +36,8 @@ bin/gate --full                   # everything, every adapter (CI runs this)
 bin/gate --plan                   # show what would run
 bin/gate --areas bench-go         # named areas instead of choosing by changes
 bin/bench run                     # benchmarks, quick mode: results.json, report.md and charts in out/bench/
-bin/bench run --mode full         # full mode; labelled publishable only on a quiet host
+bin/bench run --mode full         # full mode: each tool at its defaults; a run on a shared machine is a smoke result
+bin/bench-cloud quick|full        # the same on one rented machine, results and report brought back
 ```
 
 `bin/kit fast` writes `out/results/<adapter>.json` and `out/conformance.md`
@@ -57,7 +58,7 @@ otherwise. The hand-over gate has a time budget of 150 seconds (`--budget`) and 
 exceeds it, which keeps the tier inside its three-minute limit; the fix is a faster step or
 moving it to the full tier. The full gate (`bin/gate --full`) runs every area and every
 step, including the slow ones (the end-to-end benchmark pipeline tests, the quick benchmark
-run over every workload, the counter check, the plain-build lint of the Rust harness), and it
+run over every workload, the plain-build lint of the Rust harness), and it
 has no budget. CI runs it as one job per area (`--areas <area>`, each on its own runner with
 its own caches), so the slowest area sets the time. A bounded case's time limit is stretched
 on a slow or busy machine (see the case format), so a verdict does not depend on how fast
@@ -95,8 +96,8 @@ added and then deleted still ships in the history, and a cancelled run must not 
 
 - The kit's code (`tools/`, `bin/`, `adapters/`, `bench/` harnesses, `tests/` and `docs/`) is
   dual licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
-  So are `.github/` and the other files under `bench/` that are not vendored workloads (the
-  `known.json` lists, the counters and so on): they are kit code and data.
+  So are `.github/` and the other files under `bench/` that are not vendored workloads: they are
+  kit code and data.
 - The kit's own cases (`suites/own/`) are dedicated to the public domain under
   [CC0 1.0](suites/own/LICENSE), so other YAML projects can copy them without attribution.
   A `licence` field in a case's provenance names the licence of the source the case was derived
