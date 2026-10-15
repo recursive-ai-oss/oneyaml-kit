@@ -208,6 +208,11 @@ or runtime, build flags, the CPU, the operating system, the governor, and the ho
 While a run is in progress the driver samples how many cores are busy with work other than
 the harness. A run is labelled **publishable** only if:
 
+- it covers everything the harnesses of its languages offer: every library, task and workload.
+  A run narrowed with `--library`, `--task` or `--workload` is never publishable, because the
+  strongest competitor or a losing workload may be the one left out; the reason names what
+  was left out. `--lang` is different: a run of one language is complete for that language,
+  so a Go-only run that includes all of Go's libraries, tasks and workloads can be published;
 - it is a full run that finished every cell it set out to measure, with no cell that crashed
   or stalled (`error`);
 - the harness was pinned to one CPU (`--pin`);
@@ -237,6 +242,8 @@ applies.
  "run": {"date": "...", "mode": "quick", "seconds": 31.0, "restarts": 0, "counters": false,
          "environment": {"cpu": "...", "cpus": 32, "os": "...", "governor": "...", "...": "..."},
          "publishability": {"publishable": false, "label": "smoke", "reasons": ["..."], "rule": {}, "measured": {}},
+         "selection": {"languages": "all", "libraries": "all", "tasks": "all", "workloads": "all",
+                       "left_out": {"libraries": [], "tasks": [], "workloads": []}},
          "load": {"before": 1.8, "after": 2.2}},
  "harnesses": {"rust": {"name": "oneyaml-bench-rust", "version": "0.1.0", "runtime": "rustc ...",
                         "flags": {}, "config": {}, "libraries": [{"id": "oneyaml", "package": "oneyaml",

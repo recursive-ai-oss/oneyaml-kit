@@ -301,12 +301,20 @@ def percentile(values: list[float], p: float) -> float:
 
 def assess_publishability(mode: str, samples: list[float], load1_start: float, load1_end: float,
                           complete: bool, selftest_build: bool = False, pinned_cpu: int | None = None,
-                          governor: str = "unknown") -> dict:
+                          governor: str = "unknown",
+                          left_out: dict[str, list[str]] | None = None) -> dict:
     """Decides whether a run may carry numbers into a README.
 
-    `samples` are the cores busy with other work, one per sampling tick.
+    `samples` are the cores busy with other work, one per sampling tick. `left_out` names the
+    libraries, tasks and workloads a filter removed: a README compares every row with its
+    strongest competitor, which a narrowed run cannot show.
     """
     reasons = []
+    for kind, names in (left_out or {}).items():
+        if names:
+            shown = ", ".join(names[:5]) + (f" and {len(names) - 5} more" if len(names) > 5 else "")
+            reasons.append(f"the run was filtered and left out {len(names)} {kind} ({shown}); "
+                           "only a run of everything a harness offers can be published")
     rule = PUBLISH_RULE
     if mode != rule["mode"]:
         reasons.append(f"the run was a {mode} run; only a full run can be published")
@@ -397,6 +405,9 @@ def validate(result: dict) -> None:
     if run["mode"] not in ("quick", "full"):
         raise ResultError("run.mode must be quick or full")
     pub = run["publishability"]
+    left = [n for names in (run.get("selection") or {}).get("left_out", {}).values() for n in names]
+    if pub["publishable"] and left:
+        raise ResultError("a run that left out libraries, tasks or workloads cannot be publishable")
     if pub["publishable"] and (pub["reasons"] or run["mode"] != "full"):
         raise ResultError("a run with reasons against it, or a quick run, cannot be publishable")
     seen = set()

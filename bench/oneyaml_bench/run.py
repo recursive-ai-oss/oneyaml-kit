@@ -178,10 +178,30 @@ def count_instructions(h: dict, build_dir: Path, workloads_dir: Path, cell: dict
     return int(m.group(1)) if r.returncode == 0 and m else None
 
 
+def selection_of(languages: list[str], libraries: list[str], tasks: list[str], only: list[str],
+                 offered: dict[str, list[str]], all_tasks: list[str], all_workloads: list[str]) -> dict:
+    """What a run was narrowed to, and what that left out of the full set the harnesses offer.
+
+    `offered` maps each language that ran to every library its harness offers. A language that
+    was not run at all is not "left out": a result for one language is complete for that language.
+    A filter that still names everything leaves nothing out.
+    """
+    left = {
+        "libraries": sorted(f"{lang}/{lib}" for lang, libs in offered.items() for lib in libs
+                            if libraries and lib not in libraries),
+        "tasks": sorted(t for t in all_tasks if tasks and t not in tasks),
+        "workloads": sorted(w for w in all_workloads if only and w not in only),
+    }
+    return {"languages": sorted(languages) or "all", "libraries": sorted(libraries) or "all",
+            "tasks": sorted(tasks) or "all", "workloads": sorted(only) or "all", "left_out": left}
+
+
 def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[str, list[dict]],
              metas: list[dict], samples: list[float], load_start: float, load_end: float,
              seconds: float, restarts: int, expected_cells: int, pinned_cpu: int | None,
-             counters: bool) -> dict:
+             counters: bool, selection: dict | None = None) -> dict:
+    """`selection` is what the run was narrowed to, from `selection_of`; None means nothing was left out."""
+    selection = selection or selection_of([], [], [], [], {}, [], [])
     cells = []
     for lang, recs in cells_by_lang.items():
         libs = {l["id"]: l for l in harness_records[lang].get("libraries", [])}
@@ -200,12 +220,14 @@ def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[st
     complete = len(cells) >= expected_cells and not any(c["status"] == "error" for c in cells)
     env = environment.describe(environment.git_revision(ROOT), pinned_cpu)
     pub = results.assess_publishability(mode, samples, load_start, load_end, complete, selftest,
-                                        pinned_cpu, env["governor"])
+                                        pinned_cpu, env["governor"],
+                                        left_out=selection["left_out"])
     res = {
         "format": results.FORMAT,
         "run": {
             "date": env["date"], "mode": mode, "seconds": round(seconds, 1), "restarts": restarts,
             "counters": counters, "environment": env, "publishability": pub,
+            "selection": {k: v for k, v in selection.items()},
             "load": {"before": load_start, "after": load_end},
         },
         "harnesses": {lang: {k: v for k, v in rec.items() if k != "type"} for lang, rec in harness_records.items()},
@@ -280,12 +302,14 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
     metas = workloads.prepare(out_dir, tiers)
     wl_dir = out_dir / "workloads"
     build_dir = build_dir or Path(os.environ.get("CARGO_TARGET_DIR") or out_dir / "target")
+    all_metas = metas
     if only:
         metas = [m for m in metas if m["id"] in only]
     sampler = environment.Sampler()
     load_start = environment.loadavg()[0]
     sampler.start()
     records, cells_by_lang, restarts, n_libs, mem_procs = {}, {}, 0, 0, {}
+    offered: dict[str, list[str]] = {}
     try:
         for l in langs:
             h = harnesses[l]
@@ -305,6 +329,13 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
             if n_mem > 1:
                 add_memory_processes(h, build_dir, wl_dir, out_dir, sampler, pin_cpu, libraries, tasks, only,
                                      cells, n_mem, log)
+            offered[l] = [x["id"] for x in rec.get("libraries", [])]
+            if libraries:
+                # The record of a filtered run lists only the chosen libraries, so ask the harness
+                # again, for no cells, which libraries it offers.
+                probe, _, _ = run_harness(h, build_dir, wl_dir, "quick", out_dir, None, None, (), ["none"],
+                                          [all_metas[0]["id"]], log)
+                offered[l] = [x["id"] for x in (probe or rec).get("libraries", [])]
             n_libs += len([x for x in rec.get("libraries", []) if not libraries or x["id"] in libraries])
             if counters:
                 log("counting instructions")
@@ -316,7 +347,10 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
     load_end = environment.loadavg()[0]
     wanted = sum(len([t for t in m["tasks"] if not tasks or t in tasks]) for m in metas) * max(n_libs, 1)
     res = assemble(mode, records, cells_by_lang, metas, samples, load_start, load_end,
-                   time.monotonic() - t0, restarts, wanted, pin_cpu, counters)
+                   time.monotonic() - t0, restarts, wanted, pin_cpu, counters,
+                   selection_of(langs if languages else [], list(libraries), list(tasks), list(only), offered,
+                                sorted({t for m in all_metas for t in m["tasks"]}),
+                                [m["id"] for m in all_metas]))
     if mem_procs:
         res["run"]["memory_processes"] = mem_procs
         short = [f"{l} (declares {v['declared']}, used {v['used']})" for l, v in mem_procs.items()
