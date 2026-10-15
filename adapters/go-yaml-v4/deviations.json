@@ -585,5 +585,9 @@
   {"case": "own:parse/tab-only-line-after-block-scalar-at-end", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'found a tab character where an indentation space is expected' at 3:1"},
   {"case": "own:parse/tab-only-line-after-block-scalar-at-end", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'found a tab character where an indentation space is expected' at 3:1"},
   {"case": "own:parse/verbatim-tag-with-fragment", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: \"did not find the expected '>'\" at 1:19"},
-  {"case": "own:parse/verbatim-tag-with-fragment", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"did not find the expected '>'\" at 1:19"}
+  {"case": "own:parse/verbatim-tag-with-fragment", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"did not find the expected '>'\" at 1:19"},
+  {"case": "own:safety/one-line-flow-mapping-with-duplicate-keys", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over the memory bound: 20, 68 and 265 MB at 400, 800 and 1,600 pairs, and 2.8 GB at 6,250, growing about four times for each doubling; the case stops it at 128 MB growth"},
+  {"case": "own:safety/one-line-flow-mapping-with-duplicate-keys", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over the memory bound: 20, 68 and 265 MB at 400, 800 and 1,600 pairs, and 2.8 GB at 6,250, growing about four times for each doubling; the case stops it at 128 MB growth"},
+  {"case": "own:safety/one-line-flow-mapping-ten-megabytes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over the memory bound: growth passed 768 MB (918 MB when it was stopped) for a 9.8 MB line"},
+  {"case": "own:safety/one-line-flow-mapping-ten-megabytes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over the memory bound: growth passed 768 MB (918 MB when it was stopped) for a 9.8 MB line"}
 ]}

@@ -11,12 +11,12 @@
   "YAML 1.2.2 section 3.2.1.3",
   "YAML 1.2.2 section 10.3.2"
  ],
- "notes": "Node equality compares tag and canonical content; both keys resolve to the integer 1.",
+ "notes": "Node equality compares tag and canonical content; both keys resolve to the integer 1. The error category is duplicate-key (YAML 1.2.2 section 3.2.1.1: the keys of a mapping are unique); previously the case accepted an error of any kind.",
  "operation": {
   "type": "value"
  },
  "expect": {
   "kind": "error",
-  "category": "any"
+  "category": "duplicate-key"
  }
 }

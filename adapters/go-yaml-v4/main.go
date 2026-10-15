@@ -10,12 +10,15 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"regexp"
 
 	"example.invalid/oneyaml-kit/gokit"
 	yaml "go.yaml.in/yaml/v4"
 )
 
 const version = "v4.0.0-rc.6"
+
+var duplicateKeyMessage = regexp.MustCompile(`\Amapping key .* already defined at line \d+\z`)
 
 // failure converts a load error. The library reports the stage that failed and a 1-based
 // position, so those are passed on as they are; what it does not name (a limit, say) stays
@@ -31,6 +34,12 @@ func failure(err error) gokit.Result {
 		cat = "encoding"
 	case "scanner", "parser":
 		cat = "syntax"
+	case "constructor":
+		// A repeated key is a construction error with no code of its own, so the message is the
+		// only signal; it is matched in full.
+		if duplicateKeyMessage.MatchString(le.Message) {
+			cat = "duplicate-key"
+		}
 	}
 	return gokit.Err(cat, le.Message, le.Mark.Line, le.Mark.Column)
 }

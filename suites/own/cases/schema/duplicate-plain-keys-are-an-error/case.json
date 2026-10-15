@@ -10,7 +10,7 @@
  "refs": [
   "YAML 1.2.2 section 3.2.1.1"
  ],
- "notes": "The keys of a mapping must be unique. The error is a semantic one, so no position is stated.",
+ "notes": "The keys of a mapping must be unique. The error is a semantic one, so no position is stated. The error category is duplicate-key (YAML 1.2.2 section 3.2.1.1: the keys of a mapping are unique); previously the case accepted an error of any kind.",
  "provenance": {
   "source": "https://github.com/recursive-ai-oss/oneyaml-rust",
   "revision": "93e9e30",
@@ -22,6 +22,6 @@
  },
  "expect": {
   "kind": "error",
-  "category": "any"
+  "category": "duplicate-key"
  }
 }

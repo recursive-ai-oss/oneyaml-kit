@@ -66,6 +66,12 @@ sealed class Yaml2JsonNodeKitAdapter : IAdapter
         return d.Transformed ? o.Emulating("decode") : o;
     }
 
+    // Yaml2JsonNode refuses a repeated key with a plain YamlException whose whole message is
+    // `Duplicate key <key>`. The parser's own errors carry a position prefix or are subclasses, so the
+    // exact type and the start of the message separate them.
+    internal static bool IsDuplicateKey(Exception e) =>
+        e.GetType() == typeof(YamlException) && e.Message.StartsWith("Duplicate key ", StringComparison.Ordinal);
+
     static Failure Describe(Exception e, string text)
     {
         // The category comes from the exception type the library chose; its message is never read.
@@ -73,6 +79,7 @@ sealed class Yaml2JsonNodeKitAdapter : IAdapter
         {
             SyntaxErrorException or SemanticErrorException => "syntax",
             PointerParseException or JsonException => "patch-invalid",
+            _ when IsDuplicateKey(e) => "duplicate-key",
             _ => "other",
         };
         if (e is YamlException y && y.Start.Line > 0) return new Failure(category, e.Message, (int)y.Start.Line, Positions.CharColumn(text, y.Start.Index, y.Start.Column));

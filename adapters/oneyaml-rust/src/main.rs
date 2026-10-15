@@ -203,10 +203,15 @@ fn props(
 // ---- values -------------------------------------------------------------
 
 fn error_failure(e: &oneyaml::Error) -> Failure {
-    let category = match e.kind() {
-        oneyaml::ErrorKind::Syntax => "syntax",
-        oneyaml::ErrorKind::Limit => "limit",
-        _ => "other",
+    // The library has a code of its own for two equal keys in a mapping.
+    let category = if e.code() == oneyaml_core::code::DUPLICATE_KEY {
+        "duplicate-key"
+    } else {
+        match e.kind() {
+            oneyaml::ErrorKind::Syntax => "syntax",
+            oneyaml::ErrorKind::Limit => "limit",
+            _ => "other",
+        }
     };
     let position = e.location().map(|l| (l.line(), l.column()));
     Failure {

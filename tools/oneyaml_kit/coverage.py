@@ -47,7 +47,7 @@ DERIVED = {
 
 # Every error category the kit can expect (see docs/case-format.md).
 CATEGORIES = ("syntax", "encoding", "limit", "patch-path", "patch-test", "patch-invalid",
-              "refused-alias", "refused-ambiguous", "unresolved-tag")
+              "refused-alias", "refused-ambiguous", "unresolved-tag", "duplicate-key")
 
 
 def _check(c, p: str) -> int:

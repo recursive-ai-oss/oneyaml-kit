@@ -50,7 +50,7 @@ Kit to adapter:
 {"type": "bye"}
 ```
 
-`input` is the exact input bytes, base64. `args` is the operation object of the case
+`input` is the exact input bytes, base64. A case that generates its input (docs/case-format.md) is sent the same way, so an input of tens of megabytes is one long line; read the line whole. `args` is the operation object of the case
 without `type`: for `patch`, `patch`, `format`, `document`; and `profile` when set.
 
 Adapter to kit, first line. `protocol` is the version the adapter speaks: 2, or 1 for an
@@ -76,7 +76,7 @@ A response may also carry `emulated`: a list of the behaviours (declared in the 
 `emulates`) that this answer depended on. See *Behaviour the adapter supplies*.
 
 An error `category` is one of the kit's names (`syntax`, `encoding`, `limit`,
-`patch-path`, `patch-test`, `patch-invalid`, `refused-alias`, `refused-ambiguous`, `unresolved-tag`)
+`patch-path`, `patch-test`, `patch-invalid`, `refused-alias`, `refused-ambiguous`, `unresolved-tag`, `duplicate-key`)
 or `other` for anything the adapter cannot map. `message` is for people and is never
 compared.
 

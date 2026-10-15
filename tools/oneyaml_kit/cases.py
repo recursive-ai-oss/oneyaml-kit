@@ -41,6 +41,7 @@ ERROR_CATEGORIES = (
     "refused-alias",
     "refused-ambiguous",
     "unresolved-tag",
+    "duplicate-key",
 )
 PATCH_OPS = ("add", "remove", "replace", "move", "copy", "test")
 PATCH_FORMATS = ("json-patch", "merge-patch")
@@ -144,8 +145,11 @@ def _expect_from_json(d: Any, base: Path | None, where: str, nested: bool = Fals
         return p.read_bytes()
 
     if kind == "events":
-        only("file")
-        return {"kind": "events", "events": split_lines(read(d["file"]).decode("utf-8"))}
+        only("file", "recipe")
+        if ("file" in d) == ("recipe" in d):
+            raise CaseError(f"{where}: events expectation needs exactly one of file/recipe")
+        raw = read(d["file"]) if "file" in d else generate_input(d["recipe"], where)
+        return {"kind": "events", "events": split_lines(raw.decode("utf-8"))}
     if kind == "bytes":
         only("file")
         return {"kind": "bytes", "bytes": read(d["file"])}
@@ -237,9 +241,74 @@ def _check_pairing(op: str, expect: dict, where: str) -> None:
 
 CASE_KEYS = {
     "format", "id", "title", "category", "origin", "productions", "refs",
-    "operation", "input", "expect", "tags", "notes", "provenance",
+    "operation", "input", "input_recipe", "expect", "tags", "notes", "provenance",
 }
 PROVENANCE_KEYS = ("source", "revision", "licence", "reference")
+
+
+# --------------------------------------------------------------------------
+# Generated inputs
+
+# A case whose input is too large to store describes it as a list of parts. A part is data, not
+# code: nothing in a recipe is evaluated, and the size is worked out before a byte is built.
+MAX_GENERATED_BYTES = 64 * 1024 * 1024
+MAX_RECIPE_PARTS = 64
+_TEXT_KEYS = {"text", "repeat"}
+_NUMBERS_KEYS = {"start", "count", "prefix", "suffix", "width"}
+
+
+def _int(v, where: str, name: str, lo: int = 0) -> int:
+    if isinstance(v, bool) or not isinstance(v, int) or v < lo:
+        raise CaseError(f"{where}: {name} must be an integer of at least {lo}")
+    return v
+
+
+def generate_input(recipe, where: str) -> bytes:
+    """The bytes a recipe describes: parts in order, each either
+    {"text": s, "repeat": n} (the UTF-8 text n times; n defaults to 1) or
+    {"numbers": {"count": n, "start": k, "prefix": p, "suffix": s, "width": w}}, which writes
+    p + the number + s for k, k+1, ... (n numbers), the number zero-padded to w digits.
+    The total size is limited to MAX_GENERATED_BYTES."""
+    if not isinstance(recipe, list) or not recipe or len(recipe) > MAX_RECIPE_PARTS:
+        raise CaseError(f"{where}: input_recipe must be a list of 1 to {MAX_RECIPE_PARTS} parts")
+    plan, total = [], 0
+    for i, part in enumerate(recipe):
+        w = f"{where}: input_recipe part {i}"
+        if not isinstance(part, dict):
+            raise CaseError(f"{w} must be an object")
+        if "text" in part:
+            if set(part) - _TEXT_KEYS or not isinstance(part["text"], str):
+                raise CaseError(f"{w}: a text part holds a string `text` and an optional `repeat`")
+            text = part["text"].encode("utf-8")
+            n = _int(part.get("repeat", 1), w, "repeat")
+            total += len(text) * n
+            plan.append(("text", text, n))
+        elif set(part) == {"numbers"} and isinstance(part["numbers"], dict):
+            q = part["numbers"]
+            if set(q) - _NUMBERS_KEYS or "count" not in q:
+                raise CaseError(f"{w}: numbers holds count and optionally {sorted(_NUMBERS_KEYS - {'count'})}")
+            n = _int(q["count"], w, "count")
+            start = _int(q.get("start", 0), w, "start")
+            width = _int(q.get("width", 0), w, "width")
+            pre, suf = q.get("prefix", ""), q.get("suffix", "")
+            if not isinstance(pre, str) or not isinstance(suf, str):
+                raise CaseError(f"{w}: prefix and suffix are strings")
+            pre, suf = pre.encode("utf-8"), suf.encode("utf-8")
+            digits = max(width, len(str(start + max(n - 1, 0))))
+            total += n * (len(pre) + digits + len(suf))
+            plan.append(("numbers", (pre, suf, start, width), n))
+        else:
+            raise CaseError(f"{w} is a text part or a numbers part")
+        if total > MAX_GENERATED_BYTES:
+            raise CaseError(f"{where}: the generated input is larger than {MAX_GENERATED_BYTES} bytes")
+    out = bytearray()
+    for kind, a, n in plan:
+        if kind == "text":
+            out += a * n
+        else:
+            pre, suf, start, width = a
+            out += b"".join(pre + b"%0*d" % (width, k) + suf for k in range(start, start + n))
+    return bytes(out)
 
 
 def load_own_case(case_dir: Path, cases_root: Path = OWN_DIR) -> Case:
@@ -280,15 +349,21 @@ def load_own_case(case_dir: Path, cases_root: Path = OWN_DIR) -> Case:
         if k not in prov:
             raise CaseError(f"{where}: a {d['origin']} case records provenance.{k}")
     op, args = _check_operation(d.get("operation"), where)
-    input_name = d.get("input", "input.yaml")
-    ip = case_dir / input_name
-    if not ip.is_file():
-        raise CaseError(f"{where}: missing input file {input_name!r}")
+    if "input_recipe" in d:
+        if "input" in d:
+            raise CaseError(f"{where}: a case has an input file or an input_recipe, not both")
+        data = generate_input(d["input_recipe"], where)
+    else:
+        input_name = d.get("input", "input.yaml")
+        ip = case_dir / input_name
+        if not ip.is_file():
+            raise CaseError(f"{where}: missing input file {input_name!r}")
+        data = ip.read_bytes()
     expect = _expect_from_json(d.get("expect"), case_dir, where)
     _check_pairing(op, expect, where)
     return Case(
         id=f"own:{rel}", suite=SUITE_OWN, category=d["category"], title=d["title"],
-        origin=d["origin"], op=op, input=ip.read_bytes(), expect=expect, args=args,
+        origin=d["origin"], op=op, input=data, expect=expect, args=args,
         productions=list(d.get("productions", [])), refs=list(d.get("refs", [])),
         tags=list(d.get("tags", [])), provenance=dict(prov),
     )
@@ -489,6 +564,17 @@ def b64(b: bytes) -> str:
     return base64.b64encode(b).decode("ascii")
 
 
+def generated_input_digests(cases_root: Path = OWN_DIR) -> dict[str, dict]:
+    """The size and digest of every generated input, so a change in what a recipe builds shows
+    even when the recipe text does not change."""
+    out = {}
+    for c in load_own(cases_root):
+        raw = kitjson.loads((cases_root / c.id[len("own:"):] / "case.json").read_bytes())
+        if "input_recipe" in raw:
+            out[c.id[len("own:"):]] = {"bytes": len(c.input), "sha256": hashlib.sha256(c.input).hexdigest()}
+    return out
+
+
 def current_pins() -> dict:
     return {
         "yaml-test-suite": {
@@ -498,7 +584,7 @@ def current_pins() -> dict:
             "cases": 402,
             "error_cases": 94,
         },
-        "own": {"cases": own_case_digests()},
+        "own": {"cases": own_case_digests(), "generated_inputs": generated_input_digests()},
     }
 
 

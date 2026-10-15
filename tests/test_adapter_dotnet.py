@@ -13,7 +13,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import support  # noqa: F401
+import support
 from oneyaml_kit import cases as C
 from oneyaml_kit import report
 from oneyaml_kit.protocol import SubprocessAdapter
@@ -240,6 +240,10 @@ class DotnetAdapters(unittest.TestCase):
             self.assertEqual(r["status"], "ok")
         finally:
             ad.close()
+
+    def test_repeated_keys_are_named_where_the_library_gives_a_signal_and_only_there(self):
+        for n in ("sharpyaml", "yaml2jsonnode"):
+            support.check_duplicate_key_category(self, n)
 
     def test_a_missing_document_reports_the_document_as_the_library_would_write_it(self):
         m = load_manifest("yaml2jsonnode")
