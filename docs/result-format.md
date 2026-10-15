@@ -33,8 +33,10 @@ generated from these files only.
 ```
 
 In `run`, `adapter_restarts` counts how often the shared adapter process was started
-again after a failure (a restart that failed is not counted: its case failed with `detail`), and `bounded_sessions` how many separate processes the bounded cases
+again after a failure (a restart that failed, or whose hello differed from the first one, is not counted: its case failed with `detail`), and `bounded_sessions` how many separate processes the bounded cases
 used (one each, see the adapter protocol).
+
+An adapter that cannot start at all has no result file; the command line reports it (see the adapter protocol).
 
 ## Cases
 

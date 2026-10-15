@@ -13,6 +13,7 @@ from . import blobs as blobs_mod
 from . import report as report_mod
 from .cases import (CaseError, ROOT, current_pins, load_all)
 from .public_text import repo_files, scan
+from .protocol import AdapterError
 from .runner import AdapterUnavailable, RunError, list_adapters, run_adapter
 
 PINS_FILE = ROOT / "tests" / "pins.json"
@@ -63,6 +64,12 @@ def cmd_run(args) -> int:
             print(f"{name}: SKIPPED, not available: {reason}")
             skipped.append((name, reason))
             continue
+        except AdapterError as e:
+            # This adapter could not start or say hello. It has no result to write; the others
+            # still run, and the exit status says that something failed.
+            print(f"{name}: FAILED, the adapter did not start: {e}", file=sys.stderr)
+            status = 1
+            continue
         except RunError as e:
             print(f"{name}: {e}", file=sys.stderr)
             return 2
@@ -80,6 +87,10 @@ def cmd_run(args) -> int:
             status = 1
             for line in (d["unlisted"] + d["stale"] + d["unknown"])[:20]:
                 print("  - " + line)
+    if not results and not skipped:
+        # Nothing ran to completion and nothing was skipped, so there is nothing to report.
+        print(f"no adapter produced a result ({time.monotonic() - t0:.1f} s)", file=sys.stderr)
+        return status or 1
     md = report_mod.render(results, skipped)
     (out / "conformance.md").write_text(md, encoding="utf-8")
     hits = scan([out / "conformance.md"], root=out)
