@@ -1,0 +1,52 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/patch-after-explicit-key-with-key-on-next-line-and-empty-value",
+ "title": "A patch of three operations next to an explicit key whose content starts on the next line and whose value is empty changes only what it names, in a mapping past 512 bytes",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "188",
+  "189",
+  "190",
+  "191"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.2.2",
+  "RFC 6902 section 4.1",
+  "RFC 6902 section 4.2",
+  "RFC 6901 section 3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The mapping holds two hundred entries `k000: 0` to `k199: 0`, 1600 bytes, and then `x`, whose value is a mapping of two entries. The first is written with an explicit key: `?` alone on its line, the content `a` on the line after it, indented more than the `?`, and then `:` at the column of the `?` with nothing after it (productions 190 and 191; the content of the key may start on the next line, and the value may be empty). Its value is null. The second entry is `b: 1`. The size is past the point at which a library may edit a region of the text instead of the whole document, so the text and the tree it keeps must agree about where the entry with the empty value ends. The patch adds `/x/b`, which exists, so the value is replaced with `z` (RFC 6902 section 4.1); removes `/x/b` (section 4.2), which leaves the mapping `x` with the explicit entry only; and adds `/nk1` with the sequence `[1]`. Reading the result back gives `x` as a mapping of one key, `a`, with a null value, followed by `nk1` as a sequence of the single item 1. Only `  b: 1` is gone, and the explicit entry, with its `:` line that has no value, is as it was: a `:` that belonged to the entry must not be taken for the colon of the mapping around it or lost with the entry after it. The new member is added at the end of the root mapping, after the last line of `x`, which is a kit convention (docs/edit-semantics.md); RFC 6902 does not fix the position. It is a block sequence, as its siblings are block collections and a value that is not a flow collection in the document stays block. Its dash is indented two spaces under the key: the document has no sequence to copy the indentation from, so the kit copies the indentation of the nearest block collection (`x` is indented two spaces) and the other layout, with the dash flush with the key, is as valid YAML. The bytes after the removal rest on those conventions, so the case carries the tag `convention`. Input: `k000: 0` to `k199: 0`, each ending in a line break, then `x:`, `  ?`, `    a`, `  :` and `  b: 1`, each ending in a line break.",
+ "provenance": {
+  "reference": "A patch engine that decided from the text around an explicit key whose content starts on the next line whether its empty value had a colon of its own, and gave the colon of the enclosing entry to it, or the reverse, so the result read back differently from the tree."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/x/b",
+    "value": "z"
+   },
+   {
+    "op": "remove",
+    "path": "/x/b"
+   },
+   {
+    "op": "add",
+    "path": "/nk1",
+    "value": [
+     1
+    ]
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

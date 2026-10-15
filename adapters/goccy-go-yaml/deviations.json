@@ -523,5 +523,7 @@
   {"case": "own:parse/invalid-utf8-after-del-in-quoted-scalar", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:parse/invalid-utf8-after-del-in-quoted-scalar", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:parse/invalid-utf8-after-noncharacter-in-double-quoted-scalar", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "own:parse/invalid-utf8-after-noncharacter-in-double-quoted-scalar", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."}
+  {"case": "own:parse/invalid-utf8-after-noncharacter-in-double-quoted-scalar", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:edit/set-empty-value-of-explicit-key-on-next-line", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: '[1:1] unexpected key name\\n>  1 | ?\\n   2 |   a\\n       ^\\n   3 | :\\n   4 | b: 1'"},
+  {"case": "own:edit/set-empty-value-of-explicit-key-on-next-line", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: '[1:1] unexpected key name\\n>  1 | ?\\n   2 |   a\\n       ^\\n   3 | :\\n   4 | b: 1'"}
 ]}

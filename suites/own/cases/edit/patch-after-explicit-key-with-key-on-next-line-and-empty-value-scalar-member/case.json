@@ -1,0 +1,50 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/patch-after-explicit-key-with-key-on-next-line-and-empty-value-scalar-member",
+ "title": "A patch next to an explicit key whose content starts on the next line and whose value is empty, ending in a scalar member, changes only what it names, in a mapping past 512 bytes",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "188",
+  "189",
+  "190",
+  "191"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.2.2",
+  "RFC 6902 section 4.1",
+  "RFC 6902 section 4.2",
+  "RFC 6901 section 3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "This is `edit/patch-after-explicit-key-with-key-on-next-line-and-empty-value` with a scalar as the last member, so the colon of the explicit entry is checked without the layout of a new sequence. The mapping holds two hundred entries `k000: 0` to `k199: 0`, 1600 bytes, and then `x`, whose value is a mapping of two entries. The first is written with an explicit key: `?` alone on its line, the content `a` on the line after it, and `:` at the column of the `?` with nothing after it (productions 190 and 191); its value is null. The second entry is `b: 1`. The size is past the point at which a library may edit a region of the text instead of the whole document. The patch adds `/x/b`, which exists, so the value is replaced with `z` (RFC 6902 section 4.1); removes `/x/b` (section 4.2); and adds `/nk1` with the number 1. Reading the result back gives `x` as a mapping of one key, `a`, with a null value, followed by `nk1` with the value 1. Only `  b: 1` is gone, and the explicit entry keeps its `:` line with no value: a `:` that belonged to the entry must not be taken for the colon of the mapping around it, moved behind the new member, or lost. The new member is added at the end of the root mapping, after the last line of `x`, which is a kit convention (docs/edit-semantics.md); RFC 6902 does not fix the position, so the case carries the tag `convention`.",
+ "provenance": {
+  "reference": "A patch engine that decided from the text around an explicit key whose content starts on the next line whether its empty value had a colon of its own, and gave the colon of the enclosing entry to it, or the reverse, so the result read back differently from the tree."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/x/b",
+    "value": "z"
+   },
+   {
+    "op": "remove",
+    "path": "/x/b"
+   },
+   {
+    "op": "add",
+    "path": "/nk1",
+    "value": 1
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}
