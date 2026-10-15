@@ -186,7 +186,7 @@ func oneCell(lib Library, task Task, w *Workload, cfg Config) map[string]any {
 		return rec
 	}
 	m := memoryPass(runner, avgRunsFor(t, cfg), min(t.ItersPerSample, t.Chunk))
-	if d := agree(t, m); d != "" {
+	if d := crossCheck(t, m, runner); d != "" {
 		put("error", d)
 		delete(rec, "variant")
 		return rec
@@ -195,7 +195,7 @@ func oneCell(lib Library, task Task, w *Workload, cfg Config) map[string]any {
 		"median_ns": t.Median(), "mad_ns": t.MAD(), "min_ns": t.SamplesNS[0],
 		"max_ns": t.SamplesNS[len(t.SamplesNS)-1], "samples_ns": t.SamplesNS}
 	// Peak comes from the memory pass. The bytes and calls are testing.B's averages over all the
-	// timed runs, the largest sample, which the memory pass has just confirmed.
+	// timed runs, which the memory pass has just confirmed.
 	rec["memory"] = map[string]any{"method": memoryMethod, "peak_bytes": m.PeakBytes, "retained_bytes": m.RetainedBytes,
 		"allocated_bytes": uint64(math.Round(t.BytesPerOp)), "allocations": uint64(math.Round(t.AllocsPerOp)),
 		"first_run_allocations": m.FirstRunAllocations}
