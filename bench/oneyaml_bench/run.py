@@ -27,7 +27,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import environment, results, workloads
+from . import environment, results, shards, workloads
 
 ROOT = Path(__file__).resolve().parents[1]
 STALL_SECONDS = {"quick": 120, "full": 1800, "memory": 1800}
@@ -178,10 +178,30 @@ def count_instructions(h: dict, build_dir: Path, workloads_dir: Path, cell: dict
     return int(m.group(1)) if r.returncode == 0 and m else None
 
 
+def selection_of(languages: list[str], libraries: list[str], tasks: list[str], only: list[str],
+                 offered: dict[str, list[str]], all_tasks: list[str], all_workloads: list[str]) -> dict:
+    """What a run was narrowed to, and what that left out of the full set the harnesses offer.
+
+    `offered` maps each language that ran to every library its harness offers. A language that
+    was not run at all is not "left out": a result for one language is complete for that language.
+    A filter that still names everything leaves nothing out.
+    """
+    left = {
+        "libraries": sorted(f"{lang}/{lib}" for lang, libs in offered.items() for lib in libs
+                            if libraries and lib not in libraries),
+        "tasks": sorted(t for t in all_tasks if tasks and t not in tasks),
+        "workloads": sorted(w for w in all_workloads if only and w not in only),
+    }
+    return {"languages": sorted(languages) or "all", "libraries": sorted(libraries) or "all",
+            "tasks": sorted(tasks) or "all", "workloads": sorted(only) or "all", "left_out": left}
+
+
 def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[str, list[dict]],
              metas: list[dict], samples: list[float], load_start: float, load_end: float,
              seconds: float, restarts: int, expected_cells: int, pinned_cpu: int | None,
-             counters: bool) -> dict:
+             counters: bool, selection: dict | None = None) -> dict:
+    """`selection` is what the run was narrowed to, from `selection_of`; None means nothing was left out."""
+    selection = selection or selection_of([], [], [], [], {}, [], [])
     cells = []
     for lang, recs in cells_by_lang.items():
         libs = {l["id"]: l for l in harness_records[lang].get("libraries", [])}
@@ -200,12 +220,14 @@ def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[st
     complete = len(cells) >= expected_cells and not any(c["status"] == "error" for c in cells)
     env = environment.describe(environment.git_revision(ROOT), pinned_cpu)
     pub = results.assess_publishability(mode, samples, load_start, load_end, complete, selftest,
-                                        pinned_cpu, env["governor"])
+                                        pinned_cpu, env["governor"],
+                                        left_out=selection["left_out"])
     res = {
         "format": results.FORMAT,
         "run": {
             "date": env["date"], "mode": mode, "seconds": round(seconds, 1), "restarts": restarts,
             "counters": counters, "environment": env, "publishability": pub,
+            "selection": {k: v for k, v in selection.items()},
             "load": {"before": load_start, "after": load_end},
         },
         "harnesses": {lang: {k: v for k, v in rec.items() if k != "type"} for lang, rec in harness_records.items()},
@@ -266,11 +288,16 @@ def add_memory_processes(h: dict, build_dir: Path, wl_dir: Path, out_dir: Path, 
 def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries: list[str] = (),
         tasks: list[str] = (), only: list[str] = (), pin_cpu: int | None = None,
         counters: bool = False, build_dir: Path | None = None, log=print,
-        memory_processes: int | None = None) -> dict:
-    """The whole pipeline up to the result dict."""
+        memory_processes: int | None = None, shard: tuple[int, int] | None = None) -> dict:
+    """The whole pipeline up to the result dict.
+
+    `shard` is (index, count), 1-based: this run measures only its share of the comparison rows
+    (see shards.py) and its result is merged with the others by `shards.merge`.
+    """
     t0 = time.monotonic()
     harnesses = discover()
     langs = languages or sorted(harnesses)
+    languages_given = sorted(langs) if languages else []
     for l in langs:
         if l not in harnesses:
             raise HarnessError(f"no harness for {l!r}; have {sorted(harnesses)}")
@@ -280,20 +307,37 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
     metas = workloads.prepare(out_dir, tiers)
     wl_dir = out_dir / "workloads"
     build_dir = build_dir or Path(os.environ.get("CARGO_TARGET_DIR") or out_dir / "target")
+    all_metas = metas
     if only:
         metas = [m for m in metas if m["id"] in only]
+    plan, mine = None, {}
+    if shard:
+        try:
+            plan = shards.plan_for(harnesses, langs, mode, list(libraries), list(tasks), list(only), shard[1])
+        except shards.PlanError as e:
+            raise HarnessError(str(e)) from e
+        problem = shards.plan_mismatch(plan, metas, list(tasks))
+        if problem:
+            raise HarnessError(problem)
+        mine = shards.shard_workloads(plan, shard[0])
+        metas = [m for m in metas if m["id"] in {w for ws in mine.values() for w in ws}]
+        langs = [l for l in langs if l in mine]
     sampler = environment.Sampler()
     load_start = environment.loadavg()[0]
     sampler.start()
-    records, cells_by_lang, restarts, n_libs, mem_procs = {}, {}, 0, 0, {}
+    records, cells_by_lang, restarts, wanted, mem_procs = {}, {}, 0, 0, {}
+    offered: dict[str, list[str]] = {}
     try:
         for l in langs:
             h = harnesses[l]
+            # A shard gives each language its own workloads: its share of the rows differs by language.
+            only_l = mine[l] if shard else list(only)
+            metas_l = [m for m in metas if not only_l or m["id"] in only_l]
             log(f"building the {l} harness")
             build(h, build_dir)
             log(f"measuring ({mode})")
             rec, cells, r = run_harness(h, build_dir, wl_dir, mode, out_dir, sampler, pin_cpu,
-                                        libraries, tasks, only, log)
+                                        libraries, tasks, only_l, log)
             records[l], cells_by_lang[l], restarts = rec, cells, restarts + r
             n_mem = memory_process_count(h, mode, memory_processes)
             declared = memory_process_count(h, mode, None)
@@ -303,9 +347,17 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
                     if c["status"] == "ok":
                         c["memory"]["processes_declared"] = declared
             if n_mem > 1:
-                add_memory_processes(h, build_dir, wl_dir, out_dir, sampler, pin_cpu, libraries, tasks, only,
+                add_memory_processes(h, build_dir, wl_dir, out_dir, sampler, pin_cpu, libraries, tasks, only_l,
                                      cells, n_mem, log)
-            n_libs += len([x for x in rec.get("libraries", []) if not libraries or x["id"] in libraries])
+            offered[l] = [x["id"] for x in rec.get("libraries", [])]
+            if libraries:
+                # The record of a filtered run lists only the chosen libraries, so ask the harness
+                # again, for no cells, which libraries it offers.
+                probe, _, _ = run_harness(h, build_dir, wl_dir, "quick", out_dir, None, None, (), ["none"],
+                                          [all_metas[0]["id"]], log)
+                offered[l] = [x["id"] for x in (probe or rec).get("libraries", [])]
+            n_libs = len([x for x in rec.get("libraries", []) if not libraries or x["id"] in libraries])
+            wanted += sum(len([t for t in m["tasks"] if not tasks or t in tasks]) for m in metas_l) * max(n_libs, 1)
             if counters:
                 log("counting instructions")
                 for c in cells:
@@ -314,9 +366,16 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
     finally:
         samples = sampler.stop()
     load_end = environment.loadavg()[0]
-    wanted = sum(len([t for t in m["tasks"] if not tasks or t in tasks]) for m in metas) * max(n_libs, 1)
+    selection = selection_of(languages_given, list(libraries), list(tasks), list(only), offered,
+                             sorted({t for m in all_metas for t in m["tasks"]}), [m["id"] for m in all_metas])
+    if shard:
+        # The rows of the other shards are left out of this result, which keeps it from being published alone.
+        selection["groups"] = sorted(g for g in plan["groups"] if plan["groups"][g]["shard"] == shard[0])
+        selection["left_out"]["groups"] = sorted(g for g in plan["groups"] if plan["groups"][g]["shard"] != shard[0])
     res = assemble(mode, records, cells_by_lang, metas, samples, load_start, load_end,
-                   time.monotonic() - t0, restarts, wanted, pin_cpu, counters)
+                   time.monotonic() - t0, restarts, wanted, pin_cpu, counters, selection)
+    if shard:
+        res["run"]["shard"] = shards.shard_record(plan, shard[0])
     if mem_procs:
         res["run"]["memory_processes"] = mem_procs
         short = [f"{l} (declares {v['declared']}, used {v['used']})" for l, v in mem_procs.items()

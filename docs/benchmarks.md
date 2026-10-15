@@ -208,6 +208,11 @@ or runtime, build flags, the CPU, the operating system, the governor, and the ho
 While a run is in progress the driver samples how many cores are busy with work other than
 the harness. A run is labelled **publishable** only if:
 
+- it covers everything the harnesses of its languages offer: every library, task and workload.
+  A run narrowed with `--library`, `--task` or `--workload` is never publishable, because the
+  strongest competitor or a losing workload may be the one left out; the reason names what
+  was left out. `--lang` is different: a run of one language is complete for that language,
+  so a Go-only run that includes all of Go's libraries, tasks and workloads can be published;
 - it is a full run that finished every cell it set out to measure, with no cell that crashed
   or stalled (`error`);
 - the harness was pinned to one CPU (`--pin`);
@@ -227,6 +232,62 @@ cores and boost are recorded (`boost`) but not checked. A host that cannot be pi
 to `performance` cannot produce a publishable run, and the report says which of the reasons
 applies.
 
+## Sharded runs
+
+A full run can be split across several identical machines and the pieces combined into one
+result, which is publishable on exactly the conditions an unsharded run would be.
+
+```sh
+bin/bench plan --shards 4 [--lang go]            # show the split as JSON, to pick N
+bin/bench run --mode full --pin 2 --shard 1/4 --out DIR1   # on machine 1; likewise 2/4 ... 4/4
+bin/bench merge --out MERGED DIR1 DIR2 DIR3 DIR4
+```
+
+**The unit is a group**: one language on one workload, with all its libraries and tasks.
+A shard holds whole groups, so every library of a comparison row is measured on the same
+machine. `plan` assigns each group to exactly one shard, longest first onto the cheapest
+shard so far. The cost estimate is `(input bytes + 256 KiB) x tasks x passes`: the fixed
+share stands for the warm-up and sampling every cell pays whatever its size, and a harness
+that measures memory in several processes counts a quarter of a pass for each extra process.
+The numbers only balance the shards; they are relative, not seconds. Libraries are not in the
+estimate because a harness reports them only once it is built; each group runs all of its
+language's libraries. The plan depends only on the languages with a harness, the workloads
+with their sizes and tasks, the mode and the filters, so every machine computes the same plan
+without talking to the others. `plan_digest` is a hash of it. `--shard` takes the same
+`--lang`, `--library`, `--task` and `--workload` filters as an unsharded run, which narrow the
+plan the same way. More shards than groups is an error.
+
+A shard's `results.json` is a normal result with a `run.shard` record: `index`, `count`,
+`plan_digest` and the plan itself, so the merge can check the shard without anything else.
+Its `selection.left_out.groups` lists the rows of the other shards, so a shard is never
+publishable on its own.
+
+**`merge`** refuses (exit 1, nothing written) when:
+
+- the plan digests differ, or a shard's recorded plan does not match its digest, or a shard
+  holds rows the plan did not give it;
+- a shard is missing or given twice;
+- the kit revision, the harness of a language (version, library versions, flags, configuration,
+  runtime), a workload's input, the mode, the filters, or whether instructions were counted differ;
+- the environments differ in anything but the start time and the pinned core: CPU model,
+  `instance_type` (set it with the `KIT_INSTANCE_TYPE` variable when the machines are rented),
+  operating system, memory, governor and so on.
+
+`--allow-incomplete` merges the shards that are there; the missing rows are listed in
+`selection.left_out.groups`, which makes the result a smoke result.
+
+The merged `selection` is the union of the shards': `groups` holds every row that was
+measured, and `left_out` is computed against everything the plan offered, so a complete set
+has nothing left out. The publishing rule is applied to every shard again, from the host
+figures it recorded (load, busy cores, governor, pinning, sample count), together with the
+reasons the shard itself found (a crashed cell, a stale list of known deviations, a warm-up
+that did not settle). Each reason in the merged result says which shards it applies to. The
+merge never reads the lists of known deviations itself: each shard checked its own cells.
+`run.shards` keeps every shard's environment, load and measured host figures as a list;
+`run.environment` is the first shard's (they are equal), `run.load` the highest load seen,
+`run.seconds` the longest shard and `run.restarts` the sum. The report shows a table of the
+shards.
+
 ## Result format
 
 `results.json`, format `oneyaml-kit-bench/1`:
@@ -237,6 +298,8 @@ applies.
  "run": {"date": "...", "mode": "quick", "seconds": 31.0, "restarts": 0, "counters": false,
          "environment": {"cpu": "...", "cpus": 32, "os": "...", "governor": "...", "...": "..."},
          "publishability": {"publishable": false, "label": "smoke", "reasons": ["..."], "rule": {}, "measured": {}},
+         "selection": {"languages": "all", "libraries": "all", "tasks": "all", "workloads": "all",
+                       "left_out": {"libraries": [], "tasks": [], "workloads": []}},
          "load": {"before": 1.8, "after": 2.2}},
  "harnesses": {"rust": {"name": "oneyaml-bench-rust", "version": "0.1.0", "runtime": "rustc ...",
                         "flags": {}, "config": {}, "libraries": [{"id": "oneyaml", "package": "oneyaml",

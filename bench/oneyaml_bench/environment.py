@@ -42,7 +42,7 @@ def memory_total_gb() -> float:
 def describe(git_revision: str | None = None, pinned_cpu: int | None = None) -> dict:
     """The environment record stored with every result."""
     boost = read("/sys/devices/system/cpu/cpufreq/boost")
-    return {
+    env = {
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "cpu": cpu_model(),
         "cpus": os.cpu_count() or 1,
@@ -55,6 +55,10 @@ def describe(git_revision: str | None = None, pinned_cpu: int | None = None) -> 
         "pinned_cpu": pinned_cpu,
         "kit_revision": git_revision,
     }
+    # Which kind of machine, when the launcher says (a cloud instance type). Shards of one run must match.
+    if os.environ.get("KIT_INSTANCE_TYPE"):
+        env["instance_type"] = os.environ["KIT_INSTANCE_TYPE"]
+    return env
 
 
 def git_revision(root: Path) -> str | None:
