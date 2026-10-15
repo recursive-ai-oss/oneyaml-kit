@@ -250,8 +250,10 @@ public static class Measure
     /// repeated with a larger one. The state is the live bytes after a full collection with the state built,
     /// minus those before it was built.
     ///
-    /// Memory a library keeps for reuse between calls (pooled buffers, caches) is part of neither figure: an
-    /// untracked run comes first, so it already exists. Retained is the part of it that one run adds.
+    /// The peak also includes the shared-pool buffers one run takes (each at its size in bytes, counted once, as if
+    /// none were returned): a rent from a warm pool allocates nothing, yet the buffer is working memory. Other memory a
+    /// library keeps for reuse between calls (caches, pools of its own) is in neither figure, since an untracked
+    /// run comes first and it already exists. Retained is the part of it that one run adds to the pools and caches.
     ///
     /// Retained: the live bytes one full collection after the run, less the live bytes just before the run, the
     /// starting state held in both readings and the result dropped inside the task. It is the same quantity as
@@ -291,11 +293,15 @@ public static class Measure
     }
 
     /// <summary>The bytes of shared-pool buffers (<c>ArrayPool&lt;T&gt;.Shared</c> and other array pools) that one
-    /// run takes from the pool and that the pool already held: each distinct buffer counted once, at its size, as
-    /// if none were returned and reused. A buffer the pool had to allocate during the run is skipped because the
-    /// allocation count already holds it. The run happens with a listener on the pool's event source, outside the
-    /// no-GC region, since delivering events allocates and would add to the allocated bytes. Memory a library
-    /// pools in a structure of its own is not visible to this and shows only through the other figures.</summary>
+    /// run takes from the pool and that the pool already held: each distinct buffer counted once, at its size in
+    /// bytes (length times the element size of its pool), as if none were returned and reused. A buffer the pool had
+    /// to allocate during the run is skipped because the allocation count already holds it. Only rents on the
+    /// measuring thread are counted: the tasks run on it and start no threads of their own, and a rent by the
+    /// runtime or the thread pool is not the task's. The element size of each pool is found as the listener
+    /// describes. The run happens with a listener on the pool's event source,
+    /// outside the no-GC region, since delivering events allocates and would add to the allocated bytes. Memory a
+    /// library pools in a structure of its own is not visible to this and shows only through the other
+    /// figures.</summary>
     static long PooledBytes(Runner r)
     {
         var b = r.Prepare(1);
@@ -303,17 +309,40 @@ public static class Measure
         b.Run();
         listener.Stop();
         GC.KeepAlive(b);
+        if (listener.Failure != null) throw new InvalidOperationException(listener.Failure);
         return listener.ReusedBytes;
     }
 
-    sealed class PoolListener : EventListener
+    /// <summary>Counts the bytes of the pooled buffers the measuring thread rents. The event reports a buffer's
+    /// length in elements and names its pool only by the pool object's hash code, with no element type. The
+    /// listener therefore learns which element type each pool holds by asking <c>ArrayPool&lt;T&gt;.Shared</c> for
+    /// its hash code, for the primitive types and for every type of the assemblies the process has loaded apart
+    /// from the framework's, and keeps the element size the runtime lays out for that type. A pool it cannot
+    /// match is an error, never a guess: counting it at the wrong size is what this exists to avoid.</summary>
+    internal sealed class PoolListener : EventListener
     {
+        static readonly object ElementLock = new();
+        static readonly Dictionary<int, int> SizeOfPool = [];
+        static readonly HashSet<System.Reflection.Assembly> Scanned = [];
+        static readonly Dictionary<Type, int> ElementSizes = [];
+        static readonly Type[] Builtin =
+        [
+            typeof(byte), typeof(sbyte), typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong),
+            typeof(char), typeof(bool), typeof(float), typeof(double), typeof(decimal), typeof(nint), typeof(nuint), typeof(Guid),
+            typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan), typeof(Int128), typeof(UInt128), typeof(Half),
+            typeof(Range), typeof(Index), typeof(System.Text.Rune), typeof(object), typeof(string),
+            typeof(ReadOnlyMemory<byte>), typeof(ReadOnlyMemory<char>), typeof(Memory<byte>), typeof(Memory<char>),
+        ];
+
         readonly object gate = new();
+        readonly int thread = Environment.CurrentManagedThreadId;
         readonly HashSet<(int pool, int id)> allocated = [];
         readonly HashSet<(int pool, int id)> counted = [];
         EventSource? source;
         bool on = true;
         public long ReusedBytes { get; private set; }
+        /// <summary>Set when a rent came from a pool whose element type is unknown; the figure is then not usable.</summary>
+        public string? Failure { get; private set; }
 
         protected override void OnEventSourceCreated(EventSource s)
         {
@@ -327,6 +356,8 @@ public static class Measure
         protected override void OnEventWritten(EventWrittenEventArgs e)
         {
             if (e.EventName is not ("BufferRented" or "BufferAllocated") || e.Payload is null || e.PayloadNames is null) return;
+            // The event is delivered on the thread that rents; the runtime's own threads are not the task's.
+            if (Environment.CurrentManagedThreadId != thread) return;
             int id = 0, size = 0, pool = 0;
             for (int i = 0; i < e.PayloadNames.Count; i++)
             {
@@ -341,9 +372,66 @@ public static class Measure
             lock (gate)
             {
                 if (!on) return;
+                if (!TryElementSize(pool, out int element)) { Failure ??= "a buffer was rented from an array pool (id " + pool + ") whose element type is not known to the harness"; return; }
+                long bytes = (long)size * element;
                 // The pool reports a rent before the allocation that served it, so an allocation takes back a count.
-                if (e.EventName == "BufferAllocated") { allocated.Add((pool, id)); if (counted.Remove((pool, id))) ReusedBytes -= size; }
-                else if (!allocated.Contains((pool, id)) && counted.Add((pool, id))) ReusedBytes += size;
+                if (e.EventName == "BufferAllocated") { allocated.Add((pool, id)); if (counted.Remove((pool, id))) ReusedBytes -= bytes; }
+                else if (!allocated.Contains((pool, id)) && counted.Add((pool, id))) ReusedBytes += bytes;
+            }
+        }
+
+        static bool TryElementSize(int pool, out int size)
+        {
+            lock (ElementLock)
+            {
+                if (SizeOfPool.TryGetValue(pool, out size)) return true;
+                // Types are looked at again only when the process has loaded an assembly it has not seen.
+                foreach (var t in Builtin) Register(t);
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    string? name = asm.GetName().Name;
+                    if (name == null || name.StartsWith("System", StringComparison.Ordinal) || name.StartsWith("Microsoft", StringComparison.Ordinal)
+                        || name is "mscorlib" or "netstandard" or "WindowsBase" || asm.IsDynamic || !Scanned.Add(asm)) continue;
+                    Type?[] types;
+                    try { types = asm.GetTypes(); }
+                    catch (System.Reflection.ReflectionTypeLoadException ex) { types = ex.Types; }
+                    foreach (var t in types)
+                        if (t != null && !t.IsGenericTypeDefinition && !t.ContainsGenericParameters && !t.IsByRefLike && !t.IsPointer && !t.IsByRef)
+                            Register(t);
+                }
+                return SizeOfPool.TryGetValue(pool, out size);
+            }
+        }
+
+        static void Register(Type t)
+        {
+            try
+            {
+                var shared = typeof(System.Buffers.ArrayPool<>).MakeGenericType(t).GetProperty("Shared")!.GetValue(null)!;
+                SizeOfPool[shared.GetHashCode()] = ElementSize(t);
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or System.Reflection.TargetInvocationException or TypeLoadException) { }
+        }
+
+        /// <summary>The size of one array element of the type, as the runtime lays it out (a struct's padding
+        /// included), read from what the runtime reports allocating for two array lengths.</summary>
+        internal static int ElementSize(Type t)
+        {
+            lock (ElementLock)
+            {
+                if (ElementSizes.TryGetValue(t, out int known)) return known;
+                int size = IntPtr.Size;
+                if (t.IsValueType)
+                {
+                    long a0 = GC.GetAllocatedBytesForCurrentThread();
+                    var small = Array.CreateInstance(t, 1024);
+                    long a1 = GC.GetAllocatedBytesForCurrentThread();
+                    var large = Array.CreateInstance(t, 2048);
+                    long a2 = GC.GetAllocatedBytesForCurrentThread();
+                    GC.KeepAlive(small); GC.KeepAlive(large);
+                    size = (int)Math.Max(1, ((a2 - a1) - (a1 - a0) + 1023) / 1024);
+                }
+                return ElementSizes[t] = size;
             }
         }
     }

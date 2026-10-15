@@ -70,7 +70,11 @@ public static class Native
                     if (pairs == null || entries.ValueKind != JsonValueKind.Array) throw new NotSupportedException("mapping with keys that are not strings");
                     var list2 = new List<KeyValuePair<object?, object?>>();
                     foreach (var kv in entries.EnumerateArray())
+                    {
+                        if (kv.ValueKind != JsonValueKind.Array || kv.GetArrayLength() != 2)
+                            throw new NotSupportedException("a $map entry that is not a [key, value] pair");
                         list2.Add(new(From(kv[0], depth + 1, binary, noBinary, big, pairs), From(kv[1], depth + 1, binary, noBinary, big, pairs)));
+                    }
                     return pairs(list2);
                 }
                 var map = new Dictionary<string, object?>();

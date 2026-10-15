@@ -106,8 +106,7 @@ region sized from an earlier run, so no collection happens during the run and th
 whatever ran before it and however the cells are filtered or ordered. Buffers taken from the shared array pools
 (`ArrayPool<T>.Shared` and the other pools of that event source) are working memory too, but a rent from a pool that already
 holds the buffer allocates nothing, so the allocation count alone would leave out a document a library builds in
-pooled buffers. The peak therefore adds the size of every distinct pooled buffer one run takes from the pool
-(counted once, as if none were returned and reused). They are found by one run of their own with a listener on
+pooled buffers. The peak therefore adds the size in bytes of every distinct pooled buffer one run takes from the pool (counted once, as if none were returned; buffers taken one after another are summed, so this is an upper bound like the rest of the peak). The event reports a length in elements and names the pool only by its hash code, so the harness matches that code against `ArrayPool<T>.Shared` for the primitive types and every type of the loaded non-framework assemblies, and multiplies by the element size the runtime lays out for that type (a struct array counts at its real size). A pool it cannot match fails the cell instead of being guessed. Only rents on the measuring thread count; the tasks start no threads. They are found by one run of their own with a listener on
 the pool's event source (`System.Buffers.ArrayPoolEventSource`, `BufferRented` and `BufferAllocated`), outside the
 no-GC region because delivering events allocates; a buffer the pool had to allocate is not added twice. The same
 measure applies to every library in the harness; `allocated_bytes` stays the exact thread count. A library
