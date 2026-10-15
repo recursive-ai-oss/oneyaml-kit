@@ -1,2 +1,17 @@
 {"format": "oneyaml-kit-deviations/1",
- "entries": []}
+ "entries": [
+  {"case": "own:schema/code-constructing-tags-are-kept-or-refused", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "accepted with a wrong result: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"},
+  {"case": "own:schema/code-constructing-tags-are-kept-or-refused", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "accepted with a wrong result: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"},
+  {"case": "own:schema/global-tag-uri-is-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': 'tag:example.com,2000:shape', 'value'..., got [1, 2]"},
+  {"case": "own:schema/global-tag-uri-is-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': 'tag:example.com,2000:shape', 'value'..., got [1, 2]"},
+  {"case": "own:schema/local-tag-on-a-collection-is-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': '!shape', 'value': {'kind': 'circle',..., got {'kind': 'circle', 'r': 2}"},
+  {"case": "own:schema/local-tag-on-a-collection-is-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': '!shape', 'value': {'kind': 'circle',..., got {'kind': 'circle', 'r': 2}"},
+  {"case": "own:schema/mapping-as-a-mapping-key", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'oneyaml: line 1, column 3: a collection cannot be the key of a generic mapping (Go map keys must be comparable)'"},
+  {"case": "own:schema/mapping-as-a-mapping-key", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'oneyaml: line 1, column 3: a collection cannot be the key of a generic mapping (Go map keys must be comparable)'"},
+  {"case": "own:schema/sequence-as-a-mapping-key", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'oneyaml: line 1, column 3: a collection cannot be the key of a generic mapping (Go map keys must be comparable)'"},
+  {"case": "own:schema/sequence-as-a-mapping-key", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'oneyaml: line 1, column 3: a collection cannot be the key of a generic mapping (Go map keys must be comparable)'"},
+  {"case": "own:schema/unresolved-tag-is-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"},
+  {"case": "own:schema/unresolved-tag-is-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"},
+  {"case": "yts:UGM3@value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"},
+  {"case": "yts:UGM3@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"}
+ ]}

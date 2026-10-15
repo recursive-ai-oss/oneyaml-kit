@@ -80,7 +80,7 @@ class Optional(unittest.TestCase):
         m = runner.load_manifest(OPTIONAL)
         self.assertEqual(m["language"], "go")
         self.assertEqual(m["requires_env"], ["KIT_ONEYAML_GO_SRC"])
-        self.assertEqual(runner.load_deviations(m), [])
+        runner.load_deviations(m)  # the list is the library's own and changes with it
         mod = (ADAPTERS / OPTIONAL / "go.mod").read_text()
         self.assertNotIn("oneyaml.dev", mod)  # the build generates that requirement
 
@@ -265,13 +265,16 @@ class Run(unittest.TestCase):
 @unittest.skipUnless(os.environ.get("KIT_ADAPTER_TESTS") == "1" and os.environ.get("KIT_ONEYAML_GO_SRC"),
                      "needs KIT_ADAPTER_TESTS=1 and KIT_ONEYAML_GO_SRC")
 class OptionalRun(unittest.TestCase):
-    def test_it_builds_declares_nothing_and_fails_nothing(self):
+    def test_it_builds_declares_what_it_does_and_fails_nothing_unlisted(self):
         res = run_adapter(OPTIONAL, C.load_all(), complete=True)
         self.assertEqual(validate_result(res), [])
-        self.assertEqual(res["adapter"]["capabilities"], [])
+        self.assertEqual(set(res["adapter"]["capabilities"]),
+                         {"events", "value", "error-category", "error-position", "patch:add", "patch:remove",
+                          "patch:replace", "patch:move", "patch:copy", "patch:test", "patch:merge"})
+        # The library is atomic and keeps the bytes of a refused patch, so nothing is emulated.
+        self.assertEqual(res["adapter"]["emulates"], [])
         d = res["deviations"]
-        self.assertEqual((d["ok"], d["listed"], d["unlisted"], d["stale"], d["unknown"]), (True, 0, [], [], []))
-        self.assertTrue(all(r["loose"] == "unsupported" and r["strict"] == "unsupported" for r in res["cases"]))
+        self.assertEqual((d["ok"], d["unlisted"], d["stale"], d["unknown"]), (True, [], [], []))
 
 
 if __name__ == "__main__":
