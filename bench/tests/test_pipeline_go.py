@@ -31,6 +31,56 @@ def build_dir() -> Path:
     return base.parent / (base.name + "-go")
 
 
+def source_built_ids(harness: dict) -> set:
+    """The libraries that are compiled in only from a local checkout (harness.json
+    `optional_libraries`). They are not in go.mod, so the module file cannot pin them."""
+    return {lib for libs in harness.get("optional_libraries", {}).values() for lib in libs}
+
+
+def check_library_pins(case: unittest.TestCase, libraries: list, pins: str, source_built: set) -> None:
+    """Every competitor's version is one the module file pins. A source-built library has no pin;
+    it must name the revision of the checkout it was built from instead, and it is our own."""
+    for lib in libraries:
+        if lib["id"] in source_built:
+            case.assertTrue(lib["version"], f"{lib['id']} records no source revision")
+            case.assertNotIn(lib["version"], ("", "unknown"), lib)
+            case.assertEqual(lib["role"], "own", lib)
+        else:
+            case.assertIn(lib["version"], pins, lib)
+            case.assertEqual(lib["role"], "competitor", lib)
+
+
+class PinCheck(unittest.TestCase):
+    """The pin check itself, on made-up libraries: it must keep biting for the competitors."""
+
+    PINS = "require github.com/example/yaml v1.2.3\n"
+
+    def test_a_pinned_competitor_passes(self):
+        check_library_pins(self, [{"id": "yaml", "version": "v1.2.3", "role": "competitor"}], self.PINS, set())
+
+    def test_a_competitor_whose_version_is_not_pinned_fails(self):
+        with self.assertRaises(AssertionError):
+            check_library_pins(self, [{"id": "yaml", "version": "v9.9.9", "role": "competitor"}], self.PINS, set())
+
+    def test_a_competitor_is_not_exempt_because_another_library_is(self):
+        libs = [{"id": "ours", "version": "abc123def456", "role": "own"},
+                {"id": "yaml", "version": "v9.9.9", "role": "competitor"}]
+        with self.assertRaises(AssertionError):
+            check_library_pins(self, libs, self.PINS, {"ours"})
+
+    def test_a_source_built_library_needs_no_pin_but_a_revision(self):
+        check_library_pins(self, [{"id": "ours", "version": "abc123def456", "role": "own"}], self.PINS, {"ours"})
+        with self.assertRaises(AssertionError):
+            check_library_pins(self, [{"id": "ours", "version": "", "role": "own"}], self.PINS, {"ours"})
+
+    def test_an_unlisted_library_with_no_pin_is_not_exempt(self):
+        with self.assertRaises(AssertionError):
+            check_library_pins(self, [{"id": "ours", "version": "abc123def456", "role": "own"}], self.PINS, set())
+
+    def test_the_go_harness_names_its_source_built_library(self):
+        self.assertEqual(source_built_ids(run.discover()["go"]), {"oneyaml-go"})
+
+
 class GoPipeline(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -70,11 +120,7 @@ class GoPipeline(unittest.TestCase):
         self.assertFalse(rec["selftest_build"])
         self.assertEqual(rec["language"], "go")
         self.assertEqual(rec["memory"], METHOD)
-        # The versions come from the build, so they are the ones the module file pins.
-        pins = (GO / "go.mod").read_text()
-        for lib in rec["libraries"]:
-            self.assertIn(lib["version"], pins, lib)
-            self.assertEqual(lib["role"], "competitor")
+        check_library_pins(self, rec["libraries"], (GO / "go.mod").read_text(), source_built_ids(self.h))
         res = self.result_of(rec, cells, [m for m in self.metas if m["id"] in only])
         results.validate(res)
         md = report.render(res, self.out / "slice-report")
@@ -87,8 +133,11 @@ class GoPipeline(unittest.TestCase):
             else:
                 self.assertGreater(c["time"]["median_ns"], 0)
                 self.assertEqual(c["memory"]["method"], METHOD)
-                self.assertGreater(c["memory"]["allocations"], 0)
-                self.assertGreater(c["memory"]["allocated_bytes"], 0)
+                # A competitor's tasks always allocate. A source-built library may not: an unedited
+                # document hands back the text it kept, which is no allocation at all.
+                least = self.assertGreaterEqual if c["library"] in source_built_ids(self.h) else self.assertGreater
+                least(c["memory"]["allocations"], 0)
+                least(c["memory"]["allocated_bytes"], 0)
 
     def test_memory_counts_the_starting_state_and_not_the_process(self):
         # The harness holds every workload in memory. The peak must not include that: a tiny

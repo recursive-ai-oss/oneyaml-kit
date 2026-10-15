@@ -9,9 +9,7 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 
@@ -52,7 +50,7 @@ func libOneyamlGo() Library {
 		settings: map[string]string{
 			"api":      "Unmarshal, NewDecoder for streams, Marshal; Parse for documents (Bytes, Set, Remove, Apply)",
 			"defaults": "the library's own (indent 2, default limits)",
-			"document": "lossless: unedited bytes come back exactly, edits keep comments and style",
+			"document": "lossless: an unedited document returns the source text it kept, without rendering; edits keep comments and style",
 		},
 		unmarshal: func(in []byte, out any) error { return oneyaml.Unmarshal(in, out) },
 		decoder: func(in []byte) func(any) error {
@@ -81,22 +79,19 @@ func libOneyamlGo() Library {
 	}
 	l.doc = &docAPI{
 		parse: func(in []byte, docs int) (any, error) { return oneyaml.Parse(in) },
-		// The values are read back from the document's own text, outside the clock; the
-		// document has no decode of its own yet.
+		// The values come from the document's own nodes, one decode per document, so the guard
+		// judges the parsed tree and not the text it kept.
 		value: func(doc any) ([]any, error) {
-			dec := oneyaml.NewDecoder(bytes.NewReader(doc.(*oneyaml.Document).Bytes()))
+			d := doc.(*oneyaml.Document)
 			var out []any
-			for {
+			for i := 0; i < d.Len(); i++ {
 				var v any
-				err := dec.Decode(&v)
-				if errors.Is(err, io.EOF) {
-					return out, nil
-				}
-				if err != nil {
+				if err := d.Doc(i).Decode(&v); err != nil {
 					return nil, err
 				}
 				out = append(out, v)
 			}
+			return out, nil
 		},
 		emit: func(doc any) ([]byte, error) { return doc.(*oneyaml.Document).Bytes(), nil },
 		prepareEdit: func(steps []EditStep) (func(any) error, error) {

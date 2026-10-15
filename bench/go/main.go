@@ -177,7 +177,10 @@ func oneCell(lib Library, task Task, w *Workload, cfg Config) map[string]any {
 		return rec
 	}
 	rec["variant"] = v.Variant
-	shareState(task, runner)
+	if why := shareState(task, runner); why != "" {
+		// A runner that is not shared is not a failure; the note says why its batches build a state per run.
+		put("ok", "starting state not shared between runs: "+why)
+	}
 
 	t := timeRunner(runner, cfg)
 	if t.Panic != nil {
