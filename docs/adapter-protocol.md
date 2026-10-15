@@ -238,6 +238,22 @@ wait each. A successful restart ends the count. A bounded case whose process can
 dies before it reads the hello, does not complete the handshake or dies on the warm-up request
 fails that case, and nothing else.
 
+The hello a later start answers must be the one the run accepted at the first start: the same
+protocol, name, version and language, and the same `capabilities` and `emulates` (as sets, in any
+order). The runner decided what to send and how to grade from the first hello, so an adapter that
+says something else when it is restarted, or for a bounded case's own process, is treated as one
+that did not start: the case that needed the process fails with `detail` "hello differs from the
+first start" and what changed, later cases fail the same way (three in a row, then "adapter is not
+running"), and no case is run against the new hello.
+
+An adapter that cannot say a valid hello at its first start has no run to fail cases in. `bin/kit
+fast` prints `<name>: FAILED, the adapter did not start: <why>` on standard error, writes no result
+file for it (and removes one left by an earlier run in the same output directory), lists it in the
+report as an adapter that did not start, runs the other adapters in the same invocation, and
+exits with status 1. A skipped adapter (`requires_env`) likewise has an old result file removed;
+it is listed under "Not run", which is not a failure, and "Did not start" is a separate section.
+When every adapter fails to start, the report still lists them rather than leaving an older one.
+
 A JSON object with a repeated key in an answer is refused (that case fails), because no
 single meaning can be chosen for it; the same holds for case files.
 

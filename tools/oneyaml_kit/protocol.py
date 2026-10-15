@@ -99,6 +99,10 @@ class SubprocessAdapter:
         self.memory_limit_mb = memory_limit_mb
         self.proc: subprocess.Popen | None = None
         self.hello: dict = {}
+        # The hello the runner accepted at the first start. A later start of the same adapter
+        # (a restart, a bounded case's own process) must say the same, because the runner decided
+        # what to send, and how to grade, from the first one.
+        self.expected_hello: dict | None = None
         self._q: queue.Queue = queue.Queue()
         self.restarts = 0
         self.fresh_sessions = 0
@@ -140,8 +144,31 @@ class SubprocessAdapter:
             if k not in h:
                 self.stop()
                 raise AdapterError(f"hello is missing {k!r}")
+        if self.expected_hello is not None:
+            changed = self._hello_changes(self.expected_hello, h)
+            if changed:
+                self.stop()
+                raise AdapterError("hello differs from the first start: " + "; ".join(changed))
         self.hello = h
         return h
+
+    @staticmethod
+    def _hello_changes(first: dict, now: dict) -> list[str]:
+        """What a later hello says differently from the first one (lists compare as sets)."""
+        out = []
+        for k in ("protocol", "name", "version", "language"):
+            if first.get(k) != now.get(k):
+                out.append(f"{k} {first.get(k)!r} became {now.get(k)!r}")
+        for k in ("capabilities", "emulates"):
+            a, b = first.get(k, []), now.get(k, [])
+            try:
+                a, b = set(a), set(b)
+            except TypeError:
+                out.append(f"{k} is not a list of strings")
+                continue
+            if a != b:
+                out.append(f"{k} changed (lost {sorted(a - b)}, gained {sorted(b - a)})")
+        return out
 
     @staticmethod
     def _pump(proc, q) -> None:
@@ -303,6 +330,7 @@ class SubprocessAdapter:
         this case and nothing else."""
         one = SubprocessAdapter(self.command, cwd=self.cwd, env=self.env, timeout=self.timeout,
                                 memory_limit_mb=self.memory_limit_mb)
+        one.expected_hello = self.expected_hello
         self.fresh_sessions += 1
 
         def failed(detail: str) -> dict:

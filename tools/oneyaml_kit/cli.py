@@ -13,6 +13,7 @@ from . import blobs as blobs_mod
 from . import report as report_mod
 from .cases import (CaseError, ROOT, current_pins, load_all)
 from .public_text import repo_files, scan
+from .protocol import AdapterError
 from .runner import AdapterUnavailable, RunError, list_adapters, run_adapter
 
 PINS_FILE = ROOT / "tests" / "pins.json"
@@ -51,9 +52,12 @@ def cmd_run(args) -> int:
         return 2
     out = out_dir(args.out)
     (out / "results").mkdir(exist_ok=True)
-    results, skipped, status = [], [], 0
+    results, skipped, failed, status = [], [], [], 0
     t0 = time.monotonic()
     for name in names:
+        # A result file left by an earlier run in this directory would sit beside the fresh
+        # report and look current, so it goes whatever happens to this adapter now.
+        (out / "results" / f"{name}.json").unlink(missing_ok=True)
         try:
             res = run_adapter(name, cases, complete, timeout=args.timeout,
                               skip_build=args.no_build, out=out)
@@ -62,6 +66,13 @@ def cmd_run(args) -> int:
             reason = str(e).split(": not available: ", 1)[-1]
             print(f"{name}: SKIPPED, not available: {reason}")
             skipped.append((name, reason))
+            continue
+        except AdapterError as e:
+            # This adapter could not start or say hello. It has no result to write; the others
+            # still run, and the exit status says that something failed.
+            print(f"{name}: FAILED, the adapter did not start: {e}", file=sys.stderr)
+            failed.append((name, str(e)))
+            status = 1
             continue
         except RunError as e:
             print(f"{name}: {e}", file=sys.stderr)
@@ -80,7 +91,9 @@ def cmd_run(args) -> int:
             status = 1
             for line in (d["unlisted"] + d["stale"] + d["unknown"])[:20]:
                 print("  - " + line)
-    md = report_mod.render(results, skipped)
+    if not results and failed:
+        print(f"no adapter produced a result ({time.monotonic() - t0:.1f} s)", file=sys.stderr)
+    md = report_mod.render(results, skipped, failed)
     (out / "conformance.md").write_text(md, encoding="utf-8")
     hits = scan([out / "conformance.md"], root=out)
     if hits:

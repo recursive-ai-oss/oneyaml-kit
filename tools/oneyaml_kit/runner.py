@@ -286,6 +286,8 @@ def run_adapter(name: str, cases: list[Case], complete: bool, adapters_dir: Path
     except RunError:
         ad.close()
         raise
+    # Every later start of this adapter must say the same hello.
+    ad.expected_hello = hello
     t0 = time.monotonic()
     try:
         results = execute(ad, caps, cases, progress, hello.get("emulates", []), protocol)

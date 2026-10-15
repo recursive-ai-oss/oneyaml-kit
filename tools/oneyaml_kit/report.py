@@ -198,11 +198,27 @@ def render_skipped(skipped) -> str:
     return "\n".join(lines) + "\n"
 
 
-def render(results: list[dict], skipped=()) -> str:
-    if not results and not skipped:
+def render_failed(failed) -> str:
+    """The adapters that could not start, as failures: they have no results to show, and a
+    missing row must not look like a skipped one."""
+    lines = ["## Did not start", "", "These adapters failed to start or to say hello. This is a failure, "
+             "not a skip, and they have no results below.", ""]
+    for n, why in failed:
+        one = " ".join(str(why).split())
+        lines.append(f"- `{n}`: {one[:300]}")
+    return "\n".join(lines) + "\n"
+
+
+def _tail(skipped, failed) -> str:
+    return "".join("\n" + sec for sec in ((render_failed(failed) if failed else ""),
+                                          (render_skipped(skipped) if skipped else "")) if sec)
+
+
+def render(results: list[dict], skipped=(), failed=()) -> str:
+    if not results and not skipped and not failed:
         raise ValueError("no results")
     if not results:
-        return "# Conformance report\n\n" + render_skipped(skipped)
+        return "# Conformance report\n" + _tail(skipped, failed)
     k = results[0]["kit"]
     ys = k["suites"]["yaml-test-suite"]
     head = [
@@ -216,4 +232,4 @@ def render(results: list[dict], skipped=()) -> str:
     ]
     body = [render_one(r) for r in sorted(results, key=lambda r: r["adapter"]["name"])]
     md = "\n".join(head) + "\n" + "\n".join(body).rstrip() + "\n"
-    return md + "\n" + render_skipped(skipped) if skipped else md
+    return md + _tail(skipped, failed)

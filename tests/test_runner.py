@@ -194,6 +194,51 @@ class Subprocess(unittest.TestCase):
         a.command = good
         a.failed_starts = 0
 
+    def started_adapter(self, later, script=None, timeout=1):
+        """An adapter whose first start is accepted as the run's hello and whose later starts say `later`."""
+        a = self.adapter(script or {"b": "crash"}, timeout=timeout)
+        a.env["FAKE_STARTS"] = str(self.t / "fake-starts")
+        a.env["FAKE_LATER"] = json.dumps(later)
+        h = a.start()
+        a.expected_hello = h  # what the runner does once it has accepted the first hello
+        return a, set(h["capabilities"])
+
+    def test_a_restart_that_says_something_else_fails_the_case_and_the_rest(self):
+        for later, word in (({"capabilities": ["events", "value", "outcome:value"]}, "capabilities"),
+                            ({"capabilities": ["events"]}, "capabilities"),
+                            ({"protocol": 2}, "protocol"),
+                            ({"version": "1"}, "version"),
+                            ({"language": "go"}, "language"),
+                            ({"name": "other"}, "name"),
+                            ({"emulates": ["unchanged"]}, "emulates")):
+            with self.subTest(later=later):
+                self.t = Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))
+                self.addCleanup(shutil.rmtree, self.t)
+                a, caps = self.started_adapter(later)
+                res = R.execute(a, caps, [mk("b"), mk("c"), mk("d"), mk("e"), mk("f")])
+                # The case that crashed, then every later case: none runs against the new hello.
+                self.assertEqual([r["loose"] for r in res], ["fail"] * 5)
+                self.assertIn("exited", res[0]["detail"])
+                for r in res[1:4]:
+                    self.assertIn("could not be restarted", r["detail"])
+                    self.assertIn("hello differs from the first start", r["detail"])
+                    self.assertIn(word, r["detail"])
+                self.assertIn("not running", res[4]["detail"])
+                self.assertEqual(a.restarts, 0)
+
+    def test_a_restart_with_the_same_hello_goes_on(self):
+        a, caps = self.started_adapter({"capabilities": ["value", "events"]})  # the same set, another order
+        res = R.execute(a, caps, [mk("b"), mk("c")])
+        self.assertEqual([r["loose"] for r in res], ["fail", "pass"])
+        self.assertEqual(a.restarts, 1)
+
+    def test_a_bounded_case_in_a_process_that_says_something_else_fails_that_case_only(self):
+        a, caps = self.started_adapter({"version": "1"}, script={})
+        res = R.execute(a, caps, [self.bounded(), mk("a")])
+        self.assertEqual(res[0]["loose"], "fail")
+        self.assertIn("hello differs from the first start", res[0]["detail"])
+        self.assertEqual(res[1]["loose"], "pass")
+
     def test_a_later_restart_can_succeed_after_a_failed_one(self):
         a = self.adapter({"b": "crash"}, timeout=1)
         h = a.start()

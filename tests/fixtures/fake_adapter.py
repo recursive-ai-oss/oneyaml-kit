@@ -7,6 +7,7 @@ one of "ok-events", "crash", "hang", "garbage", "unsupported", "error", "accepte
 fills a 200 MB pool that later ones reuse, as a runtime that keeps freed memory does).
 FAKE_PROTOCOL says which hello protocol to speak (default 1).
 Every request id is appended to FAKE_LOG, one per line, so tests can see what was sent;
+FAKE_STARTS and FAKE_LATER change the hello of later starts;
 with FAKE_PIDLOG the id, the process id and the session id are also appended to that file.
 """
 import json
@@ -22,12 +23,22 @@ held = []
 pool = []
 protocol = int(os.environ.get("FAKE_PROTOCOL", "1"))
 
+# With FAKE_STARTS (a file) and FAKE_LATER (a JSON object of hello fields), every start after the
+# first answers with those fields changed, as an adapter that says something else the second time.
+starts = os.environ.get("FAKE_STARTS")
+later = json.loads(os.environ.get("FAKE_LATER", "{}"))
+started_before = bool(starts) and os.path.exists(starts)
+if starts:
+    open(starts, "a").write("x")
+
 for line in sys.stdin:
     req = json.loads(line)
     if req["type"] == "hello":
-        print(json.dumps({"type": "hello", "protocol": protocol, "name": "fake", "version": "0",
-                          "language": "python", "capabilities": caps,
-                          "emulates": emulates}), flush=True)
+        hello = {"type": "hello", "protocol": protocol, "name": "fake", "version": "0",
+                 "language": "python", "capabilities": caps, "emulates": emulates}
+        if started_before:
+            hello.update(later)
+        print(json.dumps(hello), flush=True)
     elif req["type"] == "bye":
         break
     elif req["type"] == "run":
