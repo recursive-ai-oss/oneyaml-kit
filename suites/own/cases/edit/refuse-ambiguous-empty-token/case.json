@@ -6,7 +6,9 @@
  "origin": "spec",
  "productions": [
   "189",
-  "109"
+  "109",
+  "105",
+  "106"
  ],
  "refs": [
   "RFC 6901 section 3",

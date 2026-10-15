@@ -49,6 +49,21 @@ class AmbiguousEmptyToken(unittest.TestCase):
         # Applying the patch to one of the two keys is the failure the case exists for.
         self.assertEqual(verdict(c, {"status": "ok", "output": same})[0], "fail")
 
+    def test_the_case_rests_on_the_empty_node_productions_and_is_not_a_convention(self):
+        c = case()
+        # 105 e-scalar and 106 e-node are what make a key with no content have the empty text.
+        for production in ("105", "106", "189"):
+            self.assertIn(production, c.productions)
+        self.assertNotIn("convention", c.tags)
+
+    def test_the_rule_is_documented_as_following_from_the_specification(self):
+        doc = (support.ROOT / "docs" / "edit-semantics.md").read_text(encoding="utf-8")
+        conventions = doc[doc.index("## Kit conventions"):doc.index("## The value keeps its style, and what")]
+        self.assertNotIn("empty pointer token", conventions)
+        rule = doc[doc.index("A key with no content"):]
+        self.assertIn("productions 105 and 106", rule)
+        self.assertIn("not a convention", rule)
+
 
 if __name__ == "__main__":
     unittest.main()

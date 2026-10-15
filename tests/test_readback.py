@@ -163,13 +163,23 @@ class AgreesWithTheSuite(unittest.TestCase):
                      "foo: >\n  a\n \t\nbar: 1\n"):
             with self.assertRaises(R.ReadError, msg=text):
                 read(text)
+        # After the last node of a document such a line is a comment line of the stream (production 211
+        # with 78), so it is valid; so is a tab line followed by more comments, `...` or the end.
+        for text, want in (("a: |\n  x\n\t\n", {"a": "x\n"}), ("a: |\n  x\n\t# c\n", {"a": "x\n"}),
+                           ("|\n  x\n\t\n", "x\n"), ("a: |\n  x\n\t\n# c\n", {"a": "x\n"}),
+                           ("- |\n  x\n\t\n", ["x\n"]), ("a: >\n  x\n\t\n...\n", {"a": "x\n"})):
+            self.assertEqual(read(text), want, text)
+        # With more content of the same document after the comment lines it is an error again.
+        for text in ("a: |\n  x\n\t\n# c\nb: 1\n", "a: |\n  x\n\t# c\n\nb: 1\n"):
+            with self.assertRaises(R.ReadError, msg=text):
+                read(text)
         # Tabs inside the scalar's own lines, a trailing comment and a tab line after a plain value stay valid.
         self.assertEqual(read("foo: |\n  a\n  \tb\nbar: 1\n"), {"foo": "a\n\tb\n", "bar": 1})
         self.assertEqual(read("foo: |\n  a\n# c\n\t\nbar: 1\n"), {"foo": "a\n", "bar": 1})
         self.assertEqual(read("foo: 1\n\t\nbar: 1\n"), {"foo": 1, "bar": 1})
 
     def test_directive_errors_are_refused(self):
-        # 9MMA, B63P: a directive is followed by the `---` of its document (production 208), and a
+        # 9MMA, B63P: a directive is followed by the `---` of its document (production 209), and a
         # stream of a directive alone, or a directive and `...`, has none.
         # SF5V: a YAML directive must not be given twice for one document (section 6.8.1).
         # MUS6/00: a comment after the version needs white space before its `#`.

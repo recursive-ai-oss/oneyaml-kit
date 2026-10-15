@@ -245,8 +245,8 @@ class Parser:
         directives = 0
         while col is not None and self.peek() == "%":
             line = self.s[self.i:self.s.find("\n", self.i) if "\n" in self.s[self.i:] else self.n]
-            # A comment after a directive needs white space before its `#` (section 6.8, productions
-            # 82 and 78): `%YAML 1.1#x` is a version with trailing text, not a comment.
+            # A comment after a directive needs white space before its `#` (section 6.8, production
+            # 82 with 79 and 77): `%YAML 1.1#x` is a version with trailing text, not a comment.
             if not _YAML_DIRECTIVE.fullmatch(line):
                 raise ReadError(f"directive {line.strip()!r} is outside what the kit reads")
             directives += 1
@@ -255,7 +255,7 @@ class Parser:
             col = self.next_line()
         explicit = False
         if directives and not (self.i < self.n and self.marker_at(self.i) == "---"):
-            raise ReadError("a directive needs the `---` of its document after it (production 208)")
+            raise ReadError("a directive needs the `---` of its document after it (production 209)")
         if self.i < self.n and self.marker_at(self.i) == "---":
             explicit = True
             self.i += 3
@@ -548,9 +548,11 @@ class Parser:
         self.i = j
         # What follows the scalar's lines is another line of the enclosing node or a trailing comment
         # that starts with `#` after spaces; a tab there is not indentation and not an empty line
-        # (s-indent is spaces, and l-trail-comments needs a `#`), so it is an error.
+        # (s-indent is spaces, and l-trail-comments needs a `#`), so it is an error when more of the
+        # document follows; after the last node of a document such a line is a comment line of the
+        # stream (production 211).
         after = self.s[j + 1:self.s.find("\n", j + 1) if "\n" in self.s[j + 1:] else self.n] if j < self.n else ""
-        if after.lstrip(" ").startswith("\t"):
+        if after.lstrip(" ").startswith("\t") and self._more_of_document(j + 1):
             raise ReadError(f"a tab after a block scalar at line {self.line() + 1}: only spaces indent")
         lines = lines[:used]
         trailing = 0
@@ -571,6 +573,16 @@ class Parser:
         else:
             text = "\n" * trailing if chomp == "keep" else ""
         return Scalar(text, style="literal" if style == "|" else "folded", tag=tag)
+
+    def _more_of_document(self, start: int) -> bool:
+        """Whether, from the line at `start`, a line with content comes before the end of the text or a
+        `...` or `---` marker. Blank lines and comment lines are not content."""
+        for line in self.s[start:].split("\n"):
+            body = line.strip(" \t")
+            if body == "" or body[0] == "#":
+                continue
+            return not self.line_is_marker(line)
+        return False
 
     def line_is_marker(self, line: str) -> bool:
         return line[:3] in ("---", "...") and _is_ws_or_end(line[3:4])

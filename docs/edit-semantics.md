@@ -65,8 +65,6 @@ having got YAML wrong.
   exactly the value that was set**; otherwise it is dropped. A custom tag on a scalar stays
   while the new value is a scalar; `!`, `!!binary` and the like go when the new value is, say,
   an integer.
-- **An empty key is addressed by the empty pointer token.** A token matches a key by its
-  scalar text, and a key with no content has the empty text.
 - **A value for an explicit key that has none** goes on its own line at the key's indentation, as `: value`, after the key line and its comment (the specification requires the separate line for a `?` key). The convention is only that a missing final line break stays missing; the quote follows the rule above.
 
 ## The value keeps its style, and what follows from exactness
@@ -117,6 +115,12 @@ A refused edit changes nothing and reports an error with a stable category:
 
 A pointer token matches a mapping key by the key's scalar text. Mappings or sequences
 used as keys cannot be addressed by a pointer.
+
+A key with no content is an empty node, read as a plain scalar with an empty value (YAML
+1.2.2 section 7.2, productions 105 and 106), so its scalar text is empty and the pointer
+`/`, whose single token is the empty string (RFC 6901 section 3), addresses it. This follows
+from the rule above and is not a convention. When a quoted `""` key is also present, both
+keys match and the edit is refused as ambiguous.
 
 ## Comments
 
