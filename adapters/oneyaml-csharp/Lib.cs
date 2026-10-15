@@ -28,8 +28,8 @@ static class Lib
         YamlErrorCategory.PatchInvalid => "patch-invalid",
         YamlErrorCategory.RefusedAlias => "refused-alias",
         YamlErrorCategory.RefusedAmbiguous => "refused-ambiguous",
-        // The kit has no names for these (a duplicate key is valid YAML to the kit; a binding error is
-        // about a .NET type), so they are reported as "other".
+        YamlErrorCategory.DuplicateKey => "duplicate-key",
+        // A binding error is about a .NET type; the kit has no name for it.
         _ => "other",
     };
 

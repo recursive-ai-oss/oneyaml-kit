@@ -1,12 +1,9 @@
 // Kit adapter for oneyaml-csharp, built against a checkout named by KIT_ONEYAML_CSHARP_SRC.
 //
 // Events and values are read from the lossless YamlDocument, because it is the one public view that
-// keeps every node's style, tag and anchor and the key types. Patches go through the document's pointer
-// methods. The library's internal event reader is not public, so what the document does not carry
+// keeps every node's style, tag and anchor and the key types. Patches go through the document's patch engine. The library's internal event reader is not public, so what the document does not carry
 // (explicit document markers, %TAG directives) is recovered here and declared as emulated behaviour.
 //
-// Seams for what is not in the library yet: multi-operation, test, move, copy and merge patches wait
-// for YamlDocument.ApplyPatch / ApplyMergePatch (see Patches.cs).
 using System.Reflection;
 using OneYamlKit.Adapter;
 
@@ -27,7 +24,7 @@ sealed class OneYamlKitAdapter : IAdapter
     public string[] Capabilities =>
     [
         "events", "value", "error-category", "error-position",
-        "patch:add", "patch:remove", "patch:replace",
+        "patch:add", "patch:remove", "patch:replace", "patch:move", "patch:copy", "patch:test", "patch:merge",
     ];
 
     // style: explicit document markers come from a line scan of the decoded text.
@@ -45,7 +42,7 @@ sealed class OneYamlKitAdapter : IAdapter
         ["package"] = "OneYaml, from a checkout named by KIT_ONEYAML_CSHARP_SRC",
         ["events"] = "events derived from YamlDocument.Parse (kind, style, tag, anchor, alias); document markers and %TAG directives from a line scan",
         ["value"] = "YamlDocument nodes read with GetValue<object>, so key types and tags survive",
-        ["patch"] = "one add, remove or replace through YamlDocument.Add / Remove / Set; multi-operation, test, move, copy and merge patches wait for ApplyPatch",
+        ["patch"] = "YamlDocument.ApplyPatch (RFC 6902) and ApplyMergePatch (RFC 7396)",
         ["library stack"] = $"{Host.LibraryStackBytes / (1024 * 1024)} MiB thread",
         ["runtime"] = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
 #if ONEYAML_LINKED

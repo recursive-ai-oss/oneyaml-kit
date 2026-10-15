@@ -68,8 +68,13 @@ public abstract class OneYamlLibBase : ILibrary
                     : new FnRunner<int, object?>(() => 0, _ => YamlSerializer.Deserialize<object>(input),
                         t => new Product.Value(Conv.FromObject(t)));
             case BenchTask.Dump:
-                // Seam: YamlSerializer.Serialize, once the library has it. The state is the library's own generic tree.
-                throw Support.No("the library has no Serialize yet");
+                // The starting state is the library's own generic tree, read from the input.
+                if (w.Documents != 1) throw Support.No("dump is defined for one document");
+                return Generated
+                    ? new FnRunner<object?, byte[]>(() => YamlSerializer.Deserialize(input, OneYamlContext.Default.Object),
+                        tree => YamlSerializer.SerializeToUtf8Bytes(tree, OneYamlContext.Default.Object), b => new Product.Bytes(b), sharedState: true)
+                    : new FnRunner<object?, byte[]>(() => YamlSerializer.Deserialize<object>(input),
+                        tree => YamlSerializer.SerializeToUtf8Bytes(tree), b => new Product.Bytes(b), sharedState: true);
             case BenchTask.DocumentParse:
                 return new ParseRunner(input);
             case BenchTask.UnchangedEmit:
@@ -85,10 +90,40 @@ public abstract class OneYamlLibBase : ILibrary
                         b => new Product.Bytes(b));
                 }
             default:
-                // Seam: YamlDocument.ApplyPatch, once the library has it.
-                throw Support.No("the library has no ApplyPatch yet");
+                {
+                    if (w.Documents != 1) throw Support.No("a patch addresses one document");
+                    // The patch is built once, outside the clock, as the library's own patch object.
+                    var patch = YamlPatch.Parse(PatchJson(w.PatchOps));
+                    var failing = YamlPatch.Parse(PatchJson(w.PatchFailingOps));
+                    return new FnRunner<YamlDocument, byte[]>(
+                        () => YamlDocument.Parse(input),
+                        d =>
+                        {
+                            using (d)
+                            {
+                                d.ApplyPatch(patch);
+                                return d.ToUtf8Bytes();
+                            }
+                        },
+                        b => new Product.Bytes(b),
+                        () =>
+                        {
+                            // The library refuses a patch with a failing step and leaves the document as it was.
+                            using var d = YamlDocument.Parse(input);
+                            bool errored = false;
+                            try { d.ApplyPatch(failing); }
+                            catch (YamlException) { errored = true; }
+                            return new FailedPatch(errored, d.ToUtf8Bytes());
+                        });
+                }
         }
     }
+
+    static string PatchJson(List<Op> ops) =>
+        "[" + string.Join(",", ops.Select(o =>
+            $"{{\"op\":\"{o.Name}\",\"path\":{JsonStr(o.Path)}" + (o.Value == null ? "" : ",\"value\":" + o.Value.ToJson()) + "}")) + "]";
+
+    static string JsonStr(string s) => System.Text.Json.JsonSerializer.Serialize(s);
 
     // The document is consumed: it is edited, written and released, as a caller does with a using block.
     static byte[] Edit(YamlDocument doc, List<(string Name, string Path, object? Value)> edits)

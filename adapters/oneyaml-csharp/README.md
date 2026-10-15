@@ -30,25 +30,22 @@ and never touches the checkout.
 ## What it declares
 
 Capabilities: `events`, `value`, `error-category`, `error-position`, `patch:add`, `patch:remove`,
-`patch:replace`. The library is given the input bytes and detects the encoding itself, so nothing is
+`patch:replace`, `patch:move`, `patch:copy`, `patch:test`, `patch:merge`. The library is given the input bytes and detects the encoding itself, so nothing is
 decoded for it.
 
 | Operation | Through | Supplied by the adapter |
 |---|---|---|
 | `events` | the nodes of `YamlDocument.Parse` (kind, style, tag, anchor, alias) | `style`: whether a document had an explicit `---` or `...`, from a line scan of the decoded text. `tag`: the full tag from the written tag and the `%TAG` directives of that scan |
 | `value` | the same nodes read with `GetValue<object>`, so key types, repeated keys and tags survive (the generic `object` model of the serializer drops tags and reads keys as text) | a tag the Core schema does not resolve is written as `$tagged` |
-| `patch` | one operation through `YamlDocument.Add`, `Remove`, `Set` (a replace first asks for the node, so a missing path is the library's own error) | nothing, apart from `error` for a request that is not a patch (an unknown operation name, a missing path) |
+| `patch` | `YamlDocument.ApplyPatch` (RFC 6902: all six operations, any number, atomic) and `ApplyMergePatch` (RFC 7396), given the patch as the case carries it | nothing |
 
 There is no `error-events`: the library's event reader is not public, and a document that fails to parse
-gives no events. `Program.cs` and `Patches.cs` mark the seams for what the library does not offer yet:
-multi-operation patches, `test`, `move`, `copy` and merge patches wait for `ApplyPatch` and
-`ApplyMergePatch`. Until then a patch of several operations is declined and listed in
-`deviations.json` with the reason, as is every other case the library fails; the kit fails a run when a
-failure is missing from the list or an entry has gone stale.
+gives no events. A library `DuplicateKey` error is reported as `duplicate-key`. Every case the library fails is
+listed in `deviations.json` with the reason; the kit fails a run when a failure is missing from the list or an
+entry has gone stale.
 
 The benchmark side is `bench/csharp/src/Libs/OneYamlLibs.cs`, built in only with the same variable. It has
 one row per binding path (`oneyaml-csharp`, reflection; `oneyaml-csharp-gen`, a generated context for the
-kit's models) and takes part in typed-load, generic-load, document-parse, unchanged-emit and edit-script.
-dump and patch stay `unsupported` until the library has `Serialize` and `ApplyPatch`.
+kit's models) and takes part in every task.
 
 The shared plumbing is in [../dotnet-common/README.md](../dotnet-common/README.md).
