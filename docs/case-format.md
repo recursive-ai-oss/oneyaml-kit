@@ -196,7 +196,15 @@ A `bounded` case names the acceptable outcomes and the resources it may use:
   whatever the adapter manifest says: the case is cut off at the time bound, and the
   adapter process is killed if its resident memory grows past the memory bound while the
   case runs. Memory is the growth in peak resident memory over what the process held
-  when the case started.
+  when the case started. Every bounded case runs in an adapter process of its own, started for
+  that case and ended after it, so "what the process held" is the same fresh start every time.
+  Without that, the number depends on the cases that ran before: a runtime keeps memory it has
+  freed (a collector's heap, buffers a parser reuses), so a case that grows a fresh process by
+  hundreds of megabytes can show half that, or nothing, after a case that already grew it.
+  Ordinary cases share one process as before. Time is measured from the case's request to its
+  answer. The process first answers one trivial request of the same kind (the text `a` and a line
+  break, and an empty patch for a patch case), so first-use costs, such as compiling code just in
+  time or loading types, are not counted against the case's bounds.
 - The time bound is stated for a reference machine. The runner measures how long a fixed
   piece of work takes on the machine it runs on, and multiplies the bound by 1, 2, 4 or 8
   (never less than 1, so a fast machine is held to the bound as written; at most 8). A slow or

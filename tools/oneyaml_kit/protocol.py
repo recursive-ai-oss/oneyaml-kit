@@ -1,6 +1,8 @@
 """Subprocess adapter connection: JSON Lines over stdin/stdout.
 
-One adapter process serves every case of a run, so start-up cost is paid once.
+One adapter process serves every ordinary case of a run, so start-up cost is paid once.
+A case with resource bounds gets a process of its own (`run_fresh`), so what it uses is
+measured from a clean start and never depends on the cases that ran before it.
 A crash, a protocol violation or a timeout is reported for that case only; the
 process is then killed and restarted for the next one.
 """
@@ -24,6 +26,9 @@ PROTOCOL = 2
 SUPPORTED_PROTOCOLS = (1, 2)
 _EOF = object()
 POLL_SECONDS = 0.05
+# The trivial input a fresh bounded-case session answers before the case itself, whatever the
+# answer is: a plain scalar, valid in every operation.
+WARM_UP_INPUT = b"a\n"
 
 
 def _status_kb(pid: int, field: str) -> int | None:
@@ -93,6 +98,7 @@ class SubprocessAdapter:
         self.hello: dict = {}
         self._q: queue.Queue = queue.Queue()
         self.restarts = 0
+        self.fresh_sessions = 0
 
     # -- lifecycle
     def start(self) -> dict:
@@ -110,11 +116,18 @@ class SubprocessAdapter:
                 self.command, cwd=self.cwd, env=self.env, stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0, preexec_fn=preexec,
                 start_new_session=(os.name == "posix"))
-        except OSError as e:
+        except (OSError, subprocess.SubprocessError) as e:
+            # SubprocessError is what a failing pre-exec step (the address-space limit) raises.
             raise AdapterError(f"cannot start {self.command[0]}: {e}") from e
         self._q = queue.Queue()
         threading.Thread(target=self._pump, args=(self.proc, self._q), daemon=True).start()
-        self._send({"type": "hello", "protocol": PROTOCOL})
+        try:
+            self._send({"type": "hello", "protocol": PROTOCOL})
+        except OSError as e:
+            # The process may be gone before it reads anything; that is a failed start, not a
+            # reason to stop the run.
+            self.stop()
+            raise AdapterError(f"adapter closed its input before the hello: {e}") from e
         h = self._recv(self.timeout * 3)
         if not isinstance(h, dict) or h.get("type") != "hello" or h.get("protocol") not in SUPPORTED_PROTOCOLS:
             self.stop()
@@ -260,6 +273,38 @@ class SubprocessAdapter:
         if limits:
             out["_measure"] = {"seconds": secs, "peak_mb": peak, "time_bound": timeout}
         return out
+
+    def run_fresh(self, case_id: str, op: str, data: bytes, args: dict, limits: dict) -> dict:
+        """Run one bounded case in a new adapter process that serves nothing else.
+
+        Memory is measured as growth over what the process holds when the case starts. A
+        process that has already served cases holds memory its runtime kept (a garbage
+        collector's heap, a parser's buffers), so the same case measures differently after
+        different predecessors. A new process starts from the same state every time. It first
+        answers one trivial request of the same operation, so what the library and its runtime
+        do on first use (compiling code, loading types) is paid before the case is measured and
+        is not counted against its bounds. The shared session is left alone and serves the next
+        ordinary case. A process that cannot be started, or dies on the trivial request, fails
+        this case and nothing else."""
+        one = SubprocessAdapter(self.command, cwd=self.cwd, env=self.env, timeout=self.timeout,
+                                memory_limit_mb=self.memory_limit_mb)
+        self.fresh_sessions += 1
+
+        def failed(detail: str) -> dict:
+            return {"status": "crash", "detail": detail,
+                    "_measure": {"seconds": 0.0, "peak_mb": None, "time_bound": limits["time_seconds"]}}
+
+        try:
+            try:
+                one.start()
+            except (AdapterError, OSError, subprocess.SubprocessError) as e:
+                return failed(f"fresh session did not start: {e}")
+            warm = one.run("warm-up", op, WARM_UP_INPUT, {"patch": []} if op == "patch" else {})
+            if warm.get("status") in ("crash", "timeout", "memory"):
+                return failed(f"fresh session failed its warm-up request: {warm.get('detail', '')}")
+            return one.run(case_id, op, data, args, limits)
+        finally:
+            one.close()
 
     def _failed(self, status: str, detail: str) -> dict:
         if self.proc:

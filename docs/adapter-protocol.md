@@ -207,11 +207,20 @@ about the library.
 
 ## Limits and measurement
 
-For a `bounded` case the runner uses the case's own time bound (stretched for a slow machine, see the
-case format) as the timeout, polls the
+For a `bounded` case the runner starts a new adapter process (the same command, a full
+hello handshake) that serves that case alone, and ends it afterwards, so the case is
+measured from a clean start and what it costs never depends on the cases before it. Before the
+case, the new process receives one ordinary `run` request with the id `warm-up` for the case's
+operation (the text `a` and a line break; an empty patch for `patch`), so the library's first-use
+cost is paid outside the measurement. Any answer to it is accepted, an error or `unsupported`
+included; only a crash, a timeout or an unreadable answer fails the case. The
+shared process that serves the ordinary cases is not touched. An adapter therefore starts
+once for the run and once more for each bounded case it declares support for; a case it
+does not declare is not sent and starts nothing. The runner uses the case's own time bound
+(stretched for a slow machine, see the case format) as the timeout, polls the
 adapter's resident memory while the case runs and kills the process if its growth passes
 the case's memory bound, and afterwards reads the peak resident memory since the case
-started. **The whole process tree is measured**, not only the process the kit starts: the adapter
+started (growth over what the new process held after the warm-up request). **The whole process tree is measured**, not only the process the kit starts: the adapter
 is started in its own session and every live process of that session counts, so a
 launcher that does not exec the library (a shell script, `go run`, `dotnet run`) cannot
 hide its memory. A hard requirement for adapters: whatever launches the library must stay
@@ -219,7 +228,9 @@ in that session (do not detach with `setsid`, a double fork into another session
 container that hides the processes). On Linux this uses `/proc`; where the tree cannot be
 measured the peak is reported as unmeasured and strict reports unsupported. Everything
 in the session is killed when a case fails or the run ends. Adapters do nothing special. A killed or timed-out adapter fails that case
-and a fresh process serves the next one.
+and a fresh process serves the next one. A bounded case whose process cannot be started,
+dies before it reads the hello, does not complete the handshake or dies on the warm-up request
+fails that case, and nothing else.
 
 A JSON object with a repeated key in an answer is refused (that case fails), because no
 single meaning can be chosen for it; the same holds for case files.
