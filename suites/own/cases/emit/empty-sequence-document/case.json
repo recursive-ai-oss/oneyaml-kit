@@ -1,0 +1,25 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/empty-sequence-document",
+ "title": "A document that is an empty sequence",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "137"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 7.4.1"
+ ],
+ "notes": "An empty sequence at the top is written as `[]`; writing nothing would read back as null. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
+ "tags": [
+  "convention"
+ ],
+ "operation": {
+  "type": "dump",
+  "value": []
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

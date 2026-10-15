@@ -144,13 +144,24 @@ func patch(in []byte, args gokit.PatchArgs) gokit.Result {
 	})
 }
 
+// dump writes the value with the library's ordinary Marshal and default settings; the text is
+// returned as it is.
+func dump(v any) gokit.Result {
+	b, err := yaml.Marshal(v)
+	if err != nil {
+		return gokit.Err("other", err.Error(), 0, 0)
+	}
+	return gokit.OKOutput(b)
+}
+
 func main() {
 	a := gokit.Adapter{
 		Hello: gokit.Hello{
 			Name: "go-yaml-v3", Version: version,
-			Capabilities: []string{"outcome:events", "value", "patch:add", "patch:remove", "patch:replace"},
+			Capabilities: []string{"outcome:events", "value", "patch:add", "patch:remove", "patch:replace", "dump"},
 			Emulates:     []string{"error", "pointer", "unchanged"},
 			Info: map[string]string{
+				"dump":    "yaml.Marshal, default settings",
 				"module":  "go.yaml.in/yaml/v3 " + version,
 				"events":  "no event stream: accept or reject is a generic load of every document",
 				"value":   "Decoder.Decode into any, every document",
@@ -159,7 +170,7 @@ func main() {
 				"encoder": "indent 2",
 			},
 		},
-		Events: events, Value: value, Patch: patch,
+		Events: events, Value: value, Patch: patch, Dump: dump,
 	}
 	a.Serve()
 }

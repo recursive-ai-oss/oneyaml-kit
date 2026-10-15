@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/control-characters-are-escaped",
+ "title": "Strings with control characters",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "109"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.1",
+  "YAML 1.2.2 section 5.7",
+  "YAML 1.2.2 section 7.3.1"
+ ],
+ "notes": "Control characters, DEL and the C1 controls other than NEL are not printable characters in YAML, so a document that holds one raw is not valid. A string with one is written double-quoted with an escape such as `\\x01` or `\\u007f`. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
+ "tags": [
+  "convention"
+ ],
+ "operation": {
+  "type": "dump",
+  "value": [
+   "a\u0001b",
+   "\u0000",
+   "\u001b[0m",
+   "\u007f",
+   "\u009f"
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

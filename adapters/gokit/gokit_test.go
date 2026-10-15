@@ -296,3 +296,37 @@ func TestResultEncoding(t *testing.T) {
 		t.Error("an empty event list must stay a list")
 	}
 }
+
+func TestNativeKeepsIntegersFloatsAndNestingApart(t *testing.T) {
+	v, err := Native([]byte(`[1, 1.0, 1e3, 12345678901234567890, {"a": [null, "x"]}, {"$float": "-inf"}]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	l := v.([]any)
+	if _, ok := l[0].(int64); !ok {
+		t.Errorf("1 is %T", l[0])
+	}
+	if _, ok := l[1].(float64); !ok {
+		t.Errorf("1.0 is %T", l[1])
+	}
+	if _, ok := l[2].(float64); !ok {
+		t.Errorf("1e3 is %T", l[2])
+	}
+	if _, ok := l[3].(uint64); !ok {
+		t.Errorf("a 64-bit unsigned is %T", l[3])
+	}
+	if m := l[4].(map[string]any); m["a"].([]any)[0] != nil || m["a"].([]any)[1] != "x" {
+		t.Errorf("nested: %v", m)
+	}
+	if !math.IsInf(l[5].(float64), -1) {
+		t.Errorf("-inf is %v", l[5])
+	}
+}
+
+func TestNativeDeclinesWhatAdaptersCannotWrite(t *testing.T) {
+	for _, raw := range []string{``, `{"$map": [[1, 2]]}`, `[100000000000000000000]`, `[`} {
+		if v, err := Native([]byte(raw)); err == nil {
+			t.Errorf("%q: got %v, want an error", raw, v)
+		}
+	}
+}

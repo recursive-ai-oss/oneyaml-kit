@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/integral-float-keeps-its-point",
+ "title": "Floats with an integral value",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "131"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "notes": "A float whose value is a whole number still reads back as a float: `1` is an integer under every schema, `1.0` is a float. The writer keeps the point. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
+ "tags": [
+  "convention"
+ ],
+ "operation": {
+  "type": "dump",
+  "value": [
+   1.0,
+   100.0,
+   -3.0,
+   0.0,
+   2.5
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

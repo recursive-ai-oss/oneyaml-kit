@@ -7,7 +7,7 @@
 
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine as _;
-use oneyaml::{Document, NodeKind, Path, Stream, Value};
+use oneyaml::{Document, Mapping, NodeKind, Path, Stream, Value};
 use oneyaml_core::{ColumnUnit, Diagnostic, LineIndex};
 use oneyaml_syntax::event::{CollectionStyle, EventKind, ScalarStyle};
 use serde_json::Value as Json;
@@ -16,6 +16,7 @@ use std::io::{BufRead, Write};
 const CAPABILITIES: &[&str] = &[
     "events",
     "value",
+    "dump",
     "patch:replace",
     "patch:remove",
     "error-category",
@@ -340,6 +341,85 @@ fn value(bytes: &[u8]) -> Outcome {
     Outcome::Value(out)
 }
 
+// ---- dump -----------------------------------------------------------------
+
+/// The library's own value for a kit value: a JSON number with no point or exponent is an
+/// integer, any other is a float; `{"$float": ..}` is a non-finite float and `{"$map": ..}` a
+/// mapping with any keys.
+fn native(j: &Json, depth: usize) -> Result<Value, String> {
+    if depth > 1000 {
+        return Err("value nesting too deep for the adapter".into());
+    }
+    Ok(match j {
+        Json::Null => Value::Null,
+        Json::Bool(b) => Value::Bool(*b),
+        Json::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                Value::from(i)
+            } else if let Some(u) = n.as_u64() {
+                Value::from(u)
+            } else {
+                Value::from(n.as_f64().ok_or("number beyond f64")?)
+            }
+        }
+        Json::String(s) => Value::String(s.clone()),
+        Json::Array(a) => {
+            let mut v = Vec::with_capacity(a.len());
+            for x in a {
+                v.push(native(x, depth + 1)?);
+            }
+            Value::from(v)
+        }
+        Json::Object(o) => {
+            if let Some(f) = o.get("$float").and_then(Json::as_str) {
+                return Ok(Value::from(match f {
+                    "inf" => f64::INFINITY,
+                    "-inf" => f64::NEG_INFINITY,
+                    _ => f64::NAN,
+                }));
+            }
+            let mut m = Mapping::new();
+            if let Some(pairs) = o.get("$map").and_then(Json::as_array) {
+                for p in pairs {
+                    let kv = p
+                        .as_array()
+                        .filter(|a| a.len() == 2)
+                        .ok_or("bad $map pair")?;
+                    m.insert(native(&kv[0], depth + 1)?, native(&kv[1], depth + 1)?);
+                }
+            } else {
+                for (k, x) in o {
+                    m.insert(Value::String(k.clone()), native(x, depth + 1)?);
+                }
+            }
+            Value::from(m)
+        }
+    })
+}
+
+/// Writes the value with the library's default settings. The text is returned as it is.
+fn dump(args: &Json) -> Outcome {
+    let Some(j) = args.get("value") else {
+        return Outcome::Unsupported("no value".into());
+    };
+    let v = match native(j, 0) {
+        Ok(v) => v,
+        Err(m) => return Outcome::Unsupported(m),
+    };
+    match v.to_yaml_string() {
+        Ok(text) => Outcome::Output(text.into_bytes()),
+        Err(e) => Outcome::Failed(
+            Failure {
+                category: "other",
+                position: None,
+                message: e.to_string(),
+                emulated: &[],
+            },
+            Extra::None,
+        ),
+    }
+}
+
 // ---- patch ----------------------------------------------------------------
 
 /// A failed patch. `own` is true when the adapter produced the error itself.
@@ -577,6 +657,7 @@ fn handle(req: &Json) -> Option<String> {
                 Some("events") => events(&bytes),
                 Some("value") => value(&bytes),
                 Some("patch") => patch(&bytes, &args),
+                Some("dump") => dump(&args),
                 other => Outcome::Unsupported(format!("operation {other:?}")),
             };
             Some(respond(id, outcome))

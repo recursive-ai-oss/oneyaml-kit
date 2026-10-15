@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/noncharacters-are-escaped",
+ "title": "Strings with U+FFFE and U+FFFF",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "109"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.1",
+  "YAML 1.2.2 section 5.7",
+  "YAML 1.2.2 section 7.3.1"
+ ],
+ "notes": "U+FFFE and U+FFFF are not printable characters in YAML. A string with one is written double-quoted with an escape. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
+ "tags": [
+  "convention"
+ ],
+ "operation": {
+  "type": "dump",
+  "value": [
+   "\ufffe",
+   "x\uffff"
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

@@ -34,6 +34,8 @@ type PatchArgs struct {
 	Format   string          `json:"format"`
 	Document int             `json:"document"`
 	Profile  string          `json:"profile"`
+	// Value is the kit value of a dump case.
+	Value json.RawMessage `json:"value"`
 }
 
 // Adapter is what a library binding supplies. A nil function means the operation is
@@ -43,6 +45,8 @@ type Adapter struct {
 	Events func(input []byte) Result
 	Value  func(input []byte) Result
 	Patch  func(input []byte, args PatchArgs) Result
+	// Dump writes a value, converted by Native, with the library's default settings.
+	Dump func(value any) Result
 }
 
 // Result is one response. Build it with the constructors below.
@@ -195,6 +199,14 @@ func (a *Adapter) handle(q request) Result {
 	case "patch":
 		if a.Patch != nil {
 			return a.Patch(input, args)
+		}
+	case "dump":
+		if a.Dump != nil {
+			v, err := Native(args.Value)
+			if err != nil {
+				return Unsupported(err.Error())
+			}
+			return a.Dump(v)
 		}
 	}
 	return Unsupported("operation " + q.Op)

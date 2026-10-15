@@ -707,6 +707,34 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Rejects the input but reports the error at a position other than the first character that cannot belong: position: expected 1:6, got 1:4"
+  },
+  {
+   "case": "own:emit/number-preceded-by-two-signs-is-quoted",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[0]: expected '+-1', got '<a number to common readers>'"
+  },
+  {
+   "case": "own:emit/number-with-underscores-is-quoted",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[4]: expected '_1', got '<a number to common readers>'"
+  },
+  {
+   "case": "own:emit/radix-prefix-in-any-case-is-quoted",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[3]: expected '0X-F', got '<a number to common readers>'"
+  },
+  {
+   "case": "own:emit/radix-prefix-with-inner-sign-is-quoted",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[0]: expected '0b-1', got '<a number to common readers>'"
   }
 ]
 }

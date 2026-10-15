@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import base64
 
-from . import kitjson
+from . import kitjson, readback
 from .cases import PATCH_OPS
 
 PASS, FAIL, UNSUPPORTED = "pass", "fail", "unsupported"
@@ -36,6 +36,8 @@ def required_caps(case, expect: dict) -> tuple[set, set]:
         base.add("events|outcome:events")
     elif case.op == "value":
         base.add("value|outcome:value")
+    elif case.op == "dump":
+        base.add("dump")
     else:
         if case.args.get("format", "json-patch") == "merge-patch":
             base.add("patch:merge")
@@ -178,10 +180,38 @@ def _bounded(case, expect: dict, resp: dict, caps: set) -> dict:
     return {"loose": PASS, "strict": verdict, "detail": detail}
 
 
+def _excerpt(out: bytes, n: int = 100) -> str:
+    return _short(out.decode("utf-8", "replace"), n)
+
+
+def _readback(case, resp: dict) -> dict:
+    """A written document is judged by reading it back with the kit's own reader.
+
+    Loose: under the YAML 1.2 Core schema the text means the value. Strict adds the family's
+    writing convention: it also means the value under YAML 1.1, and no plain string takes a
+    form that common readers read as a number. A convention-only problem is therefore
+    loose pass, strict fail."""
+    if resp.get("status") == "error":
+        e = resp.get("error") or {}
+        return {"loose": FAIL, "strict": FAIL,
+                "detail": f"unexpected error: {_short(e.get('message') or e.get('category') or 'error')}"}
+    out = _decode_output(resp)
+    if out is None:
+        return {"loose": FAIL, "strict": FAIL, "detail": "output missing or not base64"}
+    j = readback.judge(out, case.args["value"])
+    wrote = f" (wrote {_excerpt(out)})"
+    if j["core"]:
+        return {"loose": FAIL, "strict": FAIL, "detail": j["core"] + wrote}
+    if j["convention"]:
+        return {"loose": PASS, "strict": FAIL, "detail": j["convention"] + wrote}
+    return {"loose": PASS, "strict": PASS, "detail": ""}
+
+
 def _accepted(case, expect: dict, caps: set) -> dict:
     """An `accepted` answer: the input was taken, and no result is described."""
-    if case.op == "patch":
-        return {"loose": FAIL, "strict": FAIL, "detail": "protocol: accepted is not an answer to a patch"}
+    if case.op in ("patch", "dump"):
+        return {"loose": FAIL, "strict": FAIL,
+                "detail": f"protocol: accepted is not an answer to a {case.op}"}
     if expect["kind"] == "error":
         return {"loose": FAIL, "strict": FAIL, "detail": "expected an error, the input was accepted"}
     # A result was expected but cannot be compared. Without the full capability that is the
@@ -206,11 +236,15 @@ def evaluate(case, expect: dict, resp: dict, caps: set) -> dict:
     kind = expect["kind"]
     err = resp.get("error") or {}
 
-    if status == "accepted" and case.op == "patch":
-        return {"loose": FAIL, "strict": FAIL, "detail": "protocol: accepted is not an answer to a patch"}
+    if status == "accepted" and case.op in ("patch", "dump"):
+        return {"loose": FAIL, "strict": FAIL,
+                "detail": f"protocol: accepted is not an answer to a {case.op}"}
 
     if kind == "bounded":
         return _bounded(case, expect, resp, caps)
+
+    if kind == "readback":
+        return _readback(case, resp)
 
     if status == "accepted":
         return _accepted(case, expect, caps)

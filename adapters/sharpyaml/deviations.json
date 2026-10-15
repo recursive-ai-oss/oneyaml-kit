@@ -3892,6 +3892,111 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Refuses the input with an error category other than limit or syntax: category: expected one of limit, syntax, got other"
+  },
+  {
+   "case": "own:emit/float-without-a-point-keeps-a-point-in-exponent-form",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[0]: expected 1e+17, got '1E+17'"
+  },
+  {
+   "case": "own:emit/implicit-key-written-length",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: the output does not read as YAML: an implicit key of 1025 characters is longer than 1024; it needs the explicit `? ` form"
+  },
+  {
+   "case": "own:emit/implicit-key-written-length",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: the output does not read as YAML: an implicit key of 1025 characters is longer than 1024; it needs the explicit `? ` form"
+  },
+  {
+   "case": "own:emit/integral-float-keeps-its-point",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: $[0]: expected 1.0, got 1"
+  },
+  {
+   "case": "own:emit/integral-float-keeps-its-point",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: $[0]: expected 1.0, got 1"
+  },
+  {
+   "case": "own:emit/line-separators-and-bom-are-escaped",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: written raw: BOM, LS, PS (YAML 1.1 reads NEL, LS and PS as line breaks and a BOM is not text)"
+  },
+  {
+   "case": "own:emit/noncharacters-are-escaped",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: the output does not read as YAML: the character U+FFFE is written raw; it must be escaped"
+  },
+  {
+   "case": "own:emit/noncharacters-are-escaped",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: the output does not read as YAML: the character U+FFFE is written raw; it must be escaped"
+  },
+  {
+   "case": "own:emit/number-preceded-by-two-signs-is-quoted",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[0]: expected '+-1', got '<a number to common readers>'"
+  },
+  {
+   "case": "own:emit/radix-prefix-in-any-case-is-quoted",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[3]: expected '0X-F', got '<a number to common readers>'"
+  },
+  {
+   "case": "own:emit/radix-prefix-with-inner-sign-is-quoted",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[0]: expected '0b-1', got '<a number to common readers>'"
+  },
+  {
+   "case": "own:emit/string-keys-that-look-like-other-types-are-quoted",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: reading as core: two keys of one mapping read as the same key, None"
+  },
+  {
+   "case": "own:emit/string-keys-that-look-like-other-types-are-quoted",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: reading as core: two keys of one mapping read as the same key, None"
+  },
+  {
+   "case": "own:emit/yaml-1-1-boolean-words-are-quoted",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[0]: expected 'yes', got True"
+  },
+  {
+   "case": "own:emit/yaml-1-1-timestamp-and-merge-strings-are-quoted",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes text that does not read back as the value: under YAML 1.1 and common readers: $[0]: expected '2001-12-14', got '<a timestamp in YAML 1.1>'"
   }
  ]
 }

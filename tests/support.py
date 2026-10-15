@@ -16,6 +16,67 @@ if os.environ.get("KIT_ADAPTER_TESTS") != "1":
 from oneyaml_kit.cases import b64  # noqa: E402
 
 
+def _quote(s):
+    """A double-quoted scalar that reads back as `s` under every reading the kit applies: printable
+    characters are written as they are, the rest as escapes."""
+    out = []
+    for ch in s:
+        o = ord(ch)
+        if ch in '"\\':
+            out.append("\\" + ch)
+        elif ((0x20 <= o <= 0x7E or 0xA0 <= o <= 0xD7FF or 0xE000 <= o <= 0xFFFD or o >= 0x10000)
+              and o not in (0x2028, 0x2029, 0xFEFF)):
+            out.append(ch)
+        elif o <= 0xFF:
+            out.append("\\x%02x" % o)
+        elif o <= 0xFFFF:
+            out.append("\\u%04x" % o)
+        else:
+            out.append("\\U%08x" % o)
+    return '"' + "".join(out) + '"'
+
+
+def _float(f):
+    t = repr(f)
+    if "e" in t and "." not in t.split("e")[0]:
+        m, x = t.split("e")
+        t = m + ".0e" + x
+    elif "." not in t and "e" not in t:
+        t += ".0"
+    return t
+
+
+def write_safely(v):
+    """YAML text for a kit value that is correct under the Core schema, YAML 1.1 and the common
+    readers: JSON-style flow with every string double-quoted. The kit's tests use it as the
+    writer that a correct library would be."""
+    if v is None:
+        return b"null\n"
+    return (_node(v) + "\n").encode("utf-8")
+
+
+def _node(v):
+    if v is None:
+        return "null"
+    if v is True:
+        return "true"
+    if v is False:
+        return "false"
+    if isinstance(v, int):
+        return str(v)
+    if isinstance(v, float):
+        return _float(v)
+    if isinstance(v, str):
+        return _quote(v)
+    if isinstance(v, list):
+        return "[" + ", ".join(_node(x) for x in v) + "]"
+    if set(v) == {"$float"}:
+        return {"inf": ".inf", "-inf": "-.inf", "nan": ".nan"}[v["$float"]]
+    if set(v) == {"$map"}:
+        return "{" + ", ".join(f"? {_node(k)} : {_node(x)}" for k, x in v["$map"]) + "}"
+    return "{" + ", ".join(f"{_quote(k)}: {_node(x)}" for k, x in v.items()) + "}"
+
+
 class OracleAdapter:
     """An in-process adapter that answers every case the way its expectation says a
     correct library would. The kit's own tests use it to prove that every case can be
@@ -41,6 +102,8 @@ class OracleAdapter:
             return {"id": case_id, "status": "ok", "value": e["value"]}
         if k == "bytes":
             return {"id": case_id, "status": "ok", "output": b64(e["bytes"])}
+        if k == "readback":
+            return {"id": case_id, "status": "ok", "output": b64(write_safely(self.by_id[case_id].args["value"]))}
         if k == "bounded":
             a = e["accept"]
             if a is None:
@@ -62,7 +125,7 @@ class OracleAdapter:
 
 
 ALL_CAPS = {
-    "events", "value", "patch:add", "patch:remove", "patch:replace", "patch:move",
+    "events", "value", "dump", "patch:add", "patch:remove", "patch:replace", "patch:move",
     "patch:copy", "patch:test", "patch:merge", "error-category", "error-position", "error-events",
 }
 

@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/leading-zero-integer-strings-are-quoted",
+ "title": "Strings made of digits with a leading zero",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "131",
+  "109",
+  "120"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.1 types (yaml.org/type): bool, int, float, timestamp, merge, value"
+ ],
+ "notes": "The Core schema reads these as decimal integers (755, 7, 0, 123456789) and YAML 1.1 reads the ones made of octal digits as octal numbers, so a plain `0755` is a number whichever way it is read. As strings they are quoted. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
+ "tags": [
+  "convention"
+ ],
+ "operation": {
+  "type": "dump",
+  "value": [
+   "0755",
+   "007",
+   "00",
+   "0123456789"
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

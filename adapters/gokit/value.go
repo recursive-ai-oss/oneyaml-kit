@@ -233,3 +233,72 @@ func FromJSON(data []byte) (any, error) {
 	}
 	return v, nil
 }
+
+// Native converts a kit value (JSON, with the escape forms of docs/case-format.md) to Go data
+// for a library to write: an integer is an int64 (a uint64 above that), a number with a point
+// or an exponent is a float64, an object is a map[string]any and an array a []any. A mapping
+// with keys that are not strings cannot be a map[string]any and is declined.
+func Native(raw json.RawMessage) (any, error) {
+	if len(raw) == 0 {
+		return nil, errors.New("no value")
+	}
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber()
+	var v any
+	if err := dec.Decode(&v); err != nil {
+		return nil, err
+	}
+	return nativeOf(v, 0)
+}
+
+func nativeOf(v any, depth int) (any, error) {
+	if depth > 1000 {
+		return nil, errors.New("value nesting too deep for the adapter")
+	}
+	switch x := v.(type) {
+	case json.Number:
+		if !strings.ContainsAny(string(x), ".eE") {
+			if i, err := strconv.ParseInt(string(x), 10, 64); err == nil {
+				return i, nil
+			}
+			if u, err := strconv.ParseUint(string(x), 10, 64); err == nil {
+				return u, nil
+			}
+			return nil, errors.New("integer beyond 64 bits")
+		}
+		return strconv.ParseFloat(string(x), 64)
+	case []any:
+		out := make([]any, len(x))
+		for i, e := range x {
+			c, err := nativeOf(e, depth+1)
+			if err != nil {
+				return nil, err
+			}
+			out[i] = c
+		}
+		return out, nil
+	case map[string]any:
+		if f, ok := x["$float"].(string); ok && len(x) == 1 {
+			switch f {
+			case "inf":
+				return math.Inf(1), nil
+			case "-inf":
+				return math.Inf(-1), nil
+			}
+			return math.NaN(), nil
+		}
+		if _, ok := x["$map"]; ok && len(x) == 1 {
+			return nil, errors.New("mapping with keys that are not strings")
+		}
+		out := make(map[string]any, len(x))
+		for k, e := range x {
+			c, err := nativeOf(e, depth+1)
+			if err != nil {
+				return nil, err
+			}
+			out[k] = c
+		}
+		return out, nil
+	}
+	return v, nil
+}

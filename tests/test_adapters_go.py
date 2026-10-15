@@ -25,12 +25,12 @@ GO = sorted(p.name for p in ADAPTERS.iterdir()
 # What each library can do, from the library's own API. Declaring more would be a claim
 # the kit then judges; declaring less hides results.
 CAPS = {
-    "go-yaml-v2": {"outcome:events", "value"},
-    "go-yaml-v3": {"outcome:events", "value", "patch:add", "patch:remove", "patch:replace"},
-    "go-yaml-v4": {"outcome:events", "value", "error-category", "error-position",
+    "go-yaml-v2": {"outcome:events", "value", "dump"},
+    "go-yaml-v3": {"outcome:events", "value", "dump", "patch:add", "patch:remove", "patch:replace"},
+    "go-yaml-v4": {"outcome:events", "value", "dump", "error-category", "error-position",
                    "patch:add", "patch:remove", "patch:replace"},
-    "goccy-go-yaml": {"outcome:events", "value", "error-category", "error-position", "patch:replace"},
-    "sigs-k8s-yaml": {"outcome:events", "value"},
+    "goccy-go-yaml": {"outcome:events", "value", "dump", "error-category", "error-position", "patch:replace"},
+    "sigs-k8s-yaml": {"outcome:events", "value", "dump"},
     "palantir-yamlpatch-v3": {"patch:add", "patch:remove", "patch:replace", "patch:move",
                               "patch:copy", "patch:test"},
     "palantir-yamlpatch-goccy": {"patch:add", "patch:remove", "patch:replace", "patch:move",

@@ -83,6 +83,21 @@ class Report(unittest.TestCase):
         self.assertNotIn("rest on a kit convention (", report.render([sample()]))
         self.assertNotIn("Cases whose expected bytes rest on a kit convention", report.render([sample()]))
 
+    def test_written_values_are_a_group_of_their_own_and_a_convention(self):
+        res = sample()
+        res["cases"] = res["cases"] + [
+            dict(case("own:emit/a", "own", "dump", "readback", "pass", "pass", category="emit"), tags=["convention"]),
+            dict(case("own:emit/b", "own", "dump", "readback", "pass", "fail", category="emit"), tags=["convention"]),
+            dict(case("own:emit/c", "own", "dump", "readback", "fail", "fail", category="emit"), tags=["convention"]),
+            dict(case("own:emit/d", "own", "dump", "readback", "unsupported", "unsupported", category="emit"),
+                 tags=["convention"]),
+        ]
+        md = report.render([res])
+        self.assertIn("| kit cases · emit · values written | 4 | 2/4 | 1/4 | – | 1 | 0 | 0 |", md)
+        # Loose is the Core reading, strict adds the family convention; both are explained.
+        self.assertIn("| kit cases · emit · values written | 4 | 2 | 1 | 1 | 2 | 1 |", md)
+        self.assertIn("Values written", md)
+
     def test_generated_text_passes_the_public_text_check(self):
         t = tmp()
         try:

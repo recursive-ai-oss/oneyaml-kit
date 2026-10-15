@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/number-preceded-by-two-signs-is-quoted",
+ "title": "Strings that are a number after two signs",
+ "category": "emit",
+ "origin": "bug",
+ "productions": [
+  "131",
+  "109",
+  "120"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 7.3.3"
+ ],
+ "notes": "None of these is a number under the Core schema or YAML 1.1, but goccy/go-yaml reads `+-1` as -1 because it strips one sign and parses the rest with a number parser that takes a sign again. A string made of a number after two or more signs is quoted. This is a writing convention of the family, not the specification: a string is written plain only when every common reader reads it as that same string, so the text is judged under the YAML 1.2 Core schema (loose) and also under YAML 1.1 and the number forms common readers accept (strict).",
+ "provenance": {
+  "reference": "Strings such as +-1 written without quotes; one common reader reads +-1 as the number -1."
+ },
+ "tags": [
+  "convention"
+ ],
+ "operation": {
+  "type": "dump",
+  "value": [
+   "+-1",
+   "--1",
+   "-+1.5",
+   "++2"
+  ]
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}
