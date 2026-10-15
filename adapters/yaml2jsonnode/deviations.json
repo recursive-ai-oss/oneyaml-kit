@@ -4368,6 +4368,27 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Rewrites the whole document with every scalar double-quoted: first difference at byte 2: expected b'a\\n- - |+\\n    tail\\n\\n- - |+\\n    tail\\n\\n- - ', got b'\"a\"\\n- - \"tail\\\\n\\\\n\"\\n- - \"tail\\\\n\\\\n\"\\n- - \"t' (lengths 701 and"
+  },
+  {
+   "case": "own:edit/patch-copy-of-alias-past-anchor-is-bounded",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Writes the aliases out with no bound and grows past the memory bound of the case, where the only answers are a limit error or a refused alias"
+  },
+  {
+   "case": "own:edit/patch-copy-of-alias-past-anchor-is-bounded",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Writes the aliases out with no bound and grows past the memory bound of the case, where the only answers are a limit error or a refused alias"
+  },
+  {
+   "case": "own:safety/patch-copy-doubling",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Refuses the first copy of the document into itself as a path error although the patch is valid, so it never reaches a limit: the category differs, expected limit"
   }
 ]
 }

@@ -1,0 +1,40 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/patch-copy-of-alias-past-anchor-is-bounded",
+ "title": "Copying a value of nested aliases to a place before their anchors must not write the expansion out unbounded",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "101",
+  "104",
+  "187"
+ ],
+ "refs": [
+  "RFC 6902 section 4.5",
+  "YAML 1.2.2 section 7.1",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "The destination, the first member, comes before every anchor. An alias must not come before its anchor, so the copy cannot keep the aliases it holds: the family rule is that an alias whose anchor would not precede it is written out as the value it stands for. Here the value copied is ten levels of ten aliases, so writing it out makes ten billion scalars from an input of about a kilobyte, as in a billion-laughs document. The bytes a patch copies, aliases written out included, are charged to the alias-expansion byte budget, so a conforming library fails with a limit error and leaves the document unchanged. Refusing the copy as a refused alias is the other honest answer: nothing is written through an alias, but the library declines to write the aliases out. A library that writes them out without a bound fails on memory or time, and one that keeps the aliases in front of their anchors writes a document that does not read back.",
+ "provenance": {
+  "reference": "A patch engine that wrote aliases out when copying them ahead of their anchors but charged only the alias text, not the bytes written, to its budget."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "copy",
+    "from": "/j",
+    "path": "/s/0"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 2048,
+  "error": [
+   "limit",
+   "refused-alias"
+  ]
+ }
+}
