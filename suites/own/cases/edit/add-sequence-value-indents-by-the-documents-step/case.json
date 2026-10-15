@@ -1,0 +1,39 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-sequence-value-indents-by-the-documents-step",
+ "title": "A new sequence under a key, with no sibling sequence, is indented by the step the document's nested mapping uses",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "187",
+  "183"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "RFC 6901 section 4",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The document has one nested block mapping, `x`, whose entry is indented four spaces under its key, and no sequence. The patch adds `/n` with the sequence `[1]`. A new block sequence with no sibling sequence to copy is indented by the document's block indentation step, taken from the nearest enclosing or preceding block mapping (docs/edit-semantics.md): four spaces here, so the dash is written `    - 1`. The specification allows any indentation of the dash greater than the key's, and the dash flush with the key, so the bytes rest on that convention and the case carries the tag `convention`. The new member goes at the end of the root mapping, which is a second convention (RFC 6902 does not fix the position). A library that always indents by two spaces, or writes the dash flush with the key, fails the case. The result reads back as `x` with the key `y`, then `n` as a sequence of the single item 1.",
+ "provenance": {
+  "reference": "The case that separates a fixed two-space step from the step the document uses, which the case with two-space nesting cannot."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/n",
+    "value": [
+     1
+    ]
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

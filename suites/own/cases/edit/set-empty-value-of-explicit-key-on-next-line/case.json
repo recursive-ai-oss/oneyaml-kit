@@ -12,11 +12,17 @@
  ],
  "refs": [
   "YAML 1.2.2 section 8.2.2",
+  "YAML 1.2.2 section 8.2.1",
+  "YAML 1.2.2 section 8.2.3",
+  "YAML 1.2.2 section 6.7",
   "RFC 6902 section 4.3",
   "RFC 6901 section 3",
   "docs/edit-semantics.md"
  ],
- "notes": "The first entry is written with an explicit key: `?` alone on its line, the content `a` on the line after it, and `:` at the column of the `?` with nothing after it (productions 190 and 191). Its value is null. The pointer `/a` addresses it by the text of the key. The replace gives it the value 1, which goes after the colon that is already there: `: 1`. Nothing else changes; the next entry `b: 1` stays an entry of the same mapping and the key is still written on two lines. A value of an explicit key that has no `:` line at all goes on a new line of its own (`edit/set-value-of-explicit-null-key-at-end-of-large-mapping`); here the line exists and only the text after it changes, as for `edit/keep-explicit-key-entry`. A library that decides from the key's lines whether the colon belongs to the entry can write the value on a new line, leave a second colon, or put it in the next entry.",
+ "tags": [
+  "convention"
+ ],
+ "notes": "The first entry is written with an explicit key: `?` alone on its line, the content `a` on the line after it, and `:` at the column of the `?` with nothing after it (productions 190 and 191). Its value is null. The pointer `/a` addresses it by the text of the key. The replace gives it the value 1, which goes after the colon that is already there: `: 1`. Nothing else changes; the next entry `b: 1` stays an entry of the same mapping and the key is still written on two lines. A value of an explicit key that has no `:` line at all goes on a new line of its own (`edit/set-value-of-explicit-null-key-at-end-of-large-mapping`); here the line exists, and the kit writes the value after that colon (`: 1`); the specification also allows it on the next line, indented (`:` then `  1`), which reads back the same, so this placement is a kit convention. A library that decides from the key's lines whether the colon belongs to the entry can write the value on a new line, leave a second colon, or put it in the next entry. The production numbers behind it: the value of an explicit entry is `s-l+block-indented` (191), which admits a block node (185), and a flow node in a block (196, 197) may follow `:` after a line break and indentation (80, 81).",
  "provenance": {
   "reference": "A patch engine that looked for the colon of an explicit entry on the line of the key and, finding the key's content on the next line, did not find the colon that follows it."
  },

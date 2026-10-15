@@ -1,5 +1,6 @@
 """Two edit cases about an explicit key whose content starts on the line after the `?`."""
 
+import json
 import unittest
 
 import support
@@ -10,6 +11,8 @@ from oneyaml_kit import readback as R
 CASES = {c.id: c for c in C.load_own()}
 PATCH = "own:edit/patch-after-explicit-key-with-key-on-next-line-and-empty-value"
 FILL = "own:edit/set-empty-value-of-explicit-key-on-next-line"
+SCALAR = "own:edit/patch-after-explicit-key-with-key-on-next-line-and-empty-value-scalar-member"
+STEP = "own:edit/add-sequence-value-indents-by-the-documents-step"
 CAPS = set(support.ALL_CAPS)
 
 
@@ -30,7 +33,7 @@ class ExplicitKeyOnNextLine(unittest.TestCase):
             for p in ("189", "190", "191"):
                 self.assertIn(p, c.productions, cid)
         self.assertIn("convention", CASES[PATCH].tags)
-        self.assertNotIn("convention", CASES[FILL].tags)
+        self.assertIn("convention", CASES[FILL].tags)
 
     def test_the_patch_case_is_past_the_region_threshold_and_the_entry_has_its_key_on_the_next_line(self):
         c = CASES[PATCH]
@@ -79,7 +82,46 @@ class ExplicitKeyOnNextLine(unittest.TestCase):
     def test_the_documentation_states_both_rules(self):
         doc = (support.ROOT / "docs" / "edit-semantics.md").read_text(encoding="utf-8")
         self.assertIn("When the entry already has its `:` line with nothing after it", doc)
-        self.assertIn("When the document has none", doc)
+        self.assertIn("so this placement is a convention", doc)
+        self.assertIn("With no sibling sequence to copy", doc)
+        self.assertIn("the document's block indentation step", doc)
+        self.assertNotIn("nearest block collection", doc)
+
+    def test_the_fill_case_says_that_the_next_line_is_valid_too(self):
+        c = CASES[FILL]
+        notes = json.loads((C.OWN_DIR / "edit" / "set-empty-value-of-explicit-key-on-next-line" / "case.json")
+                           .read_text())["notes"]
+        self.assertIn("also allows it on the next line", notes)
+        self.assertIn("kit convention", notes)
+        # Both layouts read back the same under the kit's own reader.
+        self.assertEqual(read(b"?\n  a\n: 1\nb: 1\n"), read(b"?\n  a\n:\n  1\nb: 1\n"))
+        for ref in ("section 8.2.2", "section 6.7"):
+            self.assertIn("YAML 1.2.2 " + ref, c.refs)
+
+    def test_the_scalar_variant_checks_the_colon_without_the_layout_of_a_sequence(self):
+        c, base = CASES[SCALAR], CASES[PATCH]
+        self.assertEqual(c.input, base.input)
+        self.assertEqual(c.args["patch"][:2], base.args["patch"][:2])
+        self.assertEqual(c.args["patch"][2], {"op": "add", "path": "/nk1", "value": 1})
+        self.assertEqual(c.expect["bytes"].decode(), c.input.decode().replace("  b: 1\n", "") + "nk1: 1\n")
+        after = read(c.expect["bytes"])
+        self.assertEqual((after["x"], after["nk1"]), ({"a": None}, 1))
+        self.assertEqual(verdict(c, c.expect["bytes"]), ("pass", "pass"))
+        text = c.expect["bytes"].decode()
+        for bad in (text.replace("  :\nnk1: 1\n", "nk1: 1\n  :\n"), text.replace("  :\nnk1", "nk1"),
+                    text.replace("?\n    a\n  :\n", "a:\n")):
+            self.assertEqual(verdict(c, bad.encode()), ("fail", "fail"), bad)
+
+    def test_the_indentation_case_separates_the_documents_step_from_a_fixed_one(self):
+        c = CASES[STEP]
+        self.assertEqual(c.input, b"x:\n    y: 1\n")
+        self.assertEqual(c.expect["bytes"], b"x:\n    y: 1\nn:\n    - 1\n")
+        self.assertIn("convention", c.tags)
+        self.assertEqual(c.origin, "bug")
+        self.assertEqual(read(c.expect["bytes"]), {"x": {"y": 1}, "n": [1]})
+        self.assertEqual(verdict(c, c.expect["bytes"]), ("pass", "pass"))
+        for bad in (b"x:\n    y: 1\nn:\n  - 1\n", b"x:\n    y: 1\nn:\n- 1\n", b"x:\n    y: 1\nn: [1]\n"):
+            self.assertEqual(verdict(c, bad), ("fail", "fail"), bad)
 
 
 if __name__ == "__main__":
