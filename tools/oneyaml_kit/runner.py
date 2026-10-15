@@ -261,6 +261,11 @@ def check_hello(hello: dict) -> tuple[set, int]:
     return caps, protocol
 
 
+def run_mode(cases: list[Case]) -> str:
+    """Name the mode by the cases that actually ran, so a report never calls a run with slow cases fast."""
+    return "full" if any("slow" in c.tags for c in cases) else "fast"
+
+
 def run_adapter(name: str, cases: list[Case], complete: bool, adapters_dir: Path = ADAPTERS,
                 timeout: float | None = None, env: dict | None = None,
                 skip_build: bool = False, progress=None, out: Path | None = None) -> dict:
@@ -308,7 +313,7 @@ def run_adapter(name: str, cases: list[Case], complete: bool, adapters_dir: Path
         },
         "run": {
             "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d"),
-            "mode": "fast", "complete": complete, "cases": len(cases),
+            "mode": run_mode(cases), "complete": complete, "cases": len(cases),
             "seconds": round(elapsed, 3), "adapter_restarts": ad.restarts,
             "bounded_sessions": ad.fresh_sessions,
             "system": {"os": platform.platform(), "machine": platform.machine(),

@@ -84,6 +84,8 @@ The report goes through the same public-text check as hand-written text, and
 
 ## Fast mode and system record
 
+`run.mode` is `fast` when no case tagged `slow` ran, and `full` when at least one did.
+
 Fast mode runs in-process in seconds: no stress or exhaustive cases (tagged `slow`)
 and no timing claims. Each run records the date, versions, operating system, CPU count
 and load, because a result is only comparable with its conditions. Numbers from a
