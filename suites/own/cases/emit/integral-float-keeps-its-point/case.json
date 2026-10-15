@@ -10,7 +10,10 @@
  "refs": [
   "YAML 1.2.2 section 10.3.2"
  ],
- "notes": "A float whose value is a whole number still reads back as a float: `1` is an integer under every schema, `1.0` is a float. The writer keeps the point.",
+ "notes": "A float whose value is a whole number still reads back as a float: `1` is an integer under every schema, `1.0` is a float. The writer keeps the point. The Core-schema reading (loose) is the specification. The reading under YAML 1.1 and the number forms that some common readers accept (strict) is a writing convention of the family: a string is written plain only when it reads as that same string there too.",
+ "tags": [
+  "strict-convention"
+ ],
  "operation": {
   "type": "dump",
   "value": [

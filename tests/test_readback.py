@@ -264,6 +264,24 @@ class Judging(unittest.TestCase):
             key = "a" * (n - 2)  # written with its quotes it is n characters
             self.assertEqual(evaluate({"x": 1, key: 2}, ("x: 1\n\"" + key + "\" : 2\n").encode())[0], want, n)
 
+    def test_the_implicit_key_limit_counts_a_tag_on_a_later_block_key(self):
+        for n, want in ((1024, "pass"), (1025, "fail")):
+            key = "a" * (n - 6)  # written with "!!str " it is n characters
+            self.assertEqual(evaluate({"x": 1, key: 2}, ("x: 1\n!!str " + key + ": 2\n").encode())[0], want, n)
+
+    def test_a_byte_order_mark_may_start_a_line_of_a_document_prefix(self):
+        bom = "\ufeff"
+        for text in (bom + "- a\n", "# c\n" + bom + "- a\n", "%YAML 1.2\n" + bom + "---\n- a\n"):
+            self.assertEqual(evaluate(["a"], text.encode())[:2], ("pass", "pass"), text)
+        self.assertEqual(evaluate(["a"], ("- a\n...\n" + bom + "# end\n").encode())[:2], ("pass", "pass"))
+        # After content, in the middle of a line, or twice in a row it is text and not allowed.
+        for text in ("---\n" + bom + "- a\n", "- a" + bom + "\n", bom + bom + "- a\n", "- a\n" + bom + "# x\n"):
+            self.assertEqual(evaluate(["a"], text.encode())[0], "fail", text)
+
+    def test_one_or_two_digits_in_each_time_field_are_a_timestamp_in_yaml_1_1(self):
+        for text in (b"2001-1-1 1:2:3\n", b"2001-12-14 1:02:03\n", b"2001-12-14t21:5:43.10-05:00\n"):
+            self.assertEqual(evaluate(text.decode().strip(), text)[:2], ("pass", "fail"), text)
+
     def test_one_digit_month_and_day_are_a_timestamp_in_yaml_1_1(self):
         for text in (b"2001-1-1\n", b"2001-12-1\n", b"2001-1-12\n"):
             self.assertEqual(evaluate(text.decode().strip(), text)[:2], ("pass", "fail"), text)

@@ -79,10 +79,6 @@ class OneyamlRust(unittest.TestCase):
     def test_report_mentions_the_scored_suite(self):
         self.assertIn("data-2022-01-17", report.render([self.res]))
 
-
-if __name__ == "__main__":
-    unittest.main()
-
     def test_an_integer_beyond_64_bits_is_declined_not_turned_into_a_float(self):
         from oneyaml_kit.protocol import SubprocessAdapter
         from oneyaml_kit.runner import load_manifest
@@ -94,3 +90,7 @@ if __name__ == "__main__":
             self.assertEqual(ad.run("b", "dump", b"", {"value": [1e20, 2**64 - 1]})["status"], "ok")
         finally:
             ad.close()
+
+
+if __name__ == "__main__":
+    unittest.main()

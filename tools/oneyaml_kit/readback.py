@@ -103,7 +103,7 @@ class Parser:
             if not _printable(ch):
                 raise ReadError(f"the character U+{ord(ch):04X} is written raw; it must be escaped")
         # Line breaks are normalised first: a bare CR is a line break, as the specification says.
-        self.s = text.replace("\r\n", "\n").replace("\r", "\n")
+        self.s = self._without_prefix_marks(text.replace("\r\n", "\n").replace("\r", "\n"))
         self.allow_empty = allow_empty
         # Where quoted scalars lie: a byte order mark is allowed inside them and nowhere else.
         self.quoted_spans: list[tuple[int, int]] = []
@@ -111,6 +111,25 @@ class Parser:
         self.n = len(self.s)
         self.i = 0
         self.depth = 0
+
+    @staticmethod
+    def _without_prefix_marks(s: str) -> str:
+        """Drops the byte order marks that a document prefix may hold: one at the start of a line
+        before any content of a document, at the start of the stream or after a `...` line
+        (l-document-prefix). Anywhere else a mark is checked after parsing."""
+        if "\ufeff" not in s:
+            return s
+        out, prefix = [], True
+        for line in s.split("\n"):
+            body = line[1:] if prefix and line.startswith("\ufeff") else line
+            if prefix:
+                text = body.strip(" \t")
+                if not (text == "" or text[0] in "#%" or body.rstrip(" \t") == "..."):
+                    prefix = False
+            elif body.rstrip(" \t") == "..." and line == body:
+                prefix = True
+            out.append(body)
+        return "\n".join(out)
 
     # -- low level
     def peek(self, k: int = 0) -> str:
@@ -222,8 +241,9 @@ class Parser:
 
     def check_byte_order_marks(self) -> None:
         """A byte order mark is not a character of plain or block scalars or comments (it is
-        not an nb-char); only a quoted scalar may hold one, and the stream may start with one."""
-        pos = self.s.find("\ufeff", 1)
+        not an nb-char); only a quoted scalar may hold one. A document prefix may hold one too,
+        and those were taken out before parsing."""
+        pos = self.s.find("\ufeff")
         while pos >= 0:
             if not any(a <= pos < b for a, b in self.quoted_spans):
                 raise ReadError("a byte order mark is written raw outside a quoted scalar; it must be escaped")
@@ -827,7 +847,7 @@ _Y11_FLOAT = re.compile(r"[-+]?(?:[0-9][0-9_]*)\.[0-9_]*(?:[eE][-+][0-9]+)?"
                         r"|[-+]?\.[0-9][0-9_]*(?:[eE][-+][0-9]+)?")
 _Y11_FLOAT_SEX = re.compile(r"([-+]?)([0-9][0-9_]*(?::[0-5]?[0-9])+\.[0-9_]*)")
 _Y11_TIMESTAMP = re.compile(r"[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}"
-                            r"|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:[Tt]|[ \t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}"
+                            r"|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:[Tt]|[ \t]+)[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}"
                             r"(?:\.[0-9]*)?(?:[ \t]*(?:Z|[-+][0-9]{1,2}(?::[0-9]{2})?))?")
 
 # Number forms that readers accept beyond both schemas.
@@ -1044,8 +1064,14 @@ def decode(out: bytes) -> str:
 
 
 def parse(text: str, allow_empty: bool = True):
+    return _parse(text, allow_empty)[0]
+
+
+def _parse(text: str, allow_empty: bool):
+    """The tree and the text as it was read (line breaks normalised, prefix marks removed)."""
     try:
-        return Parser(text, allow_empty).parse()
+        parser = Parser(text, allow_empty)
+        return parser.parse(), parser.s
     except RecursionError as e:
         raise ReadError("nested more deeply than the kit reads") from e
 
@@ -1056,12 +1082,12 @@ def judge(out: bytes, value) -> dict:
     number forms common readers accept, and characters 1.1 reads as line breaks or a BOM."""
     try:
         text = decode(out)
-        root = parse(text, allow_empty=False)
+        root, read = _parse(text, allow_empty=False)
     except ReadError as e:
         msg = f"the output does not read as YAML: {e}"
         return {"core": msg, "convention": msg}
     res = {"core": _read_diff(root, SCHEMAS[CORE], value), "convention": ""}
-    raw = sorted({_RAW_LINE_BREAKS[c] for c in text.lstrip("\ufeff") if c in _RAW_LINE_BREAKS})
+    raw = sorted({_RAW_LINE_BREAKS[c] for c in read if c in _RAW_LINE_BREAKS})
     if raw:
         res["convention"] = ("written raw: " + ", ".join(raw) +
                              " (YAML 1.1 reads NEL, LS and PS as line breaks and a BOM is not text)")

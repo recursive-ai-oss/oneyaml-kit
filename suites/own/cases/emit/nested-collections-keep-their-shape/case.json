@@ -13,7 +13,10 @@
  "refs": [
   "YAML 1.2.2 section 8.2"
  ],
- "notes": "Nesting, order of items and the type of every item are kept.",
+ "notes": "Nesting, order of items and the type of every item are kept. The Core-schema reading (loose) is the specification. The reading under YAML 1.1 and the number forms that some common readers accept (strict) is a writing convention of the family: a string is written plain only when it reads as that same string there too.",
+ "tags": [
+  "strict-convention"
+ ],
  "operation": {
   "type": "dump",
   "value": {

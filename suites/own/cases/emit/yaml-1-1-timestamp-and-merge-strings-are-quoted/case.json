@@ -13,7 +13,7 @@
   "YAML 1.1 types (yaml.org/type): bool, int, float, timestamp, merge, value",
   "YAML 1.2.2 section 7.3.3"
  ],
- "notes": "The Core schema reads these as strings. YAML 1.1 reads the first four as timestamps (yaml.v3 and v4 also take a one-digit month and day, `2001-1-1`), `<<` as the merge key and `=` as the value key, so a plain one is not a string there. They are quoted. The Core-schema reading (loose) is the specification. The reading under YAML 1.1 and the number forms that some common readers accept (strict) is a writing convention of the family: a string is written plain only when it reads as that same string there too.",
+ "notes": "The Core schema reads these as strings. YAML 1.1 reads the first, fourth and fifth as timestamps, and yaml.v3 and v4 also read the second (`2001-1-1`, a one-digit month and day) and the third (one digit in every field) as timestamps. It reads `<<` as the merge key and `=` as the value key. A plain one is not a string there. They are quoted. The Core-schema reading (loose) is the specification. The reading under YAML 1.1 and the number forms that some common readers accept (strict) is a writing convention of the family: a string is written plain only when it reads as that same string there too.",
  "tags": [
   "strict-convention"
  ],
@@ -22,6 +22,7 @@
   "value": [
    "2001-12-14",
    "2001-1-1",
+   "2001-1-1 1:2:3",
    "2001-12-14t21:59:43.10-05:00",
    "2001-12-14 21:59:43.10 -5",
    "<<",
