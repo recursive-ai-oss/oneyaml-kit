@@ -53,7 +53,8 @@ having got YAML wrong.
   another type, as a comment, as a key, or lose its edge spaces becomes single-quoted. The
   specification allows any quoted style; single quotes need no escapes.
 - **Comments of a removed entry.** See *Comments* below.
-- **The layout of a new nested sequence** copies the indentation of a sibling sequence. With no sibling sequence to copy, a new block sequence under a key is indented by the document's block indentation step, taken from the nearest enclosing or preceding block mapping (how far its entries are indented under their key), and by two spaces when the document has no nested block mapping.
+- **The layout of a new nested sequence** copies the indentation of a sibling sequence. With no sibling sequence to copy, a new block sequence under a key is indented by the document's block indentation step, which is how far a block mapping's entries are indented under their key. The step is taken from the mapping the new key belongs to when that mapping is itself nested under a key, and then from the next mapping out that is; so the enclosing mapping's own step wins over the step used elsewhere in the document. When the new key is in the root mapping, no enclosing mapping gives a step, and the step of the nearest preceding nested block mapping is used. The step is two spaces when the document has no nested block mapping.
+- **A collection replaced by a scalar stays on the key's line.** `a: 5`, not `a:` with the value on the next line, indented. Production [194] allows both and they read back the same.
 - **Indentation of a rewritten block scalar** reuses the old content's indentation.
 - **A multi-line string replacing an inline scalar is double-quoted.** A plain or quoted
   scalar that is set to text with a line break keeps its place on the key's line and is

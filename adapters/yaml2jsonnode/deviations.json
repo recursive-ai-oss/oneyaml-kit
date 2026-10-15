@@ -4585,6 +4585,34 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Output differs: first difference at byte 1605: expected b'?\\n    a\\n  :\\nnk1: 1\\n', got b'a: null\\nnk1: 1\\n' (lengths 1624 and 1620)"
+  },
+  {
+    "case": "own:edit/add-sequence-value-defaults-to-two-spaces",
+    "expectation": "primary",
+    "mode": "loose",
+    "verdict": "fail",
+    "reason": "Output differs: first difference at byte 8: expected b' - 1\\n', got b'- 1\\n' (lengths 14 and 12)"
+  },
+  {
+    "case": "own:edit/add-sequence-value-defaults-to-two-spaces",
+    "expectation": "primary",
+    "mode": "strict",
+    "verdict": "fail",
+    "reason": "Output differs: first difference at byte 8: expected b' - 1\\n', got b'- 1\\n' (lengths 14 and 12)"
+  },
+  {
+    "case": "own:edit/add-sequence-value-uses-the-enclosing-mappings-step",
+    "expectation": "primary",
+    "mode": "loose",
+    "verdict": "fail",
+    "reason": "Output differs: first difference at byte 5: expected b' y: 1\\nz:\\n w: 1\\n n:\\n - 1\\n', got b'y: 1\\nz:\\n w: 1\\n n:\\n - 1\\n' (lengths 35 and 31)"
+  },
+  {
+    "case": "own:edit/add-sequence-value-uses-the-enclosing-mappings-step",
+    "expectation": "primary",
+    "mode": "strict",
+    "verdict": "fail",
+    "reason": "Output differs: first difference at byte 5: expected b' y: 1\\nz:\\n w: 1\\n n:\\n - 1\\n', got b'y: 1\\nz:\\n w: 1\\n n:\\n - 1\\n' (lengths 35 and 31)"
   }
 ]
 }

@@ -24,5 +24,9 @@
  "expect": {
   "kind": "bytes",
   "file": "expected.yaml"
- }
+ },
+ "tags": [
+  "convention"
+ ],
+ "notes": "The new value is written on the key's line (`a: 5`), which is what the case expects; a block mapping or sequence replaced by a scalar may also be written with the value on the next line, indented (`a:\\n  5`, production 194 in the block-out context), which reads back the same. The specification does not choose between the two, so the bytes rest on a kit convention (docs/edit-semantics.md) and the case carries the tag `convention`."
 }
