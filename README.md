@@ -44,7 +44,8 @@ bin/bench run --mode full         # full mode; labelled publishable only on a qu
 its deviation list does not name, or when a list entry has gone stale.
 
 The gate has two tiers. The hand-over gate (`bin/gate`) always runs the kit core (corpus
-pins, the kit's own tests, the public-text check) and adds an area only when the files that
+pins, the kit's own tests, the public-text check, and `bin/kit blobs`, which refuses tracked executables, core dumps and
+files over 1 MiB) and adds an area only when the files that
 differ from `main` touch it, and then only that area's quick steps: format and lint checks,
 unit and self-tests, and for a benchmark harness a smoke run over three small workloads. Areas
 are the adapter languages (`rust`, `go`, `csharp`, ...), `bench` (the benchmark driver, report
@@ -66,6 +67,9 @@ prints, and `out/gate/summary.json` records, the revision it checked: HEAD, the 
 base, a fingerprint of the change against the merge base (the binary diff plus the path and
 content hash of every untracked file) and whether the tree is dirty, so two runs can be
 compared. Renames count as a deletion and an addition, so the area a file left is checked too.
+
+In CI the `blobs` check also walks the whole fetched history (every branch and tag), because a large or core file
+added and then deleted still ships in the history, and a cancelled run must not leave a pushed commit unchecked.
 
 ## Principles
 

@@ -17,9 +17,14 @@
 # Never commit these anywhere in the tree.
 core
 core.[0-9]*
+core.*.zst
+core.*.xz
+core.*.lz4
 vgcore.*
 *.core
 perf.data*
+*.hprof
+*.mdmp
 .env
 .env.*
 *.pem

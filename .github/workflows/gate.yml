@@ -87,3 +87,18 @@ jobs:
       - name: Gate
         # The kit core has a job of its own, so the other jobs leave it out.
         run: bin/gate --full --areas ${{ matrix.area }} ${{ matrix.area != 'core' && '--without-core' || '' }}
+
+  # Nothing executable, no core dump and no blob over 1 MiB may be tracked, and none may sit anywhere in the
+  # history either: a large file added and deleted in the next commit still ships. Every run walks the whole
+  # fetched history (every branch and tag; it is small), not just the commits of its own push, so a run that
+  # the concurrency rule cancelled cannot leave a pushed commit unchecked.
+  blobs:
+    name: no executables, dumps or large blobs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          fetch-depth: 0
+      - name: Tracked files and the whole history
+        run: python3 bin/kit blobs --all
