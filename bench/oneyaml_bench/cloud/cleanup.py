@@ -17,6 +17,8 @@ from .runner import Teardown
 
 # The bucket's lifecycle rule expires objects after a day; the cleanup removes older leftovers sooner than that.
 S3_MAX_AGE_SECONDS = 24 * 3600
+# Machine images of another digest are kept this long: they may belong to another checkout of the kit.
+IMAGE_RETENTION_SECONDS = 7 * 24 * 3600
 
 
 def inventory(aws, run_id: str | None = None, s3_older_than: float | None = None) -> dict[str, list[str]]:
@@ -69,14 +71,15 @@ def gather(aws, runs: list[str], young: dict[str, float], orphan_age: float | No
 
 
 def cleanup(aws, run_id: str | None = None, say=print, now=time.time, wait: float = 900.0,
-            keep_image_digest: str | None = None) -> dict[str, list[str]]:
+            keep_image_digest: str | None = None, image_retention: float = IMAGE_RETENTION_SECONDS) -> dict[str, list[str]]:
     """Terminates and deletes tagged leftovers of one run, or of every run past its deadline, and returns what
     the account still holds. `wait` bounds how long it waits for instances to finish terminating (bare metal
     takes minutes).
 
     Without a run id, runs inside their deadline are left alone and stored objects of unknown runs are removed
-    once they are older than the bucket's expiry. With `keep_image_digest`, machine images of another digest
-    are removed too; the current one stays."""
+    once they are older than the bucket's expiry. Machine images are left alone unless `keep_image_digest` is
+    given (the command's `--images`): then `available` images of another digest older than `image_retention`
+    are removed with their snapshots, and never the current one or one a live or pending instance uses."""
     if run_id:
         runs, young, orphan_age = [run_id], {}, None
     else:
@@ -89,7 +92,7 @@ def cleanup(aws, run_id: str | None = None, say=print, now=time.time, wait: floa
     for r in runs:
         Teardown(aws, r, say).run(quiet=True, wait=wait)
     aws.delete_keys(before["s3_objects"])
-    removed = remove_superseded_images(aws, keep_image_digest, say) if keep_image_digest and not run_id else []
+    removed = remove_superseded_images(aws, keep_image_digest, say, now() - image_retention) if keep_image_digest and not run_id else []
     after = gather(aws, runs, young, orphan_age)
     for k, v in after.items():
         say(f"  {k}: {len(v)}")
@@ -105,10 +108,10 @@ def _images_in_use(aws) -> set[str]:
     return {i.image for i in aws.instances(None) if i.state != "terminated" and i.image}
 
 
-def remove_superseded_images(aws, keep_digest: str, say=print) -> list[str]:
-    """Deregisters the images of an older digest and deletes their snapshots, which are billed by the month."""
+def remove_superseded_images(aws, keep_digest: str, say=print, older_than: float = 0.0) -> list[str]:
+    """Deregisters old images of another digest and deletes their snapshots, which are billed by the month."""
     gone = []
-    for img in aws.superseded_images(keep_digest, _images_in_use(aws)):
+    for img in aws.superseded_images(keep_digest, _images_in_use(aws), older_than):
         aws.remove_image(img["image"], img["snapshots"])
         gone.append(img["image"])
     return gone

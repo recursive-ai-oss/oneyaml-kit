@@ -13,7 +13,8 @@ bin/bench-cloud run --shards auto           # a full run on as many instances as
 bin/bench-cloud run --shards auto --dry-run # only the plan, the estimates and the cost check
 bin/bench-cloud run --shards 2 --mode quick --lang go    # a small end-to-end check
 bin/bench-cloud spread --types A,B          # compare the run-to-run spread of instance types
-bin/bench-cloud cleanup                     # remove what runs past their deadline left behind, and old images
+bin/bench-cloud cleanup                     # remove what runs past their deadline left behind
+bin/bench-cloud cleanup --images            # also remove old images of other digests (older than 7 days)
 bin/bench-cloud cleanup --run ID            # remove one run's resources whatever their deadline
 ```
 
@@ -59,7 +60,10 @@ machine. The default network of the region is used.
    starts. While the run goes, the cap is checked again at **every** launch, spot retries and the
    on-demand fallback included: each attempt that is alive counts for the larger of what it has
    cost so far and what its whole projected life will cost, each finished attempt for what it cost,
-   and a launch that would take the total over the cap is not made. The check and the
+   and a launch that would take the total over the cap is not made. The figures are list prices
+   and the planner's estimates, and an instance that outlives its estimate is counted at its
+   elapsed cost only from the next launch decision on, so this guards the starting of instances;
+   it is not a ceiling on the bill. The check and the
    reservation happen under one lock, so shards that fall back at the same moment cannot
    each pass it. If the on-demand price is unknown (the pricing service gave none and the
    settings have none) there is no on-demand fallback at all, since its cost could not be
@@ -94,22 +98,36 @@ exit status does not report that: `bin/bench run --shard` exits 0 when the harne
 list of known deviations matched, and 1 when it did not (or when generated text fails the public
 text check); 2 when the harness refused to start. A cell that crashed or stalled does **not**
 change the exit status: it appears as a cell with status `error`. So after each shard the
-instance checks three things, and the shard counts as a success only if all hold:
+instance checks four things, and the shard counts as a success only if all hold:
 
 - the exit status is 0;
 - `results.json` exists, is readable and carries `run.shard`;
-- no cell has status `error`. `differs`, `rejects` and `unsupported` are results, not failures.
+- it holds at least one cell, and a cell for every task of every row the shard was given and
+  every library its harness lists (a shard with fewer cells than its plan rows fails);
+- no cell has status `error`. One crashed or stalled cell fails the **whole** shard, since a
+  shard with a hole in it cannot be merged into a complete result; `differs`, `rejects` and
+  `unsupported` are results, not failures.
 
-Anything else fails the shard (exit codes 23 and 24 are the checks'). A failed shard is not
+Anything else fails the shard (exit codes 23, 24 and 25 are the checks'). A failed shard is not
 retried, since it ran: the retries are for lost or unstartable instances. Its output is still
 downloaded to `jobs/<n>/` for inspection and never merged. `bin/bench merge` is called without
 `--allow-incomplete`, so a missing shard refuses the merge; `bin/bench-cloud run
 --allow-incomplete` passes it through, merges the shards that succeeded, and still exits
 non-zero (the merged result is never publishable).
 
-The kit revision comes out of an archive as unknown (the harness reads it from git), so the
-check script fills `environment.kit_revision` from the packed revision when it is empty. The
-instance type needs no patching: the boot script exports `KIT_INSTANCE_TYPE` and the
+**Revisions.** An unpacked archive has no git history, so the launcher names the revisions
+before the run starts and writes nothing into a result afterwards. The boot script exports
+`KIT_REVISION` (the packed commit, with `+modified` for a working-tree pack) and, for each
+library source, `KIT_ONEYAML_GO_REV` or `KIT_ONEYAML_CSHARP_REV` (the packed commit of that
+source). The harness takes `KIT_REVISION` only when the kit root is not a git checkout of its
+own (it accepts a git revision only when the repository's top level is the kit root, so a kit
+unpacked inside another repository cannot report that repository's commit), and the library
+build scripts take their variable only when the source is not a checkout. A shard of
+different library code therefore records a different library version and cannot be merged
+with the others. A clean committed pack can give a publishable merged result when every other
+condition holds (a full run, a quiet host, a pinned CPU, a readable `performance` governor);
+a `--kit-tree` pack cannot, because its revision ends in `+modified`. The instance type needs no
+patching: the boot script exports `KIT_INSTANCE_TYPE` and the
 harness's environment record reads it, which is what `bin/bench merge` compares.
 
 ### Conformance
@@ -166,7 +184,7 @@ launcher (pack, upload, jobs, merge, teardown).
    limit, Ctrl-C, SIGTERM and SIGHUP, then deletes the run's security group and objects. The
    signal handlers are installed at the start of `main`, before any command runs, so every
    command (`run`, `spread`, `image`, `cleanup`) reaches its teardown on a signal. A second
-   signal during the teardown is ignored. Each teardown step is guarded on its own: a failing
+   signal (SIGINT, SIGTERM or SIGHUP) during the teardown is ignored. Each teardown step is guarded on its own: a failing
    call is recorded and the steps after it still run, the run summary is always written, and a
    teardown that could not finish prints the run id and the exact `cleanup --run` command that
    finishes it.
@@ -188,9 +206,11 @@ removes them, and prints what the account still holds.
   left alone, so a cleanup started in one terminal cannot terminate a run in progress in
   another. An instance without a deadline tag (from before the tag existed) counts as in
   progress for a day after it was launched; other resources without one count as expired.
-- It also lists the machine images this tool made and removes those of a superseded digest
-  together with their snapshots. The current image stays, and so does an image a live
-  instance is using. A named run's cleanup never touches images.
+- **Machine images are never touched** unless `--images` is given, because another checkout of
+  the kit may use an image that this checkout would call old. With `--images` it removes images
+  of another digest that are `available`, older than the retention period (7 days), and not
+  used by a live or pending instance, together with their snapshots. The current image, an
+  image still being created and recent images stay. A named run's cleanup never touches images.
 
 `run` calls the cleanup for its own run id at the end and fails when anything tagged is still
 running.

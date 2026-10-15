@@ -7,9 +7,11 @@ spot, then once on demand, always the same instance type), and finally terminate
 tagged with the run's id. The teardown runs on every way out: success, failure, a timeout,
 Ctrl-C, SIGTERM and SIGHUP.
 
-Money is bounded by one rule: before any instance is started, spot retries included, the cost already
-committed by every live and finished attempt of every job plus the full projected cost of the new one must
-fit under the cost cap.
+Cost is checked, not guaranteed: before any instance is started, spot retries included, the cost already
+committed by every live and finished attempt of every job plus the full projected cost of the new one is
+compared with the cost cap, and a launch that would pass it is not made. The figures are list prices and the
+planner's estimates; an instance that outlives its estimate is counted at its elapsed cost, but only at the
+next launch decision, so the cap is a guard on starting instances and not a ceiling on the bill.
 """
 
 from __future__ import annotations
@@ -394,8 +396,21 @@ class Run:
                 return
             self.cancel.wait(self.opts.poll_seconds)
 
+    def fetch_result(self, key: str, tries: int = 4) -> bytes | None:
+        """The result object, asked for a few times: a failed request is not proof that nothing was uploaded."""
+        for n in range(tries):
+            try:
+                data = self.fetch(key)
+            except AwsError:
+                data = None
+            if data or self.cancel.is_set():
+                return data
+            if n + 1 < tries:
+                time.sleep(min(self.opts.poll_seconds, 2.0))
+        return None
+
     def collect(self, job: Job, att: Attempt, res: JobResult, ok: bool = True) -> None:
-        data = self.fetch(self.key(f"job{job.index}-a{att.number}", "result.tar.gz"))
+        data = self.fetch_result(self.key(f"job{job.index}-a{att.number}", "result.tar.gz"))
         if not data:
             if ok:
                 att.outcome, att.detail = "failed", "the instance reported success but uploaded no result"
@@ -596,8 +611,8 @@ class Run:
 def shield_interrupts() -> None:
     """A second Ctrl-C must not cut the teardown short."""
     try:
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
-        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        for s in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+            signal.signal(s, signal.SIG_IGN)
     except ValueError:      # not the main thread (tests)
         pass
 

@@ -413,9 +413,11 @@ class Aws:
             time.sleep(10)
         raise AwsError(f"image {image_id} not available in time")
 
-    def superseded_images(self, keep_digest: str, in_use: set[str] = frozenset()) -> list[dict]:
-        """Machine images of this tool that are not the current one: another digest, or an older image of the
-        current digest. Each entry carries the image id and its snapshots. Images that a live instance uses stay."""
+    def superseded_images(self, keep_digest: str, in_use: set[str] = frozenset(), older_than: float = 0.0) -> list[dict]:
+        """Machine images of this tool that may be removed: `available`, created before `older_than` (epoch
+        seconds), not the newest of the current digest, and not used by a live or pending instance. An image
+        still being created, or one made for another checkout's digest that is recent, is not touched: another
+        checkout may be about to use it."""
         r = self.cli("ec2", "describe-images", "--owners", "self", "--filters", f"Name=tag-key,Values={IMAGE_TAG}")
         imgs = sorted(r.get("Images", []), key=lambda i: i["CreationDate"])
 
@@ -425,7 +427,9 @@ class Aws:
         keep = current[-1]["ImageId"] if current else None
         out = []
         for i in imgs:
-            if i["ImageId"] == keep or i["ImageId"] in in_use:
+            created = parse_time(i["CreationDate"]) or float("inf")
+            if (i["ImageId"] == keep or i["ImageId"] in in_use or i["State"] != "available"
+                    or not created < older_than):
                 continue
             snaps = [b["Ebs"]["SnapshotId"] for b in i.get("BlockDeviceMappings", []) if b.get("Ebs", {}).get("SnapshotId")]
             out.append({"image": i["ImageId"], "digest": tag(i), "snapshots": snaps})
@@ -458,8 +462,12 @@ class Aws:
             if i.state != "terminated":
                 note([{"Key": k, "Value": v} for k, v in i.tags.items()], i.launched + unknown_age)
         flt = [f"Name=tag-key,Values={RUN_TAG}"]
-        for call, key in (("describe-security-groups", "SecurityGroups"), ("describe-volumes", "Volumes"),
-                          ("describe-launch-templates", "LaunchTemplates")):
+        for call, key in (("describe-security-groups", "SecurityGroups"), ("describe-launch-templates", "LaunchTemplates")):
             for res in self.cli("ec2", call, "--filters", *flt).get(key, []):
                 note(res.get("Tags", []))
+        # A volume attached to an instance goes with it and says nothing the instance does not. One that is
+        # detached is a leftover: it makes its run known, with no time left.
+        for v in self.cli("ec2", "describe-volumes", "--filters", *flt).get("Volumes", []):
+            if v.get("State") == "available":
+                note([t for t in v.get("Tags", []) if t["Key"] != DEADLINE_TAG])
         return out

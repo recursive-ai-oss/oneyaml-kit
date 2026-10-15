@@ -355,8 +355,8 @@ def spread_report(r: runner.Run, repeat: int) -> dict:
 
 
 def cmd_cleanup(a, cfg, aws, say) -> int:
-    # Without --run it also drops machine images of older toolchain digests; the current one stays.
-    digest = None if a.run else imagemod.current_digest(cfg, KIT_ROOT)
+    # Images are removed only on request: another checkout of the kit may use the image this one would call old.
+    digest = imagemod.current_digest(cfg, KIT_ROOT) if a.images and not a.run else None
     left = cleanup_mod.cleanup(aws, a.run, say, wait=a.wait, keep_image_digest=digest)
     return 0 if cleanup_mod.total(left) == 0 else 3
 
@@ -407,6 +407,9 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("cleanup", help="terminate and delete every tagged leftover, then show what remains")
     s.add_argument("--run", help="only this run id, whatever its deadline; without it, only runs past their deadline")
     s.add_argument("--wait", type=float, default=900.0, help="seconds to wait for instances to finish terminating")
+    s.add_argument("--images", action="store_true",
+                   help="also remove machine images of another digest that are available and older than the "
+                        "retention period (7 days); never the current one or one an instance uses")
     s.set_defaults(fn=cmd_cleanup)
     return p
 

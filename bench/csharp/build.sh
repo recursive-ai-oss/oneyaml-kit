@@ -19,6 +19,9 @@ if [ -n "${KIT_ONEYAML_CSHARP_SRC:-}" ]; then
 	rev=devel
 	if [ "$(git -C "$src" rev-parse --show-toplevel 2>/dev/null)" = "$src" ]; then
 		rev=$(git -C "$src" rev-parse --short=12 HEAD 2>/dev/null || echo devel)
+	elif [ -n "${KIT_ONEYAML_CSHARP_REV:-}" ]; then
+		# A source unpacked from an archive has no history; the launcher names its revision.
+		rev=$KIT_ONEYAML_CSHARP_REV
 	fi
 	set -- "$@" "-p:OneYamlSrc=$src" "-p:OneYamlRevision=$rev"
 	linked=1

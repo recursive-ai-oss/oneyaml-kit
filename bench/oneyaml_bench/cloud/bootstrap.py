@@ -21,8 +21,7 @@ TOOLS = ("bench", "kit")
 
 # Run on the instance after every command. For a benchmark shard: the result must exist, belong to a shard, and
 # hold no cell that crashed or stalled (status error); `differs` and `rejects` are results, not failures. The
-# kit revision is filled in because an archive has no history for the harness to read it from. For conformance:
-# the result files must exist.
+# shard must hold a cell for every row it was given. For conformance: the result files must exist.
 CHECK_SCRIPT = r"""
 import glob, json, os, sys
 kind, out = sys.argv[1], sys.argv[2]
@@ -42,17 +41,35 @@ run = r.get("run", {})
 if "shard" not in run:
     print("the result is not a shard result")
     sys.exit(23)
-bad = [c for c in r.get("cells", []) if c.get("status") == "error"]
+cells = r.get("cells", [])
+if not cells:
+    print("the shard result holds no cells")
+    sys.exit(25)
+# The run counts the cells it expected itself; when it says it fell short, the shard fails whatever the plan shows.
+if any("did not finish every cell" in x for x in (run.get("publishability") or {}).get("reasons", [])):
+    print("the shard did not finish every cell it set out to measure")
+    sys.exit(25)
+# Every row the shard was given must have a cell for each library the harness lists and each task of the row.
+plan = (run["shard"].get("plan") or {}).get("groups") or {}
+have = {(c.get("language"), c.get("library"), c.get("task"), c.get("workload")) for c in cells}
+missing = []
+for gid in (run.get("selection") or {}).get("groups", []):
+    lang, wid = gid.split("/", 1)
+    for lib in [x.get("id") for x in (r.get("harnesses", {}).get(lang) or {}).get("libraries", [])]:
+        for task in (plan.get(gid) or {}).get("tasks", []):
+            if (lang, lib, task, wid) not in have:
+                missing.append("%s/%s/%s/%s" % (lang, lib, task, wid))
+if missing:
+    print("%d cell(s) of the rows this shard holds are missing, first: %s" % (len(missing), missing[0]))
+    sys.exit(25)
+bad = [c for c in cells if c.get("status") == "error"]
 if bad:
     print("%d cell(s) crashed or stalled, first: %s/%s/%s %s" % (len(bad), bad[0]["library"], bad[0]["task"],
           bad[0]["workload"], bad[0].get("detail", "")))
     sys.exit(24)
 env = run.get("environment", {})
-label = open("/work/kit-label").read().strip() if os.path.exists("/work/kit-label") else ""
-if label and not env.get("kit_revision"):
-    env["kit_revision"] = label
-    json.dump(r, open(path, "w"), indent=1)
-print("shard result ok: %d cells, instance type %s" % (len(r.get("cells", [])), env.get("instance_type")))
+print("shard result ok: %d cells, instance type %s, kit revision %s" % (len(cells), env.get("instance_type"),
+                                                                       env.get("kit_revision")))
 """
 
 # Builds the harnesses before the driver starts. The driver samples the machine's load from its first step, and
@@ -145,8 +162,13 @@ def shard_script(s: ShardScript) -> str:
         else:
             step += f'\npython3 "$CHECK" conformance {out} || {{ RC=$?; exit $RC; }}'
         runs.append(step)
+    # The revisions are fixed by the launcher before anything runs: the kit's own (with `+modified` for a
+    # working-tree pack) and each library source's. The harness takes them only where the unpacked tree has no
+    # checkout of its own, and nothing is written into a result afterwards.
     libs = "\n".join(
-        f'export {var}={WORK}/src/{name}' for var, name in sorted(s.library_vars.items()))
+        [f'export KIT_REVISION="$(cat {WORK}/kit-label)"']
+        + [f'export {var}={WORK}/src/{name}\nexport {var[:-4]}_REV="$(cut -c1-12 {WORK}/rev-{name})"'
+           for var, name in sorted(s.library_vars.items())])
     body = r"""
 trap 'finish' EXIT
 OUT=__WORK__/out
@@ -202,10 +224,6 @@ for f in __WORK__/lib-*.tar.gz; do
   [ -e "$f" ] || continue
   n=$(basename "$f" .tar.gz); n=${n#lib-}
   mkdir -p __WORK__/src/$n && tar -xzf "$f" -C __WORK__/src/$n || exit 14
-  # The archive carries no history; a stub repository lets the build scripts read the revision.
-  rev=$(cat __WORK__/rev-$n)
-  git -C __WORK__/src/$n init -q . && echo "$rev" > __WORK__/src/$n/.git/refs/heads/main \
-    && git -C __WORK__/src/$n symbolic-ref HEAD refs/heads/main
 done
 mark inputs_ready
 wait $WARM

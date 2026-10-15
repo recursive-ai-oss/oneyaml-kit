@@ -113,10 +113,11 @@ class FakeAws:
             if rid in self.group_tags:
                 self.group_tags[rid] = (self.group_tags[rid][0], time.time() - 1)
 
-    def superseded_images(self, keep_digest, in_use=frozenset()):
+    def superseded_images(self, keep_digest, in_use=frozenset(), older_than=0.0):
         cur = [i for i in self.images if i["digest"] == keep_digest]
         keep = cur[-1]["image"] if cur else None
-        return [dict(i) for i in self.images if i["image"] != keep and i["image"] not in in_use and not i.get("in_use")]
+        return [dict(i) for i in self.images if i["image"] != keep and i["image"] not in in_use and not i.get("in_use")
+                and i.get("state", "available") == "available" and i.get("created", 0.0) < older_than]
 
     def remove_image(self, image_id, snapshots):
         self.removed_images.append(image_id)
@@ -515,9 +516,95 @@ class Deadlines(RunCase):
                       {"image": "ami-now", "digest": "d2", "snapshots": ["snap-2"]}]
         cleanup.cleanup(aws, "someone", lambda m: None, wait=0, keep_image_digest="d2")
         self.assertEqual(aws.removed_images, [], "a named run's cleanup never touches images")
+        cleanup.cleanup(aws, None, lambda m: None, wait=0)
+        self.assertEqual(aws.removed_images, [], "images are removed only on request")
         cleanup.cleanup(aws, None, lambda m: None, wait=0, keep_image_digest="d2")
         self.assertEqual(aws.removed_images, ["ami-old"])
         self.assertEqual({i["image"] for i in aws.images}, {"ami-busy", "ami-now"})
+
+
+class ImageRemoval(unittest.TestCase):
+    """Against the real AWS layer with canned answers: what a request for image removal may deregister."""
+
+    def run_cleanup(self, images, now, **kw):
+        calls = []
+
+        def fake(args, stdin):
+            calls.append(args)
+            a = " ".join(args)
+            for key, body in (("describe-instances", {"Reservations": []}), ("describe-spot-instance-requests", {"SpotInstanceRequests": []}),
+                              ("describe-security-groups", {"SecurityGroups": []}), ("describe-launch-templates", {"LaunchTemplates": []}),
+                              ("describe-volumes", {"Volumes": []}), ("list-objects-v2", {}), ("describe-images", {"Images": images})):
+                if key in a:
+                    return json.dumps(body)
+            return ""
+        aws = Aws(config.Config("t", "b", "ami"), runner=fake)
+        cleanup.cleanup(aws, None, lambda m: None, wait=0, now=lambda: now, **kw)
+        return [c[c.index("--image-id") + 1] for c in calls if "deregister-image" in c]
+
+    def image(self, ident, digest, state, created):
+        return {"ImageId": ident, "State": state, "CreationDate": created, "Tags": [{"Key": "oneyaml-kit-image", "Value": digest}],
+                "BlockDeviceMappings": [{"Ebs": {"SnapshotId": "snap-" + ident}}]}
+
+    def setUp(self):
+        self.now = dt_epoch("2026-10-15T12:00:00Z")
+        self.images = [
+            self.image("ami-mine", "D1", "available", "2026-10-15T08:00:00Z"),
+            self.image("ami-other-current", "D2", "available", "2026-10-15T09:00:00Z"),      # another checkout's, in use
+            self.image("ami-baking", "D3", "pending", "2026-10-15T09:30:00Z"),               # still being created
+            self.image("ami-long-gone", "D4", "available", "2026-09-01T00:00:00Z"),          # older than the retention
+        ]
+
+    def test_plain_cleanup_never_touches_images(self):
+        self.assertEqual(self.run_cleanup(self.images, self.now), [])
+
+    def test_only_old_available_images_of_another_digest_go(self):
+        self.assertEqual(self.run_cleanup(self.images, self.now, keep_image_digest="D1"), ["ami-long-gone"])
+
+    def test_a_pending_image_stays_even_when_old(self):
+        imgs = [self.image("ami-slow-bake", "D3", "pending", "2026-08-01T00:00:00Z")]
+        self.assertEqual(self.run_cleanup(imgs, self.now, keep_image_digest="D1"), [])
+
+    def test_the_retention_is_adjustable(self):
+        got = self.run_cleanup(self.images, self.now, keep_image_digest="D1", image_retention=3600)
+        self.assertEqual(sorted(got), ["ami-long-gone", "ami-other-current"])
+
+
+class RunDeadlines(unittest.TestCase):
+    def test_a_volume_in_use_does_not_keep_a_finished_run_young(self):
+        tag = lambda run, dl=None: [{"Key": RUN_TAG, "Value": run}] + ([{"Key": DEADLINE_TAG, "Value": str(dl)}] if dl else [])    # noqa: E731
+
+        def fake(args, stdin):
+            a = " ".join(args)
+            if "describe-instances" in a:
+                return json.dumps({"Reservations": []})
+            if "describe-security-groups" in a:
+                return json.dumps({"SecurityGroups": [{"GroupId": "sg-1", "Tags": tag("done", 100)}]})
+            if "describe-volumes" in a:
+                return json.dumps({"Volumes": [{"State": "in-use", "Tags": tag("done", 10 ** 12)},
+                                               {"State": "available", "Tags": tag("leaked", 10 ** 12)}]})
+            return json.dumps({})
+        got = Aws(config.Config("r", "b", "a"), runner=fake).run_deadlines()
+        self.assertEqual(got, {"done": 100.0, "leaked": 0.0})
+
+
+class CleanupCommand(unittest.TestCase):
+    def run_command(self, argv):
+        from unittest import mock
+        seen = {}
+
+        def fake_cleanup(aws, run_id, say, wait, keep_image_digest=None, **kw):
+            seen["digest"] = keep_image_digest
+            return {}
+        with mock.patch.object(cli.cleanup_mod, "cleanup", fake_cleanup), mock.patch.object(cli.configmod, "load", lambda: config.Config("r", "b", "a")), \
+                mock.patch.object(cli, "make_aws", lambda cfg: None):
+            cli.main(argv)
+        return seen["digest"]
+
+    def test_images_are_left_alone_unless_asked_for(self):
+        self.assertIsNone(self.run_command(["cleanup"]))
+        self.assertIsNone(self.run_command(["cleanup", "--run", "one-run", "--images"]))
+        self.assertIsNotNone(self.run_command(["cleanup", "--images"]))
 
 
 class Signals(unittest.TestCase):
@@ -619,6 +706,35 @@ class Robustness(RunCase):
         self.assertEqual(aws.running(), [])
         self.assertTrue((self.dir / "out" / "cloud-run.json").exists())
         self.assertTrue(any("bin/bench-cloud cleanup --run rtest" in ln for ln in self.lines), self.lines[-3:])
+
+    def test_a_failed_fetch_of_the_result_is_asked_again(self):
+        aws = FakeAws()
+        r = self.make(aws, jobs=job_list(1))
+        calls = []
+
+        def flaky(key):
+            calls.append(key)
+            if len(calls) < 3:
+                if len(calls) == 1:
+                    raise AwsError("download failed: HTTP 500")
+                return None
+            return b"data"
+        r._fetch = flaky
+        self.assertEqual(r.fetch_result("k"), b"data")
+        self.assertEqual(len(calls), 3)
+        r._fetch = lambda key: None
+        self.assertIsNone(r.fetch_result("k", tries=2))
+
+    def test_sighup_is_shielded_during_the_teardown_like_the_other_signals(self):
+        saved = {s: signal.getsignal(s) for s in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)}
+        try:
+            runner.install_signal_handlers()
+            runner.shield_interrupts()
+            for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+                self.assertEqual(signal.getsignal(sig), signal.SIG_IGN, sig.name)
+        finally:
+            for s, h in saved.items():
+                signal.signal(s, h)
 
     def test_signing_credentials_must_outlive_the_run(self):
         def fake(args, stdin):
@@ -848,6 +964,44 @@ class Conformance(RunCase):
         r.after_collect = lambda run: self.fail("merged although a shard failed")
         with self.assertRaises(runner.RunFailed):
             r.execute()
+
+
+class ShardCells(unittest.TestCase):
+    """The check run on the instance after a shard: the result must cover the rows the shard was given."""
+
+    def check(self, obj):
+        with tempfile.TemporaryDirectory() as t:
+            Path(t, "results.json").write_text(json.dumps(obj))
+            Path(t, "check.py").write_text(bootstrap.CHECK_SCRIPT)
+            return subprocess.run([sys.executable, str(Path(t, "check.py")), "shard", t], capture_output=True, text=True).returncode
+
+    def shard(self, cells):
+        plan = {"groups": {"go/w1": {"tasks": ["dump", "load"], "shard": 1}}}
+        return {"run": {"shard": {"index": 1, "count": 1, "plan": plan}, "selection": {"groups": ["go/w1"]}, "environment": {}},
+                "harnesses": {"go": {"libraries": [{"id": "lib"}]}}, "cells": cells}
+
+    def cell(self, task, status="ok"):
+        return {"language": "go", "library": "lib", "task": task, "workload": "w1", "status": status}
+
+    def test_a_shard_with_every_cell_passes(self):
+        self.assertEqual(self.check(self.shard([self.cell("dump"), self.cell("load", "differs")])), 0)
+
+    def test_zero_cells_fail(self):
+        self.assertEqual(self.check(self.shard([])), 25)
+
+    def test_zero_cells_fail_even_without_a_plan(self):
+        self.assertEqual(self.check({"run": {"shard": {"index": 1, "count": 2}, "environment": {}}, "cells": []}), 25)
+
+    def test_a_missing_cell_of_a_held_row_fails(self):
+        self.assertEqual(self.check(self.shard([self.cell("dump")])), 25)
+
+    def test_a_shard_that_says_it_fell_short_fails(self):
+        obj = self.shard([self.cell("dump"), self.cell("load")])
+        obj["run"]["publishability"] = {"reasons": ["the run did not finish every cell it set out to measure"]}
+        self.assertEqual(self.check(obj), 25)
+
+    def test_an_error_cell_fails_the_whole_shard(self):
+        self.assertEqual(self.check(self.shard([self.cell("dump"), self.cell("load", "error")])), 24)
 
 
 class ShardCheck(unittest.TestCase):

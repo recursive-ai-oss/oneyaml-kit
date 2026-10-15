@@ -136,7 +136,7 @@ def bundle_inputs(packs: list[Packed], path: Path) -> Path:
             info.size = len(data)
             tf.addfile(info, io.BytesIO(data))
             if p.name == "kit":
-                # What the result's environment block shows as the kit revision: an archive has no history
+                # The revision the launcher hands the run as KIT_REVISION: an archive has no history
                 # for the harness to read it from. A working-tree pack is not a commit, so it says so.
                 label = (p.revision[:12] + ("+modified" if p.source == "tree" else "") + "\n").encode()
                 info = tarfile.TarInfo("kit-label")

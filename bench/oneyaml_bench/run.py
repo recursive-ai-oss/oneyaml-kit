@@ -221,7 +221,7 @@ def assemble(mode: str, harness_records: dict[str, dict], cells_by_lang: dict[st
     selftest = any(h.get("selftest_build") for h in harness_records.values())
     # A cell that crashed or stalled was not measured, so the run did not finish what it set out to.
     complete = len(cells) >= expected_cells and not any(c["status"] == "error" for c in cells)
-    env = environment.describe(environment.git_revision(ROOT), pinned_cpu)
+    env = environment.describe(environment.git_revision(ROOT.parent), pinned_cpu)
     pub = results.assess_publishability(mode, samples, load_start, load_end, complete, selftest,
                                         pinned_cpu, env["governor"],
                                         left_out=selection["left_out"])

@@ -17,6 +17,9 @@ art=${KIT_DOTNET_ARTIFACTS:-$dir/../../out/artifacts}
 rev=devel
 if [ "$(git -C "$src" rev-parse --show-toplevel 2>/dev/null)" = "$src" ]; then
 	rev=$(git -C "$src" rev-parse --short=12 HEAD 2>/dev/null || echo devel)
+elif [ -n "${KIT_ONEYAML_CSHARP_REV:-}" ]; then
+	# A source unpacked from an archive has no history; the launcher names its revision.
+	rev=$KIT_ONEYAML_CSHARP_REV
 fi
 exec "${DOTNET:-dotnet}" build "$dir/OneYamlAdapter.csproj" -c Release --artifacts-path "$art" \
   --nologo -v quiet -clp:NoSummary -nodeReuse:false -p:UseSharedCompilation=false \
