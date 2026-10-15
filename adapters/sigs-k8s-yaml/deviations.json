@@ -451,14 +451,14 @@
    "reason": "Accepts a byte order mark inside a comment: expected an error, the input was accepted"
   },
   {
-   "case": "own:diagnostics/bom-in-block-scalar-or-comment-is-an-error",
+   "case": "own:diagnostics/bom-in-a-block-scalar-is-an-error",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
    "reason": "Accepts a byte order mark inside a literal block scalar: expected an error, the input was accepted"
   },
   {
-   "case": "own:diagnostics/bom-in-block-scalar-or-comment-is-an-error",
+   "case": "own:diagnostics/bom-in-a-block-scalar-is-an-error",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
