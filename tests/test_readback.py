@@ -191,6 +191,41 @@ class AgreesWithTheSuite(unittest.TestCase):
                            ("# c\n%YAML 1.2\n\n---\n- a\n", ["a"]), ("%YAML   1.2\n--- a\n", "a")):
             self.assertEqual(read(text), want, text)
 
+    def test_reading_many_block_scalars_takes_linear_time(self):
+        # Each block scalar once copied the rest of the text to find its end, so the time grew with
+        # the square of the number of scalars: 4 times the scalars took 16 times as long. Compare the
+        # best of three runs at two sizes; linear time gives 4 and the old behaviour 16.
+        import time
+
+        def best(n):
+            text = "".join(f"k{i}: |\n  v\n" for i in range(n))
+            runs = []
+            for _ in range(3):
+                t0 = time.perf_counter()
+                R.parse(text)
+                runs.append(time.perf_counter() - t0)
+            return min(runs)
+
+        small, large = best(2000), best(8000)
+        self.assertLess(large / small, 9, (small, large))
+
+    def test_block_scalars_are_read_the_same_whatever_follows_them(self):
+        # The end of a scalar is found line by line, so what comes after the last line it takes
+        # (more text, a comment, a marker, the end of the input) must not change what it holds.
+        for text, want in (("a: |\n  x\n  y\nb: 1\n", {"a": "x\ny\n", "b": 1}),
+                           ("a: |\n  x\n\n\nb: 1\n", {"a": "x\n", "b": 1}),
+                           ("a: |+\n  x\n\n\nb: 1\n", {"a": "x\n\n\n", "b": 1}),
+                           ("a: >-\n  x\n  y\n# c\nb: 1", {"a": "x y", "b": 1}),
+                           ("a: |2\n   x\nb: 1\n", {"a": " x\n", "b": 1}),
+                           ("a: |\n\n  x\n", {"a": "\nx\n"}),
+                           ("a: |\n  x", {"a": "x\n"}),
+                           ("a: |\n", {"a": ""}),
+                           ("a: |\n\n\n", {"a": ""}),
+                           ("- |\n  a\n- |\n  b\n", ["a\n", "b\n"])):
+            self.assertEqual(read(text), want, text)
+        with self.assertRaises(R.ReadError):
+            read("a: |\n\n    \n  x\n")  # a leading empty line with more spaces than the text
+
     def test_most_invalid_documents_are_refused(self):
         invalid = [c for c in C.load_yts() if c.expect["kind"] == "error"]
         self.assertEqual(len(invalid), 94)

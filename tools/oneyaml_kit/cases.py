@@ -149,11 +149,14 @@ def _expect_from_json(d: Any, base: Path | None, where: str, nested: bool = Fals
         only("file", "recipe")
         if ("file" in d) == ("recipe" in d):
             raise CaseError(f"{where}: events expectation needs exactly one of file/recipe")
-        raw = read(d["file"]) if "file" in d else generate_input(d["recipe"], where)
+        raw = read(d["file"]) if "file" in d else generate_input(d["recipe"], where, "recipe")
         return {"kind": "events", "events": split_lines(raw.decode("utf-8"))}
     if kind == "bytes":
-        only("file")
-        return {"kind": "bytes", "bytes": read(d["file"])}
+        only("file", "recipe")
+        if ("file" in d) == ("recipe" in d):
+            raise CaseError(f"{where}: bytes expectation needs exactly one of file/recipe")
+        raw = read(d["file"]) if "file" in d else generate_input(d["recipe"], where, "recipe")
+        return {"kind": "bytes", "bytes": raw}
     if kind == "value":
         only("file", "value")
         if ("file" in d) == ("value" in d):
@@ -280,13 +283,13 @@ def _int(v, where: str, name: str, lo: int = 0) -> int:
     return v
 
 
-def _plan(recipe, where: str) -> list:
+def _plan(recipe, where: str, what: str = "input_recipe") -> list:
     """Check a recipe and work out its size before a byte is built; returns the parts to write."""
     if not isinstance(recipe, list) or not recipe or len(recipe) > MAX_RECIPE_PARTS:
-        raise CaseError(f"{where}: input_recipe must be a list of 1 to {MAX_RECIPE_PARTS} parts")
+        raise CaseError(f"{where}: {what} must be a list of 1 to {MAX_RECIPE_PARTS} parts")
     plan, total = [], 0
     for i, part in enumerate(recipe):
-        w = f"{where}: input_recipe part {i}"
+        w = f"{where}: {what} part {i}"
         if not isinstance(part, dict):
             raise CaseError(f"{w} must be an object")
         if "text" in part:
@@ -323,9 +326,9 @@ _CHUNK_BYTES = 1 << 20
 _NUMBERS_PER_CHUNK = 1 << 14
 
 
-def iter_input(recipe, where: str):
+def iter_input(recipe, where: str, what: str = "input_recipe"):
     """The bytes a recipe describes, in pieces of about a megabyte (see generate_input)."""
-    for kind, a, n in _plan(recipe, where):
+    for kind, a, n in _plan(recipe, where, what):
         if kind == "text":
             if not a:
                 continue
@@ -341,14 +344,14 @@ def iter_input(recipe, where: str):
                 yield b"".join(pre + b"%0*d" % (width, k) + suf for k in range(lo, hi))
 
 
-def generate_input(recipe, where: str) -> bytes:
+def generate_input(recipe, where: str, what: str = "input_recipe") -> bytes:
     """The bytes a recipe describes: parts in order, each either
     {"text": s, "repeat": n} (the UTF-8 text n times; n defaults to 1) or
     {"numbers": {"count": n, "start": k, "prefix": p, "suffix": s, "width": w}}, which writes
     p + the number + s for k, k+1, ... (n numbers), the number zero-padded to w digits.
     The total size is limited to MAX_GENERATED_BYTES."""
     out = bytearray()
-    for piece in iter_input(recipe, where):
+    for piece in iter_input(recipe, where, what):
         out += piece
     return bytes(out)
 
@@ -658,6 +661,38 @@ def generated_input_digests(cases_root: Path = OWN_DIR) -> dict[str, dict]:
     return out
 
 
+def _result_recipes(expect) -> list:
+    """The recipes that an expectation builds its expected result from: its own, or the one of
+    the result it accepts (a bounded case)."""
+    out = []
+    if isinstance(expect, dict):
+        if isinstance(expect.get("recipe"), list):
+            out.append(expect["recipe"])
+        if isinstance(expect.get("accept"), dict):
+            out += _result_recipes(expect["accept"])
+    return out
+
+
+def generated_result_digests(cases_root: Path = OWN_DIR) -> dict[str, dict]:
+    """The size and digest of every expected result that a recipe builds, as for generated inputs:
+    a change in what a recipe builds shows even when the recipe text does not change."""
+    out = {}
+    if cases_root.is_dir():
+        for cj in sorted(cases_root.rglob("case.json")):
+            raw = kitjson.loads(cj.read_bytes())
+            recipes = _result_recipes(raw.get("expect"))
+            if not recipes:
+                continue
+            rel = cj.parent.relative_to(cases_root).as_posix()
+            h, n = hashlib.sha256(), 0
+            for recipe in recipes:
+                for piece in iter_input(recipe, f"own:{rel}", "recipe"):
+                    h.update(piece)
+                    n += len(piece)
+            out[rel] = {"bytes": n, "sha256": h.hexdigest()}
+    return out
+
+
 def current_pins() -> dict:
     return {
         "yaml-test-suite": {
@@ -667,7 +702,8 @@ def current_pins() -> dict:
             "cases": 402,
             "error_cases": 94,
         },
-        "own": {"cases": own_case_digests(), "generated_inputs": generated_input_digests()},
+        "own": {"cases": own_case_digests(), "generated_inputs": generated_input_digests(),
+                "generated_results": generated_result_digests()},
     }
 
 

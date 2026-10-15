@@ -492,6 +492,7 @@
    "safety/one-line-flow-mapping-with-duplicate-keys": "5087d29231714c1d09393893b8633c542322a2a58363628155f520c05e87a599",
    "safety/patch-copy-doubling": "2d3d84d5bb7b1cfec05d5b50a0d4bf7a5f7dffabe9d59048bb7232459aa1d55b",
    "safety/patch-many-appends-into-a-created-flow-sequence": "900e68d4df511ff66890df10db982c09443da295bf192bff4c11954adc568578",
+   "safety/patch-many-large-appends-into-a-created-flow-sequence": "e28eab68f935e300c3942b51092af8e71d0e58e3c44d8459d0ecd39c480f09b1",
    "safety/plain-scalar-over-twenty-thousand-lines": "531aa561a50025946e2f2d571aac449cbe77158c4578ba6f5a1dbae3d3df206b",
    "safety/shallow-flow-mappings-then-many-lines-unclosed": "59f08bfb66226d12c813466b637324bb80f29005f70c7b7aa27f36546adb1db6",
    "safety/ten-million-digit-plain-scalar-events": "0ce7c4533aa551b1c1faaa1fa9b5d38e9ee8b0a701925bb8a1e9dcfd585573cd",
@@ -560,6 +561,24 @@
    "safety/ten-million-digit-plain-scalar-events": {
     "bytes": 10000001,
     "sha256": "3f294670b34e468cb7cdce79381fdc27dd5aad383c06918a1246e10ca2dd0260"
+   }
+  },
+  "generated_results": {
+   "safety/implicit-key-window-rescan": {
+    "bytes": 24014327,
+    "sha256": "225792848119600f48dbf9dd254d2e5199ee496fff1dfd0708bd3688463f7a85"
+   },
+   "safety/one-line-flow-mapping-ten-megabytes": {
+    "bytes": 18788923,
+    "sha256": "4493880ff9c4e9ac7b9a75997aab536c616a66d3c28f4244df607feac1aecfa6"
+   },
+   "safety/patch-many-large-appends-into-a-created-flow-sequence": {
+    "bytes": 4105037,
+    "sha256": "31b6755870ab262b831d186c2998f407667140a1d54cf2617df5ef29a6536617"
+   },
+   "safety/ten-million-digit-plain-scalar-events": {
+    "bytes": 10000027,
+    "sha256": "0956039e7a91011484464ad3ee5dce11df1774113593f6ea1a10cb6b4efd04ec"
    }
   }
  },
