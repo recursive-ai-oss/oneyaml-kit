@@ -30,13 +30,6 @@
    "reason": "Declined: the library has no byte-string type it writes as !!binary, and the adapter does not tag text itself."
   },
   {
-   "case": "own:emit/number-with-underscores-is-quoted",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Writes the string _1 as a plain scalar, which readers that accept underscores in numbers read as a number."
-  },
-  {
    "case": "yts:UGM3@value",
    "expectation": "primary",
    "mode": "loose",
