@@ -248,8 +248,11 @@ running"), and no case is run against the new hello.
 
 An adapter that cannot say a valid hello at its first start has no run to fail cases in. `bin/kit
 fast` prints `<name>: FAILED, the adapter did not start: <why>` on standard error, writes no result
-file for it, runs the other adapters in the same invocation, and exits with status 1. A failed
-start is not carried in a result file, because there is no result to put it in.
+file for it (and removes one left by an earlier run in the same output directory), lists it in the
+report as an adapter that did not start, runs the other adapters in the same invocation, and
+exits with status 1. A skipped adapter (`requires_env`) likewise has an old result file removed;
+it is listed under "Not run", which is not a failure, and "Did not start" is a separate section.
+When every adapter fails to start, the report still lists them rather than leaving an older one.
 
 A JSON object with a repeated key in an answer is refused (that case fails), because no
 single meaning can be chosen for it; the same holds for case files.

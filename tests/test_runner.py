@@ -208,6 +208,7 @@ class Subprocess(unittest.TestCase):
                             ({"capabilities": ["events"]}, "capabilities"),
                             ({"protocol": 2}, "protocol"),
                             ({"version": "1"}, "version"),
+                            ({"language": "go"}, "language"),
                             ({"name": "other"}, "name"),
                             ({"emulates": ["unchanged"]}, "emulates")):
             with self.subTest(later=later):

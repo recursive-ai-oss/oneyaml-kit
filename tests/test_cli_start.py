@@ -28,12 +28,15 @@ class FirstStart(unittest.TestCase):
         self.dir = self.t / "adapters"
         for name, command in (("broken", [sys.executable, "-c", "print('not a hello')"]),
                               ("silent", [sys.executable, "-c", "pass"]),
-                              ("good", [sys.executable, FAKE])):
+                              ("good", [sys.executable, FAKE]),
+                              ("needs", [sys.executable, FAKE])):
             d = self.dir / name
             d.mkdir(parents=True)
-            (d / "adapter.json").write_text(json.dumps({
-                "format": R.ADAPTER_FORMAT, "name": name, "language": "python", "command": command,
-                "timeout_seconds": 2}))
+            manifest = {"format": R.ADAPTER_FORMAT, "name": name, "language": "python", "command": command,
+                        "timeout_seconds": 2}
+            if name == "needs":
+                manifest["requires_env"] = ["KIT_K40_TEST_MISSING"]
+            (d / "adapter.json").write_text(json.dumps(manifest))
 
     def kit(self, *adapters):
         out = self.t / "out"
@@ -62,7 +65,35 @@ class FirstStart(unittest.TestCase):
         self.assertEqual(se.count("FAILED, the adapter did not start"), 2)
         self.assertIn("fake 0:", so)
         self.assertTrue((out / "results" / "good.json").is_file())
-        self.assertTrue((out / "conformance.md").is_file())
+        md = (out / "conformance.md").read_text(encoding="utf-8")
+        # A failed start is in the report, as a failure and apart from the skipped adapters.
+        self.assertIn("## Did not start", md)
+        did, _, rest = md.partition("## Did not start")
+        for name in ("broken", "silent"):
+            self.assertIn(f"- `{name}`:", rest)
+            self.assertNotIn(f"`{name}`", did)
+
+    def test_a_skipped_adapter_is_not_listed_among_the_failures(self):
+        code, so, se, out = self.kit("needs", "broken")
+        md = (out / "conformance.md").read_text(encoding="utf-8")
+        failed = md.split("## Did not start")[1].split("## Not run")[0]
+        self.assertIn("`broken`", failed)
+        self.assertNotIn("`needs`", failed)
+        self.assertIn("- `needs`:", md.split("## Not run")[1])
+
+    def test_a_result_and_report_left_by_an_earlier_run_do_not_survive(self):
+        out = self.t / "out"
+        (out / "results").mkdir(parents=True)
+        for n in ("broken", "needs", "silent"):
+            (out / "results" / f"{n}.json").write_text("{}")
+        (out / "conformance.md").write_text("old report that shows good numbers\n")
+        code, so, se, _ = self.kit("broken", "needs", "silent")
+        self.assertEqual(code, 1)
+        self.assertEqual(sorted(p.name for p in (out / "results").iterdir()), [])
+        md = (out / "conformance.md").read_text(encoding="utf-8")
+        self.assertNotIn("old report", md)
+        self.assertIn("## Did not start", md)
+        self.assertIn("## Not run", md)
 
     def test_a_run_holds_a_restarted_adapter_to_the_hello_it_accepted(self):
         # Through run_adapter, which is what records the first hello: the case that crashes needs a
