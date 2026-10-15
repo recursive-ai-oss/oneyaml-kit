@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "emit/binary-value-as-the-document",
+ "title": "A byte string as the whole document",
+ "category": "emit",
+ "origin": "spec",
+ "productions": [
+  "97"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9",
+  "YAML 1.2.2 section 5.1",
+  "YAML 1.1 types (yaml.org/type/binary)"
+ ],
+ "notes": "A byte string is a scalar tagged `!!binary` that holds the bytes as base64 (the YAML 1.1 binary type; RFC 4648 section 4, standard alphabet, padded). The YAML 1.2 Core schema does not resolve the tag, so the kit value is a tagged string whose text is the base64, and the reader compares the bytes: space, tab, CR and LF inside the base64 are ignored, and the tag may be written `!!binary` or verbatim as `!<tag:yaml.org,2002:binary>`. Loose and strict judge the same thing here: the tag is the only way to tell bytes from text, and the 1.1 type is its only definition. Text that is not valid UTF-8 cannot be written as a string at all (YAML 1.2.2 section 5.1 limits the stream to printable characters), so a writer that has bytes must use the tag. A library that writes the bytes as text that does not read back as them (untagged base64) fails; one whose own data model writes a byte array as a list of integers, or that has no byte type, is reported unsupported. Here the tagged scalar is the root node.",
+ "operation": {
+  "type": "dump",
+  "value": {
+   "$tagged": {
+    "tag": "tag:yaml.org,2002:binary",
+    "value": "AP/+gIE="
+   }
+  }
+ },
+ "expect": {
+  "kind": "readback"
+ }
+}

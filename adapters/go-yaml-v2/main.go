@@ -74,6 +74,8 @@ func main() {
 			},
 		},
 		Events: events, Value: value, Dump: dump,
+		// The library writes a string that is not valid UTF-8 as a !!binary scalar.
+		Binary: gokit.InvalidUTF8String,
 	}
 	a.Serve()
 }

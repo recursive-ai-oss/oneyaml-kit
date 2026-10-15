@@ -124,6 +124,20 @@ class Run(unittest.TestCase):
             self.assertEqual((d["unlisted"], d["stale"], d["unknown"]), ([], [], []), n)
             self.assertGreater(d["listed"], 0, n)
 
+    def test_byte_strings_are_judged_by_what_the_library_writes(self):
+        # yaml.v2, v3 and v4 write a string that is not valid UTF-8 as !!binary. goccy writes a byte slice
+        # as a list of integers, its own data model for bytes: not judged. sigs.k8s.io/yaml writes the
+        # bytes as untagged base64 text, which reads back as a string: a failure, as for VYaml.
+        cid = "own:emit/binary-values-are-tagged-base64"
+        for n in ("go-yaml-v2", "go-yaml-v3", "go-yaml-v4"):
+            self.assertEqual((self.by[n][cid]["loose"], self.by[n][cid]["strict"]), ("pass", "pass"), n)
+        g = self.by["goccy-go-yaml"][cid]
+        self.assertEqual((g["loose"], g["strict"]), ("unsupported", "unsupported"))
+        self.assertIn("list of integers", g["detail"])
+        s = self.by["sigs-k8s-yaml"][cid]
+        self.assertEqual((s["loose"], s["strict"]), ("fail", "fail"))
+        self.assertIn("//4AAYA=", s["detail"])
+
     def test_declared_capabilities_and_pinned_versions(self):
         for n, res in self.res.items():
             a = res["adapter"]

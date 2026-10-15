@@ -55,7 +55,7 @@ sealed class YamlDotNetKitAdapter : IAdapter
     static Outcome Dump(Request r)
     {
         object? v;
-        try { v = Native.Of(r); }
+        try { v = Native.Of(r, null, "a byte array is written as a list of integers"); }
         catch (NotSupportedException e) { return Outcome.Unsupported(e.Message); }
         try { return Outcome.OutputOk(new UTF8Encoding(false).GetBytes(Host.Library(() => Serializer.Serialize(v)))); }
         catch (Exception e) { return Outcome.Error(new Failure("other", e.Message[..Math.Min(300, e.Message.Length)])); }

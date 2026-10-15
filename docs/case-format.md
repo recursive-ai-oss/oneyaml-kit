@@ -119,6 +119,10 @@ A value is JSON with these rules, so that a YAML reading can be compared exactly
   a case loads and never equals anything when an adapter sends it, so data can never be
   mistaken for an escape. The object form and the `$map` form of the same mapping are
   equal. Mappings are unordered; sequences are ordered.
+- A byte string is the tagged node `{"$tagged": {"tag": "tag:yaml.org,2002:binary", "value": "<base64>"}}`:
+  the Core schema does not resolve the tag, so the node is a tagged string whose text is the
+  base64 of the bytes (the YAML 1.1 binary type, RFC 4648 section 4: standard alphabet, padded).
+  Only `emit` cases use it.
 
 An upstream value comes from yaml-test-suite's `in.json`, which has no tags and was
 produced by a converter that loses the difference between integers and floats
@@ -166,7 +170,8 @@ anywhere. **Strict** mode also checks whatever the case states:
 
 - `category`: one of `syntax`, `encoding`, `limit`, `patch-path`, `patch-test`,
   `patch-invalid`, `refused-alias`, `refused-ambiguous`, `unresolved-tag` (a reader
-  refused a tag it cannot resolve, YAML 1.2.2 section 3.3), `duplicate-key` (a mapping
+  refused a tag it cannot resolve, YAML 1.2.2 section 3.3), `limit` (input or a value beyond
+  what the library will hold or spend: depth, size, aliases, digits), `duplicate-key` (a mapping
   holds two equal keys, which YAML 1.2.2 section 3.2.1.1 forbids: the keys of a mapping are
   unique), or `any` (the default).
   Categories are stable names, never message text.
@@ -274,7 +279,7 @@ and flow collections, plain, quoted and block scalars, `? ` keys, comments and o
 Anchors, aliases, custom tags, tag directives and several documents are refused by name,
 because a written value has no shared nodes; so is a raw character that is not printable. It
 is checked against yaml-test-suite: it reads the same values as the suite records for more than
-200 valid documents, and refuses at least 80 of the 94 invalid ones. It is a judge of what a writer
+200 valid documents, and refuses at least 89 of the 94 invalid ones. It is a judge of what a writer
 wrote, not a validator.
 
 The text is read three ways, and the verdicts are split like this:
@@ -301,6 +306,25 @@ the family convention, and the `emit` cases where the two can differ carry the
 `strict-convention` tag, so reports count them apart. The reader's forms are listed in
 the module; it follows the YAML 1.1 type pages (`yaml.org/type`) and the number syntax that
 PyYAML, gopkg.in/yaml.v3 and goccy/go-yaml accept.
+
+A byte string is judged by its bytes. The reader takes a scalar tagged `!!binary` (or with the
+verbatim tag `!<tag:yaml.org,2002:binary>`), strips the white space and line breaks that a writer
+folds the base64 with (space, tab, CR and LF only), and requires padded base64 of the standard
+alphabet; the bytes it decodes to must be the case's bytes, whatever the spelling of the text.
+Text with no tag, a list of numbers or a different tag is a different value. Loose and strict
+judge this the same way, because the tag is the only way to tell bytes from text and the YAML 1.1
+binary type is its only definition.
+
+The verdict for a library follows from what its own byte-string route writes:
+
+- it writes the bytes as text that does not read back as those bytes (untagged base64, say):
+  **fail**;
+- its own data model writes a byte array as something else, a list of integers for instance:
+  **unsupported**, with that as the reason, because the case asks for a type the library does not
+  have;
+- it has no byte type at all: **unsupported**.
+
+The adapter never wraps the bytes in a tag, a base64 string or a list itself.
 
 An adapter answers with `output` (base64 of the bytes written); an `error` or a missing
 output is a failure, and `unsupported` is a declined case that must be listed as a known

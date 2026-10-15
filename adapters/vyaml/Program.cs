@@ -44,7 +44,8 @@ sealed class VYamlKitAdapter : IAdapter
     static Outcome Dump(Request r)
     {
         object? v;
-        try { v = Native.Of(r); }
+        // A byte array is the library's byte string: it writes it as base64 text.
+        try { v = Native.Of(r, b => b); }
         catch (NotSupportedException e) { return Outcome.Unsupported(e.Message); }
         try { return Outcome.OutputOk(new UTF8Encoding(false).GetBytes(Host.Library(() => YamlSerializer.SerializeToString<object?>(v)))); }
         catch (Exception e) { return Outcome.Error(new Failure("other", e.Message[..Math.Min(300, e.Message.Length)])); }

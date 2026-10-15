@@ -30,6 +30,7 @@ one line and at most 1024 characters, and every character is printable or escape
 
 from __future__ import annotations
 
+import base64
 import re
 
 from . import kitjson
@@ -84,7 +85,7 @@ _ESCAPES = {"0": "\0", "a": "\a", "b": "\b", "t": "\t", "\t": "\t", "n": "\n", "
             "r": "\r", "e": "\x1b", " ": " ", '"': '"', "/": "/", "\\": "\\", "N": "\x85",
             "_": "\xa0", "L": "\u2028", "P": "\u2029"}
 _HEX_ESCAPES = {"x": 2, "u": 4, "U": 8}
-_KNOWN_TAGS = ("str", "int", "float", "bool", "null", "map", "seq")
+_KNOWN_TAGS = ("str", "int", "float", "bool", "null", "map", "seq", "binary")
 _WS = " \t"
 _FLOW = ",[]{}"
 
@@ -114,19 +115,48 @@ class Parser:
 
     @staticmethod
     def _without_prefix_marks(s: str) -> str:
-        """Drops the byte order marks that a document prefix may hold: one at the start of a line
-        before any content of a document, at the start of the stream or after a `...` line
-        (l-document-prefix). Anywhere else a mark is checked after parsing."""
+        """Drops the byte order marks that a document prefix may hold ([202] l-document-prefix is
+        an optional mark and comment lines; [211] allows one before every document and at the end of
+        the stream). That is a mark at the start of a line when only prefix lines (comments, blank
+        lines, directives, `...`) came before it in the stream or since the last `...`; or when
+        it is followed, to the end of the stream or the next `---` or `...`, by nothing but
+        comments and blank lines; or when `---` follows it. Anywhere else a mark is checked
+        after parsing, where only a quoted scalar may hold one."""
         if "\ufeff" not in s:
             return s
+        lines = s.split("\n")
+
+        def marker(body: str, which: str) -> bool:
+            return body.startswith(which) and (len(body) == 3 or body[3] in " \t")
+
+        def blank(body: str) -> bool:
+            text = body.strip(" \t")
+            return text == "" or text[0] == "#"
+
+        # tail[k]: from line k on there are only comments and blank lines before a marker or the end.
+        tail = [True] * (len(lines) + 1)
+        for k in range(len(lines) - 1, -1, -1):
+            body = lines[k][1:] if lines[k].startswith("\ufeff") else lines[k]
+            tail[k] = marker(body, "---") or marker(body, "...") or (blank(body) and tail[k + 1])
         out, prefix = [], True
-        for line in s.split("\n"):
-            body = line[1:] if prefix and line.startswith("\ufeff") else line
+        for k, line in enumerate(lines):
+            body = line
+            if line.startswith("\ufeff"):
+                rest = line[1:]
+                if prefix or marker(rest, "---") or (blank(rest) and tail[k + 1]):
+                    body = rest
+                    if not prefix and blank(rest):
+                        # The mark is at column 0, so it ends a block scalar before it; the rest of
+                        # the line is a comment. Indentation left in front of it would make the
+                        # line a part of that scalar, so the line becomes a comment at column 0.
+                        body = rest.lstrip(" \t") or "#"
+                        if body[0] != "#":
+                            body = "#"
             if prefix:
                 text = body.strip(" \t")
-                if not (text == "" or text[0] in "#%" or body.rstrip(" \t") == "..."):
+                if not (text == "" or text[0] in "#%" or marker(body, "...")):
                     prefix = False
-            elif body.rstrip(" \t") == "..." and line == body:
+            elif marker(line, "...") and line[:3] == "...":
                 prefix = True
             out.append(body)
         return "\n".join(out)
@@ -166,9 +196,12 @@ class Parser:
                 return m
         return None
 
-    def next_line(self, at_line_start: bool = False) -> int | None:
+    def next_line(self, at_line_start: bool = False, tab_ok: bool = False) -> int | None:
         """Move to the first content character of the next line that has content. Returns its
-        column, or None at the end of the text or at a document marker (position left there)."""
+        column, or None at the end of the text or at a document marker (position left there).
+        Indentation is spaces. A tab after them is a tab in the indentation, an error, except when
+        `tab_ok` says a node may start there: white space separates it from what came before
+        (s-separate-in-line), and the position is left on the first white space character."""
         first = at_line_start
         while True:
             if not first:
@@ -183,7 +216,7 @@ class Parser:
                 k += 1
             spaces = k - self.i
             j = k
-            while j < self.n and self.s[j] in "\t":
+            while j < self.n and self.s[j] in " \t":
                 j += 1
             if j >= self.n:
                 self.i = self.n
@@ -194,7 +227,7 @@ class Parser:
             if self.s[j] == "#":
                 self.i = j
                 continue
-            if j > k:
+            if j > k and not tab_ok:
                 raise ReadError(f"a tab is used as indentation at line {self.s.count(chr(10), 0, k) + 1}")
             if spaces == 0 and self.marker_at(self.i):
                 return None
@@ -205,7 +238,8 @@ class Parser:
     def parse(self) -> Scalar | Seq | Map:
         if self.s.startswith("\ufeff"):
             self.i = 1
-        col = self.next_line(at_line_start=True)
+        col = self.next_line(at_line_start=True, tab_ok=True)
+        tabbed = col is not None and self.peek() in " \t"
         while col is not None and self.peek() == "%":
             line = self.s[self.i:self.s.find("\n", self.i) if "\n" in self.s[self.i:] else self.n]
             if line.split("#")[0].split() not in (["%YAML", "1.1"], ["%YAML", "1.2"]):
@@ -221,7 +255,7 @@ class Parser:
                 raise ReadError("no document: an empty stream is not a value")
             root = Scalar("", implicit_empty=True)
         else:
-            root = self.block_node(-1, inline_coll=True, seq_same=False)
+            root = self.block_node(-1, inline_coll=not tabbed, seq_same=False)
         if explicit or col is not None:
             self.end_of_line()
             col = self.next_line()
@@ -301,7 +335,11 @@ class Parser:
         on this line; `seq_same` lets a sequence sit at the parent's own indent (a mapping value)."""
         self.enter()
         try:
+            ws_start = self.i
             self.skip_ws()
+            # A block collection starts after spaces only: a tab in the separation rules it out.
+            if "\t" in self.s[ws_start:self.i]:
+                inline_coll = False
             col0 = self.col()
             self.prop_start = self.i
             tag = self.props()
@@ -310,18 +348,20 @@ class Parser:
             if c == "" or c == "\n" or (c == "#" and self.i > 0 and self.s[self.i - 1] in " \t\n"):
                 save = self.i
                 self.end_of_line()
-                col = self.next_line()
+                col = self.next_line(tab_ok=True)
                 if col is None:
                     self.i = save
                     return Scalar("", tag=tag, implicit_empty=True)
                 if col > parent:
+                    tabbed = self.peek() in " \t"
+                    self.skip_ws()
                     if self.peek() in "!&*":
                         if tag is not None and self.peek() == "!":
                             raise ReadError("two tags on one node")
                         if tag is None:
                             return self.block_node(parent, True, False)
                         self.props()  # an anchor or alias: refused there
-                    return self.content(parent, tag, True, False, col)
+                    return self.content(parent, tag, not tabbed, False, col)
                 if seq_same and col == parent and self.peek() == "-" and _is_ws_or_end(self.peek(1)):
                     return self.block_seq(col, tag)
                 self.i = save
@@ -846,9 +886,18 @@ _Y11_INT_SEX = re.compile(r"([-+]?)([1-9][0-9_]*(?::[0-5]?[0-9])+)")
 _Y11_FLOAT = re.compile(r"[-+]?(?:[0-9][0-9_]*)\.[0-9_]*(?:[eE][-+][0-9]+)?"
                         r"|[-+]?\.[0-9][0-9_]*(?:[eE][-+][0-9]+)?")
 _Y11_FLOAT_SEX = re.compile(r"([-+]?)([0-9][0-9_]*(?::[0-5]?[0-9])+\.[0-9_]*)")
-_Y11_TIMESTAMP = re.compile(r"[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}"
-                            r"|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:[Tt]|[ \t]+)[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}"
-                            r"(?:\.[0-9]*)?(?:[ \t]*(?:Z|[-+][0-9]{1,2}(?::[0-9]{2})?))?")
+_DATE = r"[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}"
+# The forms some reader takes as a timestamp, and no others: a text that no reader takes as one
+# would make a writer quote a string for nothing. The 1.1 type page and PyYAML: a date, or a date
+# and time with one or two digits of hour and two of minute and second, a zone that is optional.
+# gopkg.in/yaml.v3 and v4 (Go layouts): one or two digits in every field, a `T` or `t` form that
+# needs a zone written `Z` or `+hh:mm`, and a form with spaces and no zone.
+_Y11_TIMESTAMP = re.compile(
+    _DATE
+    + r"|" + _DATE + r"(?:[Tt]|[ \t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]*)?"
+      r"(?:[ \t]*(?:Z|[-+][0-9]{1,2}(?::[0-9]{2})?))?"
+    + r"|" + _DATE + r"[Tt][0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}(?:\.[0-9]+)?(?:Z|[-+][0-9]{2}:[0-9]{2})"
+    + r"|" + _DATE + r" +[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}(?:\.[0-9]+)?")
 
 # Number forms that readers accept beyond both schemas.
 _RADIX = {"x": "0-9a-fA-F_", "o": "0-7_", "b": "01_"}
@@ -1011,6 +1060,45 @@ def quirk_number(text: str) -> bool:
 SCHEMAS = {CORE: CoreSchema(), YAML11: Yaml11Schema(), COMMON: CommonSchema()}
 
 
+BINARY_TAG = "tag:yaml.org,2002:binary"
+
+
+# Only space, tab, CR and LF are YAML white space; another Unicode space is not part of base64.
+_BINARY_FOLD = re.compile(r"[ \t\r\n]+")
+
+
+def _binary(text: str) -> dict:
+    """The kit value of a `!!binary` scalar. No schema here resolves the tag to a kit type, so the
+    node is a tagged string; its text is the base64 of the bytes (the YAML 1.1 binary type, RFC 4648
+    section 4: standard alphabet, padded), with white space and line breaks ignored. The text is
+    checked here and kept as written; `canonical_binary` makes two spellings of the same bytes equal."""
+    body = _BINARY_FOLD.sub("", text)
+    try:
+        base64.b64decode(body, validate=True)  # the standard alphabet, padded
+    except ValueError as e:
+        raise ReadError(f"a !!binary scalar is not padded base64 of the standard alphabet: {e}") from e
+    return {"$tagged": {"tag": BINARY_TAG, "value": text}}
+
+
+def canonical_binary(v):
+    """The value with the text of every binary node as the padded base64 of its bytes: the white
+    space that a writer folds the text with is not part of it, and two spellings of the same bytes
+    (other trailing bits in the last character) are the same text."""
+    if isinstance(v, list):
+        return [canonical_binary(x) for x in v]
+    if isinstance(v, dict):
+        tagged = v.get("$tagged") if len(v) == 1 else None
+        if isinstance(tagged, dict) and tagged.get("tag") == BINARY_TAG and isinstance(tagged.get("value"), str):
+            body = _BINARY_FOLD.sub("", tagged["value"])
+            try:
+                body = base64.b64encode(base64.b64decode(body, validate=True)).decode("ascii")
+            except ValueError:
+                pass  # not base64: kept as it is, and different from any bytes
+            return {"$tagged": {"tag": BINARY_TAG, "value": body}}
+        return {k: canonical_binary(x) for k, x in v.items()}
+    return v
+
+
 def to_value(node, schema: Schema, depth: int = 0):
     if depth > MAX_DEPTH:
         raise ReadError("nested more deeply than the kit reads")
@@ -1018,6 +1106,8 @@ def to_value(node, schema: Schema, depth: int = 0):
         t = node.tag
         if t in ("map", "seq"):
             raise ReadError(f"!!{t} on a scalar")
+        if t == "binary":
+            return _binary(node.text)
         if t in ("str", "!"):
             return node.text
         try:
@@ -1103,4 +1193,4 @@ def _read_diff(root, schema: Schema, value) -> str:
         got = to_value(root, schema)
     except ReadError as e:
         return f"reading as {schema.name}: {e}"
-    return kitjson.value_diff(value, got)
+    return kitjson.value_diff(value, canonical_binary(got))

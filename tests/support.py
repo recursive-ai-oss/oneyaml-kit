@@ -72,6 +72,10 @@ def _node(v):
         return "[" + ", ".join(_node(x) for x in v) + "]"
     if set(v) == {"$float"}:
         return {"inf": ".inf", "-inf": "-.inf", "nan": ".nan"}[v["$float"]]
+    if set(v) == {"$tagged"}:
+        tagged = v["$tagged"]
+        tag = "!!binary" if tagged["tag"] == "tag:yaml.org,2002:binary" else "!<%s>" % tagged["tag"]
+        return tag + " " + _node(tagged["value"])
     if set(v) == {"$map"}:
         return "{" + ", ".join(f"? {_node(k)} : {_node(x)}" for k, x in v["$map"]) + "}"
     return "{" + ", ".join(f"{_quote(k)}: {_node(x)}" for k, x in v.items()) + "}"

@@ -378,6 +378,17 @@ fn native(j: &Json, depth: usize) -> Result<Value, String> {
                     _ => f64::NAN,
                 }));
             }
+            if let Some(tagged) = o.get("$tagged") {
+                // The value type has no byte string, so a binary node is declined, not written
+                // as text or as a list of numbers.
+                let binary =
+                    tagged.get("tag").and_then(Json::as_str) == Some("tag:yaml.org,2002:binary");
+                return Err(if binary {
+                    "the library has no byte string it writes as !!binary".into()
+                } else {
+                    "tagged value".into()
+                });
+            }
             let mut m = Mapping::new();
             if let Some(pairs) = o.get("$map").and_then(Json::as_array) {
                 for p in pairs {

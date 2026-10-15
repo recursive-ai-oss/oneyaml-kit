@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/integer-of-4300-digits-is-exact-or-refused",
+ "title": "A decimal integer of 4300 digits is exact or refused",
+ "category": "safety",
+ "origin": "spec",
+ "productions": [
+  "131"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "YAML 1.2.2 section 10.2.1.4",
+  "YAML 1.2.2 section 7.3.3"
+ ],
+ "notes": "The Core schema reads a plain scalar that matches `[-+]?[0-9]+` as an integer and gives that pattern no upper bound (section 10.3.2). YAML 1.2.2 section 10.2.1.4 lets a processor reject an integer it cannot hold as an error. The kit therefore accepts the exact integer or a refusal (strict: a `limit` error). Truncating or converting the value fails, because the kit cannot see a warning. A crash, a hang, a wrong result, or more than the stated time or memory fails. The resource bounds are the robustness requirement of the kit, not a rule of the specification. 4300 digits is the largest integer the kit's own JSON reader converts, so it is the largest one a case can state as a value; longer scalars are covered as events (`safety/ten-million-digit-plain-scalar-events`). Converting a long digit string to an integer takes more than linear time in some runtimes, which is why a digit cap with a limit error is a reasonable answer.",
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 5,
+  "memory_mb": 512,
+  "error": "limit",
+  "accept": {
+   "kind": "value",
+   "file": "expected.json"
+  }
+ }
+}

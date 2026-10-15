@@ -117,6 +117,17 @@ class DotnetAdapters(unittest.TestCase):
         self.assertEqual((r["loose"], r["strict"]), ("pass", "pass"))
         self.assertIn("style", r["emulated"])
 
+    def test_byte_strings_are_declined_or_judged_by_what_the_library_writes(self):
+        # YamlDotNet and SharpYaml write a byte array as a list of integers: not judged. VYaml has a byte
+        # string and writes it as untagged base64 text, which reads back as a string: a failure.
+        cid = "own:emit/binary-values-are-tagged-base64"
+        for n in ("yamldotnet", "sharpyaml"):
+            r = self.by_id[n][cid]
+            self.assertEqual((r["loose"], r["strict"]), ("unsupported", "unsupported"), n)
+            self.assertIn("list of integers", r["detail"], n)
+        r = self.by_id["vyaml"][cid]
+        self.assertEqual((r["loose"], r["strict"]), ("fail", "fail"))
+
     def test_columns_count_characters_not_utf16_code_units(self):
         # A character outside the Basic Multilingual Plane is two UTF-16 code units. YamlDotNet and SharpYaml
         # count code units; the adapters convert, so a library that reports the right character passes.
@@ -189,7 +200,9 @@ class DotnetAdapters(unittest.TestCase):
             # Whether memory or time runs out first depends on the machine; both are the kit's stop.
             self.assertEqual(r["loose"], "fail", n)
             self.assertIn(r["got"]["status"], ("memory", "timeout"), n)
-            self.assertGreaterEqual(self.res[n]["run"]["adapter_restarts"], 1, n)
+            # A bounded case runs in a session of its own, so the kit stopping it is not a restart of
+            # the main session; what counts is that such sessions were used.
+            self.assertGreaterEqual(self.res[n]["run"]["bounded_sessions"], 1, n)
         # The other two keep the aliases shared, so the adapter answers `accepted`; the case allows only a
         # limit error, so taking the input is the failure, and the measured cost is recorded.
         for n in ("yamldotnet", "vyaml"):
