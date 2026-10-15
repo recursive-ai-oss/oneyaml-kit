@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.Tracing;
 using System.Runtime;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
@@ -267,6 +268,9 @@ public static class Measure
         long state = Math.Max(LiveNow() - h0, 0);
         // The collections above trimmed the library's pools; fill them again.
         long estimate = Requested(r);
+        // The pooled buffers the task uses are working memory the allocation count cannot see (a rent from a warm
+        // pool allocates nothing), so they are counted by a run of their own with the pool's event source on.
+        long pooled = PooledBytes(r);
         long allocated = -1;
         for (int attempt = 0; attempt < 4 && allocated < 0; attempt++)
         {
@@ -283,7 +287,65 @@ public static class Measure
         }
         if (allocated < 0) throw new InvalidOperationException("the task kept leaving the no-GC region");
         GC.KeepAlive(b);
-        return new Usage(state + allocated, allocated, state, RetainedByOneRun(r));
+        return new Usage(state + allocated + pooled, allocated, state, RetainedByOneRun(r));
+    }
+
+    /// <summary>The bytes of shared-pool buffers (<c>ArrayPool&lt;T&gt;.Shared</c> and other array pools) that one
+    /// run takes from the pool and that the pool already held: each distinct buffer counted once, at its size, as
+    /// if none were returned and reused. A buffer the pool had to allocate during the run is skipped because the
+    /// allocation count already holds it. The run happens with a listener on the pool's event source, outside the
+    /// no-GC region, since delivering events allocates and would add to the allocated bytes. Memory a library
+    /// pools in a structure of its own is not visible to this and shows only through the other figures.</summary>
+    static long PooledBytes(Runner r)
+    {
+        var b = r.Prepare(1);
+        using var listener = new PoolListener();
+        b.Run();
+        listener.Stop();
+        GC.KeepAlive(b);
+        return listener.ReusedBytes;
+    }
+
+    sealed class PoolListener : EventListener
+    {
+        readonly object gate = new();
+        readonly HashSet<(int pool, int id)> allocated = [];
+        readonly HashSet<(int pool, int id)> counted = [];
+        EventSource? source;
+        bool on = true;
+        public long ReusedBytes { get; private set; }
+
+        protected override void OnEventSourceCreated(EventSource s)
+        {
+            if (s.Name != "System.Buffers.ArrayPoolEventSource") return;
+            source = s;
+            EnableEvents(s, EventLevel.Verbose, EventKeywords.All);
+        }
+
+        public void Stop() { if (source != null) DisableEvents(source); lock (gate) on = false; }
+
+        protected override void OnEventWritten(EventWrittenEventArgs e)
+        {
+            if (e.EventName is not ("BufferRented" or "BufferAllocated") || e.Payload is null || e.PayloadNames is null) return;
+            int id = 0, size = 0, pool = 0;
+            for (int i = 0; i < e.PayloadNames.Count; i++)
+            {
+                if (e.Payload[i] is not int v) continue;
+                switch (e.PayloadNames[i])
+                {
+                    case "bufferId": id = v; break;
+                    case "bufferSize": size = v; break;
+                    case "poolId": pool = v; break;
+                }
+            }
+            lock (gate)
+            {
+                if (!on) return;
+                // The pool reports a rent before the allocation that served it, so an allocation takes back a count.
+                if (e.EventName == "BufferAllocated") { allocated.Add((pool, id)); if (counted.Remove((pool, id))) ReusedBytes -= size; }
+                else if (!allocated.Contains((pool, id)) && counted.Add((pool, id))) ReusedBytes += size;
+            }
+        }
     }
 
     /// <summary>The live bytes one run leaves behind: a full collection with a fresh starting state held, one run

@@ -309,6 +309,14 @@ public static class SelfTests
             Check(u2.PeakBytes is >= (2 << 20) and < (2 << 20) + 16384, "the state counts toward the peak: " + u2.PeakBytes);
             // The same cell measured twice agrees to the byte.
             Equal(Measure.Memory(alloc).AllocatedBytes, u1.AllocatedBytes, "repeatable");
+            // A megabyte taken from the shared array pool allocates nothing once the pool holds it, and is still
+            // working memory: the peak holds it, the allocated bytes do not.
+            var pooled = new FnRunner<int, int>(() => 0,
+                _ => { var a = System.Buffers.ArrayPool<byte>.Shared.Rent(1 << 20); a[0] = 1; int n = a.Length; System.Buffers.ArrayPool<byte>.Shared.Return(a); return n; },
+                _ => new Product.Bytes([]));
+            var u3 = Measure.Memory(pooled);
+            Equal(u3.AllocatedBytes, 0L, "a rent from a full pool allocates nothing");
+            Check(u3.PeakBytes >= (1 << 20), "pooled buffers count toward the peak: " + u3.PeakBytes);
         }),
         ("a runner shares one state only if the task leaves it alone", () =>
         {

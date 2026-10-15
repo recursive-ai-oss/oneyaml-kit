@@ -20,8 +20,13 @@ static class Events
 
         var markers = DocumentMarkers.Scan(r.Input);
         int count = doc!.Documents.Count;
+        // When the line scan and the library disagree on the number of documents, the library's documents are
+        // written with no markers and no directives, and the kit judges the result (a wrong split fails the case).
         if (markers == null || !markers.Aligned(count))
-            return Outcome.Unsupported($"document markers: the line scan found {markers?.Documents.Count.ToString() ?? "no"} documents and the library {count}");
+        {
+            markers = new DocumentMarkers();
+            for (int i = 0; i < count; i++) markers.Documents.Add(new DocumentMarkers.Info());
+        }
 
         var o = new Out();
         try

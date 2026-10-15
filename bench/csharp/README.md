@@ -103,7 +103,15 @@ sample, because a one-task batch measures the fixed cost of an invocation.
 code allocates more). `allocated_bytes` is exact (the bytes the task's own thread requested). `peak_bytes` is the
 starting state (live bytes after a full collection) plus every byte the task requested, taken in a no-GC
 region sized from an earlier run, so no collection happens during the run and the figure is the same
-whatever ran before it and however the cells are filtered or ordered. It counts garbage the collector has
+whatever ran before it and however the cells are filtered or ordered. Buffers taken from the shared array pools
+(`ArrayPool<T>.Shared` and the other pools of that event source) are working memory too, but a rent from a pool that already
+holds the buffer allocates nothing, so the allocation count alone would leave out a document a library builds in
+pooled buffers. The peak therefore adds the size of every distinct pooled buffer one run takes from the pool
+(counted once, as if none were returned and reused). They are found by one run of their own with a listener on
+the pool's event source (`System.Buffers.ArrayPoolEventSource`, `BufferRented` and `BufferAllocated`), outside the
+no-GC region because delivering events allocates; a buffer the pool had to allocate is not added twice. The same
+measure applies to every library in the harness; `allocated_bytes` stays the exact thread count. A library
+that keeps working memory in a pool of its own, not in these pools, is seen only through the other figures. It counts garbage the collector has
 not yet freed, as the Go figure does, and is an upper bound on the live heap. `retained_bytes` is what one run leaves
 live (pools of reusable arrays, caches): the live bytes one full collection after the run, less the live bytes just
 before it, with the starting state held, the same quantity every harness reports. It has a pass of its own, after the

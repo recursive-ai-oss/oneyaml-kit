@@ -2,34 +2,6 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
-   "case": "own:emit/binary-value-as-the-document",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "unsupported",
-   "reason": "Declined: the library has no byte-string type it writes as !!binary, and the adapter does not tag text itself."
-  },
-  {
-   "case": "own:emit/binary-value-as-the-document",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "unsupported",
-   "reason": "Declined: the library has no byte-string type it writes as !!binary, and the adapter does not tag text itself."
-  },
-  {
-   "case": "own:emit/binary-values-are-tagged-base64",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "unsupported",
-   "reason": "Declined: the library has no byte-string type it writes as !!binary, and the adapter does not tag text itself."
-  },
-  {
-   "case": "own:emit/binary-values-are-tagged-base64",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "unsupported",
-   "reason": "Declined: the library has no byte-string type it writes as !!binary, and the adapter does not tag text itself."
-  },
-  {
    "case": "yts:UGM3@value",
    "expectation": "primary",
    "mode": "loose",

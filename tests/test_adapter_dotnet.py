@@ -393,7 +393,7 @@ class OptionalAdapterRun(unittest.TestCase):
         res = run_adapter(OPTIONAL, C.load_all(), complete=True)
         self.assertEqual(validate_result(res), [])
         caps = set(res["adapter"]["capabilities"])
-        # What is wired: events, values, errors with category and position, and single-operation patches.
+        # What is wired: events, values, errors with category and position, dump, and RFC 6902 and RFC 7396 patches.
         self.assertTrue({"events", "value", "error-category", "error-position"} <= caps)
         self.assertEqual(res["adapter"]["info"]["linked"], "yes")
         d = res["deviations"]

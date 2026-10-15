@@ -38,7 +38,17 @@ static class Lib
     public static Outcome Dump(Request r)
     {
         object? v;
-        try { v = Native.Of(r); }
+        try
+        {
+            // The library writes byte[] as !!binary, BigInteger as an integer and any dictionary, so all three go in as they are.
+            v = Native.Of(r, binary: b => b, big: n => n, pairs: ps =>
+            {
+                var d = new Dictionary<object, object?>();
+                foreach (var kv in ps)
+                    d[kv.Key ?? throw new NotSupportedException("a null key cannot be held by a .NET dictionary")] = kv.Value;
+                return d;
+            });
+        }
         catch (NotSupportedException e) { return Outcome.Unsupported(e.Message); }
         try { return Outcome.OutputOk(Host.Library(() => YamlSerializer.SerializeToUtf8Bytes(v))); }
         catch (YamlException e) { return Outcome.Error(Describe(e)); }

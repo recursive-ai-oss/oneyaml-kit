@@ -37,7 +37,7 @@ decoded for it.
 |---|---|---|
 | `events` | the nodes of `YamlDocument.Parse` with `AllowDuplicateKeys` (an event stream does not check key uniqueness) (kind, style, tag, anchor, alias) | `style`: whether a document had an explicit `---` or `...`, from a line scan of the decoded text. `tag`: the full tag from the written tag and the `%TAG` directives of that scan |
 | `value` | the same nodes read with `GetValue<object>`, so key types, repeated keys and tags survive (the generic `object` model of the serializer drops tags and reads keys as text) | a tag the Core schema does not resolve is written as `$tagged` |
-| `dump` | `YamlSerializer.SerializeToUtf8Bytes` of the plain .NET value built from the kit value, default options | nothing; a mapping with non-string keys or an integer beyond 64 bits is declined |
+| `dump` | `YamlSerializer.SerializeToUtf8Bytes` of the plain .NET value built from the kit value, default options | nothing; byte strings go in as `byte[]`, which the library writes as `!!binary`; integers beyond 64 bits go in as `BigInteger` and mappings with non-string keys as `Dictionary<object, object?>`, which the library writes |
 | `patch` | `YamlDocument.ApplyPatch` (RFC 6902: all six operations, any number, atomic) and `ApplyMergePatch` (RFC 7396), given the patch as the case carries it | nothing |
 
 There is no `error-events`: the library's event reader is not public, and a document that fails to parse
