@@ -49,6 +49,8 @@ is released after the clock stops. The result of every iteration (a value tree, 
 buffer) is dropped inside the clock, as a caller's would be. Edit paths are resolved from the
 workload's pointers once, before the clock, into the library's own path syntax.
 
+`unchanged-emit` is timed through the library's real write API, and a lossless library that returns the text an unchanged document holds is not marked as doing different work for it. Its time can be far below that of a library that re-serialises a tree. That is the work the task measures, the user's write path for a document they did not edit, and not a different task.
+
 Each library is driven through the API its documentation shows for the task. Where one API
 stops short of an edit the workload needs, the harness uses the same library's next API, never
 a reduced edit: yaml-edit's path API handles mapping keys, and its node API (`Sequence::set`,

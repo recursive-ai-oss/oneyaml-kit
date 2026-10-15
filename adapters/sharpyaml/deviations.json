@@ -4151,6 +4151,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The library refused the patch: \"(Lin: 3, Col: 0, Chr: 9) - (Lin: 3, Col: 0, Chr: 9): While scanning a simple key, could not find expected ':'.\" at 4:1"
+  },
+  {
+   "case": "own:edit/set-nested-mapping-under-nested-key-uses-enclosing-step",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: a collection value needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/set-nested-mapping-under-nested-key-uses-enclosing-step",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: a collection value needs the adapter to write block or flow YAML"
   }
  ]
 }

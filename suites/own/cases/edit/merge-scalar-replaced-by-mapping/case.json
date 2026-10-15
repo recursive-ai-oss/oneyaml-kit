@@ -11,7 +11,10 @@
   "RFC 7396 section 2",
   "docs/edit-semantics.md"
  ],
- "notes": "The new mapping is indented like its siblings.",
+ "tags": [
+  "convention"
+ ],
+ "notes": "The new mapping is indented like its siblings. The specification also allows the new mapping in flow style or at another indentation, which reads back the same, so its layout is a kit convention (docs/edit-semantics.md, the layout of a new nested block collection).",
  "operation": {
   "type": "patch",
   "patch": {

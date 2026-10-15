@@ -1,0 +1,36 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-nested-mapping-under-nested-key-uses-enclosing-step",
+ "title": "A new nested mapping that replaces a scalar uses the step of the mapping it is set in, not the step of an earlier mapping",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "187",
+  "194"
+ ],
+ "refs": [
+  "RFC 6902 section 4.3",
+  "YAML 1.2.2 section 8.2.2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The document has two nested block mappings with different steps: `x` indents its entry four spaces under its key, and `z`, the mapping that holds `w`, indents its entry two. The patch replaces `/z/w` (the scalar 1) with the mapping `{q: 1}`; there is no sibling mapping to copy. The specification allows any indentation of a nested block mapping greater than its key's, so the bytes rest on a kit convention (docs/edit-semantics.md): the step is taken from the mapping the replaced key belongs to, here two spaces, so `w` is at column 2 and `q` at column 4. A step of four, taken from the earlier mapping, would put `q` at column 6 and fails the case. The case carries the tag `convention`. The result reads back as `x` with `y` 1, and `z` with `w` a mapping of `q` 1. It is the mapping half of the rule that `edit/add-sequence-value-uses-the-enclosing-mappings-step` pins for sequences.",
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/z/w",
+    "value": {
+     "q": 1
+    }
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

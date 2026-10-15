@@ -11,6 +11,10 @@
   "RFC 7396 section 2",
   "docs/edit-semantics.md"
  ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The specification also allows the scalar on the next line, indented, which reads back the same, so keeping it on the key's line is a kit convention (docs/edit-semantics.md).",
  "operation": {
   "type": "patch",
   "patch": {
