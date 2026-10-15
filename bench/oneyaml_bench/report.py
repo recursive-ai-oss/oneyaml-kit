@@ -129,9 +129,9 @@ def ratios(rows: list[dict], metric: str) -> list[dict]:
 
 THEMES = {
     "light": {"bg": "#ffffff", "fg": "#1f2328", "muted": "#59636e", "grid": "#d1d9e0",
-              "win": "#1a7f37", "tie": "#6e7781", "loss": "#cf222e"},
+              "win": "#1a7f37", "tie": "#6e7781", "loss": "#cf222e", "mixed": "#9a6700"},
     "dark": {"bg": "#0d1117", "fg": "#e6edf3", "muted": "#9198a1", "grid": "#3d444d",
-             "win": "#3fb950", "tie": "#8b949e", "loss": "#ff7b72"},
+             "win": "#3fb950", "tie": "#8b949e", "loss": "#ff7b72", "mixed": "#d29922"},
 }
 
 # The axis shows ratios from 1/8 to 8 on a log scale around 1.0x (equal). On a linear axis a
@@ -187,6 +187,11 @@ def svg_chart(title: str, unit_note: str, data: list[dict], theme: str, fmt, alt
                  f'fill="{c["muted"]}">{tick_label(t)}</text>')
     for i, d in enumerate(data):
         y = top + i * row_h
+        if d["ratio"] is None:
+            # A row without a number keeps its place: a label and the reason, no bar.
+            o.append(f'<text x="{left - 8}" y="{y + 15}" font-size="12" text-anchor="end">{esc(d["workload"])}</text>')
+            o.append(f'<text x="{centre + 6:.1f}" y="{y + 15}" font-size="11">{esc(d["tag"])}</text>')
+            continue
         colour = c[d["verdict"]]
         r = d["ratio"]
         clipped = abs(math.log2(r)) > AXIS_OCTAVES
@@ -194,7 +199,7 @@ def svg_chart(title: str, unit_note: str, data: list[dict], theme: str, fmt, alt
         o.append(f'<text x="{left - 8}" y="{y + 15}" font-size="12" text-anchor="end">{esc(d["workload"])}</text>')
         o.append(f'<rect x="{x0:.1f}" y="{y + 3}" width="{max(x1 - x0, 2.0):.1f}" height="{row_h - 8}" fill="{colour}"/>')
         label = fmt_ratio(r) + (" ▸" if clipped and r > 1 else " ◂" if clipped else "") \
-            + ("  ▼ loss" if d["verdict"] == "loss" else "")
+            + (d["tag"] if "tag" in d else "  ▼ loss" if d["verdict"] == "loss" else "")
         lx = x1 + 6 if r >= 1 else x0 - 6
         anchor = "start" if r >= 1 else "end"
         o.append(f'<text x="{lx:.1f}" y="{y + 15}" font-size="11" text-anchor="{anchor}">{esc(label)}</text>')
