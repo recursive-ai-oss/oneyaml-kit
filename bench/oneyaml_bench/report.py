@@ -335,7 +335,12 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
         L.append("Why this run is not publishable:\n")
         L += [f"- {r}" for r in pub["reasons"]]
         L.append("")
-    else:
+    sel = run.get("selection")
+    if sel:
+        L.append("Selection: " + "; ".join(
+            f"{k} {sel[k] if isinstance(sel[k], str) else ', '.join(sel[k])}"
+            for k in ("languages", "libraries", "tasks", "workloads")) + ".\n")
+    if not pub["reasons"]:
         m = pub["measured"]
         L.append(f"The host was quiet: other work kept at most {m['foreign_busy_cores_p95']} cores busy for 95% of "
                  f"the run and {m['foreign_busy_cores_max']} at its worst; the load average was "
