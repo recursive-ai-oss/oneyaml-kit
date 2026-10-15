@@ -1,0 +1,43 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-empty-item-with-collection-keeps-item-comment",
+ "title": "A comment after a sequence item with no value stays on the item's line when the item becomes a block collection",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "183",
+  "185",
+  "200"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.6",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "`- # c` is an item with no content, which reads as null, followed by a comment (section 6.6). Replacing it with a mapping holding a sequence writes the mapping on the lines below the dash, indented by the step of two spaces, since the document has no nested block mapping to copy (docs/edit-semantics.md, the layout of a new nested block collection). The comment is outside the value and stays. Tag `convention`, for the layout.",
+ "provenance": {
+  "reference": "A patch engine that moved the comment of an empty sequence item below the new collection, or dropped it."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/0",
+    "value": {
+     "k": [
+      1,
+      2
+     ]
+    }
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

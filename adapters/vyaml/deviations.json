@@ -3213,6 +3213,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (a dictionary add of two keys that both become infinity)"
+  },
+  {
+   "case": "own:schema/duplicate-key-float-with-borrowed-exponent-of-a-million-digits",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (a dictionary add of two keys that both become 0)"
+  },
+  {
+   "case": "own:schema/duplicate-key-float-with-borrowed-exponent-of-a-million-digits",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (a dictionary add of two keys that both become 0)"
   }
  ]
 }

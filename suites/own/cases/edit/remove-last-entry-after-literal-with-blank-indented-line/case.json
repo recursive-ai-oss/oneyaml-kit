@@ -1,0 +1,43 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-last-entry-after-literal-with-blank-indented-line",
+ "title": "Removing the last entry of a mapping, then replacing the literal scalar before it, ends as a fresh parse of the first step would",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "170",
+  "166",
+  "187"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.3",
+  "RFC 6902 section 4.2",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "`key1` is a literal scalar with content indentation 5 (production 170). `key2: v` follows it, and after `key2` comes a line of six spaces. Once `key2` is removed, that line would directly follow the literal's text, and there a line of six spaces is text of the scalar, not part of its trailer (production 166 with 167, l-strip-empty, takes only lines of at most 5 spaces): left as it is, it would change `key1` from `t` and a line break to `t`, a line break, a space and a line break. The removal must therefore take the line or shorten it. The kit takes it with the entry (docs/edit-semantics.md, Kit conventions, a whitespace-only line after a removed last entry); keeping it as an empty line would read back the same, so this is a convention. The second operation replaces `key1` with `a b`, which has no final line break, so the literal takes the strip header `|-` and keeps the old content indentation (docs/edit-semantics.md: 'Indentation of a rewritten block scalar reuses the old content's indentation'), and `after: 1` follows with nothing between. A library whose in-place state after the removal differs from a fresh parse of its own output edits the wrong bytes in the second step. The tag `convention` marks the removal of the line and the reused indentation.",
+ "provenance": {
+  "reference": "A patch engine whose in-place state after removing the last entry of a block mapping, with a whitespace-only line behind it that the literal scalar before it takes over, differed from a fresh parse of its own output, so the next operation edited the wrong bytes."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/top/key2"
+   },
+   {
+    "op": "replace",
+    "path": "/top/key1",
+    "value": "a b"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}
