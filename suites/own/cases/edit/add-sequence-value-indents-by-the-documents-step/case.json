@@ -10,7 +10,9 @@
  ],
  "refs": [
   "RFC 6902 section 4.1",
-  "RFC 6901 section 4",
+  "RFC 6901 section 3",
+  "YAML 1.2.2 section 8.2.1",
+  "YAML 1.2.2 section 8.2.2",
   "docs/edit-semantics.md"
  ],
  "tags": [
