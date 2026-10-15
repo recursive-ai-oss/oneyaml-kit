@@ -62,15 +62,32 @@ def describe(git_revision: str | None = None, pinned_cpu: int | None = None) -> 
     return env
 
 
-def git_revision(root: Path) -> str | None:
+def _git(root: Path, *args: str) -> str | None:
     try:
-        out = subprocess.run(["git", "rev-parse", "--short=12", "HEAD"], cwd=root,
-                             capture_output=True, text=True, check=True).stdout.strip()
-        dirty = subprocess.run(["git", "status", "--porcelain", "--", "."], cwd=root,
-                               capture_output=True, text=True, check=True).stdout.strip()
-        return out + ("+modified" if dirty else "")
+        return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True,
+                              check=True).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
         return None
+
+
+def git_revision(root: Path, env=None) -> str | None:
+    """The revision of the kit at `root`, with `+modified` when a file that decides a result differs.
+
+    A revision is accepted only from a git checkout whose top level is the kit root itself: a kit
+    unpacked inside some other repository would otherwise report that repository's commit. A kit
+    without a checkout of its own (an unpacked archive) takes the revision the launcher names in
+    KIT_REVISION, which it fixed before the run began; with neither the revision is unknown.
+    """
+    env = os.environ if env is None else env
+    top = _git(root, "rev-parse", "--show-toplevel")
+    if top is not None and Path(top).resolve() == root.resolve():
+        rev = _git(root, "rev-parse", "--short=12", "HEAD")
+        dirty = _git(root, "status", "--porcelain", "--", *DIGEST_DIRS)
+        if rev is None or dirty is None:
+            return None
+        return rev + ("+modified" if dirty else "")
+    given = (env.get("KIT_REVISION") or "").strip()
+    return given or None
 
 
 # The parts of the kit whose files decide what a run measures and how it is judged: the driver and
