@@ -68,8 +68,8 @@ base, a fingerprint of the change against the merge base (the binary diff plus t
 content hash of every untracked file) and whether the tree is dirty, so two runs can be
 compared. Renames count as a deletion and an addition, so the area a file left is checked too.
 
-In CI the `blobs` check also walks every commit of a push or pull request, because a large or core file
-added and then deleted still ships in the history.
+In CI the `blobs` check also walks the whole fetched history (every branch and tag), because a large or core file
+added and then deleted still ships in the history, and a cancelled run must not leave a pushed commit unchecked.
 
 ## Principles
 

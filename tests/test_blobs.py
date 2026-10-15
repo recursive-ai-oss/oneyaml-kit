@@ -63,7 +63,6 @@ class BlobCheck(unittest.TestCase):
         r.commit()
         out = blobs.check_index(r.dir)
         self.assertEqual(len(out), 7, out)
-        r.write("core.123", b"changed\n")
 
     def test_names_that_only_resemble_dumps_pass(self):
         r = self.repo()
@@ -121,6 +120,62 @@ class BlobCheck(unittest.TestCase):
         self.assertTrue(blobs.check_push(r.dir, "1" * 40, tip))  # a tip this clone never had
         self.assertTrue(blobs.check_history(r.dir, tip))
         self.assertNotEqual(first, tip)
+
+    def test_systemd_coredump_names_fail(self):
+        r = self.repo()
+        for ext in ("zst", "xz", "lz4"):
+            r.write(f"core.python3.1000.0123456789abcdef.4242.1760000000000000.{ext}", b"compressed\n")
+        r.write("core.notes.txt", b"text\n")
+        r.commit()
+        self.assertEqual(len(blobs.check_index(r.dir)), 3)
+
+    def test_new_files_that_are_not_ignored_are_read_from_disk(self):
+        r = self.repo()
+        r.commit()
+        r.write("tmp/dump.bin", ELF)
+        r.write("big.txt", b"a" * (blobs.LIMIT + 1))
+        r.write("ok.txt", b"fine\n")
+        r.write("ignored.core", b"x\n")
+        (r.dir / ".gitignore").write_text("*.core\n")
+        out = blobs.check_untracked(r.dir)
+        self.assertEqual(sorted(o.split(":")[0] for o in out), ["big.txt", "tmp/dump.bin"], out)
+        self.assertEqual(blobs.check_index(r.dir), [])  # still nothing tracked or staged
+
+    def test_a_blob_with_no_path_is_still_checked(self):
+        r = self.repo()
+        tip = r.commit()
+        oid = subprocess.run(["git", "hash-object", "-w", "--stdin"], cwd=r.dir, input=ELF, capture_output=True).stdout
+        r.git("tag", "dump", oid.decode().strip())
+        self.assertEqual(blobs.check_history(r.dir, tip), [])  # not reachable from the branch
+        out = blobs.check_history(r.dir, "--all")
+        self.assertEqual(len(out), 1, out)
+        self.assertIn(blobs.UNNAMED, out[0])
+
+    def test_a_shallow_clone_is_refused_not_checked_in_part(self):
+        r = self.repo()
+        r.write("core.1", b"t\n")
+        r.commit()
+        r.write("more", b"m\n")
+        tip = r.commit()
+        clone = Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))
+        self.addCleanup(shutil.rmtree, clone, True)
+        subprocess.run(["git", "clone", "-q", "--depth", "1", "file://" + str(r.dir), str(clone)], check=True)
+        with self.assertRaises(blobs.GitError):
+            blobs.check_history(clone, "--all")
+        with self.assertRaises(blobs.GitError):
+            blobs.check_push(clone, blobs.ZERO, tip)
+
+    def test_every_branch_is_walked_by_the_all_check_even_after_the_tip_is_clean(self):
+        # Two pushes in a row: the run for the first may be cancelled, so the second must catch what the first added.
+        r = self.repo()
+        r.commit()
+        r.write("tools/helper", ELF)
+        r.commit("first push")
+        os.remove(r.dir / "tools" / "helper")
+        r.write("second", b"s\n")
+        r.commit("second push")
+        self.assertEqual(blobs.check_index(r.dir), [])
+        self.assertTrue(blobs.check_history(r.dir, "--all"))
 
     def test_the_command_exits_non_zero_on_a_problem(self):
         r = self.repo()

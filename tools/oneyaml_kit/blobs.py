@@ -1,13 +1,15 @@
 """Repository hygiene: no executables, core dumps or large blobs in what is tracked or in history.
 
-The check reads git's object store, never the working tree: a file counts when it is in the index (tracked
-or staged) or in a commit of the range given. A range matters because a blob added in one commit and deleted
-in the next is gone from the tip but still ships with the history. It does not look for secrets.
+A file counts when it is in the index (tracked or staged), when it is new and not ignored (read from the
+working tree, because it is about to be added), or when it is in a commit that git can reach from the revisions
+given. History matters because a blob added in one commit and deleted in the next is gone from the tip but still
+ships with the history. It does not look for secrets.
 """
 
 from __future__ import annotations
 
 import fnmatch
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -23,7 +25,10 @@ MAGIC = {
 }
 # File names (the last path component) of dumps and profiler output. The first four are the names the
 # top-level ignore file already bans.
-DUMP_NAMES = ["core", "core.[0-9]*", "vgcore.*", "*.core", "perf.data", "perf.data.*", "*.hprof", "*.mdmp"]
+# systemd-coredump writes compressed cores as core.<command>.<uid>.<boot>.<pid>.<time>.zst (or xz, lz4).
+DUMP_NAMES = ["core", "core.[0-9]*", "core.*.zst", "core.*.xz", "core.*.lz4", "vgcore.*", "*.core",
+              "perf.data", "perf.data.*", "*.hprof", "*.mdmp"]
+UNNAMED = "(no path: reachable without a tree)"
 ZERO = "0" * 40
 
 
@@ -62,17 +67,40 @@ def inspect(entries: dict[str, list[str]], root: Path) -> list[str]:
     # Only the first bytes of a blob matter, but cat-file hands over all of it; blobs this small are cheap.
     heads = _heads(root, small)
     for oid, size in sorted(sizes.items(), key=lambda kv: entries[kv[0]][0]):
-        content = []
-        if size > LIMIT:
-            content.append(f"{size} bytes, over the limit of {LIMIT}")
-        magic = MAGIC.get(heads.get(oid, b"")[:4])
-        if magic:
-            content.append(magic)
         # One blob can sit under several names; each name is reported, with what the content says.
         for path in entries[oid]:
-            named = name_reason(path)
-            for w in content + ([named] if named else []):
+            for w in reasons(path, size, heads.get(oid, b"")):
                 problems.append(f"{path}: {w} [{oid[:12]}]")
+    return problems
+
+
+def reasons(path: str, size: int, head: bytes) -> list[str]:
+    """Why a file of this name, size and first bytes is refused; empty when it is fine."""
+    why = []
+    if size > LIMIT:
+        why.append(f"{size} bytes, over the limit of {LIMIT}")
+    magic = MAGIC.get(head[:4])
+    if magic:
+        why.append(magic)
+    named = name_reason(path)
+    if named:
+        why.append(named)
+    return why
+
+
+def check_untracked(root: Path) -> list[str]:
+    """New files that are not ignored, read from disk: a hand-over leaves them untracked, and the next `git add`
+    would take them in."""
+    problems = []
+    listing = git(root, "ls-files", "--others", "--exclude-standard", "-z").decode("utf-8", "surrogateescape")
+    for rel in listing.split("\0"):
+        path = root / rel
+        if not rel or path.is_symlink() or not path.is_file():
+            continue
+        with open(path, "rb") as f:
+            head = f.read(4)
+        for w in reasons(rel, os.path.getsize(path), head):
+            problems.append(f"{rel}: {w} [untracked]")
     return problems
 
 
@@ -104,11 +132,13 @@ def check_index(root: Path) -> list[str]:
 def check_history(root: Path, *revs: str) -> list[str]:
     """Every blob in the commits that `git rev-list` takes for `revs` (a range such as A..B, or one revision for
     its whole history), including blobs a later commit deleted."""
+    if git(root, "rev-parse", "--is-shallow-repository").strip() == b"true":
+        raise GitError("this clone is shallow, so its history is incomplete; fetch the full history first")
     entries: dict[str, list[str]] = {}
     for line in git(root, "rev-list", "--objects", *revs).decode("utf-8", "surrogateescape").splitlines():
         oid, _, path = line.partition(" ")
-        if path:
-            entries.setdefault(oid, []).append(path)
+        # An object with no path, such as a blob a tag points at directly, is still checked.
+        entries.setdefault(oid, []).append(path or UNNAMED)
     return inspect(entries, root)
 
 

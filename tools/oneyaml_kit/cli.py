@@ -118,15 +118,18 @@ def cmd_pins(args) -> int:
 def cmd_blobs(args) -> int:
     """Executables, core dumps and blobs over 1 MiB, in the index and, when asked, in history."""
     root = Path(args.root) if args.root else ROOT
-    scopes = ["the index"]
+    scopes = ["the index and new files"]
     try:
-        problems = blobs_mod.check_index(root)
+        problems = blobs_mod.check_index(root) + blobs_mod.check_untracked(root)
         if args.push:
             scopes.append("pushed commits " + args.push[0][:12] + ".." + args.push[1][:12])
             problems += blobs_mod.check_push(root, *args.push)
         if args.range:
             scopes.append("commits " + args.range)
             problems += blobs_mod.check_history(root, args.range)
+        if args.all:
+            scopes.append("every fetched branch and tag")
+            problems += blobs_mod.check_history(root, "--all")
         if args.history:
             scopes.append("the history of " + args.history)
             problems += blobs_mod.check_history(root, args.history)
@@ -209,6 +212,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--range", help="also check every commit in this git range, such as base..head")
     p.add_argument("--push", nargs=2, metavar=("BEFORE", "AFTER"),
                    help="also check the commits a push added; falls back to all history when BEFORE is unusable")
+    p.add_argument("--all", action="store_true", help="also check the history of every fetched branch and tag")
     p.add_argument("--history", metavar="REV", help="also check the whole history reachable from REV")
     p.set_defaults(fn=cmd_blobs)
     p = sub.add_parser("list", help="count cases by suite, category and operation")
