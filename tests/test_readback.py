@@ -155,6 +155,42 @@ class AgreesWithTheSuite(unittest.TestCase):
         # What it does not read is anchors, custom tags, directives and several documents.
         self.assertLessEqual(len(outside), 70)
 
+    def test_a_tab_line_after_a_block_scalar_is_refused(self):
+        # Y79Y/000: after the lines of a block scalar only more node lines or a trailing comment that
+        # starts with `#` may follow; s-indent is spaces, so a line that starts with a tab is neither
+        # an empty line of the scalar nor a trailing comment.
+        for text in ("foo: |\n\t\nbar: 1\n", "foo: |\n  a\n\t\nbar: 1\n", "foo: |+\n  a\n\n\t\nbar: 1\n",
+                     "foo: >\n  a\n \t\nbar: 1\n"):
+            with self.assertRaises(R.ReadError, msg=text):
+                read(text)
+        # After the last node of a document such a line is a comment line of the stream (production 211
+        # with 78), so it is valid; so is a tab line followed by more comments, `...` or the end.
+        for text, want in (("a: |\n  x\n\t\n", {"a": "x\n"}), ("a: |\n  x\n\t# c\n", {"a": "x\n"}),
+                           ("|\n  x\n\t\n", "x\n"), ("a: |\n  x\n\t\n# c\n", {"a": "x\n"}),
+                           ("- |\n  x\n\t\n", ["x\n"]), ("a: >\n  x\n\t\n...\n", {"a": "x\n"})):
+            self.assertEqual(read(text), want, text)
+        # With more content of the same document after the comment lines it is an error again.
+        for text in ("a: |\n  x\n\t\n# c\nb: 1\n", "a: |\n  x\n\t# c\n\nb: 1\n"):
+            with self.assertRaises(R.ReadError, msg=text):
+                read(text)
+        # Tabs inside the scalar's own lines, a trailing comment and a tab line after a plain value stay valid.
+        self.assertEqual(read("foo: |\n  a\n  \tb\nbar: 1\n"), {"foo": "a\n\tb\n", "bar": 1})
+        self.assertEqual(read("foo: |\n  a\n# c\n\t\nbar: 1\n"), {"foo": "a\n", "bar": 1})
+        self.assertEqual(read("foo: 1\n\t\nbar: 1\n"), {"foo": 1, "bar": 1})
+
+    def test_directive_errors_are_refused(self):
+        # 9MMA, B63P: a directive is followed by the `---` of its document (production 209), and a
+        # stream of a directive alone, or a directive and `...`, has none.
+        # SF5V: a YAML directive must not be given twice for one document (section 6.8.1).
+        # MUS6/00: a comment after the version needs white space before its `#`.
+        for text in ("%YAML 1.2\n", "%YAML 1.2\n...\n", "%YAML 1.2\n%YAML 1.2\n---\na\n", "%YAML 1.1#...\n---\na\n",
+                     "%YAML 1.2\n%YAML 1.1\n---\na\n", "%YAML 1.2\n# c\na: 1\n"):
+            with self.assertRaises(R.ReadError, msg=text):
+                read(text)
+        for text, want in (("%YAML 1.2\n---\na\n", "a"), ("%YAML 1.1 # c\n---\na\n", "a"),
+                           ("# c\n%YAML 1.2\n\n---\n- a\n", ["a"]), ("%YAML   1.2\n--- a\n", "a")):
+            self.assertEqual(read(text), want, text)
+
     def test_most_invalid_documents_are_refused(self):
         invalid = [c for c in C.load_yts() if c.expect["kind"] == "error"]
         self.assertEqual(len(invalid), 94)
@@ -165,8 +201,9 @@ class AgreesWithTheSuite(unittest.TestCase):
                 accepted.append(c.id)
             except (R.ReadError, UnicodeDecodeError):
                 pass
-        # It is a judge of what a writer wrote, not a validator; this records how far it is one.
-        self.assertLessEqual(len(accepted), 5, accepted)
+        # It is a judge of what a writer wrote, not a validator; this records how far it is one: every
+        # invalid document of the pinned suite is refused.
+        self.assertEqual(accepted, [])
 
 
 class Judging(unittest.TestCase):
@@ -301,6 +338,17 @@ class Judging(unittest.TestCase):
         for text in ("2001-12-14  1:2:3", "2001-1-1T1:2:3Z", "2001-12-14t21:5:43.10-05:00", "2001-12-14 21:59:43.10 -5",
                      "2001-12-14\t21:59:43", "2001-12-14 1:02:03 +5"):
             self.assertEqual(evaluate(text, (text + "\n").encode())[:2], ("pass", "fail"), text)
+
+    def test_go_takes_a_comma_before_the_fraction_of_a_timestamp(self):
+        # time.Parse reads `,` as well as `.` before a fraction of seconds, so gopkg.in/yaml.v3 and v4
+        # resolve these as timestamps; PyYAML and the 1.1 type page do not. A writer must quote them
+        # for the Go readers, in strict mode only.
+        for text in ("2001-12-14 21:59:43,10", "2001-12-14T21:59:43,10Z", "2001-12-14t21:59:43,10-05:00",
+                     "2001-12-14 1:2:3,5"):
+            self.assertEqual(evaluate(text, (text + "\n").encode())[:2], ("pass", "fail"), text)
+        # No digit after the comma, or a comma in a form Go does not take: still a string.
+        for text in ("2001-12-14 21:59:43,", "2001-12-14 21:59:43,x", "2001-12-14,10", "2001-12-14T21:59:43,10"):
+            self.assertEqual(evaluate(text, (text + "\n").encode())[:2], ("pass", "pass"), text)
 
     def test_tabs_separate_but_never_indent(self):
         # White space, tabs included, separates a node from what comes before it (s-separate-in-line),

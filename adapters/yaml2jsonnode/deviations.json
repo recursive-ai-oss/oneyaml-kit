@@ -4473,6 +4473,13 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Rewrites the document with every scalar double-quoted, where the copied plain string stays plain: first difference at byte 8"
+  },
+  {
+   "case": "own:edit/refuse-ambiguous-empty-token",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library reports the quoted empty key and the null key as a duplicate key at parse time, so the error is duplicate-key instead of refused-ambiguous"
   }
 ]
 }

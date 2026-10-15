@@ -741,28 +741,28 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "unsupported",
-   "reason": "the library has no byte string it writes as !!binary"
+   "reason": "a byte slice is written as a list of integers, and the value type has no byte string"
   },
   {
    "case": "own:emit/binary-value-as-the-document",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "unsupported",
-   "reason": "the library has no byte string it writes as !!binary"
+   "reason": "a byte slice is written as a list of integers, and the value type has no byte string"
   },
   {
    "case": "own:emit/binary-values-are-tagged-base64",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "unsupported",
-   "reason": "the library has no byte string it writes as !!binary"
+   "reason": "a byte slice is written as a list of integers, and the value type has no byte string"
   },
   {
    "case": "own:emit/binary-values-are-tagged-base64",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "unsupported",
-   "reason": "the library has no byte string it writes as !!binary"
+   "reason": "a byte slice is written as a list of integers, and the value type has no byte string"
   },
   {
    "case": "own:edit/set-value-of-explicit-null-key-at-end-of-large-mapping",
@@ -777,6 +777,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reports that the replace target does not exist: the empty pointer token does not reach the explicit null key"
+  },
+  {
+   "case": "own:edit/refuse-ambiguous-empty-token",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Two keys match the empty token and the write is applied without an error"
+  },
+  {
+   "case": "own:edit/refuse-ambiguous-empty-token",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: no error is reported"
   }
 ]
 }

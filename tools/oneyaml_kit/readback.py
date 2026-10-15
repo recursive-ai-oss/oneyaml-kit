@@ -94,6 +94,8 @@ def _is_ws_or_end(ch: str) -> bool:
     return ch == "" or ch in " \t\n"
 
 
+_YAML_DIRECTIVE = re.compile(r"%YAML[ \t]+1\.[12](?:[ \t]+#.*)?[ \t]*")
+
 # --------------------------------------------------------------------------
 # Parser
 
@@ -240,12 +242,20 @@ class Parser:
             self.i = 1
         col = self.next_line(at_line_start=True, tab_ok=True)
         tabbed = col is not None and self.peek() in " \t"
+        directives = 0
         while col is not None and self.peek() == "%":
             line = self.s[self.i:self.s.find("\n", self.i) if "\n" in self.s[self.i:] else self.n]
-            if line.split("#")[0].split() not in (["%YAML", "1.1"], ["%YAML", "1.2"]):
+            # A comment after a directive needs white space before its `#` (section 6.8, production
+            # 82 with 79 and 77): `%YAML 1.1#x` is a version with trailing text, not a comment.
+            if not _YAML_DIRECTIVE.fullmatch(line):
                 raise ReadError(f"directive {line.strip()!r} is outside what the kit reads")
+            directives += 1
+            if directives > 1:
+                raise ReadError("a YAML directive is given more than once (section 6.8.1)")
             col = self.next_line()
         explicit = False
+        if directives and not (self.i < self.n and self.marker_at(self.i) == "---"):
+            raise ReadError("a directive needs the `---` of its document after it (production 209)")
         if self.i < self.n and self.marker_at(self.i) == "---":
             explicit = True
             self.i += 3
@@ -536,6 +546,14 @@ class Parser:
             k = self.s.find("\n", j + 1)
             j = self.n if k < 0 else k
         self.i = j
+        # What follows the scalar's lines is another line of the enclosing node or a trailing comment
+        # that starts with `#` after spaces; a tab there is not indentation and not an empty line
+        # (s-indent is spaces, and l-trail-comments needs a `#`), so it is an error when more of the
+        # document follows; after the last node of a document such a line is a comment line of the
+        # stream (production 211).
+        after = self.s[j + 1:self.s.find("\n", j + 1) if "\n" in self.s[j + 1:] else self.n] if j < self.n else ""
+        if after.lstrip(" ").startswith("\t") and self._more_of_document(j + 1):
+            raise ReadError(f"a tab after a block scalar at line {self.line() + 1}: only spaces indent")
         lines = lines[:used]
         trailing = 0
         while lines and lines[-1] == "":
@@ -555,6 +573,16 @@ class Parser:
         else:
             text = "\n" * trailing if chomp == "keep" else ""
         return Scalar(text, style="literal" if style == "|" else "folded", tag=tag)
+
+    def _more_of_document(self, start: int) -> bool:
+        """Whether, from the line at `start`, a line with content comes before the end of the text or a
+        `...` or `---` marker. Blank lines and comment lines are not content."""
+        for line in self.s[start:].split("\n"):
+            body = line.strip(" \t")
+            if body == "" or body[0] == "#":
+                continue
+            return not self.line_is_marker(line)
+        return False
 
     def line_is_marker(self, line: str) -> bool:
         return line[:3] in ("---", "...") and _is_ws_or_end(line[3:4])
@@ -892,12 +920,13 @@ _DATE = r"[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}"
 # and time with one or two digits of hour and two of minute and second, a zone that is optional.
 # gopkg.in/yaml.v3 and v4 (Go layouts): one or two digits in every field, a `T` or `t` form that
 # needs a zone written `Z` or `+hh:mm`, and a form with spaces and no zone.
+# Go reads a comma as well as a dot before the fraction, which PyYAML does not.
 _Y11_TIMESTAMP = re.compile(
     _DATE
     + r"|" + _DATE + r"(?:[Tt]|[ \t]+)[0-9]{1,2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]*)?"
       r"(?:[ \t]*(?:Z|[-+][0-9]{1,2}(?::[0-9]{2})?))?"
-    + r"|" + _DATE + r"[Tt][0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}(?:\.[0-9]+)?(?:Z|[-+][0-9]{2}:[0-9]{2})"
-    + r"|" + _DATE + r" +[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}(?:\.[0-9]+)?")
+    + r"|" + _DATE + r"[Tt][0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}(?:[.,][0-9]+)?(?:Z|[-+][0-9]{2}:[0-9]{2})"
+    + r"|" + _DATE + r" +[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}(?:[.,][0-9]+)?")
 
 # Number forms that readers accept beyond both schemas.
 _RADIX = {"x": "0-9a-fA-F_", "o": "0-7_", "b": "01_"}

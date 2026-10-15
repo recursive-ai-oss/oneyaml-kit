@@ -379,12 +379,12 @@ fn native(j: &Json, depth: usize) -> Result<Value, String> {
                 }));
             }
             if let Some(tagged) = o.get("$tagged") {
-                // The value type has no byte string, so a binary node is declined, not written
-                // as text or as a list of numbers.
+                // serialize_bytes writes a list of integers and the value type has no byte string,
+                // so a binary node is declined, not wrapped in a tag, text or a list by the adapter.
                 let binary =
                     tagged.get("tag").and_then(Json::as_str) == Some("tag:yaml.org,2002:binary");
                 return Err(if binary {
-                    "the library has no byte string it writes as !!binary".into()
+                    "a byte slice is written as a list of integers, and the value type has no byte string".into()
                 } else {
                     "tagged value".into()
                 });
