@@ -115,5 +115,15 @@ class Report(unittest.TestCase):
             report.render([])
 
 
+class ConventionLink(unittest.TestCase):
+    def test_the_conventions_link_works_outside_the_kit(self):
+        rows = [{"id": "own:edit/x", "suite": "own", "category": "edit", "op": "patch", "expect": "bytes",
+                 "tags": ["convention"], "loose": "pass", "strict": "pass"}]
+        text = "\n".join(report._convention_section(rows))
+        self.assertIn("(https://github.com/recursive-ai-oss/oneyaml-kit/blob/main/docs/edit-semantics.md)",
+                      text)
+        self.assertNotIn("`docs/", text)
+
+
 if __name__ == "__main__":
     unittest.main()

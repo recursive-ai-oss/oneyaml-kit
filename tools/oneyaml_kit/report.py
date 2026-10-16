@@ -50,6 +50,11 @@ CRITERIA = """\
 """
 
 
+# An absolute link, because libraries paste this report into their own docs, where a
+# path relative to the kit would be dead.
+EDIT_CONVENTIONS = "https://github.com/recursive-ai-oss/oneyaml-kit/blob/main/docs/edit-semantics.md"
+
+
 def group_of(r: dict) -> str:
     suite = "yaml-test-suite" if r["suite"] == "yaml-test-suite" else "kit cases"
     if r["suite"] == "yaml-test-suite":
@@ -85,7 +90,8 @@ def _convention_section(cases: list[dict]) -> list[str]:
     for r in sorted(rows, key=lambda r: (group_of(r), r["id"])):
         groups.setdefault(group_of(r), []).append(r)
     out = ["Cases whose expected bytes rest on a kit convention (the specification does not decide "
-           "them; see `docs/edit-semantics.md`). They are counted in the table above too.", "",
+           "them; see [the kit's edit conventions](" + EDIT_CONVENTIONS + ")). "
+           "They are counted in the table above too.", "",
            "| Group | Cases | Loose pass | Loose fail | Strict pass | Strict fail | Unsupported |",
            "|---|---:|---:|---:|---:|---:|---:|"]
 
