@@ -32,7 +32,7 @@ func fail(err error) gokit.Result {
 		cat := "syntax"
 		switch se.Category {
 		case "encoding", "duplicate-key":
-			cat = se.Category
+			cat = string(se.Category)
 		}
 		return gokit.Err(cat, se.Error(), se.Line, se.Column)
 	case errors.As(err, &le):
