@@ -52,7 +52,7 @@ Per case: `loose` and `strict` are each `pass`, `fail` or `unsupported`.
   status, error category, position and message, the number of events, so a verdict can be
   audited without re-running.
 - `measured` (bounded cases): `seconds`, `time_bound` (the time bound that was enforced:
-  the case's own bound times the machine's speed factor, see the case format) and `peak_mb`,
+  the case's own bound, a hang guard, see the case format) and `peak_mb`,
   the peak resident-memory growth (null where it cannot be measured). A case whose adapter
   could not be started has `seconds` 0 and `peak_mb` null.
 - `tags`: the kit case's tags, for kit cases that have any (for example `convention`), so a

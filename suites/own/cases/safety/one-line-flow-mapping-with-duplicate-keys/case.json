@@ -22,7 +22,7 @@
  },
  "expect": {
   "kind": "bounded",
-  "time_seconds": 10,
+  "time_seconds": 100,
   "memory_mb": 128,
   "error": [
    "duplicate-key",

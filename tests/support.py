@@ -7,11 +7,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 sys.dont_write_bytecode = True
-# The kit's own tests pin the time-bound factor so that their timings do not depend on the machine.
-# The tests that run real adapters keep the measured factor: they are the ones that must hold on a
-# slow or busy machine.
-if os.environ.get("KIT_ADAPTER_TESTS") != "1":
-    os.environ.setdefault("KIT_TIME_SCALE", "1")
 
 from oneyaml_kit.cases import b64  # noqa: E402
 
@@ -22,11 +17,7 @@ def run_adapters(names, cases, workers=1, slowest=()):
     The builds share a language's output folder and its restore cache, so they never overlap. A run
     only talks to a process of its own (every bounded case starts a fresh one), so the runs do not
     depend on each other, and the slowest adapter sets the time instead of the sum of all of them.
-    The time-bound factor is never below 1, so running side by side cannot tighten a bound; the
-    probe is a single-threaded loop, so it sees the extra load only when cores are saturated, and
-    probes taken by two runs at the same moment must not stretch each other's bound (they share one
-    interpreter lock, so the factor is measured under a lock);
-    the memory bounds are measured per process and are not affected. Bounded cases
+    Memory bounds are measured per process and are not affected by it. Bounded cases
     can each grow a process by up to a gigabyte, and adapters reach them at the same point of the
     run, so `workers` is kept small to stay inside the memory the gate is given. The adapters named in
     `slowest` start first, so the longest run does not begin after the others have filled the workers.

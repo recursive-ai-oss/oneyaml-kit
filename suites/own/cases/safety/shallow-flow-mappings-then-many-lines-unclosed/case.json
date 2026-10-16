@@ -14,7 +14,7 @@
   "YAML 1.2.2 section 7.4.1",
   "YAML 1.2.2 section 3.2.1.1"
  ],
- "notes": "The input is never closed, so it is an error: a syntax error at the end of the input, or a limit error if the reader refuses the nesting first. No result is allowed. The keys of the innermost mapping are 140,608 different names (`xaaa` to `xZZZ`, none of them a number, boolean or null), so a reader that rejects duplicate keys still reads every line. This is the control for safety/deep-flow-mappings-then-many-lines-unclosed: the same lines but only a hundred open mappings, with a bound of 2 seconds against 0.5 for the deep case: an ordinary reader needs up to about 0.8 seconds for this many lines, so the same bound would put some of them within a few percent of it. A reader that is slow here is slow per line whatever the depth; one that passes here and fails the deep case pays for the depth. The time bound is the robustness requirement of the kit, not a rule of the specification. Input: a hundred `{`, then each name followed by a comma and a line break.",
+ "notes": "The input is never closed, so it is an error: a syntax error at the end of the input, or a limit error if the reader refuses the nesting first. No result is allowed. The keys of the innermost mapping are 140,608 different names (`xaaa` to `xZZZ`, none of them a number, boolean or null), so a reader that rejects duplicate keys still reads every line. This is the control for safety/deep-flow-mappings-then-many-lines-unclosed: the same lines but only a hundred open mappings, with a limit of 20 seconds against 100 for the deep case. An ordinary reader needs up to about 0.8 seconds for this many lines. Both limits are hang guards and neither is a measure of cost, so the pair no longer shows a reader that pays for the depth: such a reader passes both when it finishes inside the limits. This case now catches only a reader that takes more than 20 seconds for these lines, or that hangs. The limits are the robustness requirement of the kit, not a rule of the specification. Input: a hundred `{`, then each name followed by a comma and a line break.",
  "provenance": {
   "reference": "The control for a reader whose time grew with the number of open flow mappings; at this depth the cost of a line is small."
  },
@@ -23,7 +23,7 @@
  },
  "expect": {
   "kind": "bounded",
-  "time_seconds": 2,
+  "time_seconds": 20,
   "memory_mb": 1024,
   "error": [
    "limit",

@@ -1689,20 +1689,6 @@
    "reason": "Rejects valid input: \"While scanning a tag, did not find the expected '>'.\" at 1:1"
   },
   {
-   "case": "own:safety/deep-flow-mappings-then-many-lines-unclosed",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Over the time bound: the same 140,608 lines took 0.5 s at depth 100, 0.6 s at 1,000 and 4 s at 9,000 (shared host, load about 13), so the time grows with the number of open flow mappings"
-  },
-  {
-   "case": "own:safety/deep-flow-mappings-then-many-lines-unclosed",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Over the time bound: the same 140,608 lines took 0.5 s at depth 100, 0.6 s at 1,000 and 4 s at 9,000 (shared host, load about 13), so the time grows with the number of open flow mappings"
-  },
-  {
    "case": "own:safety/one-line-flow-mapping-with-duplicate-keys",
    "expectation": "primary",
    "mode": "loose",

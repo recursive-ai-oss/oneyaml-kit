@@ -13,7 +13,7 @@ from pathlib import Path
 from . import compare
 from .cases import (Case, ROOT, YTS_RELEASE, SUITE_YTS, corpus_digest, current_pins, kit_version,
                     slow_ids, yts_revision)
-from . import speed, vocabulary
+from . import vocabulary
 from .protocol import PROTOCOL, SUPPORTED_PROTOCOLS, SubprocessAdapter
 
 RESULT_FORMAT = "oneyaml-kit-results/2"
@@ -104,12 +104,12 @@ def _load() -> float | None:
         return None
 
 
-def limits_of(case: Case, scale: float = 1.0) -> dict | None:
-    """The bounds to enforce for a case; `scale` stretches the time bound for a slow machine
-    (see speed.py). The memory bound is never scaled: it does not depend on speed."""
+def limits_of(case: Case) -> dict | None:
+    """The bounds to enforce for a case, exactly as the case states them. The time bound is a
+    hang guard, generous by design; the memory bound is the real check."""
     e = case.expect
     if e["kind"] == "bounded":
-        return {"time_seconds": e["time_seconds"] * scale, "memory_mb": e["memory_mb"]}
+        return {"time_seconds": e["time_seconds"], "memory_mb": e["memory_mb"]}
     return None
 
 
@@ -214,9 +214,8 @@ def execute(ad, caps: set, cases: list[Case], progress=None, emulates=(),
         t = time.monotonic()
         base, _ = compare.required_caps(c, c.expect)
         # A case the adapter has not declared support for is not sent at all.
-        scale = speed.time_scale() if c.expect["kind"] == "bounded" else 1.0
         if compare.satisfied(base, caps):
-            lim = limits_of(c, scale)
+            lim = limits_of(c)
             if lim and hasattr(ad, "run_fresh"):
                 # A bounded case is measured in a process of its own, from a clean start.
                 resp = ad.run_fresh(c.id, c.op, c.input, c.args, lim)

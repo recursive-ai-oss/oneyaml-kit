@@ -220,7 +220,7 @@ included; only a crash, a timeout or an unreadable answer fails the case. The
 shared process that serves the ordinary cases is not touched. An adapter therefore starts
 once for the run and once more for each bounded case it declares support for; a case it
 does not declare is not sent and starts nothing. The runner uses the case's own time bound
-(stretched for a slow machine, see the case format) as the timeout, polls the
+(a hang guard, see the case format) as the timeout, polls the
 adapter's resident memory while the case runs and kills the process if its growth passes
 the case's memory bound, and afterwards reads the peak resident memory since the case
 started (growth over what the new process held after the warm-up request). **The whole process tree is measured**, not only the process the kit starts: the adapter

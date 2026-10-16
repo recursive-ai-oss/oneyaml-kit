@@ -136,7 +136,8 @@ def _over_bounds(expect: dict, resp: dict) -> str:
     """Why a bounded case went over its time or memory bound, or ''."""
     m = resp.get("_measure") or {}
     secs, peak = m.get("seconds"), m.get("peak_mb")
-    # The runner may have stretched the bound for a slow machine; what it enforced is what counts.
+    # The measurement carries the limit the runner enforced, which is the case's own; a result
+    # recorded without one falls back to the case.
     bound = m.get("time_bound") or expect["time_seconds"]
     if secs is not None and secs > bound:
         return f"took {secs:.2f} s, bound {bound:g} s"

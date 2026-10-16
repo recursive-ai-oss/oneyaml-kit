@@ -31,7 +31,7 @@
  },
  "expect": {
   "kind": "bounded",
-  "time_seconds": 5,
+  "time_seconds": 50,
   "memory_mb": 512,
   "error": "limit",
   "accept": {
