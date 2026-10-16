@@ -32,11 +32,26 @@ MEMORY_BAND = 0.02
 # and up to about 12% apart in all (quick mode, repeated runs). Every other library repeated within
 # about 1.2%. A comparison involving a library listed here uses the wider band.
 MEMORY_BANDS = {"yamldotnet": 0.12}
+# A memory gap smaller than this many bytes is a tie, whatever the ratio, when a library that is
+# listed in MEMORY_FLOORS is in the comparison. On .NET cells under 1 KB the figure moves between
+# processes by a few bytes, which is a large ratio on a cell that small. Repeated quick runs differed by up to 22 bytes for our .NET
+# library, 6 for SharpYaml's syntax reader and 3 for VYaml; 64 bytes is about three times the largest.
+# Rust allocation counts repeated exactly (no spread over 35 repeated cells), and Go's repeat closely,
+# so they have no floor: there a small gap is a result. Above the floor the relative band decides.
+MEMORY_FLOOR_BYTES = 64
+MEMORY_FLOORS = {lib: MEMORY_FLOOR_BYTES
+                 for lib in ("oneyaml-csharp", "oneyaml-csharp-gen", "sharpyaml-syntax", "vyaml")}
 
 
 def memory_band(*libraries: str) -> float:
     """The memory band for a comparison: the widest band of the libraries compared."""
     return max(MEMORY_BANDS.get(lib, MEMORY_BAND) for lib in libraries)
+
+
+def memory_floor(*libraries: str) -> int:
+    """The absolute memory floor in bytes for a comparison: the largest floor of the libraries
+    compared, and 0 when none of them has one."""
+    return max(MEMORY_FLOORS.get(lib, 0) for lib in libraries)
 
 
 class ResultError(Exception):
@@ -50,8 +65,11 @@ def ratio(value: float, reference: float) -> float:
     return value / reference
 
 
-def verdict(own: float, other: float, band: float) -> str:
-    """`win`, `loss` or `tie` for the first value against the second; smaller is better."""
+def verdict(own: float, other: float, band: float, floor: float = 0) -> str:
+    """`win`, `loss` or `tie` for the first value against the second; smaller is better. A gap
+    smaller than `floor` (in the values' own unit) is a tie whatever the ratio."""
+    if abs(own - other) < floor:
+        return "tie"
     r = ratio(own, other)
     if r < 1 - band:
         return "win"
@@ -141,9 +159,10 @@ def compare_rows(cells: list[dict]) -> list[dict]:
                     entry[m] = None
                     continue
                 band = memory_band(c["library"], best["library"]) if m == "memory" else base_band
+                floor = memory_floor(c["library"], best["library"]) if m == "memory" else 0
                 entry[m] = {"ratio": ratio(value_of(c, m), value_of(best, m)), "vs": best["library"],
                             "vs_mark": non_reference_label(best),
-                            "verdict": verdict(value_of(c, m), value_of(best, m), band)}
+                            "verdict": verdict(value_of(c, m), value_of(best, m), band, floor)}
             row["own"].append(entry)
         out.append(row)
     return out

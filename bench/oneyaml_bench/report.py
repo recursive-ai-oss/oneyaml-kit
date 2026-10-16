@@ -272,11 +272,13 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
     wide = {k: v for k, v in results.MEMORY_BANDS.items() if v > results.MEMORY_BAND}
     wide_names = " and ".join("YamlDotNet" if k == "yamldotnet" else k for k in wide)
     wide_band = max(wide.values(), default=results.MEMORY_BAND)
+    floor_names = ", ".join(f"`{k}`" for k in results.MEMORY_FLOORS)
     L.append("## Summary\n")
     L.append("Each row of the tables compares our library with the **strongest competitor in that row** "
              "(the fastest for time, the least allocated for memory). A competitor that did less than the full "
              "task is still the one compared with when it is ahead: it is named with a † and its reason, and "
              f"a loss to it is a loss. A gap under {results.TIME_BAND:.0%} for time or {results.MEMORY_BAND:.0%} for memory is a tie"
+             f", and so is a memory gap under {results.MEMORY_FLOOR_BYTES} bytes whatever the ratio when a comparison involves {floor_names}"
              f"; against {wide_names}, whose allocations vary between runs, a memory gap under {wide_band:.0%} is a tie. "
              "Cells without a number say why.\n")
     summ = []
