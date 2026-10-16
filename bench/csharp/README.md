@@ -17,10 +17,10 @@ under the driver's build directory, never into this folder.
 | Id | Package | API used | Tasks |
 |---|---|---|---|
 | `yamldotnet` | YamlDotNet 18.1.0 | `DeserializerBuilder` / `SerializerBuilder`, reflection | typed-load, generic-load, dump |
-| `sharpyaml` | SharpYaml 3.14.0 | `YamlSerializer`; typed models through a source-generated `YamlSerializerContext`; untyped as `object` | typed-load, generic-load (one document), dump |
-| `sharpyaml-model` | SharpYaml 3.14.0 | `YamlStream.Load`, nodes written back with `ToString` | generic-load (every document), dump |
-| `sharpyaml-syntax` | SharpYaml 3.14.0 | `YamlSyntaxTree.Parse`, `ToFullString`, `WithTextChange` | document-parse, unchanged-emit, edit-script |
-| `vyaml` | VYaml 1.4.0 | `YamlSerializer` over UTF-8 bytes; typed models marked `[YamlObject]` so its source generator writes the formatters | typed-load, generic-load, dump |
+| `sharpyaml` | SharpYaml 3.16.0 | `YamlSerializer`; typed models through a source-generated `YamlSerializerContext`; untyped as `object` | typed-load, generic-load (one document), dump |
+| `sharpyaml-model` | SharpYaml 3.16.0 | `YamlStream.Load`, nodes written back with `ToString` | generic-load (every document), dump |
+| `sharpyaml-syntax` | SharpYaml 3.16.0 | `YamlSyntaxTree.Parse`, `ToFullString`, `WithTextChange` | document-parse, unchanged-emit, edit-script |
+| `vyaml` | VYaml 1.4.1 | `YamlSerializer` over UTF-8 bytes; typed models marked `[YamlObject]` so its source generator writes the formatters | typed-load, generic-load, dump |
 | `yaml2jsonnode` | Yaml2JsonNode 3.0.1, JsonPatch.Net 5.0.3 | YAML to `JsonNode` and back; System.Text.Json for typed models; RFC 6902 on the tree | typed-load, generic-load, dump, patch |
 
 Optional rows, built in only when the machine has the library:

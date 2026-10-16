@@ -42,6 +42,25 @@ class RatioAndVerdict(unittest.TestCase):
         self.assertEqual(R.verdict(105, 100, R.MEMORY_BAND), "loss")
         self.assertEqual(R.verdict(1000, 1010, R.MEMORY_BAND), "tie")
 
+    def test_dotnet_memory_band_is_wider(self):
+        # .NET allocation figures drift between processes, so a gap inside the band is a tie.
+        band = R.memory_band("csharp")
+        self.assertGreater(band, R.MEMORY_BAND)
+        self.assertEqual(R.verdict(1090, 1000, band), "tie")
+        self.assertEqual(R.verdict(915, 1000, band), "tie")
+        self.assertEqual(R.verdict(1130, 1000, band), "loss")
+        self.assertEqual(R.verdict(870, 1000, band), "win")
+        # Other languages keep the narrow band.
+        self.assertEqual(R.memory_band("go"), R.MEMORY_BAND)
+        self.assertEqual(R.memory_band("rust"), R.MEMORY_BAND)
+
+    def test_row_verdict_uses_the_language_band(self):
+        def row(language):
+            cells = [cell("ours", "own", peak=1090, language=language), cell("rival", peak=1000, language=language)]
+            return R.compare_rows(cells)[0]["own"][0]["memory"]["verdict"]
+        self.assertEqual(row("csharp"), "tie")
+        self.assertEqual(row("go"), "loss")
+
 
 class Rows(unittest.TestCase):
     def test_reference_is_the_best_competitor_not_the_first_or_ours(self):

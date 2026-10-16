@@ -273,7 +273,7 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
     L.append("Each row of the tables compares our library with the **strongest competitor in that row** "
              "(the fastest for time, the least allocated for memory). A competitor that did less than the full "
              "task is still the one compared with when it is ahead: it is named with a † and its reason, and "
-             "a loss to it is a loss. A gap under 5% for time or 2% for memory is a tie. Cells without a number say why.\n")
+             "a loss to it is a loss. A gap under 5% for time or 2% for memory (12% for .NET) is a tie. Cells without a number say why.\n")
     summ = []
     own_langs = own_languages(cells)
     for lang in sorted(own_langs):

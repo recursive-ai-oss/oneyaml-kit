@@ -28,6 +28,14 @@ STATUSES = ("ok", "differs", "rejects", "unsupported", "unjudged", "error")
 # and a shared machine moves it by a few percent, so a narrower gap is not a result.
 TIME_BAND = 0.05
 MEMORY_BAND = 0.02
+# .NET allocation figures move by up to about 12% between processes (tiered compilation and dynamic
+# profile-guided optimisation change what the runtime allocates), and each .NET library runs in a
+# process of its own, so a narrower gap there is not a result. Go and Rust count exactly.
+MEMORY_BANDS = {"csharp": 0.12}
+
+
+def memory_band(language: str) -> float:
+    return MEMORY_BANDS.get(language, MEMORY_BAND)
 
 
 class ResultError(Exception):
@@ -126,7 +134,8 @@ def compare_rows(cells: list[dict]) -> list[dict]:
             if c["role"] != "own":
                 continue
             entry = {"library": c["library"], "language": c["language"], "status": c["status"]}
-            for m, (_, _, band) in METRICS.items():
+            for m, (_, _, base_band) in METRICS.items():
+                band = memory_band(c["language"]) if m == "memory" else base_band
                 best = row["best"][m]
                 if c["status"] != "ok" or best is None:
                     entry[m] = None

@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <!-- The library under test, pinned to one exact release. -->
-    <PackageReference Include="SharpYaml" Version="[3.14.0]" />
+    <PackageReference Include="SharpYaml" Version="[3.16.0]" />
     <ProjectReference Include="../dotnet-common/Common.csproj" />
   </ItemGroup>
 

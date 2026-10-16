@@ -7,8 +7,8 @@ hold no YAML code of their own.
 | Adapter | Library (exact version) | Events | Values | Patches |
 |---|---|---|---|---|
 | `yamldotnet` | YamlDotNet 18.1.0 | `Parser` over a `StringReader` | `Deserializer` into `object`, one call per document | none: no patch or edit API |
-| `sharpyaml` | SharpYaml 3.14.0 | `Parser.CreateParser` | `YamlStream.Load`, then `ToObject<object>()` | `replace` of a scalar through `YamlSyntaxTree.WithTextChange` |
-| `vyaml` | VYaml 1.4.0 | `YamlParser.FromBytes`, style from `Utf8YamlTokenizer` | `YamlSerializer.DeserializeMultipleDocuments<object>` | none |
+| `sharpyaml` | SharpYaml 3.16.0 | `Parser.CreateParser` | `YamlStream.Load`, then `ToObject<object>()` | `replace` of a scalar through `YamlSyntaxTree.WithTextChange` |
+| `vyaml` | VYaml 1.4.1 | `YamlParser.FromBytes`, style from `Utf8YamlTokenizer` | `YamlSerializer.DeserializeMultipleDocuments<object>` | none |
 | `yaml2jsonnode` | Yaml2JsonNode 3.0.1 with JsonPatch.Net 5.0.3 | accepted or rejected only (`YamlSerializer.Parse`) | `YamlSerializer.Parse(...).ToJsonNode()` | all six RFC 6902 operations on the JSON tree |
 
 `yaml2jsonnode` pins YamlDotNet 18.1.0 itself (the package only asks for 16.3.0 or newer), so its parser

@@ -56,8 +56,8 @@
   <ItemGroup>
     <!-- The libraries under measurement and the harness, each pinned to one exact release. -->
     <PackageReference Include="YamlDotNet" Version="[18.1.0]" />
-    <PackageReference Include="SharpYaml" Version="[3.14.0]" />
-    <PackageReference Include="VYaml" Version="[1.4.0]" />
+    <PackageReference Include="SharpYaml" Version="[3.16.0]" />
+    <PackageReference Include="VYaml" Version="[1.4.1]" />
     <PackageReference Include="Yaml2JsonNode" Version="[3.0.1]" />
     <PackageReference Include="JsonPatch.Net" Version="[5.0.3]" />
     <PackageReference Include="BenchmarkDotNet" Version="[0.15.8]" />

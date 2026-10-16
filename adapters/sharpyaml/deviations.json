@@ -989,34 +989,6 @@
    "reason": "Reads the value differently: $[0].block: expected 'text\\n \\tlines\\n', got 'text\\n \\tlines\\x00'"
   },
   {
-   "case": "yts:52DL",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a tag, did not find expected tag URI."
-  },
-  {
-   "case": "yts:52DL",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a tag, did not find expected tag URI."
-  },
-  {
-   "case": "yts:52DL@value",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a tag, did not find expected tag URI."
-  },
-  {
-   "case": "yts:52DL@value",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a tag, did not find expected tag URI."
-  },
-  {
    "case": "yts:58MP",
    "expectation": "primary",
    "mode": "loose",
@@ -1379,34 +1351,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reads the value differently: $[0][0].single line: expected None, got ''"
-  },
-  {
-   "case": "yts:8MK2",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a tag, did not find expected tag URI."
-  },
-  {
-   "case": "yts:8MK2",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a tag, did not find expected tag URI."
-  },
-  {
-   "case": "yts:8MK2@value",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a tag, did not find expected tag URI."
-  },
-  {
-   "case": "yts:8MK2@value",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a tag, did not find expected tag URI."
   },
   {
    "case": "yts:8XYN",
@@ -2753,20 +2697,6 @@
    "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
   },
   {
-   "case": "yts:S4JQ",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a tag, did not find expected tag URI."
-  },
-  {
-   "case": "yts:S4JQ",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a tag, did not find expected tag URI."
-  },
-  {
    "case": "yts:S4JQ@value",
    "expectation": "primary",
    "mode": "loose",
@@ -2933,20 +2863,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Rejects valid input: While parsing a block mapping, did not find expected key."
-  },
-  {
-   "case": "yts:UKK6/02",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a tag, did not find expected tag URI."
-  },
-  {
-   "case": "yts:UKK6/02",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Rejects valid input: While parsing a tag, did not find expected tag URI."
   },
   {
    "case": "yts:UT92",
@@ -3708,15 +3624,15 @@
    "case": "own:edit/replace-nonspecific-tag-scalar-with-integer",
    "expectation": "primary",
    "mode": "loose",
-   "verdict": "fail",
-   "reason": "The library refused the patch: '(Lin: 0, Col: 3, Chr: 3) - (Lin: 0, Col: 4, Chr: 4): While parsing a tag, did not find expected tag URI.' at 1:4"
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: the scalar's span includes its anchor or tag (the library now parses the input)"
   },
   {
    "case": "own:edit/replace-nonspecific-tag-scalar-with-integer",
    "expectation": "primary",
    "mode": "strict",
-   "verdict": "fail",
-   "reason": "The library refused the patch: '(Lin: 0, Col: 3, Chr: 3) - (Lin: 0, Col: 4, Chr: 4): While parsing a tag, did not find expected tag URI.' at 1:4"
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: the scalar's span includes its anchor or tag (the library now parses the input)"
   },
   {
    "case": "own:parse/bom-after-bare-document-before-directives-end",
@@ -3955,20 +3871,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Writes text that does not read back as the value: the output does not read as YAML: a byte order mark is written raw outside a quoted scalar; it must be escaped"
-  },
-  {
-   "case": "own:emit/noncharacters-are-escaped",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Writes text that does not read back as the value: the output does not read as YAML: the character U+FFFE is written raw; it must be escaped"
-  },
-  {
-   "case": "own:emit/noncharacters-are-escaped",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Writes text that does not read back as the value: the output does not read as YAML: the character U+FFFE is written raw; it must be escaped"
   },
   {
    "case": "own:emit/number-preceded-by-two-signs-is-quoted",
