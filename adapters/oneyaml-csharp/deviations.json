@@ -14,6 +14,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The upstream value reads 450.00 as the integer 450; the library reads the float 450.0, which is right under the core schema (the corrected expectation passes)."
+  },
+  {
+   "case": "own:schema/escaped-surrogate-pair-is-one-character",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Refuses an escaped surrogate pair with an error (An escape sequence does not name a valid character, at 1:5); the case expects the one character the pair encodes"
+  },
+  {
+   "case": "own:schema/escaped-surrogate-pair-is-one-character",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Refuses an escaped surrogate pair with an error (An escape sequence does not name a valid character, at 1:5); the case expects the one character the pair encodes"
   }
  ]
 }

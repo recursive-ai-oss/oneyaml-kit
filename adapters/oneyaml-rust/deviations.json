@@ -903,6 +903,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Error category differs: expected one of limit, got duplicate-key; the key 1e400 is read as infinity and equals the key .inf"
+  },
+  {
+   "case": "own:schema/escaped-surrogate-pair-is-one-character",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Refuses an escaped surrogate pair with an error (invalid escape sequence, at 1:4); the case expects the one character the pair encodes"
+  },
+  {
+   "case": "own:schema/escaped-surrogate-pair-is-one-character",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Refuses an escaped surrogate pair with an error (invalid escape sequence, at 1:4); the case expects the one character the pair encodes"
   }
 ]
 }

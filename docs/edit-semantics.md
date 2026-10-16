@@ -136,6 +136,8 @@ keys exactly or refuses the document with a `limit` error; it does not call them
 because its double rounds them alike. The rule does not reach floats inside the range that
 round to the same double. It is a convention (tag `convention`).
 
+An escaped high surrogate directly followed by an escaped low surrogate (`"\ud83d\ude00"`) reads as the one character the pair encodes, as JSON writes characters outside the Basic Multilingual Plane (RFC 8259 section 7). Any other `\u` escape of a surrogate, alone, reversed, or followed by anything but a low surrogate escape, is refused with a syntax error. YAML 1.2.2 decides neither: its escapes produce characters, and it counts every code point as one (section 5.2). Both halves are conventions (tag `convention`).
+
 ## Comments
 
 Edits to a value do not touch comments outside the value. A comment inside a collection

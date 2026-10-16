@@ -1,0 +1,36 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/escaped-surrogate-pair-is-one-character",
+ "title": "An escaped high surrogate directly followed by an escaped low surrogate is one character",
+ "category": "schema",
+ "origin": "bug",
+ "productions": [
+  "41",
+  "60"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 1",
+  "YAML 1.2.2 section 5.7",
+  "RFC 8259 section 7"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "Production [60] ns-esc-16-bit escapes a 16-bit Unicode character, and YAML 1.2 aims to be a superset of JSON (section 1). RFC 8259 section 7 writes a character outside the Basic Multilingual Plane as a UTF-16 surrogate pair of two \\u escapes, so the kit reads a high surrogate escape followed directly by a low surrogate escape as the one character the pair encodes (U+1F600 here). The YAML text alone does not say this, so the case carries the convention tag. It covers lower-case and upper-case hexadecimal digits and a pair between other characters. A surrogate that is not half of such a pair is refused (see the mismatched and lone cases).",
+ "provenance": {
+  "reference": "A decoder that refused the two escapes of a surrogate pair, or turned each half into a replacement character, so a JSON string with a character outside the Basic Multilingual Plane could not be read."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": "\ud83d\ude00",
+    "b": "\ud83d\ude00",
+    "c": "x\ud83d\ude00y"
+   }
+  ]
+ }
+}

@@ -13,5 +13,8 @@
   {"case": "own:schema/unresolved-tag-is-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"},
   {"case": "own:schema/unresolved-tag-is-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"},
   {"case": "yts:UGM3@value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"},
-  {"case": "yts:UGM3@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"}
+  {"case": "yts:UGM3@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"},
+  {"case": "own:schema/duplicate-keys-hex-then-decimal-are-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Refuses the document with a different error: it reports the keys 0x1 and 1 as different numbers that round to the same float64, but they are the same integer, so the error is not classed as a duplicate-key error"},
+  {"case": "own:schema/escaped-surrogate-pair-is-one-character", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Refuses an escaped surrogate pair with an error (escape is not a Unicode scalar value, at 1:5); the case expects the one character the pair encodes"},
+  {"case": "own:schema/escaped-surrogate-pair-is-one-character", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Refuses an escaped surrogate pair with an error (escape is not a Unicode scalar value, at 1:5); the case expects the one character the pair encodes"}
  ]}

@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/escaped-lone-surrogate-is-refused",
+ "title": "A double-quoted escape naming a lone surrogate code point",
+ "category": "schema",
+ "origin": "bug",
+ "productions": [
+  "41",
+  "60"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.1",
+  "YAML 1.2.2 section 5.7",
+  "RFC 8259 section 8.2"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "Production [60] ns-esc-16-bit is an escaped 16-bit Unicode character. A surrogate code point (xD800 to xDFFF) is reserved for UTF-16 and encodes no character on its own: RFC 8259 section 8.2 calls a single unpaired surrogate escape a bit sequence that cannot encode a Unicode character, and a string holding one cannot be written in UTF-8, UTF-16 or UTF-32. YAML 1.2.2 does not settle it (section 5.2 counts every code point as a character, and leaving c-printable [1] does not make an escape invalid, as `\\0` shows), so the kit refuses the escape as a convention. Loose mode needs any error; strict needs the syntax category, as for other refused escapes. This case says nothing about an escaped surrogate pair: a lone surrogate is refused whatever a library does with pairs.",
+ "provenance": {
+  "reference": "A decoder that turned a \\u escape of a lone surrogate into a value (an invalid string or a replacement character) instead of refusing the escape."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax"
+ }
+}
