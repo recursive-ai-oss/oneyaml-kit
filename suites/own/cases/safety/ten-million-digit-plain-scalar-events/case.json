@@ -29,7 +29,7 @@
  ],
  "expect": {
   "kind": "bounded",
-  "time_seconds": 2,
+  "time_seconds": 20,
   "memory_mb": 1024,
   "error": "limit",
   "accept": {

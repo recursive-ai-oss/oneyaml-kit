@@ -39,15 +39,15 @@ class LargeAppends(unittest.TestCase):
         self.assertGreater(len(c.expect["accept"]["bytes"]), 1_000_000)
 
     def test_the_bound_is_the_siblings_rate_with_a_factor_of_two(self):
-        # The ten-megabyte sibling allows 10 s for 18.8 MB of events, but its flow collection is about
-        # 10 MB: about 1 s per megabyte. The result here is 4.1 MB, so 4.1 s, and the bound is twice that.
+        # The ten-megabyte sibling allows 100 s for 18.8 MB of events, but its flow collection is about
+        # 10 MB: about 10 s per megabyte. The result here is 4.1 MB, so 41 s, and the bound is twice that.
         c, big = CASES[ID], CASES[BIG]
         rate = big.expect["time_seconds"] / 10.0
         megabytes = len(c.expect["accept"]["bytes"]) / 1e6
-        self.assertAlmostEqual(rate, 1.0)
-        self.assertEqual(c.expect["time_seconds"], 8)
-        self.assertGreaterEqual(c.expect["time_seconds"], 2 * rate * megabytes - 0.5)
-        self.assertLessEqual(c.expect["time_seconds"], 2 * rate * megabytes + 0.5)
+        self.assertAlmostEqual(rate, 10.0)
+        self.assertEqual(c.expect["time_seconds"], 80)
+        self.assertGreaterEqual(c.expect["time_seconds"], 2 * rate * megabytes - 5)
+        self.assertLessEqual(c.expect["time_seconds"], 2 * rate * megabytes + 5)
         self.assertEqual(c.expect["category"], ["limit"])
 
     def test_the_bytes_and_the_recipe_that_builds_them_are_checked(self):

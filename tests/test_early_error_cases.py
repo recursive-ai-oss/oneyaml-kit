@@ -52,9 +52,9 @@ class Shape(unittest.TestCase):
 
     def test_the_bounds_follow_from_the_input_and_the_sibling(self):
         # Memory: 24 times the input, 1.46 times the heaviest delivery cost measured (about 16.4 times in
-        # a runtime with UTF-16 strings). Time: the sibling's 0.2 s per megabyte over 64 MiB, to the second.
+        # a runtime with UTF-16 strings). Time: the sibling's 2 s per megabyte over 64 MiB, to the second.
         rate = CASES[TEN_MILLION_DIGITS].expect["time_seconds"] / 10.0
-        self.assertAlmostEqual(rate, 0.2)
+        self.assertAlmostEqual(rate, 2.0)
         for cid in (FIRST_LINE,):
             e = CASES[cid].expect
             self.assertEqual(e["memory_mb"], 24 * 64)

@@ -197,7 +197,7 @@ A case never states more than it can justify: a check that is not stated is not 
 A `bounded` case names the acceptable outcomes and the resources it may use:
 
 ```json
-"expect": {"kind": "bounded", "time_seconds": 10, "memory_mb": 1024, "error": "limit",
+"expect": {"kind": "bounded", "time_seconds": 100, "memory_mb": 1024, "error": "limit",
            "accept": {"kind": "events", "file": "expected.events"}}
 ```
 
@@ -229,15 +229,14 @@ A `bounded` case names the acceptable outcomes and the resources it may use:
   answer. The process first answers one trivial request of the same kind (the text `a` and a line
   break, and an empty patch for a patch case), so first-use costs, such as compiling code just in
   time or loading types, are not counted against the case's bounds.
-- The time bound is stated for a reference machine. The runner measures how long a fixed
-  piece of work takes on the machine it runs on, and multiplies the bound by 1, 2, 4 or 8
-  (never less than 1, so a fast machine is held to the bound as written; at most 8). A slow or
-  busy machine, such as a two-core CI runner running several jobs at once, then does not fail a
-  library that would pass on a faster one. A bound that is still missed at the largest factor
-  is a hang or a runaway cost on any machine. The memory bound is never scaled. Each result
-  records the bound that was enforced (`measured.time_bound`). `KIT_TIME_SCALE=<number>` fixes
-  the factor and skips the measurement; the kit's own tests use it, and so can a run that must
-  be repeatable to the second.
+- The time bound is a hang guard, not a speed claim, and it is generous by design. It is set
+  far above the time any passing reader was measured to need, including on one or two cores; a
+  reader that passes close to its bound would make the verdict depend on the machine, and the case
+  is then corrected. A hang or a runaway cost trips it; a slow or busy
+  machine does not, and a reader that is slow but finishes inside it passes. It does not separate
+  readers by cost. The memory bound is the real check of a bounded case. The runner enforces the
+  time number as written, with no scaling for the machine, and each result records the bound that
+  was enforced (`measured.time_bound`). A bounded case states at least five seconds.
 - Loose passes when the outcome is the accepted result or any error, inside both bounds.
   Strict also needs the named category. If memory cannot be measured on the platform
   (see the adapter protocol: the whole process tree is measured), the memory bound is not
@@ -396,7 +395,8 @@ what a recipe builds, fails the kit's tests until the pins are regenerated and t
 checked.
 
 The large generated cases carry the tag `slow`: a case whose input, or whose expected result,
-is larger than 1 MB must. A run leaves them out, without building their
+is larger than 1 MB must, and so should a case that makes a competing library run to its full time limit
+(the limit is a hang guard of a hundred seconds or so). A run leaves them out, without building their
 inputs or expected results, unless `--slow` is given or the environment variable `KIT_SLOW` is
 set (to anything but empty or `0`). The full gate sets it, so the large cases run there and not in
 the hand-over tier. A run without them skips deviation entries that name them instead of calling

@@ -39,7 +39,7 @@ class Safety(unittest.TestCase):
     def test_every_safety_bound_is_explicit_and_modest(self):
         for c in ALL:
             if c.expect["kind"] == "bounded":
-                self.assertLessEqual(c.expect["time_seconds"], 20, c.id)
+                self.assertLessEqual(c.expect["time_seconds"], 200, c.id)
                 # A memory bound sits clear of what an honest reader needs to hold a large answer:
                 # the largest generated case measures honest readers up to 1.5 GB.
                 self.assertLessEqual(c.expect["memory_mb"], 2048, c.id)
