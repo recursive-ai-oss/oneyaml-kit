@@ -55,7 +55,7 @@ sealed class OneYamlKitAdapter : IAdapter
 
 #if ONEYAML_LINKED
     // Only the library's own exception type is a rejection; anything else escaping a library call is a
-    // defect and ends the process.
+    // defect, and the adapter answers a crash for that case.
     public bool IsLibraryException(Exception e) => e is OneYaml.YamlException or Decline;
 
     public Outcome Run(Request request)
