@@ -102,6 +102,10 @@ def describe(revision: str | None) -> dict:
         "kit_revision": revision,
     }
     # A rented machine says what it is, since the CPU model alone does not name the instance type.
+    # Any other host is local: the CPU, logical CPU count and memory above describe it.
     if os.environ.get("KIT_INSTANCE_TYPE"):
         env["instance_type"] = os.environ["KIT_INSTANCE_TYPE"]
+        env["where"] = "cloud"
+    else:
+        env["where"] = "local"
     return env

@@ -254,7 +254,7 @@ def smoke_notice(ctx: Ctx) -> list[str]:
     if missing:
         out += [f"> **INCOMPLETE RUN.** No results for {', '.join(missing)}.", ""]
     if ctx.run["smoke"]:
-        out += ["> **SMOKE RESULT.** Quick, or taken on a shared machine: not a claim about speed.", ""]
+        out += ["> **SMOKE RESULT.** Quick, or marked a smoke run: not a claim about speed.", ""]
     return out
 
 
@@ -268,9 +268,15 @@ def method_strip(ctx: Ctx) -> list[str]:
         f"`{ctx.version_of(ctx.library)}`; competitors "
         + ", ".join(f"`{ctx.version_of(l['id'])}`" for l in comps) + ". "
         f"Runtime {h['runtime']} (target {h['target']}), measured with {h['tool']}: {report.timer_text(h, run['mode'])}. Memory: {h['memory']}. "
-        f"{env['cpu']} ({env['cpus']} logical CPUs, {env['memory_gb']} GiB), {env['os']} ({env['machine']}), "
-        f"host load (1 min) {run['load']['before']} before, "
-        f"{run['load']['after']} after."]
+        + host_text(run, env)]
+
+
+def host_text(run: dict, env: dict) -> str:
+    local = report.local_host_text(run)
+    if local:
+        return f"{env['cpu']} ({env['memory_gb']} GiB), {env['os']} ({env['machine']}), {local}."
+    return (f"{env['cpu']} ({env['cpus']} logical CPUs, {env['memory_gb']} GiB), {env['os']} ({env['machine']}), "
+            f"host load (1 min) {run['load']['before']} before, {run['load']['after']} after.")
 
 
 def verdict_text(v: str | None) -> str:

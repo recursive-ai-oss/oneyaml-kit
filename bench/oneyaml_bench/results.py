@@ -197,6 +197,9 @@ def merge(parts: list[dict]) -> dict:
     merged = {**first, "run": dict(first["run"]), "harnesses": {}, "cells": []}
     merged["run"]["seconds"] = round(sum(p["run"]["seconds"] for p in parts), 1)
     merged["run"]["load"] = {"before": first["run"]["load"]["before"], "after": parts[-1]["run"]["load"]["after"]}
+    peaks = [p["run"]["load"]["peak"] for p in parts if "peak" in p["run"]["load"]]
+    if peaks:
+        merged["run"]["load"]["peak"] = max(peaks)
     merged["run"]["expected_languages"] = sorted({l for p in parts for l in p["run"].get("expected_languages", [])})
     for p in parts:
         merged["harnesses"].update(p["harnesses"])

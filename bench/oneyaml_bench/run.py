@@ -108,8 +108,9 @@ class Progress:
 
 
 def run_harness(h: dict, build_dir: Path, workloads_dir: Path, mode: str, out_dir: Path,
-                libraries=(), tasks=(), only=(), log=say) -> tuple[dict, list[dict]]:
-    """Runs the harness to completion, restarting past any cell that kills it."""
+                libraries=(), tasks=(), only=(), log=say, on_poll=None) -> tuple[dict, list[dict]]:
+    """Runs the harness to completion, restarting past any cell that kills it. `on_poll` is called
+    from the loop that already waits on the harness, so watching the machine adds no thread."""
     lang = h["language"]
     harness, cells, skip = None, [], []
     for attempt in range(MAX_RESTARTS + 1):
@@ -127,6 +128,8 @@ def run_harness(h: dict, build_dir: Path, workloads_dir: Path, mode: str, out_di
             proc = subprocess.Popen(cmd, cwd=h["_dir"], stdout=subprocess.DEVNULL, stderr=err)
             while proc.poll() is None:
                 progress.poll()
+                if on_poll:
+                    on_poll()
                 time.sleep(0.2)
         progress.poll()
         stderr = err_path.read_text(encoding="utf-8", errors="replace")
@@ -169,7 +172,7 @@ def library_sources(records: dict[str, dict]) -> dict[str, dict]:
 
 def assemble(mode: str, smoke: bool, records: dict[str, dict], cells_by_lang: dict[str, list[dict]],
              metas: list[dict], load_start: float, load_end: float, seconds: float,
-             expected: list[str] = ()) -> dict:
+             expected: list[str] = (), load_peak: float | None = None) -> dict:
     cells = []
     for lang, recs in cells_by_lang.items():
         libs = {l["id"]: l for l in records[lang].get("libraries", [])}
@@ -186,6 +189,8 @@ def assemble(mode: str, smoke: bool, records: dict[str, dict], cells_by_lang: di
     run_record = {"date": env["date"], "mode": mode, "smoke": smoke, "seconds": round(seconds, 1),
                   "environment": env, "load": {"before": load_start, "after": load_end},
                   "expected_languages": sorted(set(expected) | set(records))}
+    if load_peak is not None:
+        run_record["load"]["peak"] = max(load_peak, load_start, load_end)
     sources = library_sources(records)
     if sources:
         run_record["sources"] = sources
@@ -206,7 +211,8 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
         tasks: list[str] = (), only: list[str] = (), smoke: bool | None = None,
         build_dir: Path | None = None, log=say) -> dict:
     """The whole pipeline up to the result dict. A quick run is always a smoke run; `smoke=True`
-    labels a full run taken on a busy or shared machine the same way."""
+    (or KIT_SMOKE in the environment) labels a full run the same way. A full run is a measurement
+    wherever it ran; the result records where, and how busy the machine was."""
     t0 = time.monotonic()
     harnesses = discover()
     langs = languages or sorted(harnesses)
@@ -228,14 +234,19 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
     # A run is meant to measure the languages it was asked for (all of them by default); a result
     # that lacks one of those says so and is not a complete run.
     expected = sorted(langs)
-    # Only a run on the machine that `bin/bench-cloud` launches, from the pushed kit, counts as a
-    # measurement; anywhere else the machine may be shared or the code may not be pushed.
-    on_cloud = bool(os.environ.get("KIT_INSTANCE_TYPE")) and not os.environ.get("KIT_SMOKE")
-    is_smoke = bool(smoke) or mode == "quick" or not on_cloud
+    # A full run counts as a measurement wherever it ran; the result says where and how busy the host
+    # was, so a reader can judge it. Quick mode and an explicit request are smoke.
+    is_smoke = bool(smoke) or mode == "quick" or bool(os.environ.get("KIT_SMOKE"))
+    peak = [load_start]
+
+    def sample_load() -> None:
+        # One read of /proc/loadavg per poll of the running harness: cheap, and on no thread of its own.
+        peak[0] = max(peak[0], environment.loadavg()[0])
 
     def assemble_for(ls: list[str]) -> dict:
         return assemble(mode, is_smoke, {l: records[l] for l in ls}, {l: cells_by_lang[l] for l in ls}, metas,
-                        load_start, environment.loadavg()[0], time.monotonic() - t0, expected)
+                        load_start, environment.loadavg()[0], time.monotonic() - t0, expected,
+                        max(peak[0], environment.loadavg()[0]))
 
     records, cells_by_lang = {}, {}
     for l in langs:
@@ -244,7 +255,7 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
         build(h, build_dir)
         log(f"start {l} ({mode})")
         t_lang = time.monotonic()
-        records[l], cells_by_lang[l] = run_harness(h, build_dir, wl_dir, mode, out_dir, libraries, tasks, only, log)
+        records[l], cells_by_lang[l] = run_harness(h, build_dir, wl_dir, mode, out_dir, libraries, tasks, only, log, sample_load)
         log(f"end {l}: {len(cells_by_lang[l])} cells in {time.monotonic() - t_lang:.1f} s")
         # Written now, so a run that is cut short keeps every language that finished.
         write(assemble_for([l]), out_dir / f"results-{l}.json")

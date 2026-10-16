@@ -36,7 +36,7 @@ bin/gate --full                   # everything, every adapter (CI runs this)
 bin/gate --plan                   # show what would run
 bin/gate --areas bench-go         # named areas instead of choosing by changes
 bin/bench run                     # benchmarks, quick mode: results.json, report.md and charts in out/bench/
-bin/bench run --mode full         # full mode: each tool at its defaults; a run on a shared machine is a smoke result
+bin/bench run --mode full         # full mode: each tool at its defaults
 bin/bench-cloud quick|full        # the same on one rented machine, results and report brought back
 ```
 

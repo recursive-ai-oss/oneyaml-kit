@@ -224,6 +224,15 @@ class Hero(Base):
         method = next(l for l in self.block(self.readme, "bench-hero").splitlines() if l.startswith("Method:"))
         self.assertEqual(method.count("run of"), 1, method)
 
+    def test_a_local_full_run_is_published_and_says_where(self):
+        r = full_run(real_world(synthetic(), "w1", "w2"))
+        r["run"]["environment"].update(where="local", cpus=32)
+        r["run"]["load"] = {"before": 4.1, "after": 5.0, "peak": 7.3}
+        self.assertEqual(self.run_cmd(r, smoke=False), 0)
+        hero = self.block(self.readme, "bench-hero")
+        self.assertIn("measured on a shared workstation (32 logical CPUs; load 4.1 before, 5.0 after, at most 7.3 during)", hero)
+        self.assertNotIn("SMOKE", hero)
+
     def test_publishable_run_is_labelled_full_run(self):
         self.assertEqual(self.run_cmd(full_run(real_world(synthetic(), "w1", "w2")), smoke=False), 0)
         hero = self.block(self.readme, "bench-hero")
