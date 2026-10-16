@@ -1,6 +1,6 @@
 {
  "format": "oneyaml-kit-case/2",
- "id": "schema/hex-and-decimal-integer-keys-are-duplicates",
+ "id": "schema/duplicate-keys-hex-then-decimal-are-an-error",
  "title": "A hexadecimal integer key written first and the same integer in decimal second",
  "category": "schema",
  "origin": "bug",
@@ -12,7 +12,7 @@
   "YAML 1.2.2 section 3.2.1.3",
   "YAML 1.2.2 section 10.3.2"
  ],
- "notes": "Under the Core schema `0x1` and `1` both resolve to the integer 1 (YAML 1.2.2 section 10.3.2), and nodes are equal when their tags and canonical content are equal (section 3.2.1.3), so the mapping holds the same key twice, which section 3.2.1.1 forbids. The category is duplicate-key: a library that reports a type error, or keeps both keys, fails strict mode. The decimal-first order is the sibling case duplicate-keys-equal-after-resolution-are-an-error and is repeated here with the hexadecimal spelling first.",
+ "notes": "Under the Core schema `0x1` and `1` both resolve to the integer 1 (YAML 1.2.2 section 10.3.2), and nodes are equal when their tags and canonical content are equal (section 3.2.1.3), so the mapping holds the same key twice, which section 3.2.1.1 forbids. The category is duplicate-key: a library that reports a type error, or keeps both keys, fails strict mode. The decimal-first order is the existing case schema/duplicate-keys-equal-after-resolution-are-an-error; this case writes the hexadecimal spelling first.",
  "provenance": {
   "reference": "Key identity that compared the spelling of integer keys instead of their value, so a hexadecimal and a decimal spelling of one integer were kept as two keys or rejected with a type error."
  },

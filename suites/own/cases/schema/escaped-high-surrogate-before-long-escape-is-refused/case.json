@@ -6,14 +6,19 @@
  "origin": "bug",
  "productions": [
   "41",
-  "60"
+  "60",
+  "61"
  ],
  "refs": [
   "YAML 1.2.2 section 1",
   "YAML 1.2.2 section 5.7",
-  "RFC 8259 section 7"
+  "RFC 8259 section 7",
+  "RFC 8259 section 8.2"
  ],
- "notes": "A surrogate code point is not a character (c-printable [1] excludes xD800 to xDFFF), and only a high surrogate escape directly followed by a low surrogate escape encodes one (RFC 8259 section 7, read by the kit as in the pair case), so any other use of a surrogate escape names no character and is an error. Loose mode needs any error; strict needs the syntax category. Here the high surrogate is followed by a \\U escape of a whole character; only a \\u escape of a low surrogate completes a pair.",
+ "tags": [
+  "convention"
+ ],
+ "notes": "A surrogate escape names a character only as half of a pair: a high surrogate escape directly followed by a low surrogate escape (RFC 8259 section 7, the kit's reading in the pair case). Any other surrogate escape encodes no character (RFC 8259 section 8.2) and is refused. YAML 1.2.2 does not settle this (section 5.2 counts every code point as a character), so the case rests on a convention. Loose mode needs any error; strict needs the syntax category. Here the high surrogate is followed by a \\U escape of a whole character; only a \\u escape of a low surrogate completes a pair.",
  "provenance": {
   "reference": "A decoder that accepted a surrogate escape that is not half of a pair and produced an invalid string or a replacement character."
  },

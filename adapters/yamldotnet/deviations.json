@@ -2165,28 +2165,14 @@
    "reason": "The library throws InvalidOperationException (Operation is not valid due to the current state of the object) instead of reporting a syntax error"
   },
   {
-   "case": "own:schema/decimal-and-hex-integer-keys-are-duplicates",
+   "case": "own:schema/duplicate-keys-hex-then-decimal-are-an-error",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
    "reason": "The library accepted the two spellings of the integer 1 as keys without an error; the case expects a duplicate-key error"
   },
   {
-   "case": "own:schema/decimal-and-hex-integer-keys-are-duplicates",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The library accepted the two spellings of the integer 1 as keys without an error; the case expects a duplicate-key error"
-  },
-  {
-   "case": "own:schema/hex-and-decimal-integer-keys-are-duplicates",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "The library accepted the two spellings of the integer 1 as keys without an error; the case expects a duplicate-key error"
-  },
-  {
-   "case": "own:schema/hex-and-decimal-integer-keys-are-duplicates",
+   "case": "own:schema/duplicate-keys-hex-then-decimal-are-an-error",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
