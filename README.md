@@ -53,7 +53,8 @@ are the adapter languages (`rust`, `go`, `csharp`, ...), `bench` (the benchmark 
 and workloads), one benchmark area per harness language (`bench-rust`, `bench-go`,
 `bench-csharp`, so a change to one harness never builds another) and `core`. A change to the
 kit's code or cases also runs the reference adapter, and a change to the benchmark driver also
-smoke-tests the Rust harness. Areas run side by side, four at a time unless `--jobs` says
+smoke-tests the Rust harness. Areas run side by side: as many as the memory available to the gate holds (the tightest cgroup
+limit, else available memory), at most four; the first output line says how many and why, unless `--jobs` says
 otherwise. The hand-over gate has a time budget of 150 seconds (`--budget`) and fails when a run
 exceeds it, which keeps the tier inside its three-minute limit; the fix is a faster step or
 moving it to the full tier. The full gate (`bin/gate --full`) runs every area and every

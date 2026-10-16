@@ -239,7 +239,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--base", default="main", help="branch to compare with (default: main)")
     p.add_argument("--areas", help="comma-separated areas to run instead of choosing by changes")
     p.add_argument("--without-core", action="store_true", help="with --areas: do not add the core area")
-    p.add_argument("--jobs", type=int, default=0, help="areas to run side by side (default: up to 4)")
+    p.add_argument("--jobs", type=int, default=0,
+                   help="areas to run side by side (default: as many as the memory holds, up to 4)")
     p.add_argument("--budget", type=float, help="hand-over only: fail when the run takes longer than this many "
                    "seconds (default 150; the limit for the tier is three minutes)")
     p.add_argument("--plan", action="store_true", help="print the steps and stop")

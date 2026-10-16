@@ -14,7 +14,8 @@ An area is a part of the repository with its own checks: `core`, one per adapter
 (`rust`, `go`, `csharp`, ...) and the benchmark areas: `bench` (the driver, report and
 workloads, no toolchain needed) and one per harness language (`bench-rust`, `bench-go`,
 `bench-csharp`), so a change to one harness never builds the others. Areas run side by side
-with `--jobs` (by default a few at a time), and their steps one after the other. Every step
+with `--jobs` (by default as many as the available memory holds, up to four), and their steps
+one after the other. Every step
 runs even after a failure, because the checks are independent and one run should show
 everything that is wrong. Each step's output goes to a log under the output directory
 and is shown only when the step fails.
@@ -30,7 +31,6 @@ import subprocess
 import sys
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -400,14 +400,118 @@ def run_step(step: Step, root: Path, out: Path, base_env: dict, index: int) -> d
             "log": log, "argv": step.argv}
 
 
-def default_jobs() -> int:
-    """Areas to run side by side when --jobs is not given: a few, because each area's build can
-    use every core and the memory of a shared host is the tighter limit."""
-    return max(1, min(DEFAULT_JOBS, os.cpu_count() or 1))
+# Peak memory of each area under the gate, in MiB, measured as the summed proportional set size of
+# the area's whole process tree (builds, linkers, test processes) sampled while the area ran alone,
+# the higher of a cold and a warm cache: core 3926, csharp 2247, bench-rust 1443, go 1321, rust 850
+# (cold; 252 warm), bench-csharp 444, bench-go 166, bench 131. The figures below are those rounded
+# up. The four largest side by side need about 9 GiB, which is why a fixed job count was killed
+# under a 6 GiB limit.
+AREA_PEAK_MIB = {"core": 4096, "csharp": 2560, "bench-rust": 1792, "go": 1536, "rust": 1024,
+                 "bench-csharp": 512, "bench-go": 256, "bench": 256}
+UNKNOWN_AREA_MIB = 1024
+# A typical big area, about the mean of the four largest, for turning a memory limit into a count.
+TYPICAL_AREA_MIB = 2560
+# The share of the limit the areas may use; the rest is for the gate itself, the page cache the
+# builds fill and the error of the measurement.
+MEMORY_SHARE = 0.85
 
 
-# Areas that build the most go first when they run side by side.
-HEAVY = {"csharp": 5, "bench-csharp": 4, "rust": 3, "bench-rust": 3, "go": 2, "bench-go": 1, "bench": 1}
+def _read_limit(path: Path) -> int | None:
+    """A cgroup v2 memory limit in bytes; None when the file is absent, unreadable or `max`."""
+    try:
+        text = path.read_text().strip()
+    except OSError:
+        return None
+    return int(text) if text.isdigit() else None
+
+
+def memory_limit(cgroup_root: Path = Path("/sys/fs/cgroup"), proc: Path = Path("/proc")) -> tuple[int, str] | None:
+    """The memory this process may use and where the figure came from: the tightest `memory.max`
+    of its own cgroup and every ancestor (a limit on a parent binds the children too), else the
+    machine's available memory; None when neither can be read."""
+    best: tuple[int, str] | None = None
+    try:
+        rel = next((ln.split(":", 2)[2] for ln in (proc / "self" / "cgroup").read_text().splitlines()
+                    if ln.startswith("0::")), None)
+    except OSError:
+        rel = None
+    if rel is not None:
+        parts = [x for x in rel.strip().split("/") if x]
+        for n in range(len(parts), -1, -1):
+            lim = _read_limit(cgroup_root.joinpath(*parts[:n]) / "memory.max")
+            if lim is not None and (best is None or lim < best[0]):
+                best = (lim, "memory limit")
+    if best is None:
+        try:
+            for line in (proc / "meminfo").read_text().splitlines():
+                if line.startswith("MemAvailable:"):
+                    best = (int(line.split()[1]) * 1024, "available memory")
+        except (OSError, ValueError, IndexError):
+            pass
+    return best
+
+
+def choose_jobs(limit: tuple[int, str] | None, cpus: int) -> tuple[int, str]:
+    """Areas to run side by side, and a sentence saying why: as many as fit in the memory the run
+    may use at a typical area's peak, at most DEFAULT_JOBS and the CPU count, at least one."""
+    cap = max(1, min(DEFAULT_JOBS, cpus))
+    if limit is None:
+        return cap, f"memory unknown, {cpus} cpus"
+    size, what = limit
+    fit = int(size * MEMORY_SHARE) // (TYPICAL_AREA_MIB * 2**20)
+    jobs = max(1, min(cap, fit))
+    why = f"{what} {size / 2**30:.1f} GiB, ~{TYPICAL_AREA_MIB / 1024:.1f} GiB per area"
+    if jobs == cap and cap < min(DEFAULT_JOBS, fit):
+        why += f", {cpus} cpus"
+    elif jobs == cap == DEFAULT_JOBS and fit > cap:
+        why += ", the default maximum"
+    return jobs, why
+
+
+def usable_cpus() -> int:
+    return len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 1)
+
+
+def run_areas(areas: list[str], jobs: int, budget_mib: int | None, run_area) -> None:
+    """Run each area with `run_area`, at most `jobs` at once and, when `budget_mib` is given, only
+    while the running areas' estimated peaks fit in it. Heavy areas start first, a small one may
+    start ahead of a big one that does not fit yet, and an area always starts when nothing else
+    is running, so a limit smaller than one area slows the run and never stops it."""
+    pending = sorted(areas, key=lambda a: -weight(a))
+    cond = threading.Condition()
+    running: dict[str, int] = {}
+
+    def take() -> str | None:
+        with cond:
+            while pending:
+                used = sum(running.values())
+                for a in pending:
+                    need = AREA_PEAK_MIB.get(a, UNKNOWN_AREA_MIB)
+                    if budget_mib is None or not running or used + need <= budget_mib:
+                        pending.remove(a)
+                        running[a] = need
+                        return a
+                cond.wait()
+            return None
+
+    def worker() -> None:
+        while (a := take()) is not None:
+            try:
+                run_area(a)
+            finally:
+                with cond:
+                    del running[a]
+                    cond.notify_all()
+
+    threads = [threading.Thread(target=worker) for _ in range(max(1, min(jobs, len(areas))))]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+
+# Areas that take the longest go first when they run side by side; the core tests are the longest.
+HEAVY = {"core": 6, "csharp": 5, "bench-csharp": 4, "rust": 3, "bench-rust": 3, "go": 2, "bench-go": 1, "bench": 1}
 
 
 def weight(area: str) -> int:
@@ -426,6 +530,15 @@ def over_budget(total: float, budget: float | None, results: list[dict]) -> str 
 
 
 def main(args) -> int:
+    budget_mib = None
+    if args.jobs:
+        jobs, why_jobs = args.jobs, "set by --jobs"
+    else:
+        limit = memory_limit()
+        jobs, why_jobs = choose_jobs(limit, usable_cpus())
+        if limit is not None:
+            budget_mib = int(limit[0] * MEMORY_SHARE) // 2**20
+    print(f"gate: jobs {jobs} ({why_jobs})", flush=True)
     root = ROOT
     out = Path(args.out or os.environ.get("KIT_OUT") or root / "out")
     (out / "gate").mkdir(parents=True, exist_ok=True)
@@ -487,10 +600,7 @@ def main(args) -> int:
                     tail = r["log"].read_text(errors="replace").splitlines()[-25:]
                     print("\n".join("      " + t for t in tail), flush=True)
 
-    jobs = args.jobs if args.jobs else default_jobs()
-    with ThreadPoolExecutor(max_workers=max(1, jobs)) as ex:
-        # Slowest first, so the last area to start is not the one that takes longest.
-        list(ex.map(run_area, sorted(areas, key=lambda a: -weight(a))))
+    run_areas(areas, jobs, budget_mib, run_area)
     total = clock() - t_all
     by_area: dict[str, float] = {}
     for r in results:
