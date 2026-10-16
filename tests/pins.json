@@ -14,6 +14,7 @@
    "diagnostics/directive-then-document-end-is-an-error": "1f2b0dd7b63e8c6f0445301ad39927c28c08fbfab02e5825a259cb215db0bc19",
    "diagnostics/empty-entry-in-a-flow-sequence": "8a6d98a1819f0b8f2663e33a7250326910917ee30746f79351a4adfc11a07998",
    "diagnostics/empty-key-with-adjacent-flow-value-is-invalid": "58ddfb4735860d9c7862ff4d640cd6bf51c2a4a314b2279535d0deacb8ddf0ae",
+   "diagnostics/explicit-key-with-adjacent-flow-value-is-invalid": "c8b528f82135d285eee09160d32d605f4c2e2117af0b51f8a4dcd30d5f3b054d",
    "diagnostics/extra-closing-brace": "937da80639c9cb2af584bbee3d6b1c52f830c6cec22ee6e211e70cb0e52935b1",
    "diagnostics/hex-escape-with-a-non-hex-digit": "2690fe7a458539385685a09395da5833a425d05e2991a08f6a90e4c063ec9022",
    "diagnostics/implicit-key-of-1025-characters-is-an-error": "50425ee054af63e0caa1b93d057ffa96eaf75ddd2d814758d1bb155464197ab0",
