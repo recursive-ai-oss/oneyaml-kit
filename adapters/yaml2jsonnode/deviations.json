@@ -4872,6 +4872,76 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "memory growth passed the 1024 MB bound"
+  },
+  {
+   "case": "own:schema/decimal-and-hex-integer-keys-are-duplicates",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted the two spellings of the integer 1 as keys without an error; the case expects a duplicate-key error"
+  },
+  {
+   "case": "own:schema/decimal-and-hex-integer-keys-are-duplicates",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted the two spellings of the integer 1 as keys without an error; the case expects a duplicate-key error"
+  },
+  {
+   "case": "own:schema/hex-and-decimal-integer-keys-are-duplicates",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted the two spellings of the integer 1 as keys without an error; the case expects a duplicate-key error"
+  },
+  {
+   "case": "own:schema/hex-and-decimal-integer-keys-are-duplicates",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted the two spellings of the integer 1 as keys without an error; the case expects a duplicate-key error"
+  },
+  {
+   "case": "own:schema/escaped-mismatched-surrogates-are-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
+  },
+  {
+   "case": "own:schema/escaped-mismatched-surrogates-are-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
+  },
+  {
+   "case": "own:schema/escaped-two-high-surrogates-are-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
+  },
+  {
+   "case": "own:schema/escaped-two-high-surrogates-are-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
+  },
+  {
+   "case": "own:schema/escaped-high-surrogate-before-long-escape-is-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
+  },
+  {
+   "case": "own:schema/escaped-high-surrogate-before-long-escape-is-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
   }
  ]
 }

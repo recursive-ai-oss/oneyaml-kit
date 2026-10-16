@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/escaped-high-surrogate-before-hex-escape-is-refused",
+ "title": "A high surrogate escape followed by a \\x escape",
+ "category": "schema",
+ "origin": "bug",
+ "productions": [
+  "41",
+  "60"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 1",
+  "YAML 1.2.2 section 5.7",
+  "RFC 8259 section 7"
+ ],
+ "notes": "A surrogate code point is not a character (c-printable [1] excludes xD800 to xDFFF), and only a high surrogate escape directly followed by a low surrogate escape encodes one (RFC 8259 section 7, read by the kit as in the pair case), so any other use of a surrogate escape names no character and is an error. Loose mode needs any error; strict needs the syntax category. Here the high surrogate is followed by a \\x escape, not by a low surrogate escape.",
+ "provenance": {
+  "reference": "A decoder that accepted a surrogate escape that is not half of a pair and produced an invalid string or a replacement character."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax"
+ }
+}

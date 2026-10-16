@@ -3227,6 +3227,118 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (a dictionary add of two keys that both become 0)"
+  },
+  {
+   "case": "own:schema/decimal-and-hex-integer-keys-are-duplicates",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: 1)"
+  },
+  {
+   "case": "own:schema/decimal-and-hex-integer-keys-are-duplicates",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: 1)"
+  },
+  {
+   "case": "own:schema/hex-and-decimal-integer-keys-are-duplicates",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: 1)"
+  },
+  {
+   "case": "own:schema/hex-and-decimal-integer-keys-are-duplicates",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: 1)"
+  },
+  {
+   "case": "own:schema/escaped-lone-surrogate-is-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted the escape of a lone surrogate without an error; the case expects it to be refused"
+  },
+  {
+   "case": "own:schema/escaped-lone-surrogate-is-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted the escape of a lone surrogate without an error; the case expects it to be refused"
+  },
+  {
+   "case": "own:schema/escaped-mismatched-surrogates-are-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted the surrogate escapes without an error; the case expects a refusal"
+  },
+  {
+   "case": "own:schema/escaped-mismatched-surrogates-are-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted the surrogate escapes without an error; the case expects a refusal"
+  },
+  {
+   "case": "own:schema/escaped-two-high-surrogates-are-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted the surrogate escapes without an error; the case expects a refusal"
+  },
+  {
+   "case": "own:schema/escaped-two-high-surrogates-are-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted the surrogate escapes without an error; the case expects a refusal"
+  },
+  {
+   "case": "own:schema/escaped-high-surrogate-before-plain-character-is-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted the surrogate escapes without an error; the case expects a refusal"
+  },
+  {
+   "case": "own:schema/escaped-high-surrogate-before-plain-character-is-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted the surrogate escapes without an error; the case expects a refusal"
+  },
+  {
+   "case": "own:schema/escaped-high-surrogate-before-long-escape-is-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted the surrogate escapes without an error; the case expects a refusal"
+  },
+  {
+   "case": "own:schema/escaped-high-surrogate-before-long-escape-is-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted the surrogate escapes without an error; the case expects a refusal"
+  },
+  {
+   "case": "own:schema/escaped-high-surrogate-before-hex-escape-is-refused",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted the surrogate escapes without an error; the case expects a refusal"
+  },
+  {
+   "case": "own:schema/escaped-high-surrogate-before-hex-escape-is-refused",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted the surrogate escapes without an error; the case expects a refusal"
   }
  ]
 }
