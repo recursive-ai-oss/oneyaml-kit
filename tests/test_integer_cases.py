@@ -71,9 +71,9 @@ class IntegerCases(unittest.TestCase):
 
     def test_every_case_cites_the_clause_that_allows_a_refusal(self):
         for c in load():
-            self.assertIn("YAML 1.2.2 section 10.2.1.4", c.refs, c.id)
+            self.assertIn("YAML 1.2.2 section 10.2.1.3", c.refs, c.id)
             notes = json.loads((CASES / c.id[len("own:"):] / "case.json").read_text())["notes"]
-            self.assertIn("section 10.2.1.4 lets a processor reject", notes, c.id)
+            self.assertIn("section 10.2.1.3 lets a processor reject", notes, c.id)
 
     def test_the_competitor_integer_cases_say_so(self):
         by = {c.id: c for c in load()}

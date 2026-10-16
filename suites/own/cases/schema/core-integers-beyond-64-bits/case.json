@@ -6,9 +6,9 @@
  "origin": "spec",
  "refs": [
   "YAML 1.2.2 section 10.3.2",
-  "YAML 1.2.2 section 10.2.1.4"
+  "YAML 1.2.2 section 10.2.1.3"
  ],
- "notes": "The core schema defines the integer patterns `[-+]?[0-9]+`, `0o[0-7]+` and `0x[0-9a-fA-F]+` with no upper bound (section 10.3.2), so each value here is the integer in the text. YAML 1.2.2 section 10.2.1.4 lets a processor reject an integer it cannot hold as an error. The kit therefore accepts the exact integer or a refusal (strict: a `limit` error). Truncating or converting the value fails, because the kit cannot see a warning. A crash, a hang, a wrong result, or more than the stated time or memory fails. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The values sit just past each 64-bit limit, as a hexadecimal and an octal form, and at thirty digits. The case first asked for the exact integer only; section 10.2.1.4 allows a refusal, so that is now accepted too.",
+ "notes": "The core schema defines the integer patterns `[-+]?[0-9]+`, `0o[0-7]+` and `0x[0-9a-fA-F]+` with no upper bound (section 10.3.2), so each value here is the integer in the text. YAML 1.2.2 section 10.2.1.3 lets a processor reject an integer it cannot hold as an error. The kit therefore accepts the exact integer or a refusal (strict: a `limit` error). Truncating or converting the value fails, because the kit cannot see a warning. A crash, a hang, a wrong result, or more than the stated time or memory fails. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The values sit just past each 64-bit limit, as a hexadecimal and an octal form, and at thirty digits. The case first asked for the exact integer only; section 10.2.1.3 allows a refusal, so that is now accepted too.",
  "operation": {
   "type": "value"
  },

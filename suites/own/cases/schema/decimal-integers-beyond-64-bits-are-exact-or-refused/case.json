@@ -9,10 +9,10 @@
  ],
  "refs": [
   "YAML 1.2.2 section 10.3.2",
-  "YAML 1.2.2 section 10.2.1.4",
+  "YAML 1.2.2 section 10.2.1.3",
   "YAML 1.2.2 section 7.3.3"
  ],
- "notes": "The core schema reads a plain scalar that matches `[-+]?[0-9]+` as an integer and gives that pattern no upper bound (section 10.3.2). Turning it into a float, a string or a wrapped 64-bit number changes the data without a word. YAML 1.2.2 section 10.2.1.4 lets a processor reject an integer it cannot hold as an error. The kit therefore accepts the exact integer or a refusal (strict: a `limit` error). Truncating or converting the value fails, because the kit cannot see a warning. A crash, a hang, a wrong result, or more than the stated time or memory fails. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The values just past each 64-bit limit and at thirty digits are in `schema/core-integers-beyond-64-bits`; this one is a hundred digits, past what a double or a 128-bit integer holds.",
+ "notes": "The core schema reads a plain scalar that matches `[-+]?[0-9]+` as an integer and gives that pattern no upper bound (section 10.3.2). Turning it into a float, a string or a wrapped 64-bit number changes the data without a word. YAML 1.2.2 section 10.2.1.3 lets a processor reject an integer it cannot hold as an error. The kit therefore accepts the exact integer or a refusal (strict: a `limit` error). Truncating or converting the value fails, because the kit cannot see a warning. A crash, a hang, a wrong result, or more than the stated time or memory fails. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The values just past each 64-bit limit and at thirty digits are in `schema/core-integers-beyond-64-bits`; this one is a hundred digits, past what a double or a 128-bit integer holds.",
  "operation": {
   "type": "value"
  },
