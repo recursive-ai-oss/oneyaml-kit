@@ -53,6 +53,24 @@ def git_revision(root: Path) -> str | None:
     return (os.environ.get("KIT_REVISION") or "").strip() or None
 
 
+def renderer_revision(root: Path) -> str | None:
+    """The revision of the kit code that is running, for text it generates: the short commit of the checkout,
+    with "+modified" when tracked files differ from it. Without a checkout, the revision the launcher names."""
+    rev = git_revision(root)
+    if rev is None:
+        return None
+    try:
+        top = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=root, capture_output=True,
+                             text=True, check=True).stdout.strip()
+        if Path(top).resolve() == root.resolve() and subprocess.run(
+                ["git", "status", "--porcelain", "--untracked-files=no"], cwd=root, capture_output=True,
+                text=True, check=True).stdout.strip():
+            return rev + "+modified"
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    return rev
+
+
 def release_tag(src: Path, version: str) -> str | None:
     """The release tag of the commit `version` (a revision, full or abbreviated) in the library checkout
     at `src`, when that commit carries exactly one version tag. The checkout need not be at that commit.

@@ -9,7 +9,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import readme, reasons, report, results, run, workloads
+from . import environment, readme, reasons, report, results, run, workloads
 
 ROOT = Path(__file__).resolve().parents[1]
 KIT_ROOT = ROOT.parent
@@ -98,7 +98,7 @@ def cmd_workloads(a: argparse.Namespace) -> int:
 
 
 def cmd_readme(a: argparse.Namespace) -> int:
-    version = (KIT_ROOT / "suites" / "VERSION").read_text(encoding="utf-8").strip()
+    revision = environment.renderer_revision(KIT_ROOT)
     res = Path(a.results)
     try:
         bench = results.load(a.bench) if a.bench else next(
@@ -110,7 +110,7 @@ def cmd_readme(a: argparse.Namespace) -> int:
         conf = json.loads(conf_path.read_text(encoding="utf-8")) if conf_path else None
         docs = Path(a.docs)
         readme_path = Path(a.readme)
-        ctx = readme.Ctx(bench, a.library, version, conf,
+        ctx = readme.Ctx(bench, a.library, revision, conf,
                          readme_path.parent / a.charts.rstrip("/"), a.allow_smoke, a.library_source)
         targets = [readme_path, docs / "performance.md", docs / "conformance.md"]
         new = readme.update(ctx, targets, a.charts.rstrip("/"), docs / "conformance.md", a.chart_base)
@@ -152,8 +152,9 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--bench", help="benchmark result file, when not at <results>/bench/results.json")
     m.add_argument("--conformance", help="conformance result file, when not at <results>/<dir>/<library>.json")
     m.add_argument("--chart-base", metavar="URL",
-                   help="write chart image links as URL/<charts> (absolute) instead of paths relative to the file, "
-                        "e.g. a raw.githubusercontent.com prefix")
+                   help="write chart image links as URL/<charts> (absolute) instead of paths relative to the file. "
+                        "Pin it to a tag, never a branch (a branch name is refused); without it the links are "
+                        "relative, so a tagged README shows the charts of its own version")
     m.add_argument("--library-source", metavar="DIR",
                    help="a checkout of the featured library; its release tag is shown beside the commit when the "
                         "checkout is at that commit and the run did not record the tag")

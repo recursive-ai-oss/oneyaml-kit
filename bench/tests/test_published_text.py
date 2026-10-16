@@ -35,8 +35,7 @@ class MemoryLabel(Base):
                 self.run_cmd(in_language(lang))
                 hero = self.block(self.readme, "bench-hero")
                 full = self.block(self.docs / "performance.md", "bench-full")
-                self.assertIn(label, hero.split("\n")[hero.split("\n").index(
-                    next(l for l in hero.split("\n") if l.startswith("| Task |")))])
+                self.assertNotIn(label, hero)  # the hero is time only
                 self.assertIn(label, full)
                 for text in (hero, full):
                     self.assertNotIn("Peak", text)

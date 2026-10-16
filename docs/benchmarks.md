@@ -293,7 +293,7 @@ task for time and one for memory with every library and "ours against the best c
 with its verdict, a bar chart for each, the cells without a number with their reasons, and
 the workloads with their sources and licences. The ratio is the same everywhere: our value
 divided by the best competitor's, so below 1.0× is better for us, in the tables, the charts and
-the alt text. Charts are bars that grow from the 1.0× (equal) line on a log scale from 1/8× to
+the alt text of the report (the README hero is the one exception, see below). Charts are bars that grow from the 1.0× (equal) line on a log scale from 1/8× to
 8×, so twice as fast and twice as slow are drawn equally long on opposite sides, left better
 and right a loss; a linear axis would squeeze one of them. A bar beyond the axis is clipped and
 marked ▸ or ◂. The charts come in a light and a dark variant and their alt text carries every
@@ -317,13 +317,36 @@ the README. The files looked at are the README, `<docs>/performance.md` and
 `<docs>/conformance.md`; the README must hold at least one block, the two docs files are skipped
 when missing or without blocks.
 
-Chart links are relative to each file by default. `--chart-base URL` writes them as absolute
-URLs instead, `URL/<charts>/<name>-light.svg`, the same in every file (for a README shown where
-relative paths do not resolve, such as a package registry page); give a URL that points at the
-tagged revision so the charts match the text. `--library-source DIR` names a checkout of the
+Chart links are relative to each file by default (`docs/img/<name>-dark.svg` inside a
+`<picture>`), and that is the choice to make for a README: GitHub resolves them at the revision
+being viewed, and package pages such as pkg.go.dev resolve them at the module's version, so a
+tagged README shows the charts of its own release beside its own numbers. `--chart-base URL`
+writes them as absolute URLs instead, `URL/<charts>/<name>-light.svg`, the same in every file,
+for a surface that does not resolve relative paths. Pin it to a tag, never to a branch: charts read
+from a branch change at the next run while the table and text stay as released. A URL with a branch
+name in it (`main`, `master`, `HEAD`, `refs/heads/...`) is refused. `--library-source DIR` names a checkout of the
 featured library: when the run did not record the library's release tag, the tag of the commit the
 result names is looked up there and shown beside it, as `v0.3.0 (30e7fc4bf7b4)`. Only a commit with
 exactly one version tag gets one; a tag is never guessed.
+
+The hero is the headline and speaks in the family's form, higher is better: the **speed** of a row
+is the strongest competitor's time divided by ours, written "N× faster", or "N× slower" for a loss,
+which is never hidden; a row whose verdict is level reads "level (N× faster)". The table has six
+columns: task, our time, the strongest competitor (with its version), its time, the speed, and the
+verdict. Memory and the counts of better, level and worse workloads are on the full page, which
+keeps ours ÷ theirs with its legend (below 1.0× is better for us), as does the evidence report. The
+unchanged-emit row stays, labelled "write-back of an unedited document; not a rendering speed",
+because a library that keeps the text returns it without rendering. A measured 0 B prints as `0 B`;
+only the log axis of a memory chart places it at 1 B, and says so. A † marks a cell measured
+differently from the task as specified; the note beside each mark says how, for our cells as well
+as theirs.
+
+The chart plots the same speed on a log axis around 1×, bars to the right faster and to the left
+slower, widening to 1/64× to 64× when a bar would be clipped; each row's words sit in a column
+beside the plot. Its subtitle wraps to the canvas. The image's alt text is short, because the table
+follows it ("Bar chart of the table below: ..."), and the SVG's own `<desc>` holds every number and
+reason. The method strip names the revision of the kit that wrote the text (`+modified` when its
+files differ from the commit) beside the revision the run was measured at.
 
 A block is the text between a begin marker that names its kind and an end marker:
 
@@ -334,7 +357,7 @@ A block is the text between a begin marker that names its kind and an end marker
 
 | Kind | Content |
 |---|---|
-| `bench-hero` | Chart (light and dark SVG; a row and alt text for every task), one row per task, method strip |
+| `bench-hero` | Chart (light and dark SVG, a row for every task), then a time-only table of one row per task, method strip |
 | `bench-full` | Every task × every workload, every competitor as a column, time and memory, method strip |
 | `conformance-line` | `yaml-test-suite <release>: n/total` loose and strict, the kit's own cases, link to `conformance.md` |
 | `conformance-deviations` | Every known deviation of the library with its reason |
