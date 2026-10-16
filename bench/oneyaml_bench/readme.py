@@ -250,10 +250,11 @@ def smoke_notice(ctx: Ctx) -> list[str]:
 
 def method_strip(ctx: Ctx) -> list[str]:
     run, env, h = ctx.run, ctx.run["environment"], ctx.harness
-    label = "SMOKE RESULT" if run["smoke"] else "full run"
+    # The mode is written once: a smoke result is marked after it, any other run is the mode in bold.
+    what = f"{run['mode']} run of {run['date']}, **SMOKE RESULT**" if run["smoke"] else f"**{run['mode']} run** of {run['date']}"
     comps = [l for l in ctx.libs() if l["id"] != ctx.library]
     return [
-        f"Method: {run['mode']} run of {run['date']}, **{label}**. {ctx.kit_text()}. "
+        f"Method: {what}. {ctx.kit_text()}. "
         f"`{ctx.version_of(ctx.library)}`; competitors "
         + ", ".join(f"`{ctx.version_of(l['id'])}`" for l in comps) + ". "
         f"Runtime {h['runtime']} (target {h['target']}), measured with {h['tool']}: {report.timer_text(h, run['mode'])}. Memory: {h['memory']}. "

@@ -222,12 +222,18 @@ class Hero(Base):
         self.run_cmd()
         for path, kind in ((self.readme, "bench-hero"), (self.docs / "performance.md", "bench-full")):
             self.assertIn("SMOKE RESULT", self.block(path, kind))
+        method = next(l for l in self.block(self.readme, "bench-hero").splitlines() if l.startswith("Method:"))
+        self.assertEqual(method.count("run of"), 1, method)
 
     def test_publishable_run_is_labelled_full_run(self):
         self.assertEqual(self.run_cmd(full_run(real_world(synthetic(), "w1", "w2")), smoke=False), 0)
         hero = self.block(self.readme, "bench-hero")
         self.assertIn("**full run**", hero)
         self.assertNotIn("SMOKE RESULT", hero)
+        # The mode is written once in the method line, not repeated as a label.
+        method = next(l for l in hero.splitlines() if l.startswith("Method:"))
+        self.assertEqual(method.count("full run"), 1, method)
+        self.assertTrue(method.startswith("Method: **full run** of 2026-01-01"), method)
 
     def test_method_strip(self):
         self.run_cmd()

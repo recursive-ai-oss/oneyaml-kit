@@ -57,7 +57,7 @@ the same code twice: once for the correctness guard, and then many times under t
 | `document-parse` | the input text | parse into a lossless document (comments, spacing, styles kept) | the document holds the expected value and writes the input back byte for byte |
 | `unchanged-emit` | a parsed lossless document | write it back | the bytes equal the input |
 | `edit-script` | a parsed lossless document | apply a fixed list of `replace` and `remove` edits through the library's own edit API, write the bytes | the bytes equal the expected bytes exactly: only the edited value changes, and it keeps its own style |
-| `patch` | a parsed lossless document | apply an RFC 6902 patch atomically, write the bytes | the bytes equal the expected bytes, and a second patch with a failing step leaves the document unchanged and reports an error |
+| `patch` | .NET: the library's parsed document (or, for a baseline that keeps no text, its loaded data tree). Go: the input bytes. Rust: the same as .NET, but no library there has a patch engine yet, so the task has no cells | .NET: apply an RFC 6902 patch atomically, write the bytes. Go: every library's patch is timed from text to text, so the parse and the write are inside the clock (the harness records this as `text_tasks`) | the bytes equal the expected bytes, and a second patch with a failing step leaves the document unchanged and reports an error |
 
 The state each task starts from is built fresh for every iteration, outside the clock, and
 is released after the clock stops. The one exception is the Go `unchanged-emit` task: writing out an unchanged

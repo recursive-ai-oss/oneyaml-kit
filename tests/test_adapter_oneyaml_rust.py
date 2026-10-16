@@ -103,6 +103,31 @@ class OneyamlRust(unittest.TestCase):
         finally:
             ad.close()
 
+    def test_decode_errors_carry_the_library_position(self):
+        from oneyaml_kit.protocol import SubprocessAdapter
+        from oneyaml_kit.runner import load_manifest
+        m = load_manifest("oneyaml-rust")
+        ad = SubprocessAdapter(m["command"], cwd=m["_dir"], env=dict(os.environ), timeout=30)
+        ad.start()
+        try:
+            bom = b"\xef\xbb\xbf"
+            utf16 = b"\xff\xfe" + "a\r\nb".encode("utf-16-le")[:]
+            probes = [
+                (b"a: 1\n\xffb", (2, 1)),
+                (b"a: 1\r\nb: \xc3(", (2, 4)),
+                (b"a\rb \x80", (2, 3)),
+                (bom + b"ab\xff", (1, 3)),
+                (b"a: \xe2\x82", (1, 4)),
+                (utf16 + b"\x00\xdc", (2, 2)),
+            ]
+            for i, (data, want) in enumerate(probes):
+                r = ad.run(f"p{i}", "events", data, {})
+                self.assertEqual(r["status"], "error", data)
+                e = r["error"]
+                self.assertEqual((e["category"], e["line"], e["column"]), ("encoding", *want), data)
+        finally:
+            ad.close()
+
 
 if __name__ == "__main__":
     unittest.main()
