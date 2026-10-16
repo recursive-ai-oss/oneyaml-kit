@@ -48,6 +48,38 @@ class Recipe(unittest.TestCase):
         parts = out.decode().split(",")[:-1]
         self.assertEqual(parts, [str(i) for i in range(1000)])
 
+    def test_a_product_writes_every_combination_with_the_last_list_fastest(self):
+        out = C.generate_input([
+            {"product": {"prefix": "- &", "suffix": " 1\n", "choices": [["a", "b"], ["x", "yy", "z"]]}},
+        ], "t")
+        self.assertEqual(out, b"- &ax 1\n- &ayy 1\n- &az 1\n- &bx 1\n- &byy 1\n- &bz 1\n")
+
+    def test_a_product_works_out_its_size_exactly_before_building(self):
+        recipe = [{"product": {"prefix": "p", "choices": [["a", "bcd"]] * 10}}]
+        self.assertEqual(len(C.generate_input(recipe, "t")), 1024 * 1 + 1024 * 10 * 2)
+        too_big = [{"product": {"choices": [["a", "b"]] * 40}}]
+        with self.assertRaises(C.CaseError):
+            C.generate_input(too_big, "t")
+
+    def test_a_product_of_few_long_lines_is_held_to_the_size_limit(self):
+        limit = C.MAX_GENERATED_BYTES
+        # Two lines of limit / 2 bytes each: exactly the limit, then one byte more.
+        long = "x" * (limit // 2 - 3)
+        product = {"product": {"prefix": "p", "suffix": "s", "choices": [[long], ["a", "b"]]}}
+        # each line is "p" + long + "a" + "s": limit / 2 bytes
+        at = C.generate_input([product], "t")
+        self.assertEqual(len(at), limit)
+        del at
+        for r in ([product, {"text": "y"}],
+                  [{"product": {"prefix": "pp", "suffix": "s", "choices": [[long], ["a", "b"]]}}],
+                  [{"product": {"choices": [["x" * 1048576]] + [["a", "b"]] * 7}}]):
+            with self.assertRaises(C.CaseError, msg=repr(r)[:80]):
+                C.generate_input(r, "t")
+
+    def test_a_product_with_runs_of_empty_lines_still_builds_every_combination(self):
+        recipe = [{"product": {"choices": [["", "x"]] + [["", ""]] * 14}}]
+        self.assertEqual(C.generate_input(recipe, "t"), b"x" * 16384)
+
     def test_text_is_never_evaluated(self):
         text = "{__import__('os').system('x')} %s {0} \\n"
         self.assertEqual(C.generate_input([{"text": text}], "t"), text.encode())
@@ -60,6 +92,10 @@ class Recipe(unittest.TestCase):
             [{"numbers": {"count": 1, "code": "x"}}], [{"numbers": {"count": -1}}],
             [{"numbers": {"count": 1, "prefix": 3}}], [{"text": "a", "numbers": {"count": 1}}],
             [{"text": "a"}] * (C.MAX_RECIPE_PARTS + 1),
+            [{"product": {}}], [{"product": {"choices": []}}], [{"product": {"choices": [[]]}}],
+            [{"product": {"choices": ["ab"]}}], [{"product": {"choices": [[1]]}}],
+            [{"product": {"choices": [["a"]], "code": "x"}}], [{"product": {"choices": [["a"]], "prefix": 3}}],
+            [{"product": 5}], [{"text": "a", "product": {"choices": [["a"]]}}],
         ]
         for r in bad:
             with self.assertRaises(C.CaseError, msg=repr(r)):

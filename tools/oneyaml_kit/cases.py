@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import itertools
 import json
 import os
 from dataclasses import dataclass, field
@@ -275,6 +276,7 @@ MAX_GENERATED_BYTES = 64 * 1024 * 1024
 MAX_RECIPE_PARTS = 64
 _TEXT_KEYS = {"text", "repeat"}
 _NUMBERS_KEYS = {"start", "count", "prefix", "suffix", "width"}
+_PRODUCT_KEYS = {"prefix", "suffix", "choices"}
 
 
 def _int(v, where: str, name: str, lo: int = 0) -> int:
@@ -313,8 +315,29 @@ def _plan(recipe, where: str, what: str = "input_recipe") -> list:
             digits = max(width, len(str(start + max(n - 1, 0))))
             total += n * (len(pre) + digits + len(suf))
             plan.append(("numbers", (pre, suf, start, width), n))
+        elif set(part) == {"product"} and isinstance(part["product"], dict):
+            q = part["product"]
+            if set(q) - _PRODUCT_KEYS or "choices" not in q:
+                raise CaseError(f"{w}: product holds choices and optionally {sorted(_PRODUCT_KEYS - {'choices'})}")
+            pre, suf = q.get("prefix", ""), q.get("suffix", "")
+            ch = q["choices"]
+            if not isinstance(pre, str) or not isinstance(suf, str):
+                raise CaseError(f"{w}: prefix and suffix are strings")
+            if (not isinstance(ch, list) or not ch
+                    or not all(isinstance(c, list) and c and all(isinstance(x, str) for x in c) for c in ch)):
+                raise CaseError(f"{w}: choices is a list of non-empty lists of strings")
+            ch = [[x.encode("utf-8") for x in c] for c in ch]
+            pre, suf = pre.encode("utf-8"), suf.encode("utf-8")
+            n = 1
+            for c in ch:
+                n *= len(c)
+                if n > MAX_GENERATED_BYTES:
+                    raise CaseError(f"{where}: the generated input is larger than {MAX_GENERATED_BYTES} bytes")
+            # Every choice of a stage appears in n / len(stage) lines.
+            total += n * (len(pre) + len(suf)) + sum(n // len(c) * sum(len(x) for x in c) for c in ch)
+            plan.append(("product", (pre, suf, ch), n))
         else:
-            raise CaseError(f"{w} is a text part or a numbers part")
+            raise CaseError(f"{w} is a text part, a numbers part or a product part")
         if total > MAX_GENERATED_BYTES:
             raise CaseError(f"{where}: the generated input is larger than {MAX_GENERATED_BYTES} bytes")
     return plan
@@ -337,6 +360,20 @@ def iter_input(recipe, where: str, what: str = "input_recipe"):
                 yield a * per
             if n % per:
                 yield a * (n % per)
+        elif kind == "product":
+            pre, suf, ch = a
+            # Driven by the combinations themselves, never by the size of a block: a run of
+            # empty lines must not end the part early.
+            block, size = [], 0
+            for c in itertools.product(*ch):
+                line = pre + b"".join(c) + suf
+                block.append(line)
+                size += len(line)
+                if size >= _CHUNK_BYTES or len(block) >= _NUMBERS_PER_CHUNK:
+                    yield b"".join(block)
+                    block, size = [], 0
+            if block:
+                yield b"".join(block)
         else:
             pre, suf, start, width = a
             for lo in range(start, start + n, _NUMBERS_PER_CHUNK):
@@ -348,7 +385,9 @@ def generate_input(recipe, where: str, what: str = "input_recipe") -> bytes:
     """The bytes a recipe describes: parts in order, each either
     {"text": s, "repeat": n} (the UTF-8 text n times; n defaults to 1) or
     {"numbers": {"count": n, "start": k, "prefix": p, "suffix": s, "width": w}}, which writes
-    p + the number + s for k, k+1, ... (n numbers), the number zero-padded to w digits.
+    p + the number + s for k, k+1, ... (n numbers), the number zero-padded to w digits, or
+    {"product": {"prefix": p, "suffix": s, "choices": [[a, b], [c, d], ...]}}, which writes
+    p + one string of each list + s for every combination (the last list varies fastest).
     The total size is limited to MAX_GENERATED_BYTES."""
     out = bytearray()
     for piece in iter_input(recipe, where, what):

@@ -1,0 +1,76 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/tag-prefix-used-by-many-nodes",
+ "title": "A tag handle whose prefix is a million characters long, used by 8,000 nodes, in a document that is edited",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "88",
+  "97"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.8.2",
+  "YAML 1.2.2 section 6.9.1"
+ ],
+ "tags": [
+  "slow"
+ ],
+ "notes": "The document declares `%TAG !e! tag:x,2000:` followed by a million `a` (the prefix is a run of URI characters, section 6.8.2, production 93 via [88]), then a block sequence of 8,000 items `- !e!x a`. The tag of each item is the prefix followed by `x` (section 6.9.1), a string of a million characters, so a reader that builds that string for every node holds 8,000 strings of a million characters, 8 billion characters in all, or spends that much time copying them. The input is valid. The case appends one item (`add` at `/-`) and nothing else, so the answer is the input followed by `- z`, or a limit error. It is a patch, not a value or an events case, because those would have to state the tag of every node: the full tag is part of the result, 8,000 strings of a million characters, which no stored expectation can hold. A reader that does not recognize the tag `tag:x,2000:aaa...x` may only compose a partial representation of these scalars (section 3.3.3), but the document is well-formed and an edit of its presentation needs no native value, so an unrecognized-tag error is a different answer and is not accepted here. The time bound is 3 seconds for 1 MB of input, generous for a reader that is linear in the input; a reader that builds the 8,000 tag strings takes several times that or passes the memory bound; the time and memory bounds are the robustness requirement of the kit, not a rule of the specification: the memory is the whole adapter process, and the input is 1 MB. The input and the expected result are generated from the recipe in case.json (docs/case-format.md).",
+ "provenance": {
+  "reference": "A tag prefix of a million characters that each node using it copied into its own tag string."
+ },
+ "input_recipe": [
+  {
+   "text": "%TAG !e! tag:x,2000:"
+  },
+  {
+   "text": "a",
+   "repeat": 1000000
+  },
+  {
+   "text": "\n---\n"
+  },
+  {
+   "text": "- !e!x a\n",
+   "repeat": 8000
+  }
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/-",
+    "value": "z"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 3,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "bytes",
+   "recipe": [
+    {
+     "text": "%TAG !e! tag:x,2000:"
+    },
+    {
+     "text": "a",
+     "repeat": 1000000
+    },
+    {
+     "text": "\n---\n"
+    },
+    {
+     "text": "- !e!x a\n",
+     "repeat": 8000
+    },
+    {
+     "text": "- z\n"
+    }
+   ]
+  }
+ }
+}
