@@ -2,7 +2,7 @@
 """A scriptable adapter for the kit's own protocol tests.
 
 Behaviour per case id comes from the file named by FAKE_SCRIPT (JSON): a map from case id to
-one of "ok-events", "crash", "hang", "garbage", "unsupported", "error", "accepted",
+one of "ok-events", "crash", "crash-late", "hang", "garbage", "unsupported", "error", "accepted",
 "deep-value", "deep-garbage", "slow" (answers after one second), "pool" (the first such case
 fills a 200 MB pool that later ones reuse, as a runtime that keeps freed memory does).
 FAKE_PROTOCOL says which hello protocol to speak (default 1).
@@ -50,6 +50,12 @@ for line in sys.stdin:
         if how == "pool" and not pool:
             pool.append(bytearray(b"\x01" * (200 * 1024 * 1024)))
         if how == "crash":
+            os._exit(3)
+        if how == "crash-late":
+            # Closes its output first and ends a moment later, as a runtime that tears down slowly does.
+            sys.stdout.close()
+            os.close(1)
+            time.sleep(0.5)
             os._exit(3)
         if how == "hang":
             time.sleep(60)

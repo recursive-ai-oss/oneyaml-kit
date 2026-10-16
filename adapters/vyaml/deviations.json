@@ -328,70 +328,70 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: a)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (An item with the same key has already been added. Key: a)"
   },
   {
    "case": "own:schema/duplicate-keys-differing-in-style-are-an-error",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: a)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (An item with the same key has already been added. Key: a)"
   },
   {
    "case": "own:schema/duplicate-keys-equal-after-resolution-are-an-error",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: 1)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (An item with the same key has already been added. Key: 1)"
   },
   {
    "case": "own:schema/duplicate-keys-equal-after-resolution-are-an-error",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: 1)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (An item with the same key has already been added. Key: 1)"
   },
   {
    "case": "own:schema/duplicate-keys-in-a-flow-mapping-are-an-error",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: b)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (An item with the same key has already been added. Key: b)"
   },
   {
    "case": "own:schema/duplicate-keys-in-a-flow-mapping-are-an-error",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: b)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (An item with the same key has already been added. Key: b)"
   },
   {
    "case": "own:schema/duplicate-plain-keys-are-an-error",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: a)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (An item with the same key has already been added. Key: a)"
   },
   {
    "case": "own:schema/duplicate-plain-keys-are-an-error",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: a)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (An item with the same key has already been added. Key: a)"
   },
   {
    "case": "own:schema/empty-key-is-null",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentNullException outside its own exception types, so the process ended (Value cannot be null. (Parameter 'key'))"
+   "reason": "The library raises System.ArgumentNullException outside its own exception types, so the answer is a crash, not a rejection (Value cannot be null. (Parameter 'key'))"
   },
   {
    "case": "own:schema/empty-key-is-null",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentNullException outside its own exception types, so the process ended (Value cannot be null. (Parameter 'key'))"
+   "reason": "The library raises System.ArgumentNullException outside its own exception types, so the answer is a crash, not a rejection (Value cannot be null. (Parameter 'key'))"
   },
   {
    "case": "own:schema/explicit-str-tag",
@@ -2274,14 +2274,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentNullException outside its own exception types, so the process ended (Value cannot be null. (Parameter 'key'))"
+   "reason": "The library raises System.ArgumentNullException outside its own exception types, so the answer is a crash, not a rejection (Value cannot be null. (Parameter 'key'))"
   },
   {
    "case": "yts:WZ62@value",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentNullException outside its own exception types, so the process ended (Value cannot be null. (Parameter 'key'))"
+   "reason": "The library raises System.ArgumentNullException outside its own exception types, so the answer is a crash, not a rejection (Value cannot be null. (Parameter 'key'))"
   },
   {
    "case": "yts:X4QW",
@@ -2617,28 +2617,28 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The adapter process aborted (exit code -6) on a hundred-thousand-deep nesting"
+   "reason": "The library overflows the stack, which ends the process, on a hundred-thousand-deep nesting"
   },
   {
    "case": "own:safety/deep-block-sequences-100000-value",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The adapter process aborted (exit code -6) on a hundred-thousand-deep nesting"
+   "reason": "The library overflows the stack, which ends the process, on a hundred-thousand-deep nesting"
   },
   {
    "case": "own:safety/deep-flow-sequences-100000-value",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The adapter process aborted (exit code -6) on a hundred-thousand-deep nesting"
+   "reason": "The library overflows the stack, which ends the process, on a hundred-thousand-deep nesting"
   },
   {
    "case": "own:safety/deep-flow-sequences-100000-value",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The adapter process aborted (exit code -6) on a hundred-thousand-deep nesting"
+   "reason": "The library overflows the stack, which ends the process, on a hundred-thousand-deep nesting"
   },
   {
    "case": "own:schema/code-constructing-tags-are-kept-or-refused",
@@ -2729,14 +2729,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library fails with an exception of its own kind that is not a rejection, so the adapter process ended (exit code 70) instead of reporting an error"
+   "reason": "The library fails with an exception of its own kind that is not a rejection, so the adapter answers a crash instead of reporting an error"
   },
   {
    "case": "own:safety/one-line-flow-mapping-with-duplicate-keys",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library fails with an exception of its own kind that is not a rejection, so the adapter process ended (exit code 70) instead of reporting an error"
+   "reason": "The library fails with an exception of its own kind that is not a rejection, so the adapter answers a crash instead of reporting an error"
   },
   {
    "case": "own:safety/implicit-key-window-rescan",
@@ -3205,42 +3205,42 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (a dictionary add of two keys that both become infinity)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (a dictionary add of two keys that both become infinity)"
   },
   {
    "case": "own:schema/duplicate-key-overflowing-float-same-value",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (a dictionary add of two keys that both become infinity)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (a dictionary add of two keys that both become infinity)"
   },
   {
    "case": "own:schema/duplicate-key-float-with-borrowed-exponent-of-a-million-digits",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (a dictionary add of two keys that both become 0)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (a dictionary add of two keys that both become 0)"
   },
   {
    "case": "own:schema/duplicate-key-float-with-borrowed-exponent-of-a-million-digits",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (a dictionary add of two keys that both become 0)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (a dictionary add of two keys that both become 0)"
   },
   {
    "case": "own:schema/duplicate-keys-hex-then-decimal-are-an-error",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: 1)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (An item with the same key has already been added. Key: 1)"
   },
   {
    "case": "own:schema/duplicate-keys-hex-then-decimal-are-an-error",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (An item with the same key has already been added. Key: 1)"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (An item with the same key has already been added. Key: 1)"
   },
   {
    "case": "own:schema/escaped-lone-surrogate-is-refused",
@@ -3345,14 +3345,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "adapter exited (code None)"
+   "reason": "The library raises System.ArgumentNullException (Value cannot be null, parameter key) outside its own exception types, so the answer is a crash, not a rejection"
   },
   {
    "case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "adapter exited (code None)"
+   "reason": "The library raises System.ArgumentNullException (Value cannot be null, parameter key) outside its own exception types, so the answer is a crash, not a rejection"
   },
   {
    "case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid",

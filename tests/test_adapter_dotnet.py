@@ -5,6 +5,7 @@ KIT_ADAPTER_TESTS=1 (the gate sets it) and a `dotnet` executable is found (`DOTN
 it is not on PATH).
 """
 
+import re
 import base64
 import os
 import shutil
@@ -100,10 +101,23 @@ class DotnetAdapters(unittest.TestCase):
         # SharpYaml and VYaml leak the runtime's own exceptions in the same way.
         r = self.by_id["sharpyaml"]["own:schema/core-integers-beyond-64-bits"]
         self.assertEqual(r["loose"], "fail")
-        self.assertIn("adapter exited", r["detail"])
+        self.assertIn("library crash: System.OverflowException", r["detail"])
         for cid in ("own:schema/duplicate-plain-keys-are-an-error", "own:schema/empty-key-is-null"):
-            self.assertEqual(self.by_id["vyaml"][cid]["loose"], "fail", cid)
-        self.assertGreaterEqual(self.res["yamldotnet"]["run"]["adapter_restarts"], 2)
+            r = self.by_id["vyaml"][cid]
+            self.assertEqual(r["loose"], "fail", cid)
+            self.assertIn("library crash: System.Argument", r["detail"], cid)
+
+    def test_a_library_crash_is_an_answer_not_the_end_of_the_process(self):
+        # The adapter reports the crash and keeps serving: no case in these runs ends with the process
+        # exiting, except the nesting depths that overflow the stack, which no code can catch.
+        overflow = re.compile(r"deep-(block|flow)-(sequences|mappings)-\d+")
+        for n in ("yamldotnet", "sharpyaml", "vyaml", "yaml2jsonnode"):
+            for cid, r in self.by_id[n].items():
+                if "adapter exited" in (r.get("detail") or ""):
+                    self.assertRegex(cid, overflow, (n, cid))
+                    self.assertIn("signal 6", r["detail"], (n, cid))
+        self.assertEqual(self.res["yamldotnet"]["run"]["adapter_restarts"], 0)
+        self.assertEqual(self.res["sharpyaml"]["run"]["adapter_restarts"], 0)
 
     def test_a_rejection_in_the_librarys_own_hierarchy_is_still_a_rejection(self):
         for n in ("yamldotnet", "sharpyaml", "vyaml"):

@@ -482,14 +482,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidCastException outside its own exception types, so the process ended (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlSequenceNode' to type 'YamlDotNet.Representa)"
+   "reason": "The library raises System.InvalidCastException outside its own exception types, so the answer is a crash, not a rejection (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlSequenceNode' to type 'YamlDotNet.Representa)"
   },
   {
    "case": "own:roundtrip/explicit-and-complex-keys",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidCastException outside its own exception types, so the process ended (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlSequenceNode' to type 'YamlDotNet.Representa)"
+   "reason": "The library raises System.InvalidCastException outside its own exception types, so the answer is a crash, not a rejection (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlSequenceNode' to type 'YamlDotNet.Representa)"
   },
   {
    "case": "own:roundtrip/flow-collections-with-odd-spacing",
@@ -986,14 +986,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidCastException outside its own exception types, so the process ended (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlMappingNode' to type 'YamlDotNet.Representat)"
+   "reason": "The library raises System.InvalidCastException outside its own exception types, so the answer is a crash, not a rejection (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlMappingNode' to type 'YamlDotNet.Representat)"
   },
   {
    "case": "own:schema/mapping-as-a-mapping-key",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidCastException outside its own exception types, so the process ended (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlMappingNode' to type 'YamlDotNet.Representat)"
+   "reason": "The library raises System.InvalidCastException outside its own exception types, so the answer is a crash, not a rejection (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlMappingNode' to type 'YamlDotNet.Representat)"
   },
   {
    "case": "own:schema/non-string-key",
@@ -1028,14 +1028,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidCastException outside its own exception types, so the process ended (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlSequenceNode' to type 'YamlDotNet.Representa)"
+   "reason": "The library raises System.InvalidCastException outside its own exception types, so the answer is a crash, not a rejection (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlSequenceNode' to type 'YamlDotNet.Representa)"
   },
   {
    "case": "own:schema/sequence-as-a-mapping-key",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidCastException outside its own exception types, so the process ended (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlSequenceNode' to type 'YamlDotNet.Representa)"
+   "reason": "The library raises System.InvalidCastException outside its own exception types, so the answer is a crash, not a rejection (Unable to cast object of type 'YamlDotNet.RepresentationModel.YamlSequenceNode' to type 'YamlDotNet.Representa)"
   },
   {
    "case": "own:schema/unresolved-tag-is-kept",
@@ -1098,14 +1098,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the answer is a crash, not a rejection (Operation is not valid due to the current state of the object.)"
   },
   {
    "case": "yts:9C9N",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the answer is a crash, not a rejection (Operation is not valid due to the current state of the object.)"
   },
   {
    "case": "yts:C4HZ@value",
@@ -1238,14 +1238,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (The current event is of an unsupported type. (Parameter 'parser'))"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (The current event is of an unsupported type. (Parameter 'parser'))"
   },
   {
    "case": "yts:M2N8/00",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (The current event is of an unsupported type. (Parameter 'parser'))"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (The current event is of an unsupported type. (Parameter 'parser'))"
   },
   {
    "case": "yts:MUS6/00",
@@ -1294,28 +1294,28 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (The current event is of an unsupported type. (Parameter 'parser'))"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (The current event is of an unsupported type. (Parameter 'parser'))"
   },
   {
    "case": "yts:UKK6/00",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentException outside its own exception types, so the process ended (The current event is of an unsupported type. (Parameter 'parser'))"
+   "reason": "The library raises System.ArgumentException outside its own exception types, so the answer is a crash, not a rejection (The current event is of an unsupported type. (Parameter 'parser'))"
   },
   {
    "case": "yts:VJP3/00",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the answer is a crash, not a rejection (Operation is not valid due to the current state of the object.)"
   },
   {
    "case": "yts:VJP3/00",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the answer is a crash, not a rejection (Operation is not valid due to the current state of the object.)"
   },
   {
    "case": "yts:VJP3/01",
@@ -1546,28 +1546,28 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The adapter process aborted (exit code -6) on a hundred-thousand-deep nesting"
+   "reason": "The library overflows the stack, which ends the process, on a hundred-thousand-deep nesting"
   },
   {
    "case": "own:safety/deep-block-sequences-100000-value",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The adapter process aborted (exit code -6) on a hundred-thousand-deep nesting"
+   "reason": "The library overflows the stack, which ends the process, on a hundred-thousand-deep nesting"
   },
   {
    "case": "own:safety/deep-flow-sequences-100000-value",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The adapter process aborted (exit code -6) on a hundred-thousand-deep nesting"
+   "reason": "The library overflows the stack, which ends the process, on a hundred-thousand-deep nesting"
   },
   {
    "case": "own:safety/deep-flow-sequences-100000-value",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The adapter process aborted (exit code -6) on a hundred-thousand-deep nesting"
+   "reason": "The library overflows the stack, which ends the process, on a hundred-thousand-deep nesting"
   },
   {
    "case": "own:schema/code-constructing-tags-are-kept-or-refused",
@@ -4332,14 +4332,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: adapter exited (code -6)"
+   "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: the library overflows the stack and the process ends"
   },
   {
    "case": "own:safety/deep-flow-mappings-999999",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: adapter exited (code -6)"
+   "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: the library overflows the stack and the process ends"
   },
   {
    "case": "own:edit/add-nested-copies-sibling-indent-past-256",
@@ -4892,42 +4892,42 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the answer is a crash, not a rejection (a surrogate character was not the expected high or low half)"
   },
   {
    "case": "own:schema/escaped-mismatched-surrogates-are-refused",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the answer is a crash, not a rejection (a surrogate character was not the expected high or low half)"
   },
   {
    "case": "own:schema/escaped-two-high-surrogates-are-refused",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the answer is a crash, not a rejection (a surrogate character was not the expected high or low half)"
   },
   {
    "case": "own:schema/escaped-two-high-surrogates-are-refused",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the answer is a crash, not a rejection (a surrogate character was not the expected high or low half)"
   },
   {
    "case": "own:schema/escaped-high-surrogate-before-long-escape-is-refused",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the answer is a crash, not a rejection (a surrogate character was not the expected high or low half)"
   },
   {
    "case": "own:schema/escaped-high-surrogate-before-long-escape-is-refused",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the answer is a crash, not a rejection (a surrogate character was not the expected high or low half)"
   },
   {
    "case": "own:safety/tag-prefix-with-alternating-suffixes",

@@ -18,7 +18,7 @@ sealed class YamlDotNetKitAdapter : IAdapter
     public string[] Capabilities => ["events", "value", "dump", "error-category", "error-position", "error-events"];
 
     // Only YamlDotNet's own exception hierarchy is a rejection. Anything else escaping the library (it throws
-    // InvalidOperationException from its scanner on some inputs) is a defect, and the process ends.
+    // InvalidOperationException from its scanner on some inputs) is a defect, and the adapter answers a crash.
     public bool IsLibraryException(Exception e) => e is YamlException;
 
     // `decode`: YamlDotNet reads a string or a text reader, so byte order marks, UTF-16/32 and malformed
@@ -58,7 +58,7 @@ sealed class YamlDotNetKitAdapter : IAdapter
         try { v = Native.Of(r, null, "a byte array is written as a list of integers"); }
         catch (NotSupportedException e) { return Outcome.Unsupported(e.Message); }
         try { return Outcome.OutputOk(new UTF8Encoding(false).GetBytes(Host.Library(() => Serializer.Serialize(v)))); }
-        catch (Exception e) { return Outcome.Error(new Failure("other", e.Message[..Math.Min(300, e.Message.Length)])); }
+        catch (Exception e) when (e is not LibraryCrash) { return Outcome.Error(new Failure("other", e.Message[..Math.Min(300, e.Message.Length)])); }
     }
 
     const string UnresolvedTagMessage = "Encountered an unresolved tag";

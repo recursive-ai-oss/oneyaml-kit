@@ -811,14 +811,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the answer is a crash, not a rejection (Operation is not valid due to the current state of the object.)"
   },
   {
    "case": "yts:9C9N",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the answer is a crash, not a rejection (Operation is not valid due to the current state of the object.)"
   },
   {
    "case": "yts:9WXW@value",
@@ -1245,14 +1245,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the answer is a crash, not a rejection (Operation is not valid due to the current state of the object.)"
   },
   {
    "case": "yts:VJP3/00",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the process ended (Operation is not valid due to the current state of the object.)"
+   "reason": "The library raises System.InvalidOperationException outside its own exception types, so the answer is a crash, not a rejection (Operation is not valid due to the current state of the object.)"
   },
   {
    "case": "yts:VJP3/01",

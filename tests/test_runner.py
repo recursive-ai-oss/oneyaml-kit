@@ -49,8 +49,14 @@ class Subprocess(unittest.TestCase):
         h = a.start()
         res = R.execute(a, set(h["capabilities"]), [mk("a"), mk("b"), mk("c")])
         self.assertEqual([r["loose"] for r in res], ["pass", "fail", "pass"])
-        self.assertIn("exited", res[1]["detail"])
+        self.assertIn("(code 3)", res[1]["detail"])
         self.assertEqual(a.restarts, 1)
+
+    def test_a_crash_reports_the_real_exit_code_even_when_the_process_ends_late(self):
+        a = self.adapter({"b": "crash-late"})
+        h = a.start()
+        res = R.execute(a, set(h["capabilities"]), [mk("b")])
+        self.assertIn("(code 3)", res[0]["detail"])
 
     def test_hang_times_out_and_the_run_continues(self):
         a = self.adapter({"b": "hang"}, timeout=0.5)

@@ -27,7 +27,7 @@ sealed class Yaml2JsonNodeKitAdapter : IAdapter
     // The library's own rejections: YamlDotNet's exceptions (the parser underneath), the pointer parser, and
     // the JSON exception JsonPatch.Net's converter raises for a malformed patch. Anything else escaping the
     // library (a failed cast on a mapping key that is not a scalar, for instance) is a defect, and the
-    // process ends so the kit records a crash.
+    // adapter answers a crash.
     public bool IsLibraryException(Exception e) => e is YamlException or PointerParseException or JsonException;
 
     // decode: Yaml2JsonNode reads a string, so byte order marks, UTF-16/32 and malformed UTF-8 are the adapter's.

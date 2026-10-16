@@ -72,6 +72,7 @@ then one response per `run`, with the same `id`:
 | `error` | `error`: `{"category", "message", "line", "column"}` (`line` and `column` optional; the conventions are in the case format's *Positions*). For `events`, also `events`: the lines produced before the error. For `patch`, also `output`: the bytes of the document as the library would now write it, so that "unchanged" can be checked (by an `error` expectation, and by a `bounded` patch case that states `unchanged`) |
 | `accepted` | (protocol 2) The library took the input and the adapter cannot or need not describe the result. No other field is needed. Only for `events` and `value` cases. See *Accepted without a result* |
 | `unsupported` | `reason`: a short sentence. The adapter declines this case |
+| `crash` | `detail`: a short sentence. The library failed with an exception outside its own error hierarchy (a null dereference, a failed cast). That is a defect in the library, not a rejection of the input: the case fails in both modes, and the adapter keeps serving |
 
 A response may also carry `emulated`: a list of the behaviours (declared in the hello's
 `emulates`) that this answer depended on. See *Behaviour the adapter supplies*.

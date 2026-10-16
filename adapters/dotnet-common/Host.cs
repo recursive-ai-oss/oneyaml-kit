@@ -17,9 +17,12 @@ public interface IAdapter
 
     /// <summary>True for the exceptions the library itself raises to report a problem with the input or
     /// the request (its own exception hierarchy). Anything else escaping a library call is a defect in
-    /// the library, and the adapter ends the process so the kit records a crash for that case.</summary>
+    /// the library, and the adapter answers `crash` for that case instead of an error.</summary>
     bool IsLibraryException(Exception e);
 }
+
+/// <summary>The library failed with an exception that is not part of its own error hierarchy.</summary>
+public sealed class LibraryCrash(string message) : Exception(message);
 
 /// <summary>The JSON Lines loop, and the threads library code runs on.</summary>
 public static class Host
@@ -35,15 +38,15 @@ public static class Host
 
     static IAdapter? _adapter;
 
-    /// <summary>Returns <paramref name="e"/> when the library raised it on purpose; ends the process when it is
-    /// anything else (a null dereference, an invalid-operation error, a failed cast inside the library). A
-    /// library that dies on an input has not rejected it, and must not be credited with a rejection.</summary>
+    /// <summary>Returns <paramref name="e"/> when the library raised it on purpose; throws <see cref="LibraryCrash"/>
+    /// when it is anything else (a null dereference, an invalid-operation error, a failed cast inside the
+    /// library). A library that fails on an input has not rejected it and must not be credited with a
+    /// rejection; the crash travels up to the request loop, which answers it and keeps serving.</summary>
     public static Exception Own(Exception e)
     {
+        if (e is LibraryCrash) throw e;
         if (_adapter == null || _adapter.IsLibraryException(e)) return e;
-        Console.Error.WriteLine("library crash: " + e.GetType().FullName + ": " + Trim(e.Message));
-        Environment.Exit(70);
-        return e;
+        throw new LibraryCrash(e.GetType().FullName + ": " + Trim(e.Message));
     }
 
     public static T OnStack<T>(int stackBytes, Func<T> work)
@@ -142,6 +145,10 @@ public static class Host
             var args = req.TryGetProperty("args", out var ap) ? ap.Clone() : default;
             outcome = a.Run(new Request { Id = id, Op = op, Input = bytes, Args = args });
         }
+        catch (LibraryCrash c)
+        {
+            outcome = Outcome.Crash(c.Message);
+        }
         catch (Exception e)
         {
             // Anything not mapped by the adapter is the adapter's own failure to answer, not a
@@ -185,6 +192,10 @@ public static class Host
                     w.WriteEndObject();
                     if (o.Events != null) WriteLines(w, "events", o.Events);
                     if (o.Output != null) w.WriteString("output", System.Convert.ToBase64String(o.Output));
+                    break;
+                case Outcome.Kinds.Crash:
+                    w.WriteString("status", "crash");
+                    w.WriteString("detail", "library crash: " + o.Reason);
                     break;
                 case Outcome.Kinds.Accepted:
                     w.WriteString("status", "accepted");

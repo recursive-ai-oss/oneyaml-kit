@@ -49,8 +49,9 @@ The adapters declare only what the library's own API can do.
   `SharpYaml.YamlException`, `VYaml.YamlException` and its subclasses; `yaml2jsonnode` also the
   pointer and JSON patch parse exceptions of JsonPatch.Net). Anything else escaping a library call, such
   as an invalid-operation error from a scanner, a failed cast or the runtime's own duplicate-key error,
-  is a defect in the library, not a rejection of the input: the adapter ends the process, the kit
-  records a crash for that case and starts a new adapter. A stack overflow ends it in the same way.
+  is a defect in the library, not a rejection of the input: the adapter answers `crash` for that
+  case (with the exception type and message) and keeps serving. A stack overflow still ends the process;
+  the kit then records a crash for that case and starts a new adapter.
 - **Error categories** come from the exception type the library chose, never from message text.
   A library that raises one type for every failure reports `other`, and a strict check on the
   category then fails: that is the library's gap, not the adapter's.
