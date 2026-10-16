@@ -1,0 +1,80 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/integer-keys-beyond-the-digit-limit-in-a-document",
+ "title": "Two integer keys of eight million digits in a document that is edited",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "187",
+  "189"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.1.1",
+  "YAML 1.2.2 section 10.2.1.3",
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "tags": [
+  "slow"
+ ],
+ "notes": "The input is a mapping with the explicit keys `1` repeated eight million times and `2` repeated eight million times (explicit, because an implicit key is limited to 1,024 characters, section 7.4.2 / production 154), and the plain key `k`. Both keys match the Core integer expression (section 10.3.2), and they are two different integers, so the mapping has no duplicate key (section 3.2.1.1). A library that decides whether two keys are equal by comparing their values has to hold or parse the integers; section 10.2.1.3 lets it refuse an integer it cannot hold, and a library that limits the digits of an integer value can refuse such a key the same way. The answer is the edit (the patch replaces `k` and nothing else) or a limit error. What the case bounds is the cost of deciding: converting a digit string to a big integer takes more than linear time in some runtimes (the same reason as in safety/integer-of-4300-digits-is-exact-or-refused), so a reader that converts each key takes seconds here, while a reader that refuses at once or compares the digit strings takes a fraction of a second. The size is 16 MB because a conversion of 1.6 million digits per key still ran in about one second on a current runtime; at eight million digits it runs past the time bound. The case is a patch with a small pointer because the kit cannot state a value of eight million digits as a key (its JSON reader takes integers of at most 4300 digits) and a pointer cannot hold one. The bounds are the robustness requirement of the kit, not a rule of the specification. The input and the expected result are generated from the recipe in case.json (docs/case-format.md).",
+ "provenance": {
+  "reference": "A lossless document that converted integer keys beyond the digit limit to big integers to compare them, although the same digits as a value were refused at once."
+ },
+ "input_recipe": [
+  {
+   "text": "? "
+  },
+  {
+   "text": "1",
+   "repeat": 8000000
+  },
+  {
+   "text": "\n: 1\n? "
+  },
+  {
+   "text": "2",
+   "repeat": 8000000
+  },
+  {
+   "text": "\n: 1\nk: old\n"
+  }
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/k",
+    "value": "new"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 10,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "bytes",
+   "recipe": [
+    {
+     "text": "? "
+    },
+    {
+     "text": "1",
+     "repeat": 8000000
+    },
+    {
+     "text": "\n: 1\n? "
+    },
+    {
+     "text": "2",
+     "repeat": 8000000
+    },
+    {
+     "text": "\n: 1\nk: new\n"
+    }
+   ]
+  }
+ }
+}

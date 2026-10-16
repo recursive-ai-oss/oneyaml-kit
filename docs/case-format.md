@@ -362,8 +362,9 @@ evaluated, no text is substituted, and no file or program is read.
 |---|---|
 | `{"text": s, "repeat": n}` | the UTF-8 bytes of `s`, `n` times (`repeat` defaults to 1) |
 | `{"numbers": {"count": n, "start": k, "prefix": p, "suffix": s, "width": w}}` | `p`, the decimal number, `s` for `k`, `k+1`, ... `k+n-1`, the number zero-padded to at least `w` digits. `start`, `prefix`, `suffix` and `width` are optional. Used for keys that must all be different. |
+| `{"product": {"prefix": p, "suffix": s, "choices": [[a, b], [c, d, ...], ...]}}` | `p`, one string from each list in turn, `s`, for every combination of one string from each list, the first list varying slowest and the last fastest. `choices` is required and holds at least one list; `prefix` and `suffix` are optional; every list holds at least one string, and all strings are written as UTF-8. Used for names built from independent parts, such as a large set of names with one hash. |
 
-A recipe has at most 64 parts and builds at most 64 MiB; the size is worked out from the parts
+A recipe has at most 64 parts and builds at most 64 MiB; the size (for a product, the number of combinations and the exact length of every one) is worked out from the parts
 before a byte is built, so a recipe that is too large is refused when the case loads. The parts
 are written one after another; counts and repeats are integers of 0 or more.
 
@@ -396,7 +397,7 @@ inputs or expected results, unless `--slow` is given or the environment variable
 set (to anything but empty or `0`). The full gate sets it, so the large cases run there and not in
 the hand-over tier. A run without them skips deviation entries that name them instead of calling
 them stale; an entry for an id that is no case is still an error. Inputs are built in pieces of
-about a megabyte, so building one holds little more than its own bytes.
+about a megabyte (a piece ends at the first line that reaches a megabyte, so a product of very long lines has pieces as long as a few lines), so building one holds little more than its own bytes.
 
 ## Pins
 
