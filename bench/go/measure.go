@@ -16,6 +16,17 @@ const chunk = 256
 
 const quickBenchtime = "20ms"
 
+// fullBenchtime is the standard library's own default.
+const fullBenchtime = "1s"
+
+// benchtimeFor is the -benchtime a mode runs with; the harness record states it too.
+func benchtimeFor(mode string) string {
+	if mode == "quick" {
+		return quickBenchtime
+	}
+	return fullBenchtime
+}
+
 var testingReady atomic.Bool
 
 func setBenchtime(v string) {
@@ -37,11 +48,7 @@ type Measured struct {
 // measure times the task. Each starting state is built with the timer stopped and the result of the
 // run is dropped inside the clock, as a caller's would be.
 func measure(r Runner, mode string) Measured {
-	if mode == "quick" {
-		setBenchtime(quickBenchtime)
-	} else {
-		setBenchtime("1s")
-	}
+	setBenchtime(benchtimeFor(mode))
 	var panicked any
 	res := testing.Benchmark(func(b *testing.B) {
 		b.ReportAllocs()

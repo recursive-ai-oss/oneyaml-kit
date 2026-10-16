@@ -54,7 +54,7 @@ Parse into the library's generic value tree; all documents of a stream.
 | `w3` | 2.93 KiB | 80 ns | differs [1] | 100 ns | 0.80× of `rival` ▲ win |
 | `w4` | 3.91 KiB | differs | — | 100 ns | no number (differs) |
 
-**Allocated memory per operation**
+**Requested bytes per run (allocator count)**
 
 | Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|
@@ -85,7 +85,7 @@ Write a generic value tree back to YAML text.
 |---|---|---|---|---|---|
 | `w1` | 1000 B | 90 ns | 100 ns | unjudged [2] | 0.90× of `other` ▲ win |
 
-**Allocated memory per operation**
+**Requested bytes per run (allocator count)**
 
 | Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|
@@ -113,7 +113,7 @@ Apply an RFC 6902 patch to a document, atomically, and write the bytes.
 |---|---|---|---|---|---|
 | `w1` | 1000 B | — | — | rejects [3] | no number (unsupported) |
 
-**Allocated memory per operation**
+**Requested bytes per run (allocator count)**
 
 | Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|

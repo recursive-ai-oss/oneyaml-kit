@@ -105,12 +105,14 @@ func harnessRecord(a *args, libs []Library) map[string]any {
 			"role": l.Role(), "settings": l.Settings()})
 	}
 	return map[string]any{
-		"type": "harness", "name": "oneyaml-bench-go", "version": "0.2.0", "language": "go",
+		"type": "harness", "name": "oneyaml-bench-go", "version": "0.2.1", "language": "go",
 		"runtime": runtime.Version(), "target": runtime.GOOS + "/" + runtime.GOARCH, "mode": a.mode,
-		"tool":      "testing.B",
-		"timer":     "ns/op from testing.Benchmark at its default benchtime (20 ms in quick mode)",
-		"memory":    "B/op and allocs/op from testing.B (ReportAllocs)",
-		"libraries": ls,
+		"tool": "testing.B",
+		// Every library's patch is timed from text to text: the task is defined on text here.
+		"text_tasks": []string{"patch"},
+		"timer":      "ns/op from testing.Benchmark at benchtime " + benchtimeFor(a.mode),
+		"memory":     "B/op and allocs/op from testing.B (ReportAllocs)",
+		"libraries":  ls,
 	}
 }
 

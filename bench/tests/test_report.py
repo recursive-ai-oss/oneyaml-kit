@@ -227,7 +227,7 @@ class BaselineReportTests(unittest.TestCase):
 
     def test_memory_is_the_bytes_allocated(self):
         md = self.render(baseline_result())
-        self.assertIn("Allocated memory per operation", md)
+        self.assertIn("Allocated bytes per task (MemoryDiagnoser)", md)
         self.assertNotIn("peak", md.lower().replace("strongest", ""))
 
     def test_a_tiny_ratio_is_not_printed_as_zero(self):

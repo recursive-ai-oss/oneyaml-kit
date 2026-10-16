@@ -14,13 +14,14 @@ functions of this module.
 
 from __future__ import annotations
 
+import copy
 import math
 import os
 import re
 import sys
 from pathlib import Path
 
-from . import reasons, report, results
+from . import environment, reasons, report, results, taskstate
 
 BEGIN_RE = re.compile(r"<!-- generated:([A-Za-z0-9_-]*) -->")
 END_MARK = "<!-- end generated -->"
@@ -182,8 +183,9 @@ def aggregate(result: dict, library: str, rows: list[dict]) -> list[dict]:
 # ---- shared pieces ----------------------------------------------------------------------
 
 class Ctx:
-    def __init__(self, result, library, kit_version, conformance, chart_dir, allow_smoke):
+    def __init__(self, result, library, kit_version, conformance, chart_dir, allow_smoke, source=None):
         results.validate(result)
+        result = taskstate.mark_text_tasks(copy.deepcopy(result))
         self.result, self.library, self.kit_version = result, library, kit_version
         self.conformance, self.chart_dir, self.allow_smoke = conformance, chart_dir, allow_smoke
         self.run = result["run"]
@@ -192,6 +194,7 @@ class Ctx:
                               "is refused unless --allow-smoke is given (the block is then labelled)")
         self.lang = featured_language(result, library)
         self.harness = result["harnesses"][self.lang]
+        self.tag = self.release_tag(source)
         self.rank = report.workload_order(result)
         self.cells = [c for c in result["cells"] if c["language"] == self.lang]
         every = results.compare_rows(self.cells)
@@ -207,9 +210,24 @@ class Ctx:
     def libs(self):
         return [l for l in self.harness["libraries"] if l["role"] != "control"]
 
+    def release_tag(self, source) -> str | None:
+        """The release tag of our library's revision: the one the run recorded, else the one the checkout
+        at `source` has at that same commit. None when neither knows; a tag is never guessed."""
+        ours = next((l for l in self.harness["libraries"] if l["id"] == self.library), None)
+        if ours is None:
+            return None
+        rec = (self.run.get("sources") or {}).get(self.lang) or {}
+        if rec.get("library") == self.library and rec.get("revision") == ours["version"] and rec.get("tag"):
+            return rec["tag"]
+        return environment.release_tag(Path(source), str(ours["version"])) if source else None
+
     def version_of(self, lib: str) -> str:
         l = next((l for l in self.harness["libraries"] if l["id"] == lib), None)
-        return f"{lib} {l['version']}" if l else lib
+        if not l:
+            return lib
+        if lib == self.library and self.tag:
+            return f"{lib} {self.tag} ({l['version']})"
+        return f"{lib} {l['version']}"
 
     def kit_text(self) -> str:
         # The bench result records the kit revision, not its version; the version comes from the
@@ -238,7 +256,7 @@ def method_strip(ctx: Ctx) -> list[str]:
         f"Method: {run['mode']} run of {run['date']}, **{label}**. {ctx.kit_text()}. "
         f"`{ctx.version_of(ctx.library)}`; competitors "
         + ", ".join(f"`{ctx.version_of(l['id'])}`" for l in comps) + ". "
-        f"Runtime {h['runtime']} (target {h['target']}), measured with {h['tool']}: {h['timer']}. Memory: {h['memory']}. "
+        f"Runtime {h['runtime']} (target {h['target']}), measured with {h['tool']}: {report.timer_text(h, run['mode'])}. Memory: {h['memory']}. "
         f"{env['cpu']} ({env['cpus']} logical CPUs, {env['memory_gb']} GiB), {env['os']} ({env['machine']}), "
         f"host load (1 min) {run['load']['before']} before, "
         f"{run['load']['after']} after."]
@@ -354,7 +372,7 @@ def render_hero(ctx: Ctx, chart_rel: str, **_) -> str:
     out.append(report.md_table(
         ["Task", f"`{ctx.library}` time (geometric mean)", "Strongest competitors",
          "Strongest competitors' time (geometric mean)", "Ratio (ours ÷ theirs)",
-         "Peak memory (geometric mean, ours vs smallest)", "Verdict", "Per workload"], body))
+         f"{report.memory_label(ctx.lang)} (geometric mean, ours vs smallest)", "Verdict", "Per workload"], body))
     out.append("")
     out += not_run_text(ctx)
     basis = {a["task"]: a for a in aggs}
@@ -382,7 +400,7 @@ def render_full(ctx: Ctx, **_) -> str:
     out = smoke_notice(ctx)
     notes = reasons.Notes([c for r in ctx.rows for c in r["cells"]])  # the cells the tables show
     for metric, title, cellfn in (("time", "Time per operation", report.time_cell),
-                                  ("memory", "Peak / allocated heap per operation", report.memory_cell)):
+                                  ("memory", report.memory_label(ctx.lang), report.memory_cell)):
         body = []
         for r in ctx.rows:
             by = {c["library"]: c for c in r["cells"]}
@@ -487,11 +505,14 @@ KINDS = {"bench-hero": render_hero, "conformance-line": render_conformance_line,
 
 # ---- update -----------------------------------------------------------------------------
 
-def update(ctx: Ctx, targets: list[Path], charts: str, docs_conformance: Path) -> dict[Path, bytes]:
+def update(ctx: Ctx, targets: list[Path], charts: str, docs_conformance: Path,
+           chart_base: str | None = None) -> dict[Path, bytes]:
     """The new bytes of every target file that holds blocks; nothing is written here. A target with no
     markers is skipped only when it is not the first (the README); the first must have at least one."""
     known = set(KINDS)
     chart_abs = targets[0].parent / charts
+    if chart_base is not None and not re.match(r"https?://[^\s]+$", chart_base):
+        raise ReadmeError(f"the chart base must be an http or https URL, not {chart_base!r}")
     new: dict[Path, bytes] = {}
     for i, path in enumerate(targets):
         if not path.exists():
@@ -510,7 +531,11 @@ def update(ctx: Ctx, targets: list[Path], charts: str, docs_conformance: Path) -
                                   f"and {END_MARK}")
             continue
         rel = lambda p: Path(os.path.relpath(p, path.parent)).as_posix()  # noqa: E731
-        blocks = {k: KINDS[k](ctx, chart_rel=rel(chart_abs), conformance_link=rel(docs_conformance))
+        # With a base URL the chart links are absolute (the README may be shown where relative paths do not
+        # resolve, such as a package registry page); the same path under the base for every target file.
+        chart_rel = (chart_base.rstrip("/") + "/" + Path(charts).as_posix().strip("/")
+                     if chart_base else rel(chart_abs))
+        blocks = {k: KINDS[k](ctx, chart_rel=chart_rel, conformance_link=rel(docs_conformance))
                   for k, _, _ in found}
         new[path] = splice(text, blocks, known, str(path)).encode("utf-8")
     return new
