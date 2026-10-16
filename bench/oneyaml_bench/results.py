@@ -18,6 +18,9 @@ A cell is one (language, library, task, workload) with a status:
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 FORMAT = "oneyaml-kit-bench/2"
 STATUSES = ("ok", "differs", "rejects", "unsupported", "unjudged", "error")
 
@@ -149,6 +152,41 @@ def tally(rows: list[dict], metric: str) -> dict:
             else:
                 t[e[metric]["verdict"]] += 1
     return t
+
+
+# ---- partial runs ------------------------------------------------------------------------
+
+def missing_languages(result: dict) -> list[str]:
+    """The languages the run was meant to measure and has no results for. A result with any is not a
+    complete run."""
+    return sorted(set(result["run"].get("expected_languages", [])) - set(result["harnesses"]))
+
+
+def merge(parts: list[dict]) -> dict:
+    """One result from per-language results of the same run."""
+    first = parts[0]
+    merged = {**first, "run": dict(first["run"]), "harnesses": {}, "cells": []}
+    merged["run"]["seconds"] = round(sum(p["run"]["seconds"] for p in parts), 1)
+    merged["run"]["load"] = {"before": first["run"]["load"]["before"], "after": parts[-1]["run"]["load"]["after"]}
+    merged["run"]["expected_languages"] = sorted({l for p in parts for l in p["run"].get("expected_languages", [])})
+    for p in parts:
+        merged["harnesses"].update(p["harnesses"])
+        merged["cells"] += p["cells"]
+    return merged
+
+
+def load(path) -> dict | None:
+    """A result from a file, or from a directory: its results.json, else the per-language results-*.json
+    a run cut short leaves. None when there is nothing."""
+    path = Path(path)
+    if path.is_dir():
+        whole = path / "results.json"
+        if whole.is_file():
+            path = whole
+        else:
+            files = sorted(path.glob("results-*.json"))
+            return merge([json.loads(f.read_text(encoding="utf-8")) for f in files]) if files else None
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 # ---- validation --------------------------------------------------------------------------

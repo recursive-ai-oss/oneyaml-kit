@@ -57,6 +57,9 @@ def cmd_run(a: argparse.Namespace) -> int:
         by[c["status"]] = by.get(c["status"], 0) + 1
     print(f"{len(result['cells'])} cells ({', '.join(f'{v} {k}' for k, v in sorted(by.items()))}) "
           f"in {time.monotonic() - t0:.1f} s{'; smoke result' if result['run']['smoke'] else ''}")
+    missing = results.missing_languages(result)
+    if missing:
+        print(f"INCOMPLETE: no results for {', '.join(missing)}")
     print(f"results: {out / 'results.json'}\nreport:  {out / 'report.md'}")
     if hits:
         print("public-text check failed on generated output:\n  " + "\n  ".join(hits), file=sys.stderr)
@@ -65,8 +68,11 @@ def cmd_run(a: argparse.Namespace) -> int:
 
 
 def cmd_report(a: argparse.Namespace) -> int:
-    result = json.loads(Path(a.result).read_text(encoding="utf-8"))
-    out = Path(a.out) if a.out else Path(a.result).parent
+    result = results.load(a.result)
+    if result is None:
+        print(f"bench report: no results in {a.result}", file=sys.stderr)
+        return 1
+    out = Path(a.out) if a.out else (Path(a.result) if Path(a.result).is_dir() else Path(a.result).parent)
     hits = public_text_hits(write_report(result, out))
     if hits:
         print("\n".join(hits), file=sys.stderr)
@@ -86,7 +92,8 @@ def cmd_readme(a: argparse.Namespace) -> int:
     version = (KIT_ROOT / "suites" / "VERSION").read_text(encoding="utf-8").strip()
     res = Path(a.results)
     try:
-        bench = Path(a.bench) if a.bench else find_first([res / "bench" / "results.json", res / "results.json"])
+        bench = results.load(a.bench) if a.bench else next(
+            (r for r in (results.load(d) for d in (res / "bench", res) if d.is_dir()) if r), None)
         if bench is None:
             raise readme.ReadmeError(f"no benchmark result found in {res} (looked for bench/results.json and results.json)")
         conf_path = Path(a.conformance) if a.conformance else find_first(
@@ -94,7 +101,7 @@ def cmd_readme(a: argparse.Namespace) -> int:
         conf = json.loads(conf_path.read_text(encoding="utf-8")) if conf_path else None
         docs = Path(a.docs)
         readme_path = Path(a.readme)
-        ctx = readme.Ctx(json.loads(bench.read_text(encoding="utf-8")), a.library, version, conf,
+        ctx = readme.Ctx(bench, a.library, version, conf,
                          readme_path.parent / a.charts.rstrip("/"), a.allow_smoke)
         targets = [readme_path, docs / "performance.md", docs / "conformance.md"]
         new = readme.update(ctx, targets, a.charts.rstrip("/"), docs / "conformance.md")
@@ -120,7 +127,7 @@ def main(argv: list[str] | None = None) -> int:
                    help="label the run a smoke result; it always is in quick mode and outside the cloud machine")
     r.set_defaults(fn=cmd_run)
     g = sub.add_parser("report", help="render a report from a results file")
-    g.add_argument("result")
+    g.add_argument("result", help="a results file, or the directory of a run (a run cut short has one file per language)")
     g.add_argument("--out")
     g.set_defaults(fn=cmd_report)
     w = sub.add_parser("workloads", help="write the workload set")
