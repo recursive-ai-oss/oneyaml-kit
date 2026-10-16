@@ -1,0 +1,185 @@
+{
+ "about": "Real first differences from benchmark runs, one for each reason entry; the tests check each entry still explains its sample.",
+ "samples": [
+  {
+   "library": "yaml-v3",
+   "task": "dump",
+   "status": "differs",
+   "workload": "records-4k",
+   "detail": "read back: at /1/score: got 812, expected 812 (float)",
+   "role": "competitor",
+   "language": "go",
+   "entry": 0
+  },
+  {
+   "library": "sigs-yaml",
+   "task": "generic-load",
+   "status": "differs",
+   "workload": "compose-wordpress",
+   "detail": "at /services/db/expose/0: got 3306 (float), expected 3306",
+   "role": "competitor",
+   "language": "go",
+   "entry": 1
+  },
+  {
+   "library": "sigs-yaml",
+   "task": "generic-load",
+   "status": "differs",
+   "workload": "k8s-ingress-nginx-multi",
+   "detail": "at /: got a mapping of 3, expected a sequence of 19",
+   "role": "competitor",
+   "language": "go",
+   "entry": 2
+  },
+  {
+   "library": "yaml-v2",
+   "task": "generic-load",
+   "status": "differs",
+   "workload": "anchors-32k",
+   "detail": "at /base/b/1: got true, expected \"y\"",
+   "role": "competitor",
+   "language": "go",
+   "entry": 3
+  },
+  {
+   "library": "sigs-yaml",
+   "task": "typed-load",
+   "status": "differs",
+   "workload": "gha-workflow",
+   "detail": "/on/push/branches: 0 items, expected 2",
+   "role": "competitor",
+   "language": "go",
+   "entry": 4
+  },
+  {
+   "library": "json-patch",
+   "task": "patch",
+   "status": "rejects",
+   "workload": "gha-workflow",
+   "detail": "add operation does not apply: doc is missing path: \"/on/push/branches/-\": missin…",
+   "role": "competitor",
+   "language": "go",
+   "entry": 5
+  },
+  {
+   "library": "goccy-go-yaml",
+   "task": "dump",
+   "status": "differs",
+   "workload": "records-4k",
+   "detail": "read back: at /14/address/zip: got 5509, expected \"05509\"",
+   "role": "competitor",
+   "language": "go",
+   "entry": 6
+  },
+  {
+   "library": "vyaml",
+   "task": "dump",
+   "status": "differs",
+   "workload": "reference-a",
+   "detail": "read back: at /b: got \"this is a test\", expected \"this is a test\\n\"",
+   "role": "competitor",
+   "language": "csharp",
+   "entry": 7
+  },
+  {
+   "library": "goccy-go-yaml",
+   "task": "document-parse",
+   "status": "differs",
+   "workload": "records-4k",
+   "detail": "does not write the input back: byte 736: got 4275 bytes \".25\\n  note: null\\n- id: 3\\n  name: Eps\", expected 4242 bytes \".25\\n  note: ~\\n- id: 3\\n  name: Epsilo\"; line 47: got \"  note: null\", expected \"  note: ~\"",
+   "role": "competitor",
+   "language": "go",
+   "entry": 8
+  },
+  {
+   "library": "goccy-go-yaml",
+   "task": "document-parse",
+   "status": "differs",
+   "workload": "unicode-32k",
+   "detail": "does not write the input back: byte 20: got 28160 bytes \" café 0\\n- \\\"é中文 0\\\"\\n- \\\"😀 grin\", expected 32800 bytes \" café 0\\n- \\\"\\\\u00e9\\\\u4e2d\\\\u6587 0\\\"\\n- \"; line 2: got \"- \\\"é中文 0\\\"\", expected \"- \\\"\\\\u00e9\\\\u4e2d\\\\u6587 0\\\"\"",
+   "role": "competitor",
+   "language": "go",
+   "entry": 9
+  },
+  {
+   "library": "goccy-go-yaml",
+   "task": "edit-script",
+   "status": "differs",
+   "workload": "reference-b",
+   "detail": "byte 26: got 48 bytes \"#abc 123\\nb: this is a test2\\nc: 13\\n\", expected 53 bytes \"#abc 123\\nb: |-\\n  this is a test2\\nc: \"; line 5: got \"b: this is a test2\", expected \"b: |-\"",
+   "role": "competitor",
+   "language": "go",
+   "entry": 10
+  },
+  {
+   "library": "yaml-v3",
+   "task": "document-parse",
+   "status": "differs",
+   "workload": "compose-wordpress",
+   "detail": "does not write the input back: byte 807: got 807 bytes \"\\n  db_data:\\n\", expected 815 bytes \"\\n  db_data:\\n\\n  \\n    \"; the texts differ only in blank lines",
+   "role": "competitor",
+   "language": "go",
+   "entry": 11
+  },
+  {
+   "library": "palantir-yamlpatch",
+   "task": "patch",
+   "status": "differs",
+   "workload": "compose-wordpress",
+   "detail": "byte 852: got 852 bytes \"\\n  db_data:\\n\", expected 860 bytes \"\\n  db_data:\\n\\n  \\n    \"; the texts differ only in blank lines",
+   "role": "competitor",
+   "language": "go",
+   "entry": 12
+  },
+  {
+   "library": "palantir-yamlpatch-goccy",
+   "task": "patch",
+   "status": "differs",
+   "workload": "compose-wordpress",
+   "detail": "byte 852: got 852 bytes \"\\n  db_data:\\n\", expected 860 bytes \"\\n  db_data:\\n\\n  \\n    \"; the texts differ only in blank lines",
+   "role": "competitor",
+   "language": "go",
+   "entry": 13
+  },
+  {
+   "library": "goccy-go-yaml",
+   "task": "document-parse",
+   "status": "differs",
+   "workload": "compose-wordpress",
+   "detail": "does not write the input back: byte 807: got 807 bytes \"\\n  db_data:\\n\", expected 815 bytes \"\\n  db_data:\\n\\n  \\n    \"; the texts differ only in blank lines",
+   "role": "competitor",
+   "language": "go",
+   "entry": 14
+  },
+  {
+   "library": "yaml2jsonnode",
+   "task": "patch",
+   "status": "differs",
+   "workload": "compose-wordpress",
+   "detail": "byte 20: got 694 bytes \":\\n  db:\\n    image: \\\"mariadb:11.4\\\"\\n  \", expected 860 bytes \":\\n  db:\\n    # We use a mariadb image\"",
+   "role": "competitor",
+   "language": "csharp",
+   "entry": 15
+  },
+  {
+   "library": "sharpyaml",
+   "task": "generic-load",
+   "status": "rejects",
+   "workload": "deep-block",
+   "detail": "default limit, not raised: YamlException: The maximum nesting depth of 64 has be…",
+   "role": "competitor",
+   "language": "csharp",
+   "entry": 16
+  },
+  {
+   "library": "yaml-edit",
+   "task": "edit-script",
+   "status": "differs",
+   "workload": "openapi-petstore",
+   "detail": "byte 461: got 3881 bytes \"m the system      operationId: findP\", expected 3882 bytes \"m the system\\n      operationId: find\"",
+   "role": "competitor",
+   "language": "rust",
+   "entry": 17
+  }
+ ]
+}

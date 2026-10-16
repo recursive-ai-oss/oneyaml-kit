@@ -20,7 +20,7 @@ import re
 import sys
 from pathlib import Path
 
-from . import report, results
+from . import reasons, report, results
 
 BEGIN_RE = re.compile(r"<!-- generated:([A-Za-z0-9_-]*) -->")
 END_MARK = "<!-- end generated -->"
@@ -380,6 +380,7 @@ def render_full(ctx: Ctx, **_) -> str:
     libs = [l for l in libs if l in present]
     wl = {w["id"]: w for w in ctx.result["workloads"]}
     out = smoke_notice(ctx)
+    notes = reasons.Notes([c for r in ctx.rows for c in r["cells"]])  # the cells the tables show
     for metric, title, cellfn in (("time", "Time per operation", report.time_cell),
                                   ("memory", "Peak / allocated heap per operation", report.memory_cell)):
         body = []
@@ -397,13 +398,17 @@ def render_full(ctx: Ctx, **_) -> str:
                        + f" {MARK[m['verdict']]}")
             body.append([TASK_LABEL.get(r["task"], r["task"]), f"`{r['workload']}`",
                          report.fmt_size(wl[r["workload"]]["input_bytes"])]
-                        + ["—" if l not in by else ("unsupported" if by[l]["status"] == "unsupported" else cellfn(by[l]))
+                        + ["—" if l not in by else ("unsupported" if by[l]["status"] == "unsupported" else cellfn(by[l], notes))
                            for l in libs] + [rel])
         out.append(f"**{title}**\n")
         out.append(report.md_table(["Task", "Workload", "Input"] + [f"`{l}`" for l in libs]
                                    + ["Ours vs strongest competitor"], body))
         out.append("")
     out += not_run_text(ctx)
+    if notes.groups:
+        out += ["Cells without a number, with what the correctness guard found:", ""]
+        out += notes.lines()
+        out.append("")
     out.append("Relative figures are ours ÷ the strongest competitor in that row, so below 1.0× is better for us "
                "and ▼ marks a loss. A † names a cell that did less than the full task; it still counts. Cells "
                "without a number say why.")
