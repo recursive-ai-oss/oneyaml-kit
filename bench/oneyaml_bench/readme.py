@@ -221,9 +221,13 @@ class Ctx:
 
 
 def smoke_notice(ctx: Ctx) -> list[str]:
-    if not ctx.run["smoke"]:
-        return []
-    return ["> **SMOKE RESULT.** Quick, or taken on a shared machine: not a claim about speed.", ""]
+    out = []
+    missing = results.missing_languages(ctx.result)
+    if missing:
+        out += [f"> **INCOMPLETE RUN.** No results for {', '.join(missing)}.", ""]
+    if ctx.run["smoke"]:
+        out += ["> **SMOKE RESULT.** Quick, or taken on a shared machine: not a claim about speed.", ""]
+    return out
 
 
 def method_strip(ctx: Ctx) -> list[str]:

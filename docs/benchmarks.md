@@ -2,25 +2,44 @@
 
 The benchmark measures YAML libraries, ours and their competitors, on the same inputs and the
 same tasks, and generates the tables and charts that library READMEs embed. Each language uses
-its own standard benchmark tool at its defaults, every answer is checked before it is timed, and
+its own standard benchmark tool, every answer is checked before it is timed, and
 a quick run says plainly that it is only a smoke result.
 
 ```sh
 bin/bench run                    # quick mode: seconds to a minute, writes out/bench/
-bin/bench run --mode full        # full mode: the tools' defaults, for a quiet machine
+bin/bench run --mode full        # full mode: each tool's documented short setting, for a quiet machine
 bin/bench run --lang go --task dump --workload gha-workflow   # a slice of either
-bin/bench report out/bench/results.json                       # re-render a report
+bin/bench report out/bench                                    # re-render a report from results.json or results-*.json
 bin/bench workloads              # write the workload set only
 bin/bench readme --results out --library oneyaml-go --readme README.md --docs docs   # see below
-bin/bench-cloud quick|full       # one run on a rented machine, see below
+bin/bench-cloud quick|full [--lang go]   # one run on a rented machine, see below
 ```
 
 Output goes to `$KIT_OUT/bench` (default `./out/bench`, never committed): `results.json`,
 `report.md`, `charts/*.svg`, and the prepared `workloads/`. Build output goes to
 `$CARGO_TARGET_DIR`, or to `out/bench/target`.
 
-Quick mode runs each tool with a short setting. Full mode is the tools' defaults and adds the
-large scaling inputs. A quick run, or any run outside the cloud machine (or one started with `--smoke`, or from `bin/bench-cloud --here`), is a
+Quick mode runs each tool with a very short setting. Full mode adds the large scaling inputs and
+runs each cell for about as long as a person would wait for one benchmark:
+
+| Language | Tool | Full mode runs each cell with |
+|---|---|---|
+| Go | `testing.B` with allocation reporting | the standard `-benchtime` of 1 s |
+| Rust | criterion | a 1 s warm-up, 2 s of measurement and its smallest sample size, 10 |
+| C# | BenchmarkDotNet | its `ShortRun` job: 3 warm-up and 3 measured iterations, in process |
+
+The tools' own defaults (criterion's 3 s, 5 s and 100 samples; BenchmarkDotNet's default job, which
+iterates until the spread settles) took tens of seconds to minutes per cell on the large inputs, so a
+whole run did not finish. A cell now takes a few seconds in full mode, plus the time to prepare its
+input on the large ones.
+
+`bin/bench run` prints one line per finished cell (language, library, task, workload, status and
+the seconds it took) and a line as each language starts and ends. It writes `results-<language>.json`
+as soon as a language finishes and `results.json` at the end, so a run that is stopped early keeps
+every language that completed. `bin/bench report out/bench` (a directory) renders whichever languages
+are present and marks the report **INCOMPLETE RUN**, naming the languages it lacks. A run limited with
+`--lang` is complete when it finishes the languages it was asked for; one stopped before a requested
+language finished is incomplete, and a README block made from it carries the same notice. A quick run, or any run outside the cloud machine (or one started with `--smoke`, or from `bin/bench-cloud --here`), is a
 **smoke result** and its report says so.
 
 ## What is measured
@@ -170,7 +189,8 @@ given, because a README is public and a smoke number is easily quoted as a claim
 instance and brings the results back. It launches one instance of the type set in the config from a
 stock Ubuntu image. The instance's start-up script clones the public kit and library repositories at
 the revisions given, installs the toolchains, runs the benchmark and uploads one results tarball to a
-presigned S3 URL. The script waits for the tarball, downloads it, writes the report and terminates the
+presigned S3 URL (`--lang` limits the run and can be repeated). If the deadline passes first, the
+tarball still holds the languages that finished and the log. The script waits for the tarball, downloads it, writes the report and terminates the
 instance. The instance has no SSH, no inbound ports and no credentials, and shuts itself down
 (terminating) after a deadline whatever happens. The configuration file is named by `KIT_CLOUD_CONFIG`
 (default `~/.config/oneyaml-kit/cloud.env`); see the head of `bin/bench-cloud` for its variables.
@@ -184,7 +204,7 @@ instance. The instance has no SSH, no inbound ports and no credentials, and shut
  "format": "oneyaml-kit-bench/2",
  "run": {"date": "...", "mode": "quick", "smoke": true, "seconds": 31.0,
          "environment": {"cpu": "...", "cpus": 32, "os": "...", "kit_revision": "..."},
-         "load": {"before": 1.8, "after": 2.2}},
+         "load": {"before": 1.8, "after": 2.2}, "expected_languages": ["csharp", "go", "rust"]},
  "harnesses": {"rust": {"name": "oneyaml-bench-rust", "version": "0.2.0", "runtime": "rustc ...", "tool": "criterion",
                         "timer": "...", "memory": "...", "libraries": [{"id": "oneyaml", "package": "oneyaml",
                         "version": "1.1.0", "role": "own", "settings": {}}]}},
@@ -199,6 +219,11 @@ instance. The instance has no SSH, no inbound ports and no credentials, and shut
  ]
 }
 ```
+
+`run.expected_languages` lists the languages the run was asked to measure (every language with a
+harness when `--lang` is not given); a language in it with no
+entry in `harnesses` is missing, and the run is incomplete. `results-<language>.json` files have the
+same format with one language each.
 
 ## Reports
 

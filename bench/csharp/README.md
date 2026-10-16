@@ -79,7 +79,7 @@ cell is `unjudged`.
 
 ## Time and memory
 
-Timing is BenchmarkDotNet's default job run in process (its dry job in quick mode), with
+Timing is BenchmarkDotNet's ShortRun job (3 warm-up and 3 measured iterations) run in process (its dry job in quick mode), with
 `MemoryDiagnoser`: the mean time per task and the bytes allocated per task. One invocation per
 iteration runs a batch of prepared tasks (`IterationSetup` builds the starting states, `IterationCleanup`
 releases them) and the figures are divided by the batch size. The number of allocation calls is not

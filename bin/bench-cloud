@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""bin/bench-cloud quick|full [--here]: run the whole benchmark on one rented machine.
+"""bin/bench-cloud quick|full [--lang go|rust|csharp]... [--here]: run the whole benchmark on one rented machine.
 
 Launches ONE on-demand instance from a stock Ubuntu image. Its start-up script clones the public
 kit and library repositories at the revisions given, installs the toolchains, runs `bin/bench`
 and uploads one results tarball to a presigned S3 URL. This script waits for the tarball,
 downloads it, writes the report and terminates the instance. The instance has no SSH key, no
 inbound port and no credentials, and it shuts itself down (terminating) after KIT_CLOUD_LIMIT_MIN
-minutes whatever happens. `--here` ships this checkout's files instead of cloning the kit, to try
+minutes whatever happens. `--lang` limits the run to the named languages (it can be repeated); a result
+that lacks a language says so. Each language's results are written as soon as it finishes, so a run that
+hits its time limit still returns the languages that completed. `--here` ships this checkout's files instead of cloning the kit, to try
 changes that are not pushed yet.
 
 Needs the AWS command line tool and credentials in the environment. Standard library only.
@@ -101,11 +103,12 @@ def presign(method: str, bucket: str, region: str, key: str, seconds: int) -> st
     return f"https://{host}{path}?{query}&X-Amz-Signature={sig}"
 
 
-def user_data(cfg: dict, mode: str, put_url: str, log_url: str, archive_url: str | None, limit: int) -> str:
+def user_data(cfg: dict, mode: str, langs: list[str], put_url: str, log_url: str, archive_url: str | None, limit: int) -> str:
     kit = (f'mkdir kit && curl -fsSL "{archive_url}" | tar -xz -C kit' if archive_url else
            f'git clone {cfg["KIT_CLOUD_KIT_REPO"]} kit && git -C kit checkout {cfg["KIT_CLOUD_KIT_REV"]}')
     # The kit has no history when it was shipped as files, so the launcher names its revision.
     smoke = "export KIT_SMOKE=1\n" if archive_url else ""
+    lang_args = "".join(f" --lang {l}" for l in langs)
     rev = "shipped-checkout" if archive_url else '$(git -C kit rev-parse --short=12 HEAD)'
     return f"""#!/bin/bash
 # Whatever happens, the machine is gone after the limit.
@@ -127,9 +130,9 @@ git clone {cfg["KIT_CLOUD_CSHARP_REPO"]} oneyaml-csharp && git -C oneyaml-csharp
 export KIT_ONEYAML_GO_SRC=/root/oneyaml-go KIT_ONEYAML_CSHARP_SRC=/root/oneyaml-csharp
 {smoke}export KIT_REVISION="{rev}" KIT_INSTANCE_TYPE="{cfg["KIT_CLOUD_INSTANCE_TYPE"]}"
 export KIT_ONEYAML_GO_REV=$(git -C oneyaml-go rev-parse --short=12 HEAD) KIT_ONEYAML_CSHARP_REV=$(git -C oneyaml-csharp rev-parse --short=12 HEAD)
-cd kit && timeout {max(limit - 8, 5)}m python3 bin/bench run --mode {mode} --out /root/out/bench
+cd kit && timeout {max(limit - 8, 5)}m python3 bin/bench run --mode {mode}{lang_args} --out /root/out/bench
 }} > /root/run.log 2>&1
-cd /root && mkdir -p out/bench && cp run.log out/ && tar -czf results.tgz out
+cd /root && mkdir -p out/bench && cp run.log out/ && tar -czf results.tgz --exclude=out/bench/target --exclude=out/bench/workloads out
 curl -fsS -X PUT --upload-file run.log "{log_url}" >> /root/upload.log 2>&1
 curl -fsS -X PUT --upload-file results.tgz "{put_url}" >> /root/upload.log 2>&1
 shutdown -h now

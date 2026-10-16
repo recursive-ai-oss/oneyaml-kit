@@ -45,11 +45,13 @@ public static class Measure
 
     static ManualConfig Config(bool quick)
     {
-        // Quick mode runs BenchmarkDotNet's own dry job (one iteration); full mode keeps its default job.
+        // Quick mode runs BenchmarkDotNet's own dry job (one iteration); full mode runs its ShortRun job (3
+        // warm-up and 3 measured iterations), the documented setting for work that takes long per invocation.
+        // Its default job keeps iterating until the spread settles, which takes minutes on a large input.
         // Both run in this process, because the harness already holds the libraries and the workloads, and
         // with one invocation per iteration because each invocation consumes the starting states that
         // IterationSetup built.
-        var job = (quick ? Job.Dry : Job.Default)
+        var job = (quick ? Job.Dry : Job.ShortRun)
             .WithToolchain(InProcessEmitToolchain.Instance)
             .WithInvocationCount(1).WithUnrollFactor(1);
         return ManualConfig.CreateEmpty()

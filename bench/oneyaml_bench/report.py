@@ -239,6 +239,11 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
         L.append("**SMOKE RESULT.** This run was quick or was taken on a shared machine, so it shows the shape "
                  "of the comparison and is not a claim about speed.\n")
 
+    missing = results.missing_languages(result)
+    if missing:
+        L.append(f"**INCOMPLETE RUN.** No results for {', '.join(missing)}: the run was cut short or limited to "
+                 "some languages. It is not a whole comparison.\n")
+
     L.append("## Environment\n")
     L.append(md_table(["", ""], [
         ["CPU", f"{env['cpu']} ({env['cpus']} logical CPUs)"],

@@ -1,7 +1,9 @@
 //! Time and allocation of one cell.
 //!
-//! Time is criterion's, at its defaults (quick mode shortens the warm-up and measurement time and
-//! nothing else). Each starting state is built outside the clock and dropped after it.
+//! Time is criterion's, configured the way its documentation shortens a slow benchmark: a 1 s
+//! warm-up, 2 s of measurement and its smallest sample size of 10 (quick mode shortens the warm-up
+//! and measurement time further). Criterion's defaults of 3 s, 5 s and 100 samples cost tens of seconds per
+//! cell on the large inputs. Each starting state is built outside the clock and dropped after it.
 //! Allocation is one separate run through the counting allocator, so counting never slows the timed ones.
 
 use crate::alloc;
@@ -29,12 +31,14 @@ pub fn time(r: &dyn Runner, quick: bool, dir: &Path) -> Result<Timing, String> {
     let mut c = Criterion::default()
         .output_directory(dir)
         .with_output_color(false);
-    if quick {
-        c = c
-            .warm_up_time(Duration::from_millis(20))
+    c = if quick {
+        c.warm_up_time(Duration::from_millis(20))
             .measurement_time(Duration::from_millis(100))
-            .sample_size(10);
+    } else {
+        c.warm_up_time(Duration::from_secs(1))
+            .measurement_time(Duration::from_secs(2))
     }
+    .sample_size(10);
     {
         let mut g = c.benchmark_group("cell");
         g.bench_function("run", |b| {

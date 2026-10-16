@@ -117,7 +117,7 @@ fn harness_record(a: &Args, libs: &[Box<dyn Library>]) -> Value {
         "target": env!("BENCH_TARGET"),
         "mode": a.mode,
         "tool": "criterion",
-        "timer": "mean time per run from criterion at its defaults (shorter warm-up and measurement in quick mode)",
+        "timer": "mean time per run from criterion with a 1 s warm-up, 2 s measurement time and 10 samples (shorter in quick mode)",
         "memory": "bytes requested and allocation calls of one run, counted by a global allocator",
         "libraries": libs.iter().map(|l| {
             let (pkg, ver) = l.package();
