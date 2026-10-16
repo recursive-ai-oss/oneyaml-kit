@@ -18,7 +18,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import environment, results, workloads
+from . import environment, results, taskstate, workloads
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_RESTARTS = 50
@@ -151,6 +151,22 @@ def run_harness(h: dict, build_dir: Path, workloads_dir: Path, mode: str, out_di
     raise HarnessError("too many harness restarts")
 
 
+def library_sources(records: dict[str, dict]) -> dict[str, dict]:
+    """The release tag of each of our libraries that was built from a checkout named by
+    KIT_ONEYAML_<LANG>_SRC, when that checkout is at a tagged commit. Recorded now because the
+    checkout is gone by the time a report is made."""
+    out = {}
+    for lang, rec in sorted(records.items()):
+        src = os.environ.get(f"KIT_ONEYAML_{lang.upper()}_SRC")
+        for lib in rec.get("libraries", []):
+            if lib.get("role") != "own" or not src:
+                continue
+            tag = environment.release_tag(Path(src), str(lib.get("version", "")))
+            if tag:
+                out[lang] = {"library": lib["id"], "revision": lib["version"], "tag": tag}
+    return out
+
+
 def assemble(mode: str, smoke: bool, records: dict[str, dict], cells_by_lang: dict[str, list[dict]],
              metas: list[dict], load_start: float, load_end: float, seconds: float,
              expected: list[str] = ()) -> dict:
@@ -167,17 +183,23 @@ def assemble(mode: str, smoke: bool, records: dict[str, dict], cells_by_lang: di
                 cell["state"] = "text"
             cells.append(cell)
     env = environment.describe(environment.git_revision(ROOT.parent))
-    return {
+    run_record = {"date": env["date"], "mode": mode, "smoke": smoke, "seconds": round(seconds, 1),
+                  "environment": env, "load": {"before": load_start, "after": load_end},
+                  "expected_languages": sorted(set(expected) | set(records))}
+    sources = library_sources(records)
+    if sources:
+        run_record["sources"] = sources
+    result = {
         "format": results.FORMAT,
-        "run": {"date": env["date"], "mode": mode, "smoke": smoke, "seconds": round(seconds, 1),
-                "environment": env, "load": {"before": load_start, "after": load_end},
-                "expected_languages": sorted(set(expected) | set(records))},
+        "run": run_record,
         "harnesses": {lang: {k: v for k, v in rec.items() if k != "type"} for lang, rec in records.items()},
         "workloads": [{k: m[k] for k in ("id", "kind", "tier", "description", "source", "documents",
                                          "input_bytes", "input_sha256", "tasks", "notes") if k in m}
                       for m in metas],
         "cells": cells,
     }
+    taskstate.mark_text_tasks(result)
+    return result
 
 
 def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries: list[str] = (),

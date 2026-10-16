@@ -7,11 +7,13 @@ occur. Charts are zero-based, linear, and carry their numbers in the alt text.
 
 from __future__ import annotations
 
+import copy
 import html
 import math
+import re
 from pathlib import Path
 
-from . import reasons, results
+from . import reasons, results, taskstate
 
 TASK_ABOUT = {
     "typed-load": "Parse into the language's own typed model (structs).",
@@ -58,6 +60,29 @@ MARK = {"win": "▲ win", "tie": "● tie", "loss": "▼ loss"}
 # A cell that did not do the full task as specified carries this mark. It is never called the best of its
 # row, but a row is still compared with it when it is the strongest competitor in the row.
 MARK_NOT_BEST = " †"
+
+
+# What each language's memory figure is, named for the tool that reports it. None of them is a peak:
+# Go and .NET report bytes allocated by one operation, Rust the bytes requested in one counted run.
+MEMORY_LABEL = {
+    "go": "Allocated bytes per operation (B/op)",
+    "csharp": "Allocated bytes per task (MemoryDiagnoser)",
+    "rust": "Requested bytes per run (allocator count)",
+}
+
+
+def memory_label(lang: str) -> str:
+    return MEMORY_LABEL.get(lang, "Allocated bytes per operation")
+
+
+def timer_text(h: dict, mode: str) -> str:
+    """What the tool did in this run. Results from before the harnesses stated their settings per mode
+    describe the other mode in a parenthesis ("20 ms in quick mode"); in a full run that clause is
+    dropped, so only what is known is printed."""
+    text = h["timer"]
+    if mode != "quick":
+        text = re.sub(r"\s*\([^()]*\bin quick mode\)", "", text)
+    return text
 
 
 def time_cell(c: dict, notes: reasons.Notes | None = None) -> str:
@@ -226,6 +251,7 @@ def own_languages(cells: list[dict]) -> set[str]:
 def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
     """Writes the charts under out_dir/chart_dir_name and returns the Markdown."""
     results.validate(result)
+    result = taskstate.mark_text_tasks(copy.deepcopy(result))
     run = result["run"]
     env = run["environment"]
     cells = result["cells"]
@@ -260,7 +286,7 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
     ] + ([["Instance type", env["instance_type"]]] if env.get("instance_type") else [])))
     L.append("")
     for lang, h in sorted(result["harnesses"].items()):
-        L.append(f"**{lang}** measured with {h['tool']} ({h['runtime']}, {h['target']}). Time: {h['timer']}. "
+        L.append(f"**{lang}** measured with {h['tool']} ({h['runtime']}, {h['target']}). Time: {timer_text(h, run['mode'])}. "
                  f"Memory: {h['memory']}.\n")
     L.append("## Libraries\n")
     lib_rows = []
@@ -268,7 +294,9 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
         for l in h["libraries"]:
             if l["role"] == "control":
                 continue
-            lib_rows.append([lang, f"`{l['id']}`", f"{l['package']} {l['version']}", l["role"],
+            src = (run.get("sources") or {}).get(lang) or {}
+            tagged = f" ({src['tag']})" if src.get("library") == l["id"] and src.get("revision") == l["version"] else ""
+            lib_rows.append([lang, f"`{l['id']}`", f"{l['package']} {l['version']}{tagged}", l["role"],
                              ", ".join(f"{k}: {v}" for k, v in l["settings"].items()) or "defaults"])
     L.append(md_table(["Language", "Library", "Package", "Role", "Settings"], lib_rows))
     L.append("")
@@ -327,7 +355,10 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
     if any(results.non_reference_label(c) for c in cells if c["status"] == "ok"):
         L.append("† marks a cell that did not do the full task as specified: its variant was judged more loosely "
                  "than the plain one (*bytes-only*, *value-only*, *harness-rendered*), or its library takes and "
-                 "returns text (a *text API*), so parsing and writing are inside its timed work. These cells are "
+                 "returns text (a *text API*), so parsing and writing are inside its timed work. Where a harness times a "
+                 "whole task from text to text for every library (the Go `patch` task), every cell of that task "
+                 "carries the mark, ours included, so the same work has the same mark; the mark changes no verdict. "
+                 "These cells are "
                  "shown and measured, and a row is still compared with the strongest competitor in it, a † cell "
                  "included: when one is ahead of ours (or is the only competitor) the verdict names it with its "
                  "mark and reason, and a loss to it counts as a loss. A † cell is never called the best of a row.\n")
@@ -343,12 +374,16 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
             lang_rows = sorted([r for r in task_rows if r["cells"][0]["language"] == lang],
                                key=lambda r: wl_rank.get(r["workload"], 0))
             lib_cols = [l for l in libs if l[0] == lang and l[2] != "control"]
-            text_libs = {c["library"] for c in cells if c["language"] == lang and c.get("state") == "text"}
+            text_libs = {l["id"] for l in result["harnesses"].get(lang, {}).get("libraries", [])
+                         if (l.get("settings") or {}).get("state") == "the text"}
             if not lang_rows:
                 continue
             L.append(f"### {task}, {lang}\n")
+            if task in taskstate.text_tasks(result["harnesses"].get(lang, {})):
+                L.append(f"The {lang} harness times every library's `{task}` from text to text, ours included, "
+                         "so each cell carries the † mark; the mark changes no verdict.\n")
             has_own = lang in own_langs
-            for metric, title in (("time", "Time per operation"), ("memory", "Allocated memory per operation")):
+            for metric, title in (("time", "Time per operation"), ("memory", memory_label(lang))):
                 header = ["Workload", "Input"] + [f"`{l[1]}`" + (" (text API)" if l[1] in text_libs else "")
                                                   for l in lib_cols] + \
                     ["Ours vs strongest competitor" if has_own else "Best in the row"]

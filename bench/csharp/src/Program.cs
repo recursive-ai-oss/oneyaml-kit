@@ -148,7 +148,8 @@ public static class Program
         w.WriteString("target", RuntimeInformation.RuntimeIdentifier);
         w.WriteString("mode", a.Mode);
         w.WriteString("tool", "BenchmarkDotNet " + Support.Version("BenchmarkDotNet"));
-        w.WriteString("timer", "mean time per task from BenchmarkDotNet's ShortRun job (3 warm-up and 3 measured iterations) run in process (its dry job in quick mode); one invocation per iteration runs a batch of prepared tasks and the time is divided by the batch size");
+        var job = a.Mode == "quick" ? "dry job (one iteration)" : "ShortRun job (3 warm-up and 3 measured iterations)";
+        w.WriteString("timer", "mean time per task from BenchmarkDotNet's " + job + " run in process; one invocation per iteration runs a batch of prepared tasks and the time is divided by the batch size");
         w.WriteString("memory", "bytes allocated per task from BenchmarkDotNet's MemoryDiagnoser; allocation calls are not available");
         w.WriteStartArray("libraries");
         foreach (var l in libs)

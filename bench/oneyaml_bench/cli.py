@@ -111,9 +111,9 @@ def cmd_readme(a: argparse.Namespace) -> int:
         docs = Path(a.docs)
         readme_path = Path(a.readme)
         ctx = readme.Ctx(bench, a.library, version, conf,
-                         readme_path.parent / a.charts.rstrip("/"), a.allow_smoke)
+                         readme_path.parent / a.charts.rstrip("/"), a.allow_smoke, a.library_source)
         targets = [readme_path, docs / "performance.md", docs / "conformance.md"]
-        new = readme.update(ctx, targets, a.charts.rstrip("/"), docs / "conformance.md")
+        new = readme.update(ctx, targets, a.charts.rstrip("/"), docs / "conformance.md", a.chart_base)
         changed = readme.check_and_write(ctx, new, ctx.chart_dir, text_hits)
     except (readme.ReadmeError, results.ResultError, OSError, KeyError, ValueError) as e:
         print(f"bench readme: {e}", file=sys.stderr)
@@ -151,6 +151,12 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--charts", default="docs/img", help="chart directory, relative to the README")
     m.add_argument("--bench", help="benchmark result file, when not at <results>/bench/results.json")
     m.add_argument("--conformance", help="conformance result file, when not at <results>/<dir>/<library>.json")
+    m.add_argument("--chart-base", metavar="URL",
+                   help="write chart image links as URL/<charts> (absolute) instead of paths relative to the file, "
+                        "e.g. a raw.githubusercontent.com prefix")
+    m.add_argument("--library-source", metavar="DIR",
+                   help="a checkout of the featured library; its release tag is shown beside the commit when the "
+                        "checkout is at that commit and the run did not record the tag")
     m.add_argument("--allow-smoke", action="store_true",
                    help="accept a smoke result (the blocks are labelled as such)")
     m.set_defaults(fn=cmd_readme)

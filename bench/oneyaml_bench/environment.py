@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import platform
+import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -50,6 +51,25 @@ def git_revision(root: Path) -> str | None:
     except (OSError, subprocess.CalledProcessError):
         pass
     return (os.environ.get("KIT_REVISION") or "").strip() or None
+
+
+def release_tag(src: Path, version: str) -> str | None:
+    """The release tag of the commit `version` (a revision, full or abbreviated) in the library checkout
+    at `src`, when that commit carries exactly one version tag. The checkout need not be at that commit.
+    Anything else gives None: a tag is never guessed."""
+    def git(*args: str) -> str | None:
+        try:
+            return subprocess.run(["git", "-C", str(src), *args], capture_output=True, text=True,
+                                  check=True).stdout.strip()
+        except (OSError, subprocess.CalledProcessError):
+            return None
+    if not re.fullmatch(r"[0-9a-f]{7,40}", version or ""):
+        return None
+    commit = git("rev-parse", "--verify", "--quiet", version + "^{commit}")
+    if not commit or not commit.startswith(version):
+        return None
+    tags = [t for t in (git("tag", "--points-at", commit) or "").split() if re.fullmatch(r"v\d\S*", t)]
+    return tags[0] if len(tags) == 1 else None
 
 
 def describe(revision: str | None) -> dict:

@@ -130,6 +130,14 @@ Each language reports what its standard tool reports, and the report names the t
 | Go | `testing.Benchmark`, ns/op | B/op and allocs/op from `ReportAllocs` |
 | .NET | BenchmarkDotNet's default job, run in process, mean time per task | bytes allocated per task from `MemoryDiagnoser` |
 
+None of these is a peak: each is the memory one operation asked for, so the memory columns are
+headed by what the language reports (`Allocated bytes per operation (B/op)` for Go,
+`Allocated bytes per task (MemoryDiagnoser)` for .NET, `Requested bytes per run (allocator count)`
+for Rust) and never "peak memory". The settings a run used (Go's `-benchtime`, criterion's warm-up
+and measurement time, BenchmarkDotNet's job) are recorded in the harness description of that run
+and printed as recorded. A result from before the harnesses recorded the settings of their own
+mode is printed without the clause that describes the other mode; nothing is filled in.
+
 The starting state of every run is built outside the clock and released after it. Quick mode only
 shortens the tool's own time settings. Figures from different tools are never mixed in one table.
 
@@ -158,7 +166,12 @@ wider band of the two libraries compared, so a gap under 12% against YamlDotNet 
 other comparison keeps 2%. Go and Rust allocation counts repeat closely between runs, so they keep 2%.
 
 A cell judged more loosely (`bytes-only`, `value-only`, `harness-rendered`) or from a library that
-takes and returns text (`state: the text`) is shown with a † and is never called the best. It is still
+takes and returns text (`state: the text`) is shown with a † and is never called the best.
+A harness can also time a whole task from text to text for every library, because the task is
+defined on text there (the Go `patch` task: each library gets the input bytes and returns the
+bytes). The harness names such tasks in `text_tasks` and every cell of them carries the † and the
+reason "text API", ours included, so the same work has the same mark; the mark never enters a
+verdict, and the report says so under the task. It is still
 compared with: when it is faster than ours, or is the only competitor, the verdict names it with its
 mark ("loss vs yaml-edit †, bytes-only") and a loss to it is a loss in the tally and the weakest row.
 A row has "no rival" only when no competitor answered correctly. `merged` carries no mark and may be
@@ -267,6 +280,11 @@ harness when `--lang` is not given); a language in it with no
 entry in `harnesses` is missing, and the run is incomplete. `results-<language>.json` files have the
 same format with one language each.
 
+`run.sources` is present when a library of ours was built from a checkout at a tagged commit
+(`KIT_ONEYAML_<LANG>_SRC` names the checkout): `{"go": {"library": "oneyaml-go", "revision":
+"30e7fc4bf7b4", "tag": "v0.3.0"}}`. The tag is read from that checkout when the result is made. A
+harness description may carry `text_tasks`, the tasks it times from text to text for every library.
+
 ## Reports
 
 `bin/bench run` and `bin/bench report` write `report.md` and `charts/`. Everything in them
@@ -289,7 +307,7 @@ result files as the evidence page:
 
 ```
 bin/bench readme --results out --library oneyaml-go --readme ../oneyaml-go/README.md \
-    --docs ../oneyaml-go/docs [--charts docs/img] [--allow-smoke]
+    --docs ../oneyaml-go/docs [--charts docs/img] [--allow-smoke] [--chart-base URL] [--library-source DIR]
 ```
 
 `--results` is a directory holding the benchmark result (`bench/results.json` or `results.json`)
@@ -298,6 +316,14 @@ and the library's conformance result (`conformance/<library>.json`, `results/<li
 the README. The files looked at are the README, `<docs>/performance.md` and
 `<docs>/conformance.md`; the README must hold at least one block, the two docs files are skipped
 when missing or without blocks.
+
+Chart links are relative to each file by default. `--chart-base URL` writes them as absolute
+URLs instead, `URL/<charts>/<name>-light.svg`, the same in every file (for a README shown where
+relative paths do not resolve, such as a package registry page); give a URL that points at the
+tagged revision so the charts match the text. `--library-source DIR` names a checkout of the
+featured library: when the run did not record the library's release tag, the tag of the commit the
+result names is looked up there and shown beside it, as `v0.3.0 (30e7fc4bf7b4)`. Only a commit with
+exactly one version tag gets one; a tag is never guessed.
 
 A block is the text between a begin marker that names its kind and an end marker:
 
