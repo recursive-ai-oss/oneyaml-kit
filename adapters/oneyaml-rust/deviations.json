@@ -896,6 +896,13 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Error category differs: expected one of limit, got duplicate-key"
+  },
+  {
+   "case": "own:schema/finite-float-key-and-infinity-are-not-duplicates",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected one of limit, got duplicate-key; the key 1e400 is read as infinity and equals the key .inf"
   }
 ]
 }

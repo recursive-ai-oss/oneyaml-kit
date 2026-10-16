@@ -1,0 +1,38 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/unclosed-outer-flow-after-closed-inner",
+ "title": "A flow sequence left open after an inner one closed, then a line at indentation 0",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "69",
+  "74",
+  "81",
+  "137",
+  "138",
+  "187",
+  "192",
+  "193",
+  "194",
+  "196",
+  "197"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.1",
+  "YAML 1.2.2 section 6.3",
+  "YAML 1.2.2 section 8.2.2"
+ ],
+ "notes": "The flow sequence `[[x], y` is the value of an entry of a block mapping at indentation 0, so it is parsed with n = 1 (productions 187, 192, 194, 196 and 197: the value of an entry at indentation 0 is a flow node at n+1). Every line break inside the flow sequence is crossed by s-separate-lines (production 81) or, inside a plain scalar, s-flow-folded (production 74), and both end with the flow line prefix (production 69): at least one space of indentation. The inner sequence closed, but the outer one is still open when the line break after `y` ends the first line, so the next line must continue it. `z` stands in column 1 with no indentation, so it cannot belong to any valid document; the prefix up to the line break can still be continued by ` ]`. The position is 2:1, the first character of the second line. The input does not end too soon at the break: the character that fails is present, so the end-of-input rule does not apply.",
+ "provenance": {
+  "reference": "A reader that forgot the outer open flow sequence once the inner one had closed, and either accepted the next line as a new mapping entry or reported the error at the end of the input instead of at the line that breaks the indentation."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 1
+ }
+}

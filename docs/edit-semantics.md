@@ -127,7 +127,8 @@ keys match and the edit is refused as ambiguous.
 
 Two float keys whose values lie outside the finite non-zero range of a binary64 double
 (`1e400`, `1e-400`) are the same key when their exact decimal values are equal (`1e400` and
-`10e399`) and different keys when they are not (`1e400` and `2e400`). The specification
+`10e399`) and different keys when they are not (`1e400` and `2e400`). Such a key is never the same key as `.inf` or `-.inf`, which are not
+finite values. The specification
 leaves this open: it calls a float an approximation whose range depends on the
 implementation (section 10.2.1.4) and compares scalars by canonical form (section 3.2.1.3).
 The kit takes the exact value, as it does for integers beyond 64 bits: a library reads the

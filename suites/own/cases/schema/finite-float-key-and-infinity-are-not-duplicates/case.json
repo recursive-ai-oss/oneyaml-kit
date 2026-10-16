@@ -1,0 +1,43 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/finite-float-key-and-infinity-are-not-duplicates",
+ "title": "A float key beyond the range of a double and .inf are different keys",
+ "category": "schema",
+ "origin": "bug",
+ "productions": [
+  "187"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.1.1",
+  "YAML 1.2.2 section 3.2.1.3",
+  "YAML 1.2.2 section 10.2.1.4",
+  "YAML 1.2.2 section 10.3.2"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "`1e400` is the finite value 10^400 and `.inf` is not a finite number, so the two keys are different and the mapping has no duplicate: section 3.2.1.3 calls scalars equal only when their tags and canonical forms are equal, and the canonical forms of the two differ (section 10.2.1.4 gives `.inf` its own form). Section 10.2.1.4 also says a float is an approximation whose range depends on the implementation, so it does not say how a library that cannot hold 10^400 must read the key. The kit compares float keys outside the range of a double by their exact decimal value (docs/edit-semantics.md, Refusals: 'Two float keys whose values lie outside the finite non-zero range of a binary64 double'), which makes this a convention and the case carries the tag. The answer is exact, so the edit below finds `.inf` by its text (RFC 6901 section 4) and changes only its value, or the library refuses the document with a `limit` error, as it may for integers beyond 64 bits. It must not report `duplicate-key`. The case is a patch because the kit has no value for a float beyond the range of a double (a document would be read as infinity). The edit must change `b` only.",
+ "provenance": {
+  "reference": "A key identity that rounded 1e400 to infinity, so it equalled the key .inf and a valid mapping was refused as a duplicate."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/.inf",
+    "value": "c"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 5,
+  "memory_mb": 512,
+  "error": "limit",
+  "accept": {
+   "kind": "bytes",
+   "file": "expected.yaml"
+  }
+ }
+}
