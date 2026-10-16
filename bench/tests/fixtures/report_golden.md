@@ -65,12 +65,12 @@ Parse into the library's generic value tree; all documents of a stream.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="charts/rust-generic-load-time-dark.svg">
-  <img alt="generic-load (rust): time, ours against the strongest competitor. Time. Ours ÷ strongest competitor (a † names one that did less than the full task), log scale: left of the 1.0× line is better for us, right of it is a loss. 3 workloads: 2 better, 0 level, 1 worse. w1 0.50× (ours 50 ns vs rival 100 ns); w2 2.00× (ours 200 ns vs rival 100 ns, loss); w3 0.80× (ours 80 ns vs rival 100 ns)." src="charts/rust-generic-load-time-light.svg">
+  <img alt="generic-load (rust): time, ours against the strongest competitor. Time. Ours ÷ strongest competitor (a † marks a cell measured differently from the task as specified), log scale: left of the 1.0× line is better for us, right of it is a loss. 3 workloads: 2 better, 0 level, 1 worse. w1 0.50× (ours 50 ns vs rival 100 ns); w2 2.00× (ours 200 ns vs rival 100 ns, loss); w3 0.80× (ours 80 ns vs rival 100 ns)." src="charts/rust-generic-load-time-light.svg">
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="charts/rust-generic-load-memory-dark.svg">
-  <img alt="generic-load (rust): allocated memory, ours against the strongest competitor. Allocated memory. Ours ÷ strongest competitor (a † names one that did less than the full task), log scale: left of the 1.0× line is better for us, right of it is a loss. 3 workloads: 0 better, 2 level, 1 worse. w1 2.25× (ours 900 B vs rival 400 B, loss); w2 1.00× (ours 100 B vs rival 100 B); w3 1.00× (ours 1000 B vs rival 1000 B)." src="charts/rust-generic-load-memory-light.svg">
+  <img alt="generic-load (rust): allocated memory, ours against the strongest competitor. Allocated memory. Ours ÷ strongest competitor (a † marks a cell measured differently from the task as specified), log scale: left of the 1.0× line is better for us, right of it is a loss. 3 workloads: 0 better, 2 level, 1 worse. w1 2.25× (ours 900 B vs rival 400 B, loss); w2 1.00× (ours 100 B vs rival 100 B); w3 1.00× (ours 1000 B vs rival 1000 B)." src="charts/rust-generic-load-memory-light.svg">
 </picture>
 
 ## dump
@@ -93,12 +93,12 @@ Write a generic value tree back to YAML text.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="charts/rust-dump-time-dark.svg">
-  <img alt="dump (rust): time, ours against the strongest competitor. Time. Ours ÷ strongest competitor (a † names one that did less than the full task), log scale: left of the 1.0× line is better for us, right of it is a loss. 1 workloads: 1 better, 0 level, 0 worse. w1 0.90× (ours 90 ns vs other 100 ns)." src="charts/rust-dump-time-light.svg">
+  <img alt="dump (rust): time, ours against the strongest competitor. Time. Ours ÷ strongest competitor (a † marks a cell measured differently from the task as specified), log scale: left of the 1.0× line is better for us, right of it is a loss. 1 workloads: 1 better, 0 level, 0 worse. w1 0.90× (ours 90 ns vs other 100 ns)." src="charts/rust-dump-time-light.svg">
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="charts/rust-dump-memory-dark.svg">
-  <img alt="dump (rust): allocated memory, ours against the strongest competitor. Allocated memory. Ours ÷ strongest competitor (a † names one that did less than the full task), log scale: left of the 1.0× line is better for us, right of it is a loss. 1 workloads: 0 better, 1 level, 0 worse. w1 1.00× (ours 1000 B vs other 1000 B)." src="charts/rust-dump-memory-light.svg">
+  <img alt="dump (rust): allocated memory, ours against the strongest competitor. Allocated memory. Ours ÷ strongest competitor (a † marks a cell measured differently from the task as specified), log scale: left of the 1.0× line is better for us, right of it is a loss. 1 workloads: 0 better, 1 level, 0 worse. w1 1.00× (ours 1000 B vs other 1000 B)." src="charts/rust-dump-memory-light.svg">
 </picture>
 
 ## patch

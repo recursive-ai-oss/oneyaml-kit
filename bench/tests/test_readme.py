@@ -166,27 +166,26 @@ class Hero(Base):
         # generic-load: w1 is 0.5x, w2 is 2.0x; the geometric mean is 1.0x, a tie. w3 and w4 are generated.
         self.run_cmd()
         line = self.hero_line("generic load")
-        self.assertIn("1.00×", line)
+        self.assertIn("1.00× (level)", line)
         self.assertIn("◆ mixed", line)
         self.assertNotIn("▲ win", line)
-        self.assertIn("1 better, 0 level, 1 worse of 2", line)
         self.assertIn("`rival 2.0`", line)
         self.assertIn("real-world workloads", self.block(self.readme, "bench-hero"))
         r = real_world(synthetic(), "w1", "w3")  # 0.5 and 0.8
         self.run_cmd(r)
-        self.assertIn(f"{math.sqrt(0.5 * 0.8):.2f}×", self.hero_line("generic load"))
+        self.assertIn(f"{1 / math.sqrt(0.5 * 0.8):.2f}× faster", self.hero_line("generic load"))
         self.assertIn("▲ win", self.hero_line("generic load"))
 
     def test_a_loss_is_a_loss(self):
         self.run_cmd(real_world(synthetic(), "w2"))
         line = self.hero_line("generic load")
-        self.assertIn("2.00×", line)
+        self.assertIn("2.00× slower", line)
         self.assertIn("▼ loss", line)
 
     def test_not_comparable_workload_is_not_dropped(self):
         self.run_cmd(real_world(synthetic(), "w1", "w4"))  # ours differs on w4
         line = self.hero_line("generic load")
-        self.assertIn("`w4` (differs)", line)
+        self.assertIn("`w4` (differs)", self.block(self.readme, "bench-hero"))
         self.assertIn("partial", line)
         r = real_world(synthetic(), "w4")  # only the failing workload
         self.run_cmd(r)
@@ -199,7 +198,7 @@ class Hero(Base):
         hero = self.block(self.readme, "bench-hero")
         self.assertNotIn("typed load", hero)
         self.assertIn("NOT COMPARABLE", self.hero_line("patch"))
-        self.assertIn("(unsupported)", self.hero_line("patch"))
+        self.assertIn("(unsupported)", hero)
 
     def test_task_without_a_real_world_workload_names_its_basis(self):
         self.run_cmd(real_world(synthetic()))
@@ -249,10 +248,17 @@ class Hero(Base):
         self.assertIn('src="docs/img/ours-hero-light.svg"', hero)
         for theme in ("light", "dark"):
             self.assertIn("<svg", (self.dir / "docs" / "img" / f"ours-hero-{theme}.svg").read_text())
+        # The table follows the chart and holds the numbers, so the alt text is short and the image's own
+        # description carries them.
         alt = hero[hero.index('alt="') + 5:]
         alt = alt[:alt.index('"')]
-        self.assertIn("generic load 1.00×", alt)
-        self.assertIn("dump 0.90×", alt)
+        self.assertLess(len(alt), 300)
+        self.assertNotIn("generic load", alt)
+        for theme in ("light", "dark"):
+            svg = (self.dir / "docs" / "img" / f"ours-hero-{theme}.svg").read_text()
+            desc = svg[svg.index("<desc>"):svg.index("</desc>")]
+            self.assertIn("generic load 1.00× (level)", desc)
+            self.assertIn("dump 1.11× faster", desc)
 
     def test_chart_path_is_relative_to_each_file(self):
         (self.docs / "performance.md").write_bytes(f"{HERO}\n{END}\n".encode())
@@ -336,7 +342,7 @@ class Marks(Base):
         line = self.hero_line("generic load")
         self.assertIn("● tie", line)
         self.assertNotIn("▲ win", line)
-        self.assertIn("0 better, 3 level, 0 worse of 3", line)
+        self.assertIn("level (", line)
 
     def test_a_losing_workload_makes_the_row_mixed_in_table_chart_and_alt(self):
         c = [cell("ours", "own", workload="a", t=190.0), cell("rival", workload="a", t=100.0),
@@ -346,7 +352,6 @@ class Marks(Base):
         line = self.hero_line("generic load")
         self.assertIn("◆ mixed", line)
         self.assertNotIn("▲ win", line)
-        self.assertIn("2 better, 0 level, 1 worse of 3", line)
         alt = self.alt()
         self.assertIn("1 tasks: 0 better, 0 level, 1 mixed, 0 worse", alt)
         self.assertNotIn("1 workloads", alt)
@@ -366,13 +371,12 @@ class Marks(Base):
     def test_memory_mark_counts_workloads_and_names_the_memory_competitor(self):
         self.run_cmd(probe_result(self.memory_cells()))
         line = self.hero_line("generic load")
-        mem = line.split("|")[6]
         self.assertIn("`rival 2.0`", line.split("|")[3])  # the time winner
-        self.assertIn("least allocated: `other`", mem)
-        self.assertNotIn("`rival`", mem)
-        self.assertIn("2 better, 0 level, 1 worse of 3", mem)
-        self.assertIn("◆ mixed", mem)
-        self.assertNotIn("▲ win", mem)
+        # Memory is not in the hero; the full page names the memory competitor of each workload.
+        self.assertNotIn("allocated", self.block(self.readme, "bench-hero").split("Method:")[0])
+        full = self.block(self.docs / "performance.md", "bench-full")
+        row = next(l for l in full.split("\n") if l.startswith("| generic load | `c` |") and "of `other`" in l)
+        self.assertIn("▼ loss", row)
 
     def p4_result(self):
         return probe_result([
@@ -386,10 +390,11 @@ class Marks(Base):
         alt = self.alt()
         self.assertIn("2 tasks:", alt)
         self.assertIn("1 not comparable", alt)
-        self.assertIn("dump NOT COMPARABLE (a rejects)", alt)
-        self.assertIn("partial, no number for b (differs)", alt)
         for theme in ("light", "dark"):
             svg = (self.dir / "docs" / "img" / f"ours-hero-{theme}.svg").read_text()
+            desc = svg[svg.index("<desc>"):svg.index("</desc>")]
+            self.assertIn("dump NOT COMPARABLE (a rejects)", desc)
+            self.assertIn("partial, no number for b (differs)", desc)
             self.assertIn("dump", svg)
             self.assertIn("NOT COMPARABLE (a rejects)", svg)
             self.assertIn("partial: b differs", svg)
@@ -460,11 +465,13 @@ class Details(Base):
             (self.docs / name).unlink()
         (self.dir / "res" / "conformance" / "ours.json").unlink()
         self.assertEqual(self.run_cmd(conf=None), 0)
-        self.assertIn("rendered with kit version", self.block(self.readme, "bench-hero"))
+        method = self.block(self.readme, "bench-hero")
+        self.assertIn("text generated by kit revision", method)
+        self.assertNotIn("kit version", method)
 
     def test_competitor_time_column_says_what_it_is(self):
         self.run_cmd()
-        self.assertIn("Strongest competitors' time (geometric mean)", self.block(self.readme, "bench-hero"))
+        self.assertIn("Its time (geometric mean)", self.block(self.readme, "bench-hero"))
 
     def test_a_failed_write_leaves_every_file_whole(self):
         before = self.files()

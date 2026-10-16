@@ -131,6 +131,11 @@ def workload_order(result: dict) -> dict[str, int]:
     return {w["id"]: i for i, w in enumerate(result["workloads"])}
 
 
+def raw_value(c: dict, metric: str) -> float:
+    group, key, _ = results.METRICS[metric]
+    return c[group][key]
+
+
 def ratios(rows: list[dict], metric: str) -> list[dict]:
     """Chart rows. The ratio is ours ÷ strongest competitor, the same number the tables show, so
     below 1.0 is better for our library on both time and memory. A strongest competitor that did
@@ -146,7 +151,8 @@ def ratios(rows: list[dict], metric: str) -> list[dict]:
                 "workload": r["workload"], "library": e["library"],
                 "vs": m["vs"] + (MARK_NOT_BEST if m.get("vs_mark") else ""), "verdict": m["verdict"],
                 "ratio": m["ratio"],
-                "own": results.value_of(own, metric), "rival": results.value_of(r["best"][metric], metric),
+                # Shown values are the measured ones (a measured 0 B stays 0 B); only the ratio is clamped.
+                "own": raw_value(own, metric), "rival": raw_value(r["best"][metric], metric),
             })
     return out
 
@@ -166,12 +172,41 @@ THEMES = {
 # long. Bars grow from the 1.0x line: left is better for us, right is worse.
 AXIS_OCTAVES = 3
 TICKS = [1 / 8, 1 / 4, 1 / 2, 1.0, 2.0, 4.0, 8.0]
-CHART_NOTE = ("Ours ÷ strongest competitor (a † names one that did less than the full task), log scale: left of the 1.0× line is better for us, "
-              "right of it is a loss.")
+CHART_NOTE = ("Ours ÷ strongest competitor (a † marks a cell measured differently from the task as specified), "
+              "log scale: left of the 1.0× line is better for us, right of it is a loss.")
+
+# Subtitle lines are wrapped to fit the canvas. Glyph widths differ between fonts, so the estimate is a
+# generous average (0.6 em per character) rather than one font's metrics.
+EM_ESTIMATE = 0.6
+
+
+def est_width(text: str, font_size: float) -> float:
+    return len(text) * EM_ESTIMATE * font_size
+
+
+def wrap_text(text: str, font_size: float, max_px: float) -> list[str]:
+    """Greedy word wrap by the estimated width. A single word wider than the line stays whole."""
+    lines: list[str] = []
+    for word in text.split():
+        if lines and est_width(lines[-1] + " " + word, font_size) <= max_px:
+            lines[-1] += " " + word
+        else:
+            lines.append(word)
+    return lines or [""]
 
 
 def tick_label(t: float) -> str:
     return f"{t:g}×" if t >= 1 else f"1/{round(1 / t)}×"
+
+
+def axis_octaves(data: list[dict], invert: bool) -> int:
+    """Half-width of the log axis in octaves: 3 (1/8× to 8×), or wider, up to 6, when a bar of a
+    speed chart would otherwise be clipped. Even when wider, so that the ticks fall on whole octaves."""
+    if not invert:
+        return AXIS_OCTAVES
+    far = max((abs(math.log2(d["ratio"])) for d in data if d["ratio"]), default=0)
+    n = max(AXIS_OCTAVES, min(6, math.ceil(far)))
+    return n + (n > AXIS_OCTAVES and n % 2)
 
 
 def chart_alt(title: str, unit_note: str, data: list[dict], fmt) -> str:
@@ -185,27 +220,39 @@ def chart_alt(title: str, unit_note: str, data: list[dict], fmt) -> str:
     return " ".join(parts)
 
 
-def svg_chart(title: str, unit_note: str, data: list[dict], theme: str, fmt, alt: str) -> str:
+def svg_chart(title: str, unit_note: str, data: list[dict], theme: str, fmt, alt: str,
+              desc: str | None = None, invert: bool = False, label_of=None) -> str:
+    """A log-scale bar chart around the 1.0× line. `alt` is the accessible name, `desc` (default: the
+    same text) the full description. With `invert`, each row's ratio is ours ÷ theirs but the bar shows its
+    inverse, so a bar growing to the right is faster and higher is better; the value text then sits in a
+    fixed column right of the plot, where no bar can reach it. `label_of(ratio)` words the value."""
     c = THEMES[theme]
-    row_h, left, right, top = 24, 230, 190, 64
-    width = 860
-    plot = width - left - right
+    top = 64
+    row_h, left = 24, (240 if invert else 230)
+    width, plot = (920, 320) if invert else (860, 860 - 230 - 190)
+    n_oct = axis_octaves(data, invert)
+    ticks = [2.0 ** k for k in range(-n_oct, n_oct + 1, 1 if n_oct <= AXIS_OCTAVES else 2)]
     centre = left + plot / 2
+    lab_x = left + plot + 12
+    side_x = lab_x + 170 if invert else width - 190 + 90
+    note_lines = wrap_text(unit_note, 12, width - 32)
+    top += 15 * (len(note_lines) - 1)
     height = top + row_h * len(data) + 34
 
     def x(v: float) -> float:
-        octaves = max(-AXIS_OCTAVES, min(AXIS_OCTAVES, math.log2(v)))
-        return centre + octaves / AXIS_OCTAVES * (plot / 2)
+        octaves = max(-n_oct, min(n_oct, math.log2(v)))
+        return centre + octaves / n_oct * (plot / 2)
 
     esc = html.escape
+    sub = "".join(f'<tspan x="16" dy="{0 if i == 0 else 15}">{esc(l)}</tspan>' for i, l in enumerate(note_lines))
     o = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" '
          f'role="img" aria-label="{esc(alt, quote=True)}">',
-         f"<title>{esc(title)}</title><desc>{esc(alt)}</desc>",
+         f"<title>{esc(title)}</title><desc>{esc(desc if desc is not None else alt)}</desc>",
          f'<rect width="{width}" height="{height}" fill="{c["bg"]}"/>',
          f'<g font-family="system-ui, -apple-system, Segoe UI, sans-serif" fill="{c["fg"]}">',
          f'<text x="16" y="24" font-size="15" font-weight="600">{esc(title)}</text>',
-         f'<text x="16" y="44" font-size="12" fill="{c["muted"]}">{esc(unit_note)}</text>']
-    for t in TICKS:
+         f'<text x="16" y="44" font-size="12" fill="{c["muted"]}">{sub}</text>']
+    for t in ticks:
         dash = ' stroke-dasharray="4 3"' if t == 1.0 else ""
         o.append(f'<line x1="{x(t):.1f}" y1="{top - 6}" x2="{x(t):.1f}" y2="{top + row_h * len(data)}" '
                  f'stroke="{c["grid"]}" stroke-width="{2 if t == 1.0 else 1}"{dash}/>')
@@ -219,18 +266,20 @@ def svg_chart(title: str, unit_note: str, data: list[dict], theme: str, fmt, alt
             o.append(f'<text x="{centre + 6:.1f}" y="{y + 15}" font-size="11">{esc(d["tag"])}</text>')
             continue
         colour = c[d["verdict"]]
-        r = d["ratio"]
-        clipped = abs(math.log2(r)) > AXIS_OCTAVES
+        r = 1 / d["ratio"] if invert else d["ratio"]
+        clipped = abs(math.log2(r)) > n_oct
         x0, x1 = sorted((centre, x(r)))
         o.append(f'<text x="{left - 8}" y="{y + 15}" font-size="12" text-anchor="end">{esc(d["workload"])}</text>')
         o.append(f'<rect x="{x0:.1f}" y="{y + 3}" width="{max(x1 - x0, 2.0):.1f}" height="{row_h - 8}" fill="{colour}"/>')
-        label = fmt_ratio(r) + (" ▸" if clipped and r > 1 else " ◂" if clipped else "") \
+        label = (label_of(d["ratio"]) if label_of else fmt_ratio(r)) + (" ▸" if clipped and r > 1 else " ◂" if clipped else "") \
             + (d["tag"] if "tag" in d else "  ▼ loss" if d["verdict"] == "loss" else "")
-        lx = x1 + 6 if r >= 1 else x0 - 6
-        anchor = "start" if r >= 1 else "end"
+        if invert:
+            lx, anchor = lab_x, "start"
+        else:
+            lx, anchor = (x1 + 6, "start") if r >= 1 else (x0 - 6, "end")
         o.append(f'<text x="{lx:.1f}" y="{y + 15}" font-size="11" text-anchor="{anchor}">{esc(label)}</text>')
         side = d["note"] if "note" in d else f'{fmt(d["own"])} vs {fmt(d["rival"])}'
-        o.append(f'<text x="{width - right + 90}" y="{y + 15}" font-size="10" fill="{c["muted"]}" text-anchor="start">'
+        o.append(f'<text x="{side_x}" y="{y + 15}" font-size="10" fill="{c["muted"]}" text-anchor="start">'
                  f'{esc(side)}</text>')
     o.append("</g></svg>")
     return "\n".join(o) + "\n"
@@ -353,7 +402,7 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                  "edited node and the text of the new value are the harness's own code; the bytes are judged and "
                  "the work is timed.\n")
     if any(results.non_reference_label(c) for c in cells if c["status"] == "ok"):
-        L.append("† marks a cell that did not do the full task as specified: its variant was judged more loosely "
+        L.append("† marks a cell measured differently from the task as specified: its variant was judged more loosely "
                  "than the plain one (*bytes-only*, *value-only*, *harness-rendered*), or its library takes and "
                  "returns text (a *text API*), so parsing and writing are inside its timed work. Where a harness times a "
                  "whole task from text to text for every library (the Go `patch` task), every cell of that task "
@@ -426,6 +475,8 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                     continue
                 name = f"{lang}-{task}-{metric}"
                 note = f"{unit.capitalize()}. {CHART_NOTE}"
+                if metric == "memory" and any(d["own"] == 0 or d["rival"] == 0 for d in data):
+                    note += " A measured 0 B is placed as 1 B on the log axis."
                 title = f"{task} ({lang}): {unit}, ours against the strongest competitor"
                 alt = chart_alt(title, note, data, fmt)
                 for theme in THEMES:
