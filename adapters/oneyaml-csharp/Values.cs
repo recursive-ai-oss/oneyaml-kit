@@ -91,7 +91,7 @@ static class Values
                 }
         }
 
-        if (n.Tag is { Length: > 0 } raw)
+        if (n.RawTag is { Length: > 0 } raw)
         {
             string full = DocumentMarkers.ResolveTag(raw, tags);
             if (!Resolved.Contains(full)) return new KV.Tagged(full, value);

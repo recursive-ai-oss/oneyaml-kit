@@ -91,7 +91,7 @@ static class Events
     {
         var sb = new StringBuilder();
         if (n.Anchor is { Length: > 0 } a) sb.Append(" &").Append(a);
-        if (n.Tag is { Length: > 0 } t)
+        if (n.RawTag is { Length: > 0 } t)
         {
             sb.Append(" <").Append(DocumentMarkers.ResolveTag(t, tags)).Append('>');
             o.Tagged = true;
