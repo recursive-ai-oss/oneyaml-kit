@@ -75,6 +75,24 @@ fn position(text: &str, d: &Diagnostic) -> Option<(usize, usize)> {
     Some((lc.line + 1, lc.column + 1))
 }
 
+/// Where the library says decoding failed, as line and column. The library puts the
+/// replacement character for the bad bytes in the text it decoded, so that offset is
+/// the first ill-formed byte and the characters before it are exactly those decoded.
+/// A leading byte order mark is not counted. Nothing is reported when the offset is
+/// not a usable place in that text.
+fn decode_position(decoded: &str, d: &Diagnostic) -> Option<(usize, usize)> {
+    let bom = decoded
+        .strip_prefix('\u{feff}')
+        .map_or(0, |_| '\u{feff}'.len_utf8());
+    let text = decoded.get(bom..)?;
+    let at = d.primary.span.start.checked_sub(bom)?;
+    if at > text.len() || !text.is_char_boundary(at) {
+        return None;
+    }
+    let lc = LineIndex::new(text).line_col(at, ColumnUnit::Char)?;
+    Some((lc.line + 1, lc.column + 1))
+}
+
 // ---- events -------------------------------------------------------------
 
 fn escape(out: &mut String, value: &str) {
@@ -95,10 +113,11 @@ fn events(bytes: &[u8]) -> Outcome {
     let decoded = match oneyaml_syntax::decode_strict(bytes) {
         Ok(d) => d,
         Err(e) => {
+            let (diag, decoded_so_far) = *e;
             let f = Failure {
                 category: "encoding",
-                position: None,
-                message: e.0.message.clone(),
+                position: decode_position(&decoded_so_far, &diag),
+                message: diag.message,
                 emulated: &[],
             };
             return Outcome::Failed(f, Extra::Events(Vec::new()));

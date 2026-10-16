@@ -793,27 +793,6 @@
    "reason": "Same as the loose verdict: no error is reported"
   },
   {
-   "case": "own:parse/invalid-utf8-after-c1-in-quoted-scalar",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Error position differs: expected 1:6, no position reported for the malformed bytes"
-  },
-  {
-   "case": "own:parse/invalid-utf8-after-del-in-quoted-scalar",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Error position differs: expected 1:6, no position reported for the malformed bytes"
-  },
-  {
-   "case": "own:parse/invalid-utf8-after-noncharacter-in-double-quoted-scalar",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Error position differs: expected 1:5, no position reported for the malformed bytes"
-  },
-  {
    "case": "own:edit/remove-entry-after-literal-with-more-indented-comment",
    "expectation": "primary",
    "mode": "loose",
