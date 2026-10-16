@@ -275,6 +275,79 @@ class Hero(Base):
         self.assertIn('srcset="img/ours-hero-dark.svg"', self.block(self.docs / "performance.md", "bench-hero"))
 
 
+CHART = "<!-- generated:bench-chart -->"
+BASE = "https://raw.githubusercontent.com/o/r/v1.0.0"
+
+
+class ChartBlock(Base):
+    def chart(self, extra=()):
+        self.readme.write_bytes(f"# T\n\n{CHART}\nold\n{END}\n".encode())
+        self.assertEqual(self.run_cmd(extra=extra), 0)
+        return self.block(self.readme, "bench-chart")
+
+    def test_chart_only_with_a_relative_link(self):
+        b = self.chart()
+        self.assertIn('srcset="docs/img/ours-hero-dark.svg"', b)
+        self.assertIn('src="docs/img/ours-hero-light.svg"', b)
+        self.assertIn("alt=", b)
+        self.assertNotIn("|", b)
+        self.assertNotIn("Strongest competitor", b)
+        self.assertIn("smoke", b.lower())
+        self.assertIn("[Full results, with memory and the method →](docs/performance.md)", b)
+        self.assertEqual(b.rstrip().split("\n")[-1].count("\n"), 0)
+
+    def test_chart_alt_has_no_table_reference_and_the_svg_keeps_the_full_description(self):
+        b = self.chart()
+        alt = b[b.index('alt="') + 5:]
+        alt = alt[:alt.index('"')]
+        self.assertTrue(alt.startswith("Bar chart: how many times faster ours is than the strongest competitor"))
+        self.assertNotIn("table below", alt)
+        svg = (self.dir / "docs" / "img" / "ours-hero-light.svg").read_text()
+        self.assertIn("dump 1.11× faster", svg[svg.index("<desc>"):svg.index("</desc>")])
+
+    def test_the_hero_alt_text_is_unchanged(self):
+        self.readme.write_bytes(f"{HERO}\n{END}\n".encode())
+        self.run_cmd()
+        self.assertIn("Bar chart of the table below:", self.block(self.readme, "bench-hero"))
+
+    def test_a_branch_base_is_refused_before_any_file_changes(self):
+        self.readme.write_bytes(f"{CHART}\nold\n{END}\n".encode())
+        before = self.files()
+        self.assertNotEqual(self.run_cmd(extra=("--chart-base", "https://raw.githubusercontent.com/o/r/main")), 0)
+        self.assertEqual(before, self.files())
+
+    def test_chart_uses_the_same_svg_files_as_the_hero(self):
+        self.readme.write_bytes(f"{HERO}\n{END}\n{CHART}\n{END}\n".encode())
+        self.run_cmd()
+        hero, chart = self.block(self.readme, "bench-hero"), self.block(self.readme, "bench-chart")
+        pic = lambda t: t[t.index("<picture>"):t.index("</picture>")]  # noqa: E731
+        self.assertEqual(pic(hero).split("<img")[0], pic(chart).split("<img")[0])
+        self.assertEqual(pic(hero).split("src=")[-1], pic(chart).split("src=")[-1])
+
+    def test_chart_base_pins_images_and_links_the_page_on_github(self):
+        b = self.chart(("--chart-base", BASE))
+        self.assertIn(f'srcset="{BASE}/docs/img/ours-hero-dark.svg"', b)
+        self.assertIn("](https://github.com/o/r/blob/v1.0.0/docs/performance.md)", b)
+        self.assertNotIn("raw.githubusercontent.com/o/r/v1.0.0/docs/performance.md", b)
+
+    def test_another_chart_base_keeps_the_relative_link(self):
+        b = self.chart(("--chart-base", "https://cdn.example.org/x/v1"))
+        self.assertIn("](docs/performance.md)", b)
+
+    def test_hero_inside_the_performance_page_is_relative_to_that_file(self):
+        (self.docs / "performance.md").write_bytes(f"# P\n\n{HERO}\nold\n{END}\n".encode())
+        self.assertEqual(self.run_cmd(), 0)
+        b = self.block(self.docs / "performance.md", "bench-hero")
+        self.assertIn('srcset="img/ours-hero-dark.svg"', b)
+        self.assertIn("Strongest competitor", b)
+        self.assertTrue((self.docs / "img" / "ours-hero-dark.svg").exists())
+
+    def test_chart_inside_the_performance_page_links_to_itself_by_name(self):
+        (self.docs / "performance.md").write_bytes(f"# P\n\n{CHART}\nold\n{END}\n".encode())
+        self.chart()
+        self.assertIn("](performance.md)", self.block(self.docs / "performance.md", "bench-chart"))
+
+
 class Other(Base):
     def test_full_table_has_every_workload_and_every_competitor(self):
         self.run_cmd()

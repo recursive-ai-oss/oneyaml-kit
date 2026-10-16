@@ -325,6 +325,11 @@ def hero_name(a: dict) -> str:
     return HERO_LABEL.get(a["task"], task_name(a))
 
 
+def chart_alt(ctx_library: str, aggs: list[dict]) -> str:
+    """Alt text for the chart-only block, where no table follows the chart."""
+    return hero_alt(ctx_library, aggs).replace("Bar chart of the table below:", "Bar chart:", 1)
+
+
 def hero_alt(ctx_library: str, aggs: list[dict]) -> str:
     """Short alt text: the table follows the chart and carries every number, which the chart's description
     repeats for readers who open the image on its own."""
@@ -358,7 +363,7 @@ HERO_NOTE = ("Times faster than the strongest competitor on each task (geometric
              "bars to the right are faster, higher is better, bars to the left are slower.")
 
 
-def chart_files(ctx: Ctx, aggs: list[dict], rel: str) -> list[str]:
+def chart_files(ctx: Ctx, aggs: list[dict], rel: str, short_alt: bool = False) -> list[str]:
     # Every task has a row; one with no number is a labelled row without a bar.
     data = [{"workload": HERO_CHART_LABEL.get(a["task"], task_name(a)), "library": ctx.library,
              "vs": " / ".join(sorted(a["vs"])) or "—",
@@ -373,7 +378,8 @@ def chart_files(ctx: Ctx, aggs: list[dict], rel: str) -> list[str]:
     for theme in report.THEMES:
         ctx.files[f"{name}-{theme}.svg"] = report.svg_chart(title, HERO_NOTE, data, theme, report.fmt_time, alt,
                                                             desc=desc, invert=True, label_of=speed_label)
-    return [report.picture(name, alt, rel), ""]
+    # The SVG keeps the full description either way; only the picture's alt text differs.
+    return [report.picture(name, chart_alt(ctx.library, aggs) if short_alt else alt, rel), ""]
 
 
 def speed_label(ratio: float) -> str:
@@ -443,6 +449,15 @@ def render_hero(ctx: Ctx, chart_rel: str, **_) -> str:
                "workloads in each row are on the full page.")
     out.append("")
     out += method_strip(ctx)
+    return "\n".join(out)
+
+
+def render_chart(ctx: Ctx, chart_rel: str, performance_link: str = "docs/performance.md", **_) -> str:
+    """The hero chart alone, with a link to the full results: for a README that keeps the numbers on a
+    page of their own."""
+    aggs = aggregate(ctx.result, ctx.library, ctx.rows)
+    out = smoke_notice(ctx) + chart_files(ctx, aggs, chart_rel, short_alt=True)
+    out.append(f"[Full results, with memory and the method →]({performance_link})")
     return "\n".join(out)
 
 
@@ -553,7 +568,7 @@ def render_deviations(ctx: Ctx, **_) -> str:
             + report.md_table(["Case", "Expectation", "Mode", "Verdict", "Reason"], body))
 
 
-KINDS = {"bench-hero": render_hero, "conformance-line": render_conformance_line,
+KINDS = {"bench-hero": render_hero, "bench-chart": render_chart, "conformance-line": render_conformance_line,
          "bench-full": render_full, "conformance-deviations": render_deviations}
 
 
@@ -571,6 +586,19 @@ def branch_ref(url: str) -> str | None:
         if i >= 2 and seg.lower() in BRANCH_NAMES or (seg == "refs" and segs[i + 1:i + 2] == ["heads"]):
             return seg if seg != "refs" else "refs/heads"
     return None
+
+
+RAW_BASE = re.compile(r"https://raw\.githubusercontent\.com/([^/\s]+)/([^/\s]+)/([^/\s]+)/?$")
+
+
+def performance_url(chart_base: str | None, perf_rel: str, repo_path: str) -> str:
+    """The link to the performance page: relative to the file, or, for a raw.githubusercontent.com base
+    pinned to a ref, the github.com page of the same ref (a relative link does not resolve on a package
+    page, and the raw URL would show the source). Any other base keeps the relative link."""
+    m = chart_base and RAW_BASE.match(chart_base)
+    if not m:
+        return perf_rel
+    return f"https://github.com/{m[1]}/{m[2]}/blob/{m[3]}/{repo_path}"
 
 
 def update(ctx: Ctx, targets: list[Path], charts: str, docs_conformance: Path,
@@ -606,7 +634,11 @@ def update(ctx: Ctx, targets: list[Path], charts: str, docs_conformance: Path,
         # resolve, such as a package registry page); the same path under the base for every target file.
         chart_rel = (chart_base.rstrip("/") + "/" + Path(charts).as_posix().strip("/")
                      if chart_base else rel(chart_abs))
-        blocks = {k: KINDS[k](ctx, chart_rel=chart_rel, conformance_link=rel(docs_conformance))
+        perf = docs_conformance.parent / "performance.md"
+        perf_link = performance_url(chart_base, rel(perf),
+                                    Path(os.path.relpath(perf, targets[0].parent)).as_posix())
+        blocks = {k: KINDS[k](ctx, chart_rel=chart_rel, conformance_link=rel(docs_conformance),
+                              performance_link=perf_link)
                   for k, _, _ in found}
         new[path] = splice(text, blocks, known, str(path)).encode("utf-8")
     return new
