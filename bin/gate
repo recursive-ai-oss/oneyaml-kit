@@ -4,7 +4,8 @@
 #   bin/gate --full        every area and adapter; what CI runs
 #   bin/gate --plan        show the steps without running them
 #   bin/gate --areas go    named areas instead of choosing by changes
-#   bin/gate --jobs 3      areas to run side by side (default 4)
+#   bin/gate --jobs 3      areas to run side by side (default: as many as the available memory
+#                          holds, at most 4; the first output line says what was chosen)
 #   bin/gate --budget 150  fail when the hand-over run is slower than this many seconds
 # KIT_OUT moves the output directory (default ./out); CARGO_TARGET_DIR, KIT_GO_BIN and
 # KIT_DOTNET_ARTIFACTS move build output, which otherwise goes under it. DOTNET names the

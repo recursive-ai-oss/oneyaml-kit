@@ -188,8 +188,10 @@ class Areas(unittest.TestCase):
     def test_the_revision_is_printed_before_the_steps(self):
         rc, out, _ = run_main(areas="core")
         lines = out.splitlines()
-        self.assertTrue(lines[0].startswith("gate: revision HEAD "), lines[0])
-        self.assertIn("fingerprint", lines[0])
+        # The first line says how many areas run at once; the revision follows at once.
+        self.assertTrue(lines[0].startswith("gate: jobs "), lines[0])
+        self.assertTrue(lines[1].startswith("gate: revision HEAD "), lines[1])
+        self.assertIn("fingerprint", lines[1])
 
 
 class Revision(unittest.TestCase):
@@ -465,8 +467,138 @@ class Budget(unittest.TestCase):
         self.assertEqual(peak_two, 2)
         self.assertEqual(summary["jobs"], 2)
         _, _, _, _, summary = self.run_fake(full=False, budget=60, jobs=0)
-        self.assertEqual(summary["jobs"], gate.default_jobs())
-        self.assertTrue(1 <= gate.default_jobs() <= gate.DEFAULT_JOBS)
+        self.assertTrue(1 <= summary["jobs"] <= gate.DEFAULT_JOBS)
+
+
+GIB = 2**30
+
+
+class FakeMachine:
+    """A cgroup tree and a /proc under a temporary directory, so the memory-limit logic reads files
+    this test wrote and no real memory limit or pressure is involved."""
+
+    def __init__(self, test, cgroup="/user.slice/job.scope", limits=None, available_kib=None):
+        self.root = Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))
+        test.addCleanup(shutil.rmtree, self.root)
+        self.cg, self.proc = self.root / "cg", self.root / "proc"
+        (self.proc / "self").mkdir(parents=True)
+        (self.proc / "self" / "cgroup").write_text(f"0::{cgroup}\n")
+        for rel, value in (limits or {}).items():
+            d = self.cg / rel.strip("/")
+            d.mkdir(parents=True, exist_ok=True)
+            (d / "memory.max").write_text(f"{value}\n")
+        if available_kib is not None:
+            (self.proc / "meminfo").write_text(f"MemTotal: 999999999 kB\nMemAvailable: {available_kib} kB\n")
+
+    def limit(self):
+        return gate.memory_limit(self.cg, self.proc)
+
+
+class MemoryLimit(unittest.TestCase):
+    def test_the_cgroups_own_limit_is_used(self):
+        m = FakeMachine(self, limits={"/user.slice/job.scope": 6 * GIB, "/": "max"}, available_kib=64 * 2**20)
+        self.assertEqual(m.limit(), (6 * GIB, "memory limit"))
+
+    def test_the_tightest_limit_among_the_ancestors_wins(self):
+        m = FakeMachine(self, limits={"/user.slice/job.scope": "max", "/user.slice": 4 * GIB,
+                                      "/": 12 * GIB}, available_kib=64 * 2**20)
+        self.assertEqual(m.limit(), (4 * GIB, "memory limit"))
+        m = FakeMachine(self, limits={"/user.slice/job.scope": 12 * GIB, "/user.slice": 24 * GIB, "/": "max"})
+        self.assertEqual(m.limit(), (12 * GIB, "memory limit"))
+
+    def test_unlimited_cgroups_fall_back_to_the_machines_available_memory(self):
+        m = FakeMachine(self, limits={"/user.slice/job.scope": "max", "/": "max"}, available_kib=8 * 2**20)
+        self.assertEqual(m.limit(), (8 * GIB, "available memory"))
+
+    def test_no_cgroup_files_fall_back_to_the_machines_available_memory(self):
+        m = FakeMachine(self, available_kib=3 * 2**20)
+        self.assertEqual(m.limit(), (3 * GIB, "available memory"))
+
+    def test_nothing_readable_gives_no_limit(self):
+        self.assertIsNone(FakeMachine(self).limit())
+
+
+class ChooseJobs(unittest.TestCase):
+    def test_the_count_follows_the_memory(self):
+        self.assertEqual([gate.choose_jobs((g * GIB, "memory limit"), 32)[0] for g in (1, 4, 6, 8, 12, 64)],
+                         [1, 1, 2, 2, 4, 4])
+
+    def test_it_never_exceeds_the_cpus_or_the_maximum_and_is_never_below_one(self):
+        self.assertEqual(gate.choose_jobs((64 * GIB, "memory limit"), 2)[0], 2)
+        self.assertEqual(gate.choose_jobs((64 * GIB, "memory limit"), 1)[0], 1)
+        self.assertEqual(gate.choose_jobs((0, "memory limit"), 8)[0], 1)
+        self.assertEqual(gate.choose_jobs(None, 8)[0], gate.DEFAULT_JOBS)
+
+    def test_the_reason_names_the_limit(self):
+        jobs, why = gate.choose_jobs((6 * GIB, "memory limit"), 32)
+        self.assertEqual((jobs, why), (2, "memory limit 6.0 GiB, ~2.5 GiB per area"))
+
+    def test_the_first_line_says_what_was_chosen(self):
+        for jobs, text in ((0, "jobs 2 (memory limit 6.0 GiB"), (3, "jobs 3 (set by --jobs)")):
+            args = argparse.Namespace(full=False, base="main", areas="core", without_core=False, jobs=jobs, plan=True,
+                                      out=str(Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))))
+            self.addCleanup(shutil.rmtree, args.out)
+            buf = io.StringIO()
+            with mock.patch.object(gate, "memory_limit", lambda: (6 * GIB, "memory limit")), \
+                    mock.patch.object(gate, "usable_cpus", lambda: 32), contextlib.redirect_stdout(buf):
+                gate.main(args)
+            self.assertTrue(buf.getvalue().splitlines()[0].startswith("gate: " + text), buf.getvalue())
+
+
+class RunAreas(unittest.TestCase):
+    """The scheduler keeps the running areas' estimated peaks inside the budget."""
+
+    def run_with(self, areas, jobs, budget_mib):
+        lock, state = threading.Lock(), {"running": set(), "worst_mib": 0, "order": []}
+        gate_open = threading.Event()
+
+        def run_area(a):
+            with lock:
+                state["running"].add(a)
+                state["order"].append(a)
+                state["worst_mib"] = max(state["worst_mib"],
+                                         sum(gate.AREA_PEAK_MIB[x] for x in state["running"]))
+            # Give the other workers every chance to start before this area finishes.
+            gate_open.wait(timeout=0.05)
+            with lock:
+                state["running"].discard(a)
+
+        gate.run_areas(areas, jobs, budget_mib, run_area)
+        return state
+
+    ALL = ["core", "csharp", "go", "rust", "bench", "bench-rust", "bench-go", "bench-csharp"]
+
+    def test_every_area_runs_once_whatever_the_budget(self):
+        for budget in (None, 6000, 1):
+            self.assertEqual(sorted(self.run_with(self.ALL, 4, budget)["order"]), sorted(self.ALL))
+
+    def test_running_areas_stay_inside_the_budget(self):
+        budget = int(6 * 1024 * gate.MEMORY_SHARE)
+        self.assertLessEqual(self.run_with(self.ALL, 4, budget)["worst_mib"], budget)
+
+    def test_an_area_bigger_than_the_budget_runs_alone(self):
+        state = self.run_with(self.ALL, 4, 1)
+        self.assertEqual(state["worst_mib"], max(gate.AREA_PEAK_MIB.values()))
+
+    def test_small_areas_that_fit_together_do_run_side_by_side(self):
+        both = threading.Barrier(2)
+        gate.run_areas(["bench", "bench-go"], 2, 1024, lambda a: both.wait(timeout=30))
+
+    def test_a_big_area_waits_for_room_and_a_small_one_goes_ahead(self):
+        started = []
+        small_done = threading.Event()
+
+        def run_area(a):
+            started.append(a)
+            if a == "core":
+                self.assertTrue(small_done.wait(timeout=30))
+            elif a == "bench":
+                small_done.set()
+
+        # Room for core alone (4096) but not core with csharp (2560): csharp waits, bench fits.
+        gate.run_areas(["core", "csharp", "bench"], 3, 4500, run_area)
+        self.assertEqual(started[0], "core")
+        self.assertEqual(started.index("bench") < started.index("csharp"), True)
 
 
 class Workflow(unittest.TestCase):
