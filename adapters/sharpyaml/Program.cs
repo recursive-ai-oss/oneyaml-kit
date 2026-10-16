@@ -19,7 +19,7 @@ sealed class SharpYamlKitAdapter : IAdapter
     public string[] Capabilities => ["events", "value", "dump", "patch:replace", "error-category", "error-position", "error-events"];
 
     // Only SharpYaml's own exception hierarchy is a rejection; anything else escaping the library is a
-    // defect, and the process ends so the kit records a crash.
+    // defect, and the adapter answers a crash for that case.
     public bool IsLibraryException(Exception e) => e is YamlException;
 
     // decode: SharpYaml reads a string, so byte order marks, UTF-16/32 and malformed UTF-8 are the adapter's.
