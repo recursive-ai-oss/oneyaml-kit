@@ -190,7 +190,32 @@ A library gets a number only if its answer was right.
 
 Cells that are not `ok` never carry a time or a memory figure; the result validator and the
 harnesses' own tests enforce that. A cell that is a `differs`, `rejects`, `unjudged` or `error` is
-listed with its reason in the report's table of cells without a number.
+listed with the first difference the guard found in the report's table of cells without a number.
+
+### Why a competitor's cell has no number
+
+A competitor's `differs`, `rejects`, `unjudged` or `error` cell carries a note number, such as
+`differs [3]`, in every table that shows it. The report's "Notes on competitor cells" section (and
+the notes under a library's generated evidence table) gives each note once for all the cells that
+share it:
+
+- the **first difference the guard found**, taken from the result file (the path or byte, and what
+  the library gave against what was expected), for the first cell of the group;
+- a **short reason**, when the kit knows the behaviour behind it. Reasons are curated in
+  `bench/oneyaml_bench/reasons.json`. Each names the libraries and tasks it covers and a pattern on the
+  first difference, so it only explains a difference of the kind it describes, and the first
+  matching entry is used. A cell with no matching entry still gets a note with its first difference.
+
+The guard is strict on purpose: it compares every byte or value, so a library that writes a valid but
+different form (`812.0` as `812`, a different indent, a dropped blank line) is marked, and the note
+says what it did.
+
+Two limits keep this honest. Only competitor cells are explained: a cell of our own library that
+has no number is a plain failure with no note. And a reason that no cell of a full run uses, although
+the run measured its library and task, is stale: the report ends with a "Stale reasons" section and
+`bin/bench report` and `bin/bench run` exit with an error until the entry is fixed or removed. (A
+run limited to some workloads can report an entry as stale that a whole run uses.) Quick runs are not
+judged for stale entries.
 
 ## Smoke results
 

@@ -9,7 +9,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import readme, report, results, run, workloads
+from . import readme, reasons, report, results, run, workloads
 
 ROOT = Path(__file__).resolve().parents[1]
 KIT_ROOT = ROOT.parent
@@ -38,6 +38,15 @@ def write_report(result: dict, out: Path) -> list[Path]:
     return [path] + sorted((out / "charts").glob("*.svg"))
 
 
+def report_stale(result: dict) -> bool:
+    """Says which curated reasons match nothing in a full run; the report holds them too."""
+    old = reasons.stale(result)
+    if old:
+        print("stale reasons in reasons.json (no cell of this run uses them):\n  "
+              + "\n  ".join(reasons.stale_lines(old)), file=sys.stderr)
+    return bool(old)
+
+
 def find_first(paths: list[Path]) -> Path | None:
     return next((p for p in paths if p.is_file()), None)
 
@@ -64,7 +73,7 @@ def cmd_run(a: argparse.Namespace) -> int:
     if hits:
         print("public-text check failed on generated output:\n  " + "\n  ".join(hits), file=sys.stderr)
         return 1
-    return 0
+    return 1 if report_stale(result) else 0
 
 
 def cmd_report(a: argparse.Namespace) -> int:
@@ -78,7 +87,7 @@ def cmd_report(a: argparse.Namespace) -> int:
         print("\n".join(hits), file=sys.stderr)
         return 1
     print(f"wrote {out / 'report.md'}")
-    return 0
+    return 1 if report_stale(result) else 0
 
 
 def cmd_workloads(a: argparse.Namespace) -> int:

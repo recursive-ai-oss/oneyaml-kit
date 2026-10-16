@@ -51,7 +51,7 @@ Parse into the library's generic value tree; all documents of a stream.
 |---|---|---|---|---|---|
 | `w1` | 1000 B | 50 ns | 120 ns | 100 ns | 0.50× of `rival` ▲ win |
 | `w2` | 1.95 KiB | 200 ns | 150 ns | 100 ns | 2.00× of `rival` ▼ loss |
-| `w3` | 2.93 KiB | 80 ns | differs | 100 ns | 0.80× of `rival` ▲ win |
+| `w3` | 2.93 KiB | 80 ns | differs [1] | 100 ns | 0.80× of `rival` ▲ win |
 | `w4` | 3.91 KiB | differs | — | 100 ns | no number (differs) |
 
 **Allocated memory per operation**
@@ -60,7 +60,7 @@ Parse into the library's generic value tree; all documents of a stream.
 |---|---|---|---|---|---|
 | `w1` | 1000 B | 900 B in 3 allocs | 800 B in 3 allocs | 400 B in 3 allocs | 2.25× of `rival` ▼ loss |
 | `w2` | 1.95 KiB | 100 B in 3 allocs | 100 B in 3 allocs | 100 B in 3 allocs | 1.00× of `rival` ● tie |
-| `w3` | 2.93 KiB | 1000 B in 3 allocs | differs | 1000 B in 3 allocs | 1.00× of `rival` ● tie |
+| `w3` | 2.93 KiB | 1000 B in 3 allocs | differs [1] | 1000 B in 3 allocs | 1.00× of `rival` ● tie |
 | `w4` | 3.91 KiB | differs | — | 1000 B in 3 allocs | no number (differs) |
 
 <picture>
@@ -83,13 +83,13 @@ Write a generic value tree back to YAML text.
 
 | Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|
-| `w1` | 1000 B | 90 ns | 100 ns | unjudged | 0.90× of `other` ▲ win |
+| `w1` | 1000 B | 90 ns | 100 ns | unjudged [2] | 0.90× of `other` ▲ win |
 
 **Allocated memory per operation**
 
 | Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|
-| `w1` | 1000 B | 1000 B in 3 allocs | 1000 B in 3 allocs | unjudged | 1.00× of `other` ● tie |
+| `w1` | 1000 B | 1000 B in 3 allocs | 1000 B in 3 allocs | unjudged [2] | 1.00× of `other` ● tie |
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="charts/rust-dump-time-dark.svg">
@@ -111,24 +111,34 @@ Apply an RFC 6902 patch to a document, atomically, and write the bytes.
 
 | Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|
-| `w1` | 1000 B | — | — | rejects | no number (unsupported) |
+| `w1` | 1000 B | — | — | rejects [3] | no number (unsupported) |
 
 **Allocated memory per operation**
 
 | Workload | Input | `ours` | `other` | `rival` | Ours vs strongest competitor |
 |---|---|---|---|---|---|
-| `w1` | 1000 B | — | — | rejects | no number (unsupported) |
+| `w1` | 1000 B | — | — | rejects [3] | no number (unsupported) |
 
 ## Cells without a number
 
-A library that gives a wrong answer, refuses a valid input or cannot be measured gets no time. The reason is the first difference the guard found. *Unjudged* means the harness's two reference parsers disagree about the library's output, so the harness could not decide; it is not a verdict on the library.
+A library that gives a wrong answer, refuses a valid input or cannot be measured gets no time. The first difference is what the guard found; a competitor's note, marked in the tables, says what the library did and, where the kit knows it, why. *Unjudged* means the harness's two reference parsers disagree about the library's output, so the harness could not decide; it is not a verdict on the library.
 
-| Language | Library | Task | Workload | Status | Reason |
-|---|---|---|---|---|---|
-| rust | `other` | generic-load | `w3` | differs | at /a/b: got 1, expected 2 |
-| rust | `ours` | generic-load | `w4` | differs | byte 3: got x, expected y |
-| rust | `rival` | dump | `w1` | unjudged | the two reference parsers disagree at /a |
-| rust | `rival` | patch | `w1` | rejects | boom \| pipe |
+| Language | Library | Task | Workload | Status | First difference | Note |
+|---|---|---|---|---|---|---|
+| rust | `other` | generic-load | `w3` | differs | at /a/b: got 1, expected 2 | [1] |
+| rust | `ours` | generic-load | `w4` | differs | byte 3: got x, expected y | — |
+| rust | `rival` | dump | `w1` | unjudged | the two reference parsers disagree at /a | [2] |
+| rust | `rival` | patch | `w1` | rejects | boom \| pipe | [3] |
+
+### Notes on competitor cells
+
+Each note gives what the correctness guard found and, where the kit knows the behaviour behind it, a reason. The guard compares every byte or value with the expected result, so a library that writes a different but valid form is still marked.
+
+1. `other` (differs; generic-load ×1): What the guard found, in generic-load on `w3`: `at /a/b: got 1, expected 2`
+2. `rival` (unjudged; dump ×1): What the guard found, in dump on `w1`: `the two reference parsers disagree at /a`
+3. `rival` (rejects; patch ×1): What the guard found, in patch on `w1`: `boom | pipe`
+
+A cell of our own library without a number is a failure and has no note.
 
 ### Unsupported tasks
 

@@ -11,7 +11,7 @@ import html
 import math
 from pathlib import Path
 
-from . import results
+from . import reasons, results
 
 TASK_ABOUT = {
     "typed-load": "Parse into the language's own typed model (structs).",
@@ -23,6 +23,9 @@ TASK_ABOUT = {
     "patch": "Apply an RFC 6902 patch to a document, atomically, and write the bytes.",
 }
 TASK_ORDER = list(TASK_ABOUT)
+NOTES_ABOUT = ("Each note gives what the correctness guard found and, where the kit knows the behaviour behind it, a "
+               "reason. The guard compares every byte or value with the expected result, so a library that writes "
+               "a different but valid form is still marked.")
 
 
 # ---- formatting --------------------------------------------------------------------------
@@ -57,17 +60,18 @@ MARK = {"win": "▲ win", "tie": "● tie", "loss": "▼ loss"}
 MARK_NOT_BEST = " †"
 
 
-def time_cell(c: dict) -> str:
+def time_cell(c: dict, notes: reasons.Notes | None = None) -> str:
     if c["status"] != "ok":
-        return {"differs": "differs", "rejects": "rejects", "unsupported": "—", "unjudged": "unjudged",
+        text = {"differs": "differs", "rejects": "rejects", "unsupported": "—", "unjudged": "unjudged",
                 "error": "error"}[c["status"]]
+        return text + (notes.marker(c) if notes else "")
     note = "" if c.get("variant") in (None, "spec") else f" ({c['variant']})"
     return f"{fmt_time(c['time']['ns'])}{note}{MARK_NOT_BEST if results.non_reference_label(c) else ''}"
 
 
-def memory_cell(c: dict) -> str:
+def memory_cell(c: dict, notes: reasons.Notes | None = None) -> str:
     if c["status"] != "ok":
-        return time_cell(c)
+        return time_cell(c, notes)
     m = c["memory"]
     text = fmt_bytes(m["allocated_bytes"])
     if m.get("allocations") is not None:
@@ -227,6 +231,7 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
     cells = result["cells"]
     libs = lib_order(cells)
     rows_all = results.compare_rows(cells)
+    notes = reasons.Notes(cells)
     wl_rank = workload_order(result)
     wl_by_id = {w["id"]: w for w in result["workloads"]}
     chart_dir = out_dir / chart_dir_name
@@ -353,7 +358,7 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
                     row = [f"`{r['workload']}`", fmt_size(wl_by_id[r["workload"]]["input_bytes"])]
                     for l in lib_cols:
                         c = by.get(l[1])
-                        row.append("—" if c is None else (time_cell(c) if metric == "time" else memory_cell(c)))
+                        row.append("—" if c is None else (time_cell(c, notes) if metric == "time" else memory_cell(c, notes)))
                     verdicts = []
                     if not has_own:
                         ref = results.best_in_row(r, metric)
@@ -401,16 +406,32 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
         L.append("None: every library that was asked produced a correct answer or has no such capability.\n")
     else:
         L.append("A library that gives a wrong answer, refuses a valid input or cannot be measured gets no time. "
-                 "The reason is the first difference the guard found. *Unjudged* means the harness's two reference "
+                 "The first difference is what the guard found; a competitor's note, marked in the tables, says "
+                 "what the library did and, where the kit knows it, why. *Unjudged* means the harness's two reference "
                  "parsers disagree about the library's output, so the harness could not decide; it is not a "
                  "verdict on the library.\n")
-        head = ["Language", "Library", "Task", "Workload", "Status", "Reason"]
+        head = ["Language", "Library", "Task", "Workload", "Status", "First difference", "Note"]
 
         def line(c):
             row = [c["language"], f"`{c['library']}`", c["task"], f"`{c['workload']}`", c["status"],
-                   (c.get("detail") or "").replace("|", "\\|").replace("\n", " ")[:160]]
+                   (c.get("detail") or "").replace("|", "\\|").replace("\n", " ")[:160],
+                   notes.marker(c).strip() or "—"]
             return row
         L.append(md_table(head, [line(c) for c in bad]))
+        L.append("")
+        if notes.groups:
+            L.append("### Notes on competitor cells\n")
+            L.append(NOTES_ABOUT + "\n")
+            L += notes.lines()
+            L.append("")
+        if any(c["role"] == "own" for c in bad):
+            L.append("A cell of our own library without a number is a failure and has no note.\n")
+    old = reasons.stale(result)
+    if old:
+        L.append("### Stale reasons\n")
+        L.append("These reasons match no cell of this run, although it ran their library and task. Remove or "
+                 "correct them in reasons.json.\n")
+        L += [f"- {t}" for t in reasons.stale_lines(old)]
         L.append("")
     unsup = {}
     for c in cells:

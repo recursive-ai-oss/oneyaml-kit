@@ -1,0 +1,272 @@
+{
+  "about": "Short reasons for known competitor behaviour. An entry explains a competitor cell that is differs or rejects when the cell's library and task are listed and the cell's first difference (detail) matches the pattern; the first matching entry is used. A reason describes what the library does, never a fault of the harness. An entry that matches nothing in a full run is stale and the report tool says so.",
+  "entries": [
+    {
+      "libraries": [
+        "yaml-v2",
+        "yaml-v3",
+        "yaml-v4",
+        "sigs-yaml",
+        "json-patch",
+        "sharpyaml",
+        "vyaml",
+        "yamldotnet"
+      ],
+      "tasks": [
+        "dump",
+        "patch"
+      ],
+      "detail": "got (\\S+), expected \\1(\\.0\\b| \\(float\\))",
+      "reason": "Writes a float with no fractional part (812.0) as 812, so a YAML 1.2 reader reads it back as an integer.",
+      "status": [
+        "differs"
+      ]
+    },
+    {
+      "libraries": [
+        "sigs-yaml"
+      ],
+      "tasks": [
+        "generic-load"
+      ],
+      "detail": "got (\\S+) \\(float\\), expected \\1\\b",
+      "reason": "Reads through JSON, where every number is a float, so an integer comes back as a float.",
+      "status": [
+        "differs"
+      ]
+    },
+    {
+      "libraries": [
+        "sigs-yaml"
+      ],
+      "tasks": [
+        "generic-load"
+      ],
+      "detail": "got a mapping of \\d+, expected a sequence of \\d+",
+      "reason": "Reads one document of a multi-document stream, so the stream does not come back whole.",
+      "status": [
+        "differs"
+      ]
+    },
+    {
+      "libraries": [
+        "yaml-v2",
+        "sigs-yaml"
+      ],
+      "tasks": [
+        "generic-load",
+        "dump"
+      ],
+      "detail": "got true, expected \"y\"",
+      "reason": "A YAML 1.1 reader: the plain scalar y is the boolean true.",
+      "status": [
+        "differs"
+      ]
+    },
+    {
+      "libraries": [
+        "yaml-v2",
+        "sigs-yaml"
+      ],
+      "tasks": [
+        "generic-load",
+        "dump",
+        "typed-load"
+      ],
+      "detail": "^(read back: )?(missing /on\\b|/on/)",
+      "reason": "A YAML 1.1 reader: the key on is the boolean true, so /on is not found.",
+      "status": [
+        "differs"
+      ]
+    },
+    {
+      "libraries": [
+        "json-patch"
+      ],
+      "tasks": [
+        "patch"
+      ],
+      "status": [
+        "rejects"
+      ],
+      "detail": "missing path: \"/on/",
+      "reason": "Reads the document through sigs.k8s.io/yaml, a YAML 1.1 reader: the key on is the boolean true, so a path under /on is not found."
+    },
+    {
+      "libraries": [
+        "goccy-go-yaml",
+        "vyaml"
+      ],
+      "tasks": [
+        "dump"
+      ],
+      "detail": "got ([\\d.]+), expected \"0*\\1\"",
+      "reason": "Writes a string that looks like a number (05509, 1.5) without quotes, so it reads back as a number.",
+      "status": [
+        "differs"
+      ]
+    },
+    {
+      "libraries": [
+        "vyaml"
+      ],
+      "tasks": [
+        "dump"
+      ],
+      "detail": "got \"([^\"]*)\", expected \"\\1\\\\n\"",
+      "reason": "A string that ends with a newline reads back without that final newline.",
+      "status": [
+        "differs"
+      ]
+    },
+    {
+      "libraries": [
+        "goccy-go-yaml",
+        "palantir-yamlpatch-goccy"
+      ],
+      "tasks": [
+        "document-parse",
+        "unchanged-emit",
+        "edit-script",
+        "patch"
+      ],
+      "detail": "(?s)got .*note: null.*expected .*note: ~",
+      "reason": "Writes the null spelled ~ as null.",
+      "status": [
+        "differs"
+      ]
+    },
+    {
+      "libraries": [
+        "goccy-go-yaml"
+      ],
+      "tasks": [
+        "document-parse",
+        "unchanged-emit"
+      ],
+      "detail": "u00e9",
+      "reason": "Writes the escapes of a double-quoted scalar (\\u00e9) as the characters themselves.",
+      "status": [
+        "differs"
+      ]
+    },
+    {
+      "libraries": [
+        "goccy-go-yaml",
+        "palantir-yamlpatch",
+        "palantir-yamlpatch-goccy"
+      ],
+      "tasks": [
+        "edit-script",
+        "patch"
+      ],
+      "detail": "(?s)got .*b: this is a te.*expected .*b: \\|-",
+      "reason": "Does not keep the block literal style of the edited value: the new text is written as a plain scalar.",
+      "status": [
+        "differs"
+      ]
+    },
+    {
+      "libraries": [
+        "yaml-v3",
+        "yaml-v4"
+      ],
+      "tasks": [
+        "document-parse",
+        "unchanged-emit",
+        "edit-script"
+      ],
+      "reason": "The yaml.Node tree keeps comments but not blank lines, spacing or a leading --- marker, and it lays flow collections out its own way, so the text it writes back is not the input.",
+      "status": [
+        "differs"
+      ],
+      "detail": "byte \\d+: got \\d+ bytes"
+    },
+    {
+      "libraries": [
+        "palantir-yamlpatch"
+      ],
+      "tasks": [
+        "patch"
+      ],
+      "reason": "Patches through the yaml.v3 node tree, which keeps comments but not blank lines, spacing or a leading --- marker, so the text it writes back differs from the input.",
+      "status": [
+        "differs"
+      ],
+      "detail": "byte \\d+: got \\d+ bytes"
+    },
+    {
+      "libraries": [
+        "palantir-yamlpatch-goccy"
+      ],
+      "tasks": [
+        "patch"
+      ],
+      "reason": "Patches through the goccy AST, which prints its own spacing and changes blank lines, so the text it writes back differs from the input.",
+      "status": [
+        "differs"
+      ],
+      "detail": "byte \\d+: got \\d+ bytes"
+    },
+    {
+      "libraries": [
+        "goccy-go-yaml"
+      ],
+      "tasks": [
+        "document-parse",
+        "unchanged-emit",
+        "edit-script"
+      ],
+      "reason": "The AST prints its own spacing for flow collections and trailing comments, and blank lines, quoting or a leading --- marker change, so the text it writes back is not the input.",
+      "status": [
+        "differs"
+      ],
+      "detail": "byte \\d+: got \\d+ bytes"
+    },
+    {
+      "libraries": [
+        "yaml2jsonnode"
+      ],
+      "tasks": [
+        "patch"
+      ],
+      "reason": "Patches a JSON tree and writes it back as YAML, so comments, blank lines and quoting are not kept (it is not lossless).",
+      "status": [
+        "differs"
+      ],
+      "detail": "byte \\d+: got \\d+ bytes"
+    },
+    {
+      "libraries": [
+        "sharpyaml",
+        "sharpyaml-model",
+        "sharpyaml-syntax",
+        "yamldotnet"
+      ],
+      "tasks": [
+        "generic-load",
+        "dump",
+        "document-parse",
+        "unchanged-emit"
+      ],
+      "status": [
+        "rejects"
+      ],
+      "detail": "^default limit, not raised",
+      "reason": "Stops at its default nesting limit, which the benchmark leaves as it is."
+    },
+    {
+      "libraries": [
+        "yaml-edit"
+      ],
+      "tasks": [
+        "edit-script"
+      ],
+      "detail": "test2c: 13|system +operationId",
+      "reason": "Writes the edited value without the line break that follows it, joining it to the next line.",
+      "status": [
+        "differs"
+      ]
+    }
+  ]
+}
