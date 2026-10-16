@@ -56,9 +56,9 @@ public abstract class OneYamlLibBase : ILibrary
                 if (w.Documents != 1)
                 {
                     return Generated
-                        ? new FnRunner<int, List<object?>>(() => 0, _ => YamlSerializer.DeserializeAll(input, OneYamlContext.Default.Object)!,
+                        ? new FnRunner<int, IReadOnlyList<object?>>(() => 0, _ => YamlSerializer.DeserializeAll(input, OneYamlContext.Default.Object)!,
                             l => new Product.Value(Conv.Docs(l.Select(Conv.FromObject).ToList())))
-                        : new FnRunner<int, List<object?>>(() => 0, _ => YamlSerializer.DeserializeAll<object>(input)!,
+                        : new FnRunner<int, IReadOnlyList<object?>>(() => 0, _ => YamlSerializer.DeserializeAll<object>(input)!,
                             l => new Product.Value(Conv.Docs(l.Select(Conv.FromObject).ToList())));
                 }
                 return Generated
