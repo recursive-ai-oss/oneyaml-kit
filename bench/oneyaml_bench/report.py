@@ -75,6 +75,23 @@ def memory_label(lang: str) -> str:
     return MEMORY_LABEL.get(lang, "Allocated bytes per operation")
 
 
+def load_text(run: dict) -> str:
+    """The host's 1-minute load as `4.1 before, 5.0 after`, with `, at most 7.3 during` when sampled."""
+    load = run["load"]
+    out = f"{load['before']} before, {load['after']} after"
+    if "peak" in load:
+        out += f", at most {load['peak']} during"
+    return out
+
+
+def local_host_text(run: dict) -> str | None:
+    """Where a run that did not use the rented machine took place, in one plain clause; None for a
+    rented machine and for results written before the place was recorded."""
+    if run["environment"].get("where") != "local":
+        return None
+    return f"measured on a shared workstation ({run['environment']['cpus']} logical CPUs; load {load_text(run)})"
+
+
 def timer_text(h: dict, mode: str) -> str:
     """What the tool did in this run. Results from before the harnesses stated their settings per mode
     describe the other mode in a parenthesis ("20 ms in quick mode"); in a full run that clause is
@@ -316,7 +333,7 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
     L.append("# YAML library benchmark results\n")
     L.append(f"{run['mode'].capitalize()} run on {run['date']}.\n")
     if run["smoke"]:
-        L.append("**SMOKE RESULT.** This run was quick or was taken on a shared machine, so it shows the shape "
+        L.append("**SMOKE RESULT.** This run was quick or was marked a smoke run, so it shows the shape "
                  "of the comparison and is not a claim about speed.\n")
 
     missing = results.missing_languages(result)
@@ -329,10 +346,11 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
         ["CPU", f"{env['cpu']} ({env['cpus']} logical CPUs)"],
         ["Memory", f"{env['memory_gb']} GiB"],
         ["OS", f"{env['os']} ({env['machine']})"],
-        ["Host load (1 min)", f"{run['load']['before']} before, {run['load']['after']} after"],
+        ["Host load (1 min)", load_text(run)],
         ["Run time", f"{run['seconds']} s"],
         ["Kit revision", str(env.get("kit_revision"))],
-    ] + ([["Instance type", env["instance_type"]]] if env.get("instance_type") else [])))
+    ] + ([["Instance type", env["instance_type"]]] if env.get("instance_type") else [])
+      + ([["Where", "a shared workstation (local run)"]] if env.get("where") == "local" else [])))
     L.append("")
     for lang, h in sorted(result["harnesses"].items()):
         L.append(f"**{lang}** measured with {h['tool']} ({h['runtime']}, {h['target']}). Time: {timer_text(h, run['mode'])}. "

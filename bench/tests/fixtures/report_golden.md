@@ -2,7 +2,7 @@
 
 Quick run on 2026-01-01T00:00:00Z.
 
-**SMOKE RESULT.** This run was quick or was taken on a shared machine, so it shows the shape of the comparison and is not a claim about speed.
+**SMOKE RESULT.** This run was quick or was marked a smoke run, so it shows the shape of the comparison and is not a claim about speed.
 
 ## Environment
 

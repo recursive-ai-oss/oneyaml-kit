@@ -4,6 +4,7 @@ The harnesses here are a tiny script that speaks the harness protocol, so no too
 """
 
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -136,3 +137,64 @@ class PartialRuns(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LocalRuns(unittest.TestCase):
+    """Where a run happened decides how it is described, not whether it counts."""
+
+    def go(self, mode, env=None, **kw):
+        with tempfile.TemporaryDirectory() as t:
+            tmp = Path(t)
+            found = {"aa": harness(tmp, "aa")}
+            clean = {k: v for k, v in os.environ.items() if not k.startswith("KIT_")}
+            with mock.patch.dict("os.environ", {**clean, **(env or {})}, clear=True), \
+                    mock.patch.object(run, "discover", return_value=found), \
+                    mock.patch.object(run, "build"), \
+                    mock.patch.object(run.workloads, "prepare", return_value=[META]), \
+                    mock.patch.object(run.environment, "loadavg", side_effect=lambda: (4.1, 1.0, 1.0)):
+                return run.run(mode, tmp / "out", None, log=lambda *_: None, build_dir=tmp, **kw)
+
+    def test_a_full_run_off_the_cloud_machine_is_a_measurement_that_says_where(self):
+        res = self.go("full")
+        self.assertFalse(res["run"]["smoke"])
+        self.assertEqual(res["run"]["environment"]["where"], "local")
+        self.assertNotIn("instance_type", res["run"]["environment"])
+
+    def test_quick_and_an_explicit_request_stay_smoke(self):
+        self.assertTrue(self.go("quick")["run"]["smoke"])
+        self.assertTrue(self.go("full", smoke=True)["run"]["smoke"])
+        self.assertTrue(self.go("full", {"KIT_SMOKE": "1"})["run"]["smoke"])
+
+    def test_the_cloud_machine_is_still_named(self):
+        res = self.go("full", {"KIT_INSTANCE_TYPE": "c7a.8xlarge"})
+        self.assertFalse(res["run"]["smoke"])
+        self.assertEqual(res["run"]["environment"]["where"], "cloud")
+        self.assertEqual(res["run"]["environment"]["instance_type"], "c7a.8xlarge")
+
+    def test_the_highest_load_seen_during_the_run_is_recorded(self):
+        res = self.go("full")
+        self.assertEqual(res["run"]["load"]["peak"], 4.1)
+        peak = run.assemble("full", False, {"aa": {"libraries": []}}, {"aa": []}, [META], 1.0, 2.0, 1.0,
+                            load_peak=7.3)
+        self.assertEqual(peak["run"]["load"], {"before": 1.0, "after": 2.0, "peak": 7.3})
+        both = results.merge([peak, peak])
+        self.assertEqual(both["run"]["load"]["peak"], 7.3)
+
+    def test_a_local_full_run_renders_plainly_without_the_smoke_flag(self):
+        res = self.go("full")
+        res["run"]["load"] = {"before": 4.1, "after": 5.0, "peak": 7.3}
+        res["run"]["environment"]["cpus"] = 32
+        with tempfile.TemporaryDirectory() as t:
+            md = report.render(res, Path(t))
+        self.assertIn("4.1 before, 5.0 after, at most 7.3 during", md)
+        self.assertIn("a shared workstation (local run)", md)
+        self.assertNotIn("SMOKE", md)
+        ctx = mock.Mock(run=res["run"], harness=res["harnesses"]["aa"])
+        ctx.libs.return_value = []
+        ctx.kit_text.return_value = "kit"
+        ctx.version_of.return_value = "1"
+        ctx.library = "own"
+        line = readme.method_strip(ctx)[0]
+        self.assertIn("measured on a shared workstation (32 logical CPUs; load 4.1 before, 5.0 after, at most 7.3 during)", line)
+        self.assertNotIn("SMOKE", line)
+        self.assertEqual(cli.text_hits(md + line), [])

@@ -39,8 +39,8 @@ as soon as a language finishes and `results.json` at the end, so a run that is s
 every language that completed. `bin/bench report out/bench` (a directory) renders whichever languages
 are present and marks the report **INCOMPLETE RUN**, naming the languages it lacks. A run limited with
 `--lang` is complete when it finishes the languages it was asked for; one stopped before a requested
-language finished is incomplete, and a README block made from it carries the same notice. A quick run, or any run outside the cloud machine (or one started with `--smoke`, or from `bin/bench-cloud --here`), is a
-**smoke result** and its report says so.
+language finished is incomplete, and a README block made from it carries the same notice. A quick run, or one started with `--smoke`, is a
+**smoke result** and its report says so. A full run is a measurement wherever it ran, on the cloud machine or on a local one; the result records which.
 
 ## What is measured
 
@@ -233,9 +233,13 @@ judged for stale entries.
 ## Smoke results
 
 Every result records the date, the versions of every library and of the harness, the tool, the
-compiler or runtime, the CPU, the operating system and the host load before and after. A quick run
-is always labelled **SMOKE RESULT**; A full run anywhere but the cloud machine
-(`KIT_INSTANCE_TYPE` unset), or one shipped with `--here`, is labelled the same way. `bin/bench readme` refuses a smoke result unless `--allow-smoke` is
+compiler or runtime, the CPU, the logical CPU count, the memory, the operating system and the host's
+1-minute load before and after, and the highest it reached while the run was going (read once per poll of
+the running harness, on no thread of its own). A run on the cloud machine records its instance type; any
+other run is recorded as local, and its README method line and report say so in plain words: "measured on
+a shared workstation (32 logical CPUs; load 4.1 before, 5.0 after, at most 7.3 during)". A reader judges
+a local number by that load. A quick run, a run started with `--smoke` and a run with `KIT_SMOKE` set
+are labelled **SMOKE RESULT**. `bin/bench readme` refuses a smoke result unless `--allow-smoke` is
 given, because a README is public and a smoke number is easily quoted as a claim.
 
 ## Running on a rented machine
@@ -258,8 +262,8 @@ instance. The instance has no SSH, no inbound ports and no credentials, and shut
 {
  "format": "oneyaml-kit-bench/2",
  "run": {"date": "...", "mode": "quick", "smoke": true, "seconds": 31.0,
-         "environment": {"cpu": "...", "cpus": 32, "os": "...", "kit_revision": "..."},
-         "load": {"before": 1.8, "after": 2.2}, "expected_languages": ["csharp", "go", "rust"]},
+         "environment": {"cpu": "...", "cpus": 32, "where": "local", "os": "...", "kit_revision": "..."},
+         "load": {"before": 1.8, "after": 2.2, "peak": 3.0}, "expected_languages": ["csharp", "go", "rust"]},
  "harnesses": {"rust": {"name": "oneyaml-bench-rust", "version": "0.2.0", "runtime": "rustc ...", "tool": "criterion",
                         "timer": "...", "memory": "...", "libraries": [{"id": "oneyaml", "package": "oneyaml",
                         "version": "1.1.0", "role": "own", "settings": {}}]}},
@@ -388,7 +392,7 @@ counts tasks and gives each task's ratio, mark, workload counts and gaps. A † 
 that did less than the full task.
 
 The method strip gives the date, the kit version and revision, library and competitor versions,
-runtime, the tool and its statistic (a mean), the memory method, CPU, OS and host load, and
+runtime, the tool and its statistic (a mean), the memory method, CPU, OS and host load (and where it ran), and
 whether the run is a smoke result. A benchmark result records
 the kit revision but not its version, so the version is read from the conformance result when
 there is one, and otherwise from the checkout that renders the block, and the block says so.
