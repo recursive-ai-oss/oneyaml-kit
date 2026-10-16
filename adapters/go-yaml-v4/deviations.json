@@ -667,5 +667,9 @@
   {"case": "own:schema/duplicate-keys-hex-then-decimal-are-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted the two spellings of the integer 1 as keys without an error; the case expects a duplicate-key error"},
   {"case": "own:schema/duplicate-keys-hex-then-decimal-are-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted the two spellings of the integer 1 as keys without an error; the case expects a duplicate-key error"},
   {"case": "own:schema/escaped-surrogate-pair-is-one-character", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Refuses an escaped surrogate pair with an error (found invalid Unicode character escape code at 1:7); the case expects the one character the pair encodes"},
-  {"case": "own:schema/escaped-surrogate-pair-is-one-character", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Refuses an escaped surrogate pair with an error (found invalid Unicode character escape code at 1:7); the case expects the one character the pair encodes"}
+  {"case": "own:schema/escaped-surrogate-pair-is-one-character", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Refuses an escaped surrogate pair with an error (found invalid Unicode character escape code at 1:7); the case expects the one character the pair encodes"},
+  {"case": "own:safety/tag-prefix-with-alternating-suffixes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"},
+  {"case": "own:safety/tag-prefix-with-alternating-suffixes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"},
+  {"case": "own:safety/tag-prefix-distinct-suffixes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"},
+  {"case": "own:safety/tag-prefix-distinct-suffixes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"}
 ]}

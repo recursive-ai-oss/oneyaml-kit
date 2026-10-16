@@ -523,9 +523,12 @@
    "safety/patch-copy-doubling": "2d3d84d5bb7b1cfec05d5b50a0d4bf7a5f7dffabe9d59048bb7232459aa1d55b",
    "safety/patch-many-appends-into-a-created-flow-sequence": "900e68d4df511ff66890df10db982c09443da295bf192bff4c11954adc568578",
    "safety/patch-many-large-appends-into-a-created-flow-sequence": "e28eab68f935e300c3942b51092af8e71d0e58e3c44d8459d0ecd39c480f09b1",
+   "safety/patch-pointer-with-many-tokens-names-nothing": "a8e32d594045d169943f0788f200ad85c49fb93006335bf49aed19ccb1af77bb",
    "safety/plain-scalar-over-twenty-thousand-lines": "531aa561a50025946e2f2d571aac449cbe77158c4578ba6f5a1dbae3d3df206b",
    "safety/shallow-flow-mappings-then-many-lines-unclosed": "59f08bfb66226d12c813466b637324bb80f29005f70c7b7aa27f36546adb1db6",
+   "safety/tag-prefix-distinct-suffixes": "19b949c209e6bbe852d01f9533acd98f2d5e7888af5f973b2289548ecf393ce6",
    "safety/tag-prefix-used-by-many-nodes": "cf32ecb655c47098d02b0db94d750582060afc18a0521f442df56913460e9e3b",
+   "safety/tag-prefix-with-alternating-suffixes": "cb91deec0bb86a96d6a910b98190c9bd7ca4f589c6792d8dd1de02559d45fdfc",
    "safety/ten-million-digit-plain-scalar-events": "0ce7c4533aa551b1c1faaa1fa9b5d38e9ee8b0a701925bb8a1e9dcfd585573cd",
    "safety/two-thousand-documents": "9a34fd7ca74e8d8eea9ceb3382ac9caa2506fe82fa6911312bc244205ebcb7b6",
    "safety/wide-flow-sequence-30000": "fe72eff37b86d553bd6ec047847fe6e1b11ae02dde278b8adb0b4fbee9e15811",
@@ -626,9 +629,17 @@
     "bytes": 9788893,
     "sha256": "41a2320eae7b1cc8b33f4860cab30196a15ad223c9b264a6767e61e53929121f"
    },
+   "safety/tag-prefix-distinct-suffixes": {
+    "bytes": 1436915,
+    "sha256": "896b5bba9c25b131e0aa2d91665017b7c15b6f47711b01cb70e027ffa703676b"
+   },
    "safety/tag-prefix-used-by-many-nodes": {
     "bytes": 1072025,
     "sha256": "2e34b2c5875f1fd93e77e87e14898a247f48e692dc2afe21f05d38ad02f42dc2"
+   },
+   "safety/tag-prefix-with-alternating-suffixes": {
+    "bytes": 1288025,
+    "sha256": "ec49a9b6d19eb82cfd537d8333153fdd61334985d86d420ff6d963591c152805"
    },
    "safety/ten-million-digit-plain-scalar-events": {
     "bytes": 10000001,
@@ -668,9 +679,17 @@
     "bytes": 4105037,
     "sha256": "31b6755870ab262b831d186c2998f407667140a1d54cf2617df5ef29a6536617"
    },
+   "safety/tag-prefix-distinct-suffixes": {
+    "bytes": 1436919,
+    "sha256": "36d116483d335bcd1ccb27a5e11e5b6128a959e9e0bf6109d4539edd65abbc52"
+   },
    "safety/tag-prefix-used-by-many-nodes": {
     "bytes": 1072029,
     "sha256": "1d34689a666dc1a1f668bc0e0b78e9644518ef2e226360cebb2dc93d000bedcc"
+   },
+   "safety/tag-prefix-with-alternating-suffixes": {
+    "bytes": 1288029,
+    "sha256": "1c489e06cad61189064d3a453646131db52dc152d74ec727033554f326de319f"
    },
    "safety/ten-million-digit-plain-scalar-events": {
     "bytes": 10000027,

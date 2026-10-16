@@ -4928,6 +4928,34 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a surrogate character was not the expected high or low half)"
+  },
+  {
+   "case": "own:safety/tag-prefix-with-alternating-suffixes",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "memory growth passed the 1024 MB bound"
+  },
+  {
+   "case": "own:safety/tag-prefix-with-alternating-suffixes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "memory growth passed the 1024 MB bound"
+  },
+  {
+   "case": "own:safety/tag-prefix-distinct-suffixes",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "memory growth passed the 1024 MB bound"
+  },
+  {
+   "case": "own:safety/tag-prefix-distinct-suffixes",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "memory growth passed the 1024 MB bound"
   }
  ]
 }

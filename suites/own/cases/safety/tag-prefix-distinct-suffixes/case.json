@@ -1,0 +1,82 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/tag-prefix-distinct-suffixes",
+ "title": "A million-character tag prefix used by 32,000 nodes that each have a different suffix, in a document that is edited",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "88",
+  "97"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.8.2",
+  "YAML 1.2.2 section 6.9.1"
+ ],
+ "tags": [
+  "slow"
+ ],
+ "notes": "The document declares `%TAG !e! tag:x,2000:` followed by a million `a` (a run of URI characters, section 6.8.2, production 93 via [88]). A block sequence of 32,000 items follows, `- !e!x0 a` to `- !e!x31999 a`: every tag is the prefix followed by a different suffix (section 6.9.1), so a cache of any small fixed size misses on every node, and a reader that builds a tag string per node builds 32,000 strings of a million characters, 32 billion characters in all. The case appends one item (`add` at the end of the sequence) and nothing else, so the answer is the input followed by `- z`, or a limit error; a patch, because a value or events result would have to state the full tag of every node, which no stored expectation can hold. An unrecognized-tag error is not accepted: the document is well-formed and an edit of its presentation needs no native value. The time and memory bounds are the robustness requirement of the kit, not a rule of the specification; the memory is the whole adapter process, and the input is about 1 MB. The input and the expected result are generated from the recipe in case.json (docs/case-format.md).",
+ "provenance": {
+  "reference": "A tag cache of a few entries that missed on every node of a document whose tags all differ."
+ },
+ "input_recipe": [
+  {
+   "text": "%TAG !e! tag:x,2000:"
+  },
+  {
+   "text": "a",
+   "repeat": 1000000
+  },
+  {
+   "text": "\n---\n"
+  },
+  {
+   "numbers": {
+    "count": 32000,
+    "prefix": "- !e!x",
+    "suffix": " a\n"
+   }
+  }
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/-",
+    "value": "z"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 3,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "bytes",
+   "recipe": [
+    {
+     "text": "%TAG !e! tag:x,2000:"
+    },
+    {
+     "text": "a",
+     "repeat": 1000000
+    },
+    {
+     "text": "\n---\n"
+    },
+    {
+     "numbers": {
+      "count": 32000,
+      "prefix": "- !e!x",
+      "suffix": " a\n"
+     }
+    },
+    {
+     "text": "- z\n"
+    }
+   ]
+  }
+ }
+}
