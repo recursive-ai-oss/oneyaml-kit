@@ -2198,6 +2198,48 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Refuses the document with a general error (Exception during deserialization) that is not classed as a syntax error"
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'While parsing a block mapping, did not find expected key.' at 4:3"
+  },
+  {
+   "case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'While parsing a block mapping, did not find expected key.' at 4:3"
+  },
+  {
+   "case": "own:parse/redefined-anchor-alias-is-the-latest-node",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Value differs at $[0].copy: expected 1, got {'se': 1}"
+  },
+  {
+   "case": "own:parse/redefined-anchor-alias-is-the-latest-node",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Value differs at $[0].copy: expected 1, got {'se': 1}"
   }
  ]
 }

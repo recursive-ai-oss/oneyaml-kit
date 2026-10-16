@@ -917,6 +917,48 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Refuses an escaped surrogate pair with an error (invalid escape sequence, at 1:4); the case expects the one character the pair encodes"
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:edit/remove-block-key-before-a-margin-colon",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library refused the patch: 'the edit at c.\"a\\\\u{a}\" would not read back as the edited tree'"
+  },
+  {
+   "case": "own:edit/remove-block-key-before-a-margin-colon",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library refused the patch: 'the edit at c.\"a\\\\u{a}\" would not read back as the edited tree'"
+  },
+  {
+   "case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
   }
 ]
 }

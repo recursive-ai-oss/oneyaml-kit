@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-explicit-first-key-before-empty-explicit-key-in-flow-mapping",
+ "title": "Removing an explicit key leaves the explicit empty key after it intact",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "143",
+  "144"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2",
+  "RFC 6902 section 4.2"
+ ],
+ "notes": "In `{? a, ? : 1}` the first entry is `? a` with an empty value and the second is `? ` (an empty key) with the value 1 (productions 143 and 144: a flow pair is an explicit entry with an optional key and an optional value). Removing the member `a` removes the first entry and its separator; the second entry stays exactly as written, so the empty key still holds 1 and the text is `{? : 1}`.",
+ "provenance": {
+  "reference": "An editor that dropped the question mark of the second entry together with the first, so that the entry changed meaning."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/a"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

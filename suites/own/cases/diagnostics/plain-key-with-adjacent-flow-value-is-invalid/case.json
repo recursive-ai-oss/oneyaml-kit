@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/plain-key-with-adjacent-flow-value-is-invalid",
+ "title": "A flow collection directly after the colon of a plain key",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "145",
+  "147",
+  "149"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2"
+ ],
+ "notes": "After a plain key, the `:` of a flow mapping entry must be followed by white space before the value (productions 145 and 147); only a JSON-like key, such as a quoted one, may have its value right after the `:` (production 149). In `{a:{}}` the entry `a:` has an empty value and must then end with `,` or `}`, so the second `{`, at column 4, cannot belong to any valid document.",
+ "provenance": {
+  "reference": "A reader that accepted a flow collection directly after the colon of a plain key, and an editor that then wrote a replacing scalar against it."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 4
+ }
+}

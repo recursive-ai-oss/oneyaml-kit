@@ -4956,6 +4956,104 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "memory growth passed the 1024 MB bound"
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:edit/add-to-bare-document-after-bom",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'...\\n\\xef\\xbb\\xbfa: |\\n t\\nn: 1\\n', got b'\\xef\\xbb\\xbfa: \"t\\\\n\"\\nn: 1\\n' (lengths 26 and 22)"
+  },
+  {
+   "case": "own:edit/add-to-bare-document-after-bom",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 5: expected b'...\\n\\xef\\xbb\\xbfa: |\\n t\\nn: 1\\n', got b'\\xef\\xbb\\xbfa: \"t\\\\n\"\\nn: 1\\n' (lengths 26 and 22)"
+  },
+  {
+   "case": "own:edit/copy-from-an-alias-to-a-redefined-anchor-reads-the-latest",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' &b\\n se: &b\\n 1\\ncopy: *b\\nz: 1\\n', got b'\\n se: 1\\ncopy: 1\\nz: 1\\n' (lengths 33 and 24)"
+  },
+  {
+   "case": "own:edit/copy-from-an-alias-to-a-redefined-anchor-reads-the-latest",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' &b\\n se: &b\\n 1\\ncopy: *b\\nz: 1\\n', got b'\\n se: 1\\ncopy: 1\\nz: 1\\n' (lengths 33 and 24)"
+  },
+  {
+   "case": "own:edit/remove-block-key-before-a-margin-colon",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library refused the patch: 'While parsing a block mapping, did not find expected key.' at 4:3"
+  },
+  {
+   "case": "own:edit/remove-block-key-before-a-margin-colon",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library refused the patch: 'While parsing a block mapping, did not find expected key.' at 4:3"
+  },
+  {
+   "case": "own:edit/remove-explicit-first-key-before-empty-explicit-key-in-flow-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'{? : 1}\\n', got b\"'': 1\\n\" (lengths 8 and 6)"
+  },
+  {
+   "case": "own:edit/remove-explicit-first-key-before-empty-explicit-key-in-flow-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'{? : 1}\\n', got b\"'': 1\\n\" (lengths 8 and 6)"
+  },
+  {
+   "case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'While parsing a block mapping, did not find expected key.' at 4:3"
+  },
+  {
+   "case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'While parsing a block mapping, did not find expected key.' at 4:3"
+  },
+  {
+   "case": "own:edit/replace-flow-value-after-a-quoted-key-keeps-a-space",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'{\"a\":5}\\n', got b'a: 5\\n' (lengths 8 and 5)"
+  },
+  {
+   "case": "own:edit/replace-flow-value-after-a-quoted-key-keeps-a-space",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'{\"a\":5}\\n', got b'a: 5\\n' (lengths 8 and 5)"
   }
  ]
 }

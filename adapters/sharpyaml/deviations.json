@@ -4354,6 +4354,62 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The library accepted the two escapes and returned the text 'Ø3CÜ3D'; the case expects a refusal"
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: '(Lin: 3, Col: 0, Chr: 14) - (Lin: 3, Col: 1, Chr: 15): While parsing a block mapping, did not find expected key.' at 4:1"
+  },
+  {
+   "case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: '(Lin: 3, Col: 0, Chr: 14) - (Lin: 3, Col: 1, Chr: 15): While parsing a block mapping, did not find expected key.' at 4:1"
+  },
+  {
+   "case": "own:parse/redefined-anchor-alias-is-the-latest-node",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Value differs at $[0].copy: expected 1, got {'se': 1}"
+  },
+  {
+   "case": "own:parse/redefined-anchor-alias-is-the-latest-node",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Value differs at $[0].copy: expected 1, got {'se': 1}"
+  },
+  {
+   "case": "own:edit/replace-flow-value-after-a-quoted-key-keeps-a-space",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/replace-flow-value-after-a-quoted-key-keeps-a-space",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"
   }
  ]
 }
