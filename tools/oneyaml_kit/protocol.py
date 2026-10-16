@@ -25,6 +25,7 @@ PROTOCOL = 2
 # and the capabilities `error-events` and `outcome:<op>` (docs/adapter-protocol.md).
 SUPPORTED_PROTOCOLS = (1, 2)
 _EOF = object()
+EXIT_WAIT_SECONDS = 5.0
 POLL_SECONDS = 0.05
 # The trivial input a fresh bounded-case session answers before the case itself, whatever the
 # answer is: a plain scalar, valid in every operation.
@@ -212,6 +213,19 @@ class SubprocessAdapter:
         except (ValueError, RecursionError):
             return "garbage"
 
+    def _exit_detail(self) -> str:
+        """Say how the adapter ended. Its output closes a moment before the process is reaped,
+        so the exit code is waited for rather than polled once."""
+        if self.proc is None:
+            return "adapter exited"
+        try:
+            code = self.proc.wait(timeout=EXIT_WAIT_SECONDS)
+        except subprocess.TimeoutExpired:
+            return "adapter closed its output but did not exit"
+        if code < 0:
+            return f"adapter exited (killed by signal {-code})"
+        return f"adapter exited (code {code})"
+
     def _kill_tree(self, session: int) -> None:
         """Kill everything of the adapter's session: the process and whatever it launched."""
         for pid in tree_pids(session) or []:
@@ -306,8 +320,7 @@ class SubprocessAdapter:
         elif r == "timeout":
             out = self._failed("timeout", f"no answer within {timeout:g} s")
         elif r == "eof":
-            code = self.proc.poll() if self.proc else None
-            out = self._failed("crash", f"adapter exited (code {code})")
+            out = self._failed("crash", self._exit_detail())
         elif r == "garbage" or not isinstance(r, dict) or r.get("id") != case_id:
             out = self._failed("crash", "adapter sent a malformed or mismatched response")
         else:

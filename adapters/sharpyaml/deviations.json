@@ -475,14 +475,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.OverflowException outside its own exception types, so the process ended (Arithmetic operation resulted in an overflow.)"
+   "reason": "The library raises System.OverflowException outside its own exception types, so the answer is a crash, not a rejection (Arithmetic operation resulted in an overflow.)"
   },
   {
    "case": "own:schema/core-integers-beyond-64-bits",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.OverflowException outside its own exception types, so the process ended (Arithmetic operation resulted in an overflow.)"
+   "reason": "The library raises System.OverflowException outside its own exception types, so the answer is a crash, not a rejection (Arithmetic operation resulted in an overflow.)"
   },
   {
    "case": "own:schema/core-legacy-numbers-are-strings",
@@ -3982,14 +3982,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.OverflowException outside its own exception types, so the process ended (Arithmetic operation resulted in an overflow.)"
+   "reason": "The library raises System.OverflowException outside its own exception types, so the answer is a crash, not a rejection (Arithmetic operation resulted in an overflow.)"
   },
   {
    "case": "own:schema/hexadecimal-and-octal-integers-beyond-64-bits-are-exact-or-refused",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.OverflowException outside its own exception types, so the process ended (Arithmetic operation resulted in an overflow.)"
+   "reason": "The library raises System.OverflowException outside its own exception types, so the answer is a crash, not a rejection (Arithmetic operation resulted in an overflow.)"
   },
   {
    "case": "own:edit/set-value-of-explicit-null-key-at-end-of-large-mapping",
@@ -4234,14 +4234,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a valid UTF32 value should not include surrogate code points)"
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the answer is a crash, not a rejection (a valid UTF32 value should not include surrogate code points)"
   },
   {
    "case": "own:schema/escaped-mismatched-surrogates-are-refused",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the process ended (a valid UTF32 value should not include surrogate code points)"
+   "reason": "The library raises System.ArgumentOutOfRangeException outside its own exception types, so the answer is a crash, not a rejection (a valid UTF32 value should not include surrogate code points)"
   },
   {
    "case": "own:schema/escaped-two-high-surrogates-are-refused",

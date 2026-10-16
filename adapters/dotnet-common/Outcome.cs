@@ -22,7 +22,7 @@ public sealed class Request
 /// <see cref="Emulated"/>, so the kit never credits it to the library.</summary>
 public sealed class Outcome
 {
-    public enum Kinds { Events, Value, Output, Error, Unsupported, Accepted }
+    public enum Kinds { Events, Value, Output, Error, Unsupported, Accepted, Crash }
 
     public Kinds Kind { get; private init; }
     public List<string>? Events { get; private init; }
@@ -43,6 +43,9 @@ public sealed class Outcome
 
     /// <summary>The library took the input and the adapter does not describe the result.</summary>
     public static Outcome Accepted() => new() { Kind = Kinds.Accepted };
+
+    /// <summary>The library failed with an exception outside its own error hierarchy.</summary>
+    public static Outcome Crash(string detail) => new() { Kind = Kinds.Crash, Reason = detail };
 
     public static Outcome Unsupported(string reason) => new() { Kind = Kinds.Unsupported, Reason = reason };
 

@@ -18,7 +18,7 @@ sealed class VYamlKitAdapter : IAdapter
 
     // Only VYaml's own exception hierarchy is a rejection. Anything else escaping the library (it lets a
     // duplicate mapping key surface as the runtime's ArgumentException, for instance) is a defect, and the
-    // process ends so the kit records a crash.
+    // adapter answers a crash.
     public bool IsLibraryException(Exception e) => e is VYaml.YamlException;
 
     // decode: VYaml reads UTF-8 bytes (a byte order mark is passed through as it is), so UTF-16 and
@@ -48,7 +48,7 @@ sealed class VYamlKitAdapter : IAdapter
         try { v = Native.Of(r, b => b); }
         catch (NotSupportedException e) { return Outcome.Unsupported(e.Message); }
         try { return Outcome.OutputOk(new UTF8Encoding(false).GetBytes(Host.Library(() => YamlSerializer.SerializeToString<object?>(v)))); }
-        catch (Exception e) { return Outcome.Error(new Failure("other", e.Message[..Math.Min(300, e.Message.Length)])); }
+        catch (Exception e) when (e is not LibraryCrash) { return Outcome.Error(new Failure("other", e.Message[..Math.Min(300, e.Message.Length)])); }
     }
 
     public Outcome Run(Request r)
