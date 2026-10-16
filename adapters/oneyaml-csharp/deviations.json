@@ -14,27 +14,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The upstream value reads 450.00 as the integer 450; the library reads the float 450.0, which is right under the core schema (the corrected expectation passes)."
-  },
-  {
-   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Error position differs: expected 1:6, got 1:5"
-  },
-  {
-   "case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
   }
  ]
 }
