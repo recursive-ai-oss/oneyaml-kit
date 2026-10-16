@@ -85,6 +85,11 @@ class Step:
     tier: str = "both"
 
 
+# The time source for step and run durations; a module-level name so tests can drive the budget
+# logic with a fake clock instead of sleeping.
+clock = time.monotonic
+
+
 def py() -> str:
     return sys.executable
 
@@ -383,7 +388,7 @@ def run_step(step: Step, root: Path, out: Path, base_env: dict, index: int) -> d
     env.setdefault("KIT_DOTNET_ARTIFACTS", str(out / "artifacts"))
     log = out / "gate" / f"{index:02d}-{step.area}.log"
     log.parent.mkdir(parents=True, exist_ok=True)
-    t0 = time.monotonic()
+    t0 = clock()
     try:
         with open(log, "wb") as f:
             p = subprocess.run(step.argv, cwd=root / step.cwd, env=env, stdout=f, stderr=subprocess.STDOUT)
@@ -391,7 +396,7 @@ def run_step(step: Step, root: Path, out: Path, base_env: dict, index: int) -> d
     except OSError as e:
         log.write_text(f"cannot run {step.argv[0]}: {e}\n")
         rc = 127
-    return {"area": step.area, "name": step.name, "rc": rc, "seconds": time.monotonic() - t0,
+    return {"area": step.area, "name": step.name, "rc": rc, "seconds": clock() - t0,
             "log": log, "argv": step.argv}
 
 
@@ -467,7 +472,7 @@ def main(args) -> int:
     env.setdefault("PYTHONDONTWRITEBYTECODE", "1")
     lock = threading.Lock()
     results: list[dict] = []
-    t_all = time.monotonic()
+    t_all = clock()
 
     def run_area(area: str) -> None:
         for i, s in enumerate(steps):
@@ -486,7 +491,7 @@ def main(args) -> int:
     with ThreadPoolExecutor(max_workers=max(1, jobs)) as ex:
         # Slowest first, so the last area to start is not the one that takes longest.
         list(ex.map(run_area, sorted(areas, key=lambda a: -weight(a))))
-    total = time.monotonic() - t_all
+    total = clock() - t_all
     by_area: dict[str, float] = {}
     for r in results:
         by_area[r["area"]] = by_area.get(r["area"], 0) + r["seconds"]

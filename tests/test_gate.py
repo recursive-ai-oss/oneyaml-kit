@@ -9,9 +9,10 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import time
+import threading
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import support
 from oneyaml_kit import gate
@@ -402,23 +403,45 @@ class Budget(unittest.TestCase):
     def test_the_default_budget_leaves_a_margin_under_three_minutes(self):
         self.assertLessEqual(gate.BUDGET_SECONDS, 150)
 
-    def run_fake(self, full, budget, jobs=1, nap=0.3):
-        steps = [gate.Step(a, f"nap {a}", [gate.py(), "-c", f"import time; time.sleep({nap})"]) for a in ("go", "rust")]
+    STEP_SECONDS = 5.0
+
+    def run_fake(self, full, budget, jobs=1):
+        """Run the gate over two fake steps on a fake clock, so the budget logic is driven by numbers
+        and nothing sleeps. Each step takes STEP_SECONDS of fake time. Returns the exit code, the
+        output, the errors, the most steps that were running at once and the summary."""
+        steps = [gate.Step(a, f"step {a}", ["true"]) for a in ("go", "rust")]
         args = argparse.Namespace(full=full, base="main", areas="go,rust", without_core=True, jobs=jobs, plan=False,
                                   budget=budget, out=str(Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))))
         self.addCleanup(shutil.rmtree, args.out)
         buf, err = io.StringIO(), io.StringIO()
-        old = gate.build_steps
-        gate.build_steps = lambda *a, **k: steps
-        try:
-            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
-                t0 = time.monotonic()
-                rc = gate.main(args)
-                wall = time.monotonic() - t0
-        finally:
-            gate.build_steps = old
+        lock = threading.Lock()
+        state = {"now": 0.0, "active": 0, "peak": 0}
+        both_running = threading.Barrier(2)
+
+        def fake_step(step, root, out, env, index):
+            with lock:
+                state["active"] += 1
+                state["peak"] = max(state["peak"], state["active"])
+            if jobs == 2:
+                # Two areas side by side reach this point together; a run that went one at a time
+                # would never get the second step here and the barrier would break.
+                both_running.wait(timeout=30)
+            with lock:
+                state["now"] += self.STEP_SECONDS if jobs != 2 else self.STEP_SECONDS / 2
+                state["active"] -= 1
+            log = Path(out) / "gate" / f"{index:02d}.log"
+            log.parent.mkdir(parents=True, exist_ok=True)
+            log.write_text("")
+            return {"area": step.area, "name": step.name, "rc": 0, "seconds": self.STEP_SECONDS, "log": log,
+                    "argv": step.argv}
+
+        with mock.patch.object(gate, "build_steps", lambda *a, **k: steps), \
+                mock.patch.object(gate, "run_step", fake_step), \
+                mock.patch.object(gate, "clock", lambda: state["now"]), \
+                contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+            rc = gate.main(args)
         summary = json.loads((Path(args.out) / "gate" / "summary.json").read_text())
-        return rc, buf.getvalue(), err.getvalue(), wall, summary
+        return rc, buf.getvalue(), err.getvalue(), state["peak"], summary
 
     def test_the_hand_over_gate_fails_when_it_exceeds_its_budget(self):
         rc, out, err, _, summary = self.run_fake(full=False, budget=0.1)
@@ -436,9 +459,10 @@ class Budget(unittest.TestCase):
         self.assertIsNone(summary["budget_seconds"])
 
     def test_areas_run_side_by_side_by_default_and_one_at_a_time_on_request(self):
-        rc, _, _, wall_one, _ = self.run_fake(full=False, budget=60, jobs=1)
-        rc, _, _, wall_two, summary = self.run_fake(full=False, budget=60, jobs=2)
-        self.assertLess(wall_two, wall_one - 0.2)
+        _, _, _, peak_one, _ = self.run_fake(full=False, budget=60, jobs=1)
+        _, _, _, peak_two, summary = self.run_fake(full=False, budget=60, jobs=2)
+        self.assertEqual(peak_one, 1)
+        self.assertEqual(peak_two, 2)
         self.assertEqual(summary["jobs"], 2)
         _, _, _, _, summary = self.run_fake(full=False, budget=60, jobs=0)
         self.assertEqual(summary["jobs"], gate.default_jobs())

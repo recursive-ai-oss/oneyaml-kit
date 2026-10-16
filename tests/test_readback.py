@@ -191,23 +191,18 @@ class AgreesWithTheSuite(unittest.TestCase):
                            ("# c\n%YAML 1.2\n\n---\n- a\n", ["a"]), ("%YAML   1.2\n--- a\n", "a")):
             self.assertEqual(read(text), want, text)
 
-    def test_reading_many_block_scalars_takes_linear_time(self):
-        # Each block scalar once copied the rest of the text to find its end, so the time grew with
-        # the square of the number of scalars: 4 times the scalars took 16 times as long. Compare the
-        # best of three runs at two sizes; linear time gives 4 and the old behaviour 16.
-        import time
+    def test_reading_many_block_scalars_reads_a_linear_number_of_lines(self):
+        # Each block scalar once copied the rest of the text to find its end, so the work grew with
+        # the square of the number of scalars. Count the lines the reader takes: a scalar takes its
+        # own lines and the one that ends it, so 4 times the scalars must take 4 times the lines.
+        def visited(n):
+            parser = R.Parser("".join(f"k{i}: |\n  v\n" for i in range(n)))
+            parser.parse()
+            return parser.lines_visited
 
-        def best(n):
-            text = "".join(f"k{i}: |\n  v\n" for i in range(n))
-            runs = []
-            for _ in range(3):
-                t0 = time.perf_counter()
-                R.parse(text)
-                runs.append(time.perf_counter() - t0)
-            return min(runs)
-
-        small, large = best(2000), best(8000)
-        self.assertLess(large / small, 9, (small, large))
+        small, large = visited(500), visited(2000)
+        self.assertEqual(small, 3 * 500 - 1)  # the last scalar ends with the text
+        self.assertEqual(large, 3 * 2000 - 1)
 
     def test_block_scalars_are_read_the_same_whatever_follows_them(self):
         # The end of a scalar is found line by line, so what comes after the last line it takes

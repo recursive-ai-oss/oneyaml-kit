@@ -112,6 +112,9 @@ class Parser:
         self.quoted_spans: list[tuple[int, int]] = []
         self.prop_start = 0
         self.n = len(self.s)
+        # Lines handed out by the line iterators below. Tests read it to check that the work grows
+        # with the number of lines read, not with the size of the text left after each one.
+        self.lines_visited = 0
         self.i = 0
         self.depth = 0
 
@@ -594,6 +597,7 @@ class Parser:
         while start <= self.n:
             end = self.s.find("\n", start)
             end = self.n if end < 0 else end
+            self.lines_visited += 1
             yield self.s[start:end]
             start = end + 1
 
@@ -603,6 +607,7 @@ class Parser:
         while j + 1 < self.n:
             k = self.s.find("\n", j + 1)
             k = self.n if k < 0 else k
+            self.lines_visited += 1
             yield self.s[j + 1:k]
             j = k
 

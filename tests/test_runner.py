@@ -266,9 +266,18 @@ class Subprocess(unittest.TestCase):
     def test_a_case_states_its_own_time_bound_whatever_the_manifest_says(self):
         a = self.adapter({"b": "hang"}, timeout=30)  # the manifest would wait half a minute
         h = a.start()
-        t0 = __import__("time").monotonic()
-        res = R.execute(a, set(h["capabilities"]), [self.bounded(seconds=0.5)])
-        self.assertLess(__import__("time").monotonic() - t0, 5)
+        waits = []
+        real = SubprocessAdapter._recv
+
+        def record(adapter, timeout, *args, **kw):
+            waits.append(timeout)
+            return real(adapter, timeout, *args, **kw)
+
+        # Check which wait the case was given rather than how long the run took.
+        with mock.patch.object(SubprocessAdapter, "_recv", record):
+            res = R.execute(a, set(h["capabilities"]), [self.bounded(seconds=0.5)])
+        # The last wait is the one for the case's answer; the earlier ones are the start-up of its process.
+        self.assertEqual(waits[-1], 0.5)
         self.assertEqual((res[0]["loose"], res[0]["strict"]), ("fail", "fail"))
         self.assertIn("0.5", res[0]["detail"])
 
