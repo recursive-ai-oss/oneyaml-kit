@@ -28,14 +28,15 @@ STATUSES = ("ok", "differs", "rejects", "unsupported", "unjudged", "error")
 # and a shared machine moves it by a few percent, so a narrower gap is not a result.
 TIME_BAND = 0.05
 MEMORY_BAND = 0.02
-# .NET allocation figures move by up to about 12% between processes (tiered compilation and dynamic
-# profile-guided optimisation change what the runtime allocates), and each .NET library runs in a
-# process of its own, so a narrower gap there is not a result. Go and Rust count exactly.
-MEMORY_BANDS = {"csharp": 0.12}
+# YamlDotNet's generic-load allocation takes one of a few distinct amounts per run, about 5.6% apart
+# and up to about 12% apart in all (quick mode, repeated runs). Every other library repeated within
+# about 1.2%. A comparison involving a library listed here uses the wider band.
+MEMORY_BANDS = {"yamldotnet": 0.12}
 
 
-def memory_band(language: str) -> float:
-    return MEMORY_BANDS.get(language, MEMORY_BAND)
+def memory_band(*libraries: str) -> float:
+    """The memory band for a comparison: the widest band of the libraries compared."""
+    return max(MEMORY_BANDS.get(lib, MEMORY_BAND) for lib in libraries)
 
 
 class ResultError(Exception):
@@ -135,11 +136,11 @@ def compare_rows(cells: list[dict]) -> list[dict]:
                 continue
             entry = {"library": c["library"], "language": c["language"], "status": c["status"]}
             for m, (_, _, base_band) in METRICS.items():
-                band = memory_band(c["language"]) if m == "memory" else base_band
                 best = row["best"][m]
                 if c["status"] != "ok" or best is None:
                     entry[m] = None
                     continue
+                band = memory_band(c["library"], best["library"]) if m == "memory" else base_band
                 entry[m] = {"ratio": ratio(value_of(c, m), value_of(best, m)), "vs": best["library"],
                             "vs_mark": non_reference_label(best),
                             "verdict": verdict(value_of(c, m), value_of(best, m), band)}

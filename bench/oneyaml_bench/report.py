@@ -269,11 +269,16 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
     L.append("")
 
     # Summary
+    wide = {k: v for k, v in results.MEMORY_BANDS.items() if v > results.MEMORY_BAND}
+    wide_names = " and ".join("YamlDotNet" if k == "yamldotnet" else k for k in wide)
+    wide_band = max(wide.values(), default=results.MEMORY_BAND)
     L.append("## Summary\n")
     L.append("Each row of the tables compares our library with the **strongest competitor in that row** "
              "(the fastest for time, the least allocated for memory). A competitor that did less than the full "
              "task is still the one compared with when it is ahead: it is named with a † and its reason, and "
-             "a loss to it is a loss. A gap under 5% for time or 2% for memory (12% for .NET) is a tie. Cells without a number say why.\n")
+             f"a loss to it is a loss. A gap under {results.TIME_BAND:.0%} for time or {results.MEMORY_BAND:.0%} for memory is a tie"
+             f"; against {wide_names}, whose allocations vary between runs, a memory gap under {wide_band:.0%} is a tie. "
+             "Cells without a number say why.\n")
     summ = []
     own_langs = own_languages(cells)
     for lang in sorted(own_langs):

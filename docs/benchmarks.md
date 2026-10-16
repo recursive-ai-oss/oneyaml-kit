@@ -138,17 +138,14 @@ shortens the tool's own time settings. Figures from different tools are never mi
 For each row the reference is the **strongest competitor in that row on that metric**: the fastest
 for time, the least allocated for memory, whatever it did. Our library's ratio is its value divided
 by the reference's, so below 1.0 is better. A gap is a **tie** when it is under 5% for time or 2% for
-memory (12% for .NET); otherwise it is a **win** or a **loss**. Losses are marked in the tables and the charts.
+memory; otherwise it is a **win** or a **loss**. Losses are marked in the tables and the charts.
 
-The memory band is one constant per language (`MEMORY_BANDS` in `bench/oneyaml_bench/results.py`). Go and
-Rust count allocations exactly, so 2% is already generous. .NET bytes per task are not stable: the same
-library on the same input, measured in three separate quick-mode processes, allocated 11% more in the
-largest run than in the smallest for `YamlDotNet` generic loads (11.2%, 10.9% and 11.7% on three
-workloads), while SharpYaml and VYaml varied by under 0.01%. The runtime's tiered compilation and
-profile-guided optimisation change what gets allocated while the harness is warming up, and every .NET
-library is measured in a process of its own, so the drift lands on one library and not on all of them.
-The band is the smallest round figure above the largest spread seen. A narrower band would call process
-noise a win or a loss.
+One library is measured with a wider memory band (`MEMORY_BANDS` in `bench/oneyaml_bench/results.py`).
+In repeated quick-mode runs, YamlDotNet's generic load allocated one of a few distinct amounts per run,
+about 5.6% apart and up to 11.7% apart in total (helm-values-64k, openapi-100k, records-64k). Every
+other .NET library varied by under 1.2%. The cause is not established. A memory comparison uses the
+wider band of the two libraries compared, so a gap under 12% against YamlDotNet is a tie, and every
+other comparison keeps 2%. Go and Rust allocation counts repeat closely between runs, so they keep 2%.
 
 A cell judged more loosely (`bytes-only`, `value-only`, `harness-rendered`) or from a library that
 takes and returns text (`state: the text`) is shown with a † and is never called the best. It is still
