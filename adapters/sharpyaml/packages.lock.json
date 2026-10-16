@@ -4,9 +4,9 @@
     "net10.0": {
       "SharpYaml": {
         "type": "Direct",
-        "requested": "[3.14.0, 3.14.0]",
-        "resolved": "3.14.0",
-        "contentHash": "eN001LFxNI1nLHZTVhoLyA5iWDYkxSln56ACGvCWT9yBbPaWBo/YuKxTVkHqogbs15xiQb+AF8ICIrDvWEpWuA=="
+        "requested": "[3.16.0, 3.16.0]",
+        "resolved": "3.16.0",
+        "contentHash": "pzVnPkrn6A32Ksxwxpow0w+RWhgeboaxqTp83kNFSa08g/4IPRKH75GVvskj/RhMWpyWu0LIwtZsLw6MdKi1lA=="
       },
       "OneYamlKit.Adapter.Common": {
         "type": "Project"

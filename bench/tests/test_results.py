@@ -42,6 +42,24 @@ class RatioAndVerdict(unittest.TestCase):
         self.assertEqual(R.verdict(105, 100, R.MEMORY_BAND), "loss")
         self.assertEqual(R.verdict(1000, 1010, R.MEMORY_BAND), "tie")
 
+    def test_wider_band_applies_to_a_comparison_with_yamldotnet(self):
+        # YamlDotNet's allocation figure drifts between runs, so a gap inside the wider band is a tie.
+        band = R.memory_band("oneyaml-csharp", "yamldotnet")
+        self.assertGreater(band, R.MEMORY_BAND)
+        self.assertEqual(R.verdict(1090, 1000, band), "tie")
+        self.assertEqual(R.verdict(1130, 1000, band), "loss")
+        self.assertEqual(R.verdict(870, 1000, band), "win")
+        # Every other pair keeps the narrow band.
+        for pair in (("oneyaml-csharp", "vyaml"), ("ours", "rival"), ("oneyaml-go", "go-yaml-v3")):
+            self.assertEqual(R.memory_band(*pair), R.MEMORY_BAND)
+
+    def test_row_verdict_uses_the_band_of_the_pair(self):
+        def row(rival):
+            cells = [cell("ours", "own", peak=1090, language="csharp"), cell(rival, peak=1000, language="csharp")]
+            return R.compare_rows(cells)[0]["own"][0]["memory"]["verdict"]
+        self.assertEqual(row("yamldotnet"), "tie")
+        self.assertEqual(row("vyaml"), "loss")
+
 
 class Rows(unittest.TestCase):
     def test_reference_is_the_best_competitor_not_the_first_or_ours(self):

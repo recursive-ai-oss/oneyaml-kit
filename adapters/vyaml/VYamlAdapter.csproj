@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <!-- The library under test, pinned to one exact release. -->
-    <PackageReference Include="VYaml" Version="[1.4.0]" />
+    <PackageReference Include="VYaml" Version="[1.4.1]" />
     <ProjectReference Include="../dotnet-common/Common.csproj" />
   </ItemGroup>
 

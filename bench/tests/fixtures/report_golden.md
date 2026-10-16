@@ -27,7 +27,7 @@ Quick run on 2026-01-01T00:00:00Z.
 
 ## Summary
 
-Each row of the tables compares our library with the **strongest competitor in that row** (the fastest for time, the least allocated for memory). A competitor that did less than the full task is still the one compared with when it is ahead: it is named with a † and its reason, and a loss to it is a loss. A gap under 5% for time or 2% for memory is a tie. Cells without a number say why.
+Each row of the tables compares our library with the **strongest competitor in that row** (the fastest for time, the least allocated for memory). A competitor that did less than the full task is still the one compared with when it is ahead: it is named with a † and its reason, and a loss to it is a loss. A gap under 5% for time or 2% for memory is a tie; against YamlDotNet, whose allocations vary between runs, a memory gap under 12% is a tie. Cells without a number say why.
 
 | Language | Task | Workloads | Time win / tie / loss | Memory win / tie / loss | No number | No rival | Weakest row (our time ÷ strongest competitor's) |
 |---|---|---|---|---|---|---|---|

@@ -21,7 +21,7 @@ from oneyaml_kit.runner import (ADAPTERS, AdapterUnavailable, load_deviations, l
                                 unavailable_reason, validate_result, verify_deviations)
 
 NAMES = ("yamldotnet", "sharpyaml", "vyaml", "yaml2jsonnode")
-PINS = {"yamldotnet": "18.1.0", "sharpyaml": "3.14.0", "vyaml": "1.4.0", "yaml2jsonnode": "3.0.1"}
+PINS = {"yamldotnet": "18.1.0", "sharpyaml": "3.16.0", "vyaml": "1.4.1", "yaml2jsonnode": "3.0.1"}
 HAVE_DOTNET = shutil.which(os.environ.get("DOTNET", "dotnet")) is not None
 
 
@@ -84,7 +84,8 @@ class DotnetAdapters(unittest.TestCase):
         self.assertEqual(count(y, "yaml-test-suite", "events", "events", "pass"), 300)
         self.assertEqual(count(y, "yaml-test-suite", "events", "error", "pass"), 84)
         s = self.res["sharpyaml"]
-        self.assertEqual(count(s, "yaml-test-suite", "events", "events", "pass"), 246)
+        # 246 on SharpYaml 3.14.0; 3.16.0 reads four more valid inputs (52DL, 8MK2, S4JQ, UKK6/02).
+        self.assertEqual(count(s, "yaml-test-suite", "events", "events", "pass"), 250)
         self.assertEqual(count(s, "yaml-test-suite", "events", "error", "pass"), 76)
         # VYaml: invalid inputs rejected, as the separate formatter counted them (its valid count ignored style).
         v = self.res["vyaml"]
