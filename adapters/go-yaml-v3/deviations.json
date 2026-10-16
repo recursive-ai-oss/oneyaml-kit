@@ -674,5 +674,17 @@
   {"case": "own:safety/tag-prefix-with-alternating-suffixes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"},
   {"case": "own:safety/tag-prefix-with-alternating-suffixes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"},
   {"case": "own:safety/tag-prefix-distinct-suffixes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"},
-  {"case": "own:safety/tag-prefix-distinct-suffixes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"}
+  {"case": "own:safety/tag-prefix-distinct-suffixes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"},
+  {"case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:edit/add-to-bare-document-after-bom", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'yaml: line 2: did not find expected <document start>'"},
+  {"case": "own:edit/add-to-bare-document-after-bom", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: 'yaml: line 2: did not find expected <document start>'"},
+  {"case": "own:edit/remove-block-key-before-a-margin-colon", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'yaml: line 3: did not find expected key'"},
+  {"case": "own:edit/remove-block-key-before-a-margin-colon", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: 'yaml: line 3: did not find expected key'"},
+  {"case": "own:edit/remove-explicit-first-key-before-empty-explicit-key-in-flow-mapping", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 1: expected b'? : 1}\\n', got b\"'': 1}\\n\" (lengths 8 and 8)"},
+  {"case": "own:edit/remove-explicit-first-key-before-empty-explicit-key-in-flow-mapping", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 1: expected b'? : 1}\\n', got b\"'': 1}\\n\" (lengths 8 and 8)"},
+  {"case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: did not find expected key'"},
+  {"case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: did not find expected key'"},
+  {"case": "own:edit/replace-flow-value-after-a-quoted-key-keeps-a-space", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b'5}\\n', got b' 5}\\n' (lengths 8 and 9)"},
+  {"case": "own:edit/replace-flow-value-after-a-quoted-key-keeps-a-space", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b'5}\\n', got b' 5}\\n' (lengths 8 and 9)"}
 ]}

@@ -1,0 +1,40 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/copy-from-an-alias-to-a-redefined-anchor-reads-the-latest",
+ "title": "A copy through an alias follows the anchor defined last",
+ "category": "edit",
+ "origin": "spec",
+ "productions": [
+  "104",
+  "101"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.2.2",
+  "YAML 1.2.2 section 7.1",
+  "RFC 6902 section 4.5",
+  "yaml-test-suite 3GZX",
+  "yaml-test-suite PW8X",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "An alias refers to the most recent preceding node with the same anchor (section 7.1), and an anchor may be redefined (yaml-test-suite 3GZX, PW8X). Here `&b` marks the outer mapping and then the scalar 1 inside it; `copy: *b` comes after both, so it stands for the scalar 1, not the mapping. Copying `/copy` to `/z` writes that value without its anchor, and because the name `b` is defined more than once the alias is written out, not kept as `*b` (docs/edit-semantics.md, copied values); the new member goes at the end of its mapping (docs/edit-semantics.md). Both are kit conventions; a copy of the outer mapping is wrong under any convention.",
+ "provenance": {
+  "reference": "A document model that resolved an alias to the first definition of its name, so a copy of `*b` carried the outer mapping."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "copy",
+    "from": "/copy",
+    "path": "/z"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

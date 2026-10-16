@@ -13,5 +13,13 @@
   {"case": "own:schema/unresolved-tag-is-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"},
   {"case": "own:schema/unresolved-tag-is-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': '!color', 'value': 'red'}}, got 'red'"},
   {"case": "yts:UGM3@value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"},
-  {"case": "yts:UGM3@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"}
+  {"case": "yts:UGM3@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"},
+  {"case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:edit/add-to-bare-document-after-bom", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'oneyaml: patch operation 0 (add \"/n\"): edit could not be applied'"},
+  {"case": "own:edit/add-to-bare-document-after-bom", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: 'oneyaml: patch operation 0 (add \"/n\"): edit could not be applied'"},
+  {"case": "own:parse/redefined-anchor-alias-is-the-latest-node", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0].copy: expected 1, got {'se': 1}"},
+  {"case": "own:parse/redefined-anchor-alias-is-the-latest-node", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].copy: expected 1, got {'se': 1}"},
+  {"case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."}
  ]}

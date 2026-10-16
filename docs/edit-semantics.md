@@ -104,7 +104,7 @@ A value added by `add` (or the target of `copy` and `move`) is written in the st
 its siblings: block or flow, indentation, quoting. A value that is not a string is never
 quoted, whatever its siblings do.
 
-A copied alias whose anchor would not precede the destination is written out as the value it stands for, because an alias may not come before its anchor. The bytes a patch copies, including aliases written out, count against the alias-expansion byte budget, and a patch that goes over it fails with a limit error and changes nothing.
+A copied value (by `copy`, or by `add` with a value read from the document) is written without the anchor of the node it was read from, because a second definition of the name would redefine it for every alias after it. An alias inside the copied value stays an alias only when its anchor precedes the destination, is defined once in the document, and does not lie inside the node being moved; otherwise it is written out as the value it stands for. An alias may not come before its anchor, and when a name is defined more than once, the same alias text at a new place could name a different node. The bytes a patch copies, including aliases written out, count against the alias-expansion byte budget, and a patch that goes over it fails with a limit error and changes nothing.
 
 ## Refusals
 

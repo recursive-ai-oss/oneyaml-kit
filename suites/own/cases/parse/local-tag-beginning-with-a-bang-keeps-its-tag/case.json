@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/local-tag-beginning-with-a-bang-keeps-its-tag",
+ "title": "A local tag whose name starts with a bang, by shorthand escape and by verbatim form",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "98",
+  "99"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.1",
+  "YAML 1.2.2 section 6.8.2"
+ ],
+ "notes": "`!%21foo` is the primary handle `!` with the suffix `%21foo`; the escape decodes to `!foo`, and the tag is the handle prefix `!` followed by that suffix: the local tag `!!foo`. `!<!!foo>` is the same tag written verbatim (productions 98 and 99). Both nodes carry `!!foo`, which is not the secondary-handle shorthand `!!foo` (`tag:yaml.org,2002:foo`) and not the local tag `!foo`.",
+ "provenance": {
+  "reference": "A reader or writer that read the local tag `!!foo` as the secondary-handle tag, or dropped it, when its name started with a bang."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

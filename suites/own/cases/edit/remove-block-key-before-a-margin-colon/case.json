@@ -1,0 +1,38 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-block-key-before-a-margin-colon",
+ "title": "A colon at the margin after a block scalar key belongs to the mapping around it",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "188",
+  "189",
+  "192"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1",
+  "YAML 1.2.2 section 8.2.2",
+  "RFC 6901 section 3",
+  "RFC 6902 section 4.2"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "In `c:` the inner mapping holds one explicit key, the folded scalar `a` plus a line feed (the pointer segment is `a` and a line feed), with no value. The `: 1` at column 0 is not indented under it: it is the value of an empty key in the outer mapping, whose other entry is `c`. Removing the inner entry leaves `c` with an empty mapping, written `{}` (kit convention, docs/edit-semantics.md: an emptied nested collection leaves `{}`), and the margin entry `: 1` stays as it is.",
+ "provenance": {
+  "reference": "An editor that took the margin colon for the value of the removed key and deleted it with the entry."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/c/a\n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

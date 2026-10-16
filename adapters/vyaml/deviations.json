@@ -3325,6 +3325,48 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The library accepted the surrogate escapes without an error; the case expects a refusal"
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "adapter exited (code None)"
+  },
+  {
+   "case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "adapter exited (code None)"
+  },
+  {
+   "case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
   }
  ]
 }

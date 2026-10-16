@@ -1,0 +1,46 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping",
+ "title": "A colon at the margin after a block scalar key is the value of an empty outer key",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "188",
+  "189"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1",
+  "YAML 1.2.2 section 8.2.2"
+ ],
+ "notes": "The input of edit/remove-block-key-before-a-margin-colon read as a value: the outer mapping has the key `c` and an empty (null) key whose value is 1; `c` holds a mapping with the key `a` plus a line feed and the value null.",
+ "provenance": {
+  "reference": "A reader that attached the margin colon to the block scalar key."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "$map": [
+     [
+      "c",
+      {
+       "$map": [
+        [
+         "a\n",
+         null
+        ]
+       ]
+      }
+     ],
+     [
+      null,
+      1
+     ]
+    ]
+   }
+  ]
+ }
+}

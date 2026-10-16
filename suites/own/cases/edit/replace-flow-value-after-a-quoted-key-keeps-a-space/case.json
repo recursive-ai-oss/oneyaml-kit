@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-flow-value-after-a-quoted-key-keeps-a-space",
+ "title": "A value replacing a flow mapping after a quoted key written without a space",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "148",
+  "149"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "A quoted key is JSON-like, so its value may follow the `:` directly (production 149) and `{\"a\":{}}` is valid. Replacing `{}` by the plain scalar `5` and writing `{\"a\":5}` is valid too, but section 7.4.2 says processors should separate the value from the `:` on output, and a minimal edit changes only the value. Whether the edit keeps the original adjacency or adds the space is a kit convention; the case expects the value written in place, `{\"a\":5}`.",
+ "provenance": {
+  "reference": "An editor that rewrote the separator around a replaced value."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": 5
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

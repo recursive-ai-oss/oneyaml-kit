@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
+ "title": "A verbatim tag that is only a bang",
+ "category": "diagnostics",
+ "origin": "spec",
+ "productions": [
+  "98"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.1",
+  "YAML 1.2.2 example 6.25"
+ ],
+ "notes": "Production 98 matches `!<!>`, but a verbatim tag is delivered as is, and section 6.9.1 requires it to be a local tag (`!` followed by a name) or a global URI; example 6.25 lists `- !<!> foo` as invalid. The prefix `- !<!` can still become valid (`- !<!x>`), and `>` cannot be part of the tag, so the first character that cannot belong to any valid document is the `>` at column 6.",
+ "provenance": {
+  "reference": "A reader that accepted `!<!>` as a tag."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 6
+ }
+}

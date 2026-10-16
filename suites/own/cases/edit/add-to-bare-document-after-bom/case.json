@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-to-bare-document-after-bom",
+ "title": "A member added to a bare document that follows an end marker and a byte order mark",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "202",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 9.1.1",
+  "YAML 1.2.2 section 9.2",
+  "RFC 6902 section 4.1"
+ ],
+ "notes": "After `...` a new document may start with a byte order mark (productions 202 and 211); the mark is not content and not indentation. The second document is the mapping `a: |` with the literal `t`, so `add /n` appends `n: 1` at column 0 after the scalar. The first document and the mark are untouched.",
+ "provenance": {
+  "reference": "An editor that counted the byte order mark as indentation of the second document and wrote the new member at column 1."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/n",
+    "value": 1
+   }
+  ],
+  "document": 1
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}
