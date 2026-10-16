@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/explicit-key-with-adjacent-flow-value-is-invalid",
+ "title": "A flow collection directly after the colon of an explicit plain key",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "143",
+  "144",
+  "145",
+  "147"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2"
+ ],
+ "notes": "An explicit entry `? key` is production 143. Its optional value is production 144, which is production 147 again: the `:` must be followed by white space before a value node. Only a JSON-like key, such as a quoted one, may have its value right after the `:` (production 149); the plain key `a` is not one. In `{? a:{}}` the `:` is followed by `{`, which is not plain-safe in a flow collection, so `a` ends at the colon and the colon is the indicator. The entry then has an empty value and must end with `,` or `}`, so the second `{`, at column 6, cannot belong to any valid document (the same rule that gives column 4 for `{a:{}}`). Compare diagnostics/plain-key-with-adjacent-flow-value-is-invalid.",
+ "provenance": {
+  "reference": "Found while reading the source of a library whose flow mapping reader applied the adjacent-value rule to implicit keys but not to the key of an explicit `?` entry."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 6
+ }
+}
