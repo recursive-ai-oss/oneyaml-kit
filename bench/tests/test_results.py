@@ -61,6 +61,51 @@ class RatioAndVerdict(unittest.TestCase):
         self.assertEqual(row("vyaml"), "loss")
 
 
+class MemoryFloor(unittest.TestCase):
+    def verdict_of(self, own, rival, own_lib="oneyaml-csharp", rival_lib="sharpyaml-syntax", language="csharp"):
+        cells = [cell(own_lib, "own", peak=own, language=language), cell(rival_lib, peak=rival, language=language)]
+        return R.compare_rows(cells)[0]["own"][0]["memory"]["verdict"]
+
+    def test_a_few_bytes_on_a_tiny_dotnet_cell_is_a_tie(self):
+        self.assertEqual(self.verdict_of(83, 80), "tie")
+        self.assertEqual(self.verdict_of(80, 86), "tie")
+        # Either side of the pair having a floor is enough.
+        self.assertEqual(self.verdict_of(83, 80, own_lib="ours"), "tie")
+        self.assertEqual(self.verdict_of(83, 80, rival_lib="rival"), "tie")
+
+    def test_rust_and_go_small_gaps_are_results(self):
+        for lang, own, rival in (("rust", "oneyaml", "saphyr"), ("go", "oneyaml-go", "go-yaml-v3")):
+            self.assertEqual(self.verdict_of(180, 120, own, rival, lang), "loss")
+            self.assertEqual(self.verdict_of(63, 1, own, rival, lang), "loss")
+            self.assertEqual(self.verdict_of(5, 60, own, rival, lang), "win")
+
+    def test_a_pair_without_a_listed_library_has_no_floor(self):
+        self.assertEqual(R.memory_floor("ours", "rival"), 0)
+        self.assertEqual(R.memory_floor("ours", "vyaml"), R.MEMORY_FLOOR_BYTES)
+
+    def test_a_large_gap_is_still_a_loss_or_a_win(self):
+        self.assertEqual(self.verdict_of(1300, 1000), "loss")
+        self.assertEqual(self.verdict_of(10240, 9216), "loss")
+        self.assertEqual(self.verdict_of(9216, 10240), "win")
+        self.assertEqual(self.verdict_of(200, 100), "loss")
+
+    def test_the_floor_is_exclusive_and_the_band_decides_at_and_above_it(self):
+        f = R.MEMORY_FLOOR_BYTES
+        self.assertEqual(self.verdict_of(1000 + f - 1, 1000), "tie")
+        self.assertEqual(self.verdict_of(1000 + f, 1000), "loss")
+        self.assertEqual(self.verdict_of(1000 - f, 1000), "win")
+
+    def test_on_a_big_cell_the_band_decides_not_the_floor(self):
+        # 1000 bytes of 100 KB is above the floor and inside the 2% band: a tie by the band.
+        self.assertEqual(self.verdict_of(102400 + 1000, 102400), "tie")
+        # 3 KB over 100 KB is outside the band: a loss.
+        self.assertEqual(self.verdict_of(102400 + 3072, 102400), "loss")
+
+    def test_time_verdicts_have_no_floor(self):
+        cells = [cell("oneyaml-csharp", "own", t=10.0, language="csharp"), cell("vyaml", t=5.0, language="csharp")]
+        self.assertEqual(R.compare_rows(cells)[0]["own"][0]["time"]["verdict"], "loss")
+
+
 class Rows(unittest.TestCase):
     def test_reference_is_the_best_competitor_not_the_first_or_ours(self):
         cells = [cell("ours", "own", t=120), cell("slow", t=300), cell("fast", t=100), cell("mid", t=110)]

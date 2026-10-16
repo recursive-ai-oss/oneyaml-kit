@@ -140,6 +140,16 @@ for time, the least allocated for memory, whatever it did. Our library's ratio i
 by the reference's, so below 1.0 is better. A gap is a **tie** when it is under 5% for time or 2% for
 memory; otherwise it is a **win** or a **loss**. Losses are marked in the tables and the charts.
 
+A memory gap under 64 bytes (`MEMORY_FLOOR_BYTES`) is also a tie, whatever the ratio, when a comparison
+involves one of `oneyaml-csharp`, `oneyaml-csharp-gen`, `sharpyaml-syntax` or `vyaml` (`MEMORY_FLOORS`).
+On .NET cells under 1 KB a few bytes are a large ratio, and the figure itself moves between
+processes: repeated quick runs of the same code differed by up to 22 bytes for our .NET library, 6 bytes
+for `sharpyaml-syntax` and 3 for `vyaml` on such cells. The floor is about three times the largest of
+those. Rust allocation counts repeated exactly (no spread over 35 repeated cells, small ones included)
+and Go's repeat closely, so Rust and Go comparisons have no floor and a small gap there is a result.
+A gap of 64 bytes or more is judged by the relative band as before, so a loss never disappears except
+by this byte floor on the libraries named.
+
 One library is measured with a wider memory band (`MEMORY_BANDS` in `bench/oneyaml_bench/results.py`).
 In repeated quick-mode runs, YamlDotNet's generic load allocated one of a few distinct amounts per run,
 about 5.6% apart and up to 11.7% apart in total (helm-values-64k, openapi-100k, records-64k). Every
