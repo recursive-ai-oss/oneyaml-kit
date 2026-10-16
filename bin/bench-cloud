@@ -49,6 +49,7 @@ DEFAULTS = {
     "KIT_CLOUD_GO_VERSION": "1.26.0", "KIT_CLOUD_RUST_VERSION": "1.97.1", "KIT_CLOUD_DOTNET_VERSION": "10.0.400",
 }
 TAG = "oneyaml-kit-bench"
+LANGS = ("go", "rust", "csharp")
 
 
 def config() -> dict:
@@ -141,10 +142,24 @@ shutdown -h now
 
 def main() -> int:
     args = sys.argv[1:]
-    if not args or args[0] not in ("quick", "full") or set(args[1:]) - {"--here"}:
+    if not args or args[0] not in ("quick", "full"):
         print(__doc__)
         return 2
-    mode, here = args[0], "--here" in args
+    mode, here, langs = args[0], False, []
+    rest = iter(args[1:])
+    for a in rest:
+        if a == "--here":
+            here = True
+        elif a == "--lang":
+            lang = next(rest, None)
+            if lang not in LANGS:
+                print(f"bench-cloud: --lang needs one of {', '.join(LANGS)}, not {lang!r}", file=sys.stderr)
+                return 2
+            if lang not in langs:
+                langs.append(lang)
+        else:
+            print(__doc__)
+            return 2
     cfg = config()
     region, bucket = cfg["KIT_CLOUD_REGION"], cfg["KIT_CLOUD_BUCKET"]
     limit = min(int(cfg["KIT_CLOUD_LIMIT_MIN"]), 30) if mode == "quick" else int(cfg["KIT_CLOUD_LIMIT_MIN"])
@@ -173,7 +188,7 @@ def main() -> int:
     image = aws("ssm", "get-parameter", "--region", region, "--name", cfg["KIT_CLOUD_IMAGE_PARAM"],
                 "--query", "Parameter.Value", "--output", "text")
     data = out / "user-data.sh"
-    data.write_text(user_data(cfg, mode, put_url, log_url, archive_url, limit), encoding="utf-8")
+    data.write_text(user_data(cfg, mode, langs, put_url, log_url, archive_url, limit), encoding="utf-8")
     spec = json.dumps([{"ResourceType": t, "Tags": [{"Key": "Name", "Value": TAG}, {"Key": "Project", "Value": TAG}]}
                        for t in ("instance", "volume")])
     disk = json.dumps([{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 40, "VolumeType": "gp3", "DeleteOnTermination": True}}])
