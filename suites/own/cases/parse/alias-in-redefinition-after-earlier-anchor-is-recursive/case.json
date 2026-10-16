@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/alias-in-redefinition-after-earlier-anchor-is-recursive",
+ "title": "An alias inside the node that redefines its anchor is a cycle",
+ "category": "parse",
+ "origin": "bug",
+ "productions": [
+  "101",
+  "104"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.2.2",
+  "YAML 1.2.2 section 7.1"
+ ],
+ "notes": "An alias refers to the most recent preceding node with its name (section 7.1). In `c: &b [ *b ]` that is the sequence being defined, not the earlier `&b 1` on the line above, so the sequence contains itself. A graph with a cycle is allowed by the data model, but a value in the kit's JSON-comparable form cannot hold one, so a value load must refuse it. The category is not fixed, because libraries call this a syntax, limit or recursion error. What it must never do is read the alias as the earlier `1` and answer `{a: 1, c: [1]}`. The kit states this as a convention of its value form, not as a rule of the specification, and the event stream is not checked, because a library may stream the events of a valid document.",
+ "provenance": {
+  "reference": "Found while reading the source of a library whose alias lookup used the earlier anchor of the same name and so loaded the input as a finite value."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "any"
+ },
+ "tags": [
+  "convention"
+ ]
+}

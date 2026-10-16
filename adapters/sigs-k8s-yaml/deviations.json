@@ -496,5 +496,9 @@
   {"case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: did not find expected key'"},
-  {"case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: did not find expected key'"}
+  {"case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: did not find expected key'"},
+  {"case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."}
 ]}

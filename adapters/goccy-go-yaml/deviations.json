@@ -559,5 +559,11 @@
   {"case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:edit/replace-flow-value-after-a-quoted-key-keeps-a-space", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b'5}\\n', got b' 5}\\n' (lengths 8 and 9)"},
-  {"case": "own:edit/replace-flow-value-after-a-quoted-key-keeps-a-space", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b'5}\\n', got b' 5}\\n' (lengths 8 and 9)"}
+  {"case": "own:edit/replace-flow-value-after-a-quoted-key-keeps-a-space", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b'5}\\n', got b' 5}\\n' (lengths 8 and 9)"},
+  {"case": "own:diagnostics/empty-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error position differs: expected 1:3, got 1:2"},
+  {"case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error position differs: expected 1:6, got 1:2"},
+  {"case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:parse/alias-in-redefinition-after-earlier-anchor-is-recursive", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:parse/alias-in-redefinition-after-earlier-anchor-is-recursive", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."}
 ]}

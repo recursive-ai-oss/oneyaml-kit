@@ -683,5 +683,10 @@
   {"case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'did not find expected key' at 4:1"},
   {"case": "own:parse/margin-colon-after-a-block-scalar-key-belongs-to-the-outer-mapping", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'did not find expected key' at 4:1"},
   {"case": "own:edit/replace-flow-value-after-a-quoted-key-keeps-a-space", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b'5}\\n', got b' 5}\\n' (lengths 8 and 9)"},
-  {"case": "own:edit/replace-flow-value-after-a-quoted-key-keeps-a-space", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b'5}\\n', got b' 5}\\n' (lengths 8 and 9)"}
+  {"case": "own:edit/replace-flow-value-after-a-quoted-key-keeps-a-space", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b'5}\\n', got b' 5}\\n' (lengths 8 and 9)"},
+  {"case": "own:diagnostics/empty-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error position differs: expected 1:3, got 1:2"},
+  {"case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."}
 ]}

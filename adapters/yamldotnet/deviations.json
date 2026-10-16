@@ -2240,6 +2240,48 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Value differs at $[0].copy: expected 1, got {'se': 1}"
+  },
+  {
+   "case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "library crash: System.ArgumentException: Global tags must be valid URIs. (Parameter 'value')"
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "library crash: System.ArgumentException: Global tags must be valid URIs. (Parameter 'value')"
+  },
+  {
+   "case": "own:parse/alias-in-redefinition-after-earlier-anchor-is-recursive",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/alias-in-redefinition-after-earlier-anchor-is-recursive",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
   }
  ]
 }

@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid",
+ "title": "A verbatim tag that is neither local nor a URI",
+ "category": "diagnostics",
+ "origin": "spec",
+ "productions": [
+  "98"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9.1",
+  "YAML 1.2.2 example 6.25"
+ ],
+ "notes": "Production 98 matches `!<$:?>`, because every character is a URI character, but section 6.9.1 requires a verbatim tag to begin with `!` or to be a valid URI, and `$:?` is not one (a URI starts with a scheme: a letter). Example 6.25 lists `- !<$:?> bar` as invalid. The prefix `- !<` can still become valid, because `!<!x>` is a local tag, but no URI begins with `$` (RFC 3986 section 3: a scheme starts with a letter), so the first character that cannot belong to any valid document is the `$`, at column 5. Compare diagnostics/verbatim-tag-of-a-lone-bang-is-invalid.",
+ "provenance": {
+  "reference": "Found while reading the source of a library whose tag scanner accepted any run of URI characters in a verbatim tag."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 5
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/property-only-key-with-adjacent-flow-value-is-invalid",
+ "title": "A flow collection directly after the colon of a key that has only a tag",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "145",
+  "147",
+  "159"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2",
+  "YAML 1.2.2 section 7.5"
+ ],
+ "notes": "A key made only of properties is a flow YAML node with an empty content (production 159, `c-ns-properties` then `e-node`), so the entry is production 145 and its value part is production 147 again: the `:` must be followed by white space before a value node. It is not a JSON-like key, so production 149 does not apply. In `{!t :{}}` the second `{`, at column 6, cannot continue the mapping. Compare diagnostics/empty-key-with-adjacent-flow-value-is-invalid.",
+ "provenance": {
+  "reference": "Found while reading the source of a library whose flow mapping reader accepted a flow collection right after the colon of a key with only a tag."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 6
+ }
+}
