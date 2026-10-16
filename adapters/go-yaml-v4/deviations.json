@@ -663,5 +663,9 @@
   {"case": "own:schema/duplicate-key-float-with-borrowed-exponent-of-a-million-digits", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Takes the input without a duplicate-key or limit error: accepted; only a duplicate-key or limit error is allowed"},
   {"case": "own:diagnostics/unclosed-outer-flow-after-closed-inner", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Reports the error at 2:2; the first character that cannot belong to any document is the unindented `z` at 2:1, which the flow line prefix of the open flow sequence does not allow"},
   {"case": "own:safety/tag-prefix-used-by-many-nodes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"},
-  {"case": "own:safety/tag-prefix-used-by-many-nodes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"}
+  {"case": "own:safety/tag-prefix-used-by-many-nodes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"},
+  {"case": "own:safety/tag-prefix-with-alternating-suffixes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"},
+  {"case": "own:safety/tag-prefix-with-alternating-suffixes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"},
+  {"case": "own:safety/tag-prefix-distinct-suffixes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"},
+  {"case": "own:safety/tag-prefix-distinct-suffixes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "memory growth passed the 1024 MB bound"}
 ]}

@@ -1,0 +1,76 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/tag-prefix-with-alternating-suffixes",
+ "title": "A million-character tag prefix used by 32,000 nodes that alternate between two suffixes, in a document that is edited",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "88",
+  "97"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.8.2",
+  "YAML 1.2.2 section 6.9.1"
+ ],
+ "tags": [
+  "slow"
+ ],
+ "notes": "The document declares `%TAG !e! tag:x,2000:` followed by a million `a` (a run of URI characters, section 6.8.2, production 93 via [88]). A block sequence of 32,000 items follows, alternating `!e!x` and `!e!y`; the tag of each is the prefix followed by the suffix (section 6.9.1), a string of a million characters. A reader that keeps the last resolved tag in a one-entry cache builds a new million-character string at every item, and one that stores each node's resolved tag holds 32,000 of them. The sibling case with one suffix is passed by the one-entry cache; alternating suffixes defeat it. The case appends one item (`add` at the end of the sequence) and nothing else, so the answer is the input followed by `- z`, or a limit error; a patch, because a value or events result would have to state the full tag of every node, which no stored expectation can hold. An unrecognized-tag error is not accepted: the document is well-formed and an edit of its presentation needs no native value. The time and memory bounds are the robustness requirement of the kit, not a rule of the specification; the memory is the whole adapter process, and the input is about 1 MB. The input and the expected result are generated from the recipe in case.json (docs/case-format.md).",
+ "provenance": {
+  "reference": "A tag cache of one entry that missed on every node of a document whose tags alternate between two suffixes."
+ },
+ "input_recipe": [
+  {
+   "text": "%TAG !e! tag:x,2000:"
+  },
+  {
+   "text": "a",
+   "repeat": 1000000
+  },
+  {
+   "text": "\n---\n"
+  },
+  {
+   "text": "- !e!x a\n- !e!y a\n",
+   "repeat": 16000
+  }
+ ],
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/-",
+    "value": "z"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 3,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "bytes",
+   "recipe": [
+    {
+     "text": "%TAG !e! tag:x,2000:"
+    },
+    {
+     "text": "a",
+     "repeat": 1000000
+    },
+    {
+     "text": "\n---\n"
+    },
+    {
+     "text": "- !e!x a\n- !e!y a\n",
+     "repeat": 16000
+    },
+    {
+     "text": "- z\n"
+    }
+   ]
+  }
+ }
+}
