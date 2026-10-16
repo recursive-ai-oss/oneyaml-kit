@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/empty-key-with-adjacent-flow-value-is-invalid",
+ "title": "A flow collection directly after the colon of an empty key",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "146",
+  "147"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2"
+ ],
+ "notes": "An entry with an empty key is production 146: an empty node, then production 147. The `:` must be followed by white space before a value node (`s-separate` then `ns-flow-node`) or by nothing at all. Only a JSON-like key may have its value right after the `:` (production 149), and an empty key is not one. In `{:{0}}` the `:` is not followed by a plain-safe character, so it is the indicator, the entry then has an empty value, and the second `{`, at column 3, cannot continue the mapping (it needs `,` or `}`). Compare diagnostics/plain-key-with-adjacent-flow-value-is-invalid.",
+ "provenance": {
+  "reference": "Found while reading the source of a library whose flow mapping reader accepted a flow collection right after the colon of an empty key."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 3
+ }
+}

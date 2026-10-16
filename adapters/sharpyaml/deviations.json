@@ -4312,6 +4312,55 @@
    "mode": "strict",
    "verdict": "unsupported",
    "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:diagnostics/empty-key-with-adjacent-flow-value-is-invalid",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 1:3, got 1:2"
+  },
+  {
+   "case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/alias-in-redefinition-after-earlier-anchor-is-recursive",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/alias-in-redefinition-after-earlier-anchor-is-recursive",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
   }
  ]
 }

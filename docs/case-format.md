@@ -123,6 +123,10 @@ A value is JSON with these rules, so that a YAML reading can be compared exactly
   the Core schema does not resolve the tag, so the node is a tagged string whose text is the
   base64 of the bytes (the YAML 1.1 binary type, RFC 4648 section 4: standard alphabet, padded).
   Only `emit` cases use it.
+- A value has no cycles. A YAML graph in which an alias refers to a node that contains it is
+  valid in the data model, but it has no kit value form, so a `value` operation on it is an
+  error (any category), and a library must never answer with a finite value instead. This is the
+  kit's rule for its value form, not a rule of the specification, and such cases carry `convention`.
 
 An upstream value comes from yaml-test-suite's `in.json`, which has no tags and was
 produced by a converter that loses the difference between integers and floats

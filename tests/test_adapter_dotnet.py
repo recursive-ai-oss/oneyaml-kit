@@ -111,10 +111,15 @@ class DotnetAdapters(unittest.TestCase):
         # The adapter reports the crash and keeps serving: no case in these runs ends with the process
         # exiting, except the nesting depths that overflow the stack, which no code can catch.
         overflow = re.compile(r"deep-(block|flow)-(sequences|mappings)-\d+")
+        # yaml2jsonnode also exits on the alias that contains its own node (a stack overflow as well).
+        cycle = "own:parse/alias-in-redefinition-after-earlier-anchor-is-recursive"
         for n in ("yamldotnet", "sharpyaml", "vyaml", "yaml2jsonnode"):
             for cid, r in self.by_id[n].items():
                 if "adapter exited" in (r.get("detail") or ""):
-                    self.assertRegex(cid, overflow, (n, cid))
+                    if n == "yaml2jsonnode" and cid == cycle:
+                        pass
+                    else:
+                        self.assertRegex(cid, overflow, (n, cid))
                     self.assertIn("signal 6", r["detail"], (n, cid))
         self.assertEqual(self.res["yamldotnet"]["run"]["adapter_restarts"], 0)
         self.assertEqual(self.res["sharpyaml"]["run"]["adapter_restarts"], 0)
