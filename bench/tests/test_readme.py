@@ -348,6 +348,75 @@ class ChartBlock(Base):
         self.assertIn("](performance.md)", self.block(self.docs / "performance.md", "bench-chart"))
 
 
+class OmitTask(Base):
+    """--chart-omit-task takes a task out of the hero and chart blocks and nowhere else."""
+
+    def result(self):
+        r = real_world(synthetic(), "w1", "w2")
+        r["cells"] += [cell("ours", "own", task="unchanged-emit", workload="w1", t=1.0),
+                       cell("rival", task="unchanged-emit", workload="w1", t=1000.0)]
+        return r
+
+    def svgs(self):
+        return [(self.dir / "docs" / "img" / f"ours-hero-{t}.svg").read_text() for t in ("light", "dark")]
+
+    def alt_of(self, b):
+        b = b[b.index('alt="') + 5:]
+        return b[:b.index('"')]
+
+    def test_the_task_is_in_the_chart_by_default(self):
+        self.readme.write_bytes(f"{CHART}\nold\n{END}\n".encode())
+        self.assertEqual(self.run_cmd(self.result()), 0)
+        b = self.block(self.readme, "bench-chart")
+        self.assertIn("4 tasks:", self.alt_of(b))
+        for svg in self.svgs():
+            self.assertIn("unchanged emit", svg)
+            self.assertIn("not a rendering speed", svg)
+
+    def test_the_option_removes_it_from_svg_alt_text_and_block(self):
+        self.readme.write_bytes(f"{CHART}\nold\n{END}\n".encode())
+        self.assertEqual(self.run_cmd(self.result(), extra=("--chart-omit-task", "unchanged-emit")), 0)
+        b = self.block(self.readme, "bench-chart")
+        self.assertIn("3 tasks:", self.alt_of(b))
+        self.assertNotIn("nchanged", b)
+        for svg in self.svgs():
+            self.assertNotIn("nchanged", svg)
+            self.assertNotIn("rendering", svg)
+            self.assertIn("† marks a cell measured differently", svg)
+            self.assertIn("dump 1.11× faster", svg)
+
+    def test_the_hero_table_drops_the_row_and_the_full_page_keeps_it(self):
+        (self.docs / "performance.md").write_bytes(f"{FULL}\nold\n{END}\n".encode())
+        self.readme.write_bytes(f"{HERO}\nold\n{END}\n".encode())
+        self.assertEqual(self.run_cmd(self.result(), extra=("--chart-omit-task", "unchanged-emit")), 0)
+        self.assertNotIn("nchanged", self.block(self.readme, "bench-hero"))
+        self.assertIn("| unchanged emit | `w1` |", self.block(self.docs / "performance.md", "bench-full"))
+
+    def test_without_the_option_the_output_is_unchanged(self):
+        self.readme.write_bytes(f"{HERO}\nold\n{END}\n{CHART}\nold\n{END}\n".encode())
+        self.assertEqual(self.run_cmd(self.result()), 0)
+        first = self.files()
+        self.assertEqual(self.run_cmd(self.result(), extra=("--chart-omit-task", "dump")), 0)
+        self.assertNotEqual(first, self.files())
+        self.assertEqual(self.run_cmd(self.result()), 0)
+        self.assertEqual(first, self.files())
+        # The dagger sentence is shared, so the full description is the same text as before.
+        self.assertTrue(M.HERO_DESC_MARKS.endswith(M.HERO_DESC_DAGGER))
+
+    def test_an_unknown_task_is_refused_and_names_the_known_ones(self):
+        self.readme.write_bytes(f"{CHART}\nold\n{END}\n".encode())
+        before = self.files()
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            self.assertEqual(self.run_cmd(self.result(), extra=("--chart-omit-task", "nope")), 1)
+        self.assertEqual(before, self.files())
+        with self.assertRaises(M.ReadmeError) as cm:
+            M.Ctx(self.result(), "ours", "0", None, self.dir, True, chart_omit=["nope"])
+        self.assertIn("nope", str(cm.exception))
+        self.assertIn("dump, generic-load, patch, unchanged-emit", str(cm.exception))
+        self.assertIn("generic-load", str(cm.exception))
+
+
 class Other(Base):
     def test_full_table_has_every_workload_and_every_competitor(self):
         self.run_cmd()
