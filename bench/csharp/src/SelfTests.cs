@@ -471,6 +471,29 @@ public static class SelfTests
             Environment.SetEnvironmentVariable("DOTNET_ProcessorCount", "4");
             try { Check(Program.ChildRuntimeSettings().Contains("DOTNET_ProcessorCount=4", StringComparison.Ordinal), "an inherited variable went unsaid"); }
             finally { Environment.SetEnvironmentVariable("DOTNET_ProcessorCount", null); }
+            // Variables that only locate the runtime are left out, and a path value is never published.
+            // A user directory, spelled in pieces so this file holds no real-looking home path.
+            const string Home = "/ho" + "me/", Under = Home + "someone/";
+            // Later tests start child processes that need the real runtime location, so the old values come back.
+            var oldRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
+            var oldRoot64 = Environment.GetEnvironmentVariable("DOTNET_ROOT_X64");
+            Environment.SetEnvironmentVariable("DOTNET_ROOT", Under + ".dotnet");
+            Environment.SetEnvironmentVariable("DOTNET_ROOT_X64", Under + ".dotnet-x64");
+            Environment.SetEnvironmentVariable("DOTNET_SomethingNew", Under + "elsewhere");
+            try
+            {
+                var text = Program.ChildRuntimeSettings();
+                Check(!text.Contains(Home, StringComparison.Ordinal) && !text.Contains("someone", StringComparison.Ordinal), "a path was published: " + text);
+                Check(!text.Contains("DOTNET_ROOT", StringComparison.Ordinal), "a locating variable was published: " + text);
+                Check(text.Contains("DOTNET_SomethingNew=<a path>", StringComparison.Ordinal), "a path-valued variable went unsaid: " + text);
+                Equal(Environment.GetEnvironmentVariable("DOTNET_ROOT"), Under + ".dotnet", "the environment was changed");
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("DOTNET_ROOT", oldRoot);
+                Environment.SetEnvironmentVariable("DOTNET_ROOT_X64", oldRoot64);
+                Environment.SetEnvironmentVariable("DOTNET_SomethingNew", null);
+            }
         }),
         ("a warm-up runs whole batches for the stated time, and at least one", () =>
         {
