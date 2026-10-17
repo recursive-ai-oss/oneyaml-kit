@@ -661,5 +661,23 @@ class Workflow(unittest.TestCase):
         self.assertIn("adapters/*/Cargo.lock", self.text)
 
 
+class InterruptedStep(unittest.TestCase):
+    def test_an_interrupt_kills_the_running_step(self):
+        started = {}
+        real = subprocess.Popen
+
+        def spy(*a, **k):
+            started["p"] = real(*a, **k)
+            return started["p"]
+
+        with tempfile.TemporaryFile() as out, mock.patch.object(gate.subprocess, "Popen", spy), \
+                mock.patch.object(gate.os, "wait4", side_effect=KeyboardInterrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                gate._run_measured([sys.executable, "-c", "import time; time.sleep(600)"],
+                                   Path.cwd(), dict(os.environ), out)
+        # Reaped: poll() would report no exit code for a child that is still running.
+        self.assertIsNotNone(started["p"].returncode)
+
+
 if __name__ == "__main__":
     unittest.main()
