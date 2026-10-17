@@ -86,6 +86,15 @@ def tree_kb(pids: list[int], field: str) -> int:
     return sum(_status_kb(p, field) or 0 for p in pids)
 
 
+class WriteStalled(Exception):
+    """The adapter did not take its request in time (kind "timeout") or outgrew its memory bound
+    while the kit waited to write it (kind "memory")."""
+
+    def __init__(self, kind: str, detail: str):
+        super().__init__(detail)
+        self.kind, self.detail = kind, detail
+
+
 class AdapterError(Exception):
     """The adapter could not be started or did not complete the handshake."""
 
@@ -97,6 +106,9 @@ class SubprocessAdapter:
         # Reads the time a bounded case is charged for. A parameter so that a test can say exactly
         # which moments the clock is read at, without depending on how fast the host is.
         self.clock = clock
+        # (seconds, memory watch) for the request write in progress; None seconds means no deadline.
+        self._write_limit = (None, None)
+        self._writer = None  # the thread of a request write that was cut off
         self.cwd = cwd
         self.env = env
         self.timeout = timeout
@@ -133,8 +145,12 @@ class SubprocessAdapter:
             raise AdapterError(f"cannot start {self.command[0]}: {e}") from e
         self._q = queue.Queue()
         threading.Thread(target=self._pump, args=(self.proc, self._q, self.clock), daemon=True).start()
+        self._write_limit = (self.timeout, None)
         try:
             self._send({"type": "hello", "protocol": PROTOCOL})
+        except WriteStalled as e:
+            self.stop()
+            raise AdapterError(f"adapter did not read the hello: {e.detail}") from e
         except OSError as e:
             # The process may be gone before it reads anything; that is a failed start, not a
             # reason to stop the run.
@@ -205,8 +221,42 @@ class SubprocessAdapter:
                 parts.append(chunk[start:])
 
     def _send(self, obj: dict) -> None:
+        """Write one request line. The write has a deadline (`_write_limit`, set by the caller): an
+        adapter that stops reading would otherwise block the kit for ever, whatever the case's
+        time bound. Raises WriteStalled when the deadline passes or the memory watch aborts."""
         assert self.proc and self.proc.stdin
-        self.proc.stdin.write(json.dumps(obj, separators=(",", ":")).encode("utf-8") + b"\n")
+        data = json.dumps(obj, separators=(",", ":")).encode("utf-8") + b"\n"
+        limit, watch = self._write_limit
+        if limit is None:
+            self.proc.stdin.write(data)
+            return
+        # The write itself stays a plain blocking write, in its own thread: a pipe is filled fastest
+        # that way, and a non-blocking loop that wakes for every free page cost several times
+        # more on large inputs. This thread only waits for the write to finish or the deadline.
+        stdin, outcome = self.proc.stdin, []
+
+        def write() -> None:
+            try:
+                stdin.write(data)
+                outcome.append(None)
+            except (OSError, ValueError) as e:  # ValueError: closed while a stalled write was cut off
+                outcome.append(e)
+
+        t = self._writer = threading.Thread(target=write, daemon=True)
+        t.start()
+        deadline = self.clock() + limit
+        while True:
+            t.join(POLL_SECONDS)
+            if not t.is_alive():
+                break
+            if self.clock() >= deadline:
+                raise WriteStalled("timeout", f"adapter did not read its request within {limit:g} s")
+            if watch:
+                why = watch()
+                if why:
+                    raise WriteStalled("memory", why)
+        if outcome and outcome[0] is not None:
+            raise outcome[0]
 
     def _recv(self, timeout: float, watch=None):
         """Next response line. `watch`, if given, is called about every 50 ms while waiting and
@@ -278,9 +328,10 @@ class SubprocessAdapter:
 
     def close(self) -> None:
         if self.proc:
+            self._write_limit = (1.0, None)
             try:
                 self._send({"type": "bye"})
-            except OSError:
+            except (OSError, WriteStalled):
                 pass
         self.stop()
 
@@ -323,8 +374,15 @@ class SubprocessAdapter:
                 return None
 
         req = {"type": "run", "id": case_id, "op": op, "input": b64(data), "args": args}
+        self._write_limit = (timeout, watch)
         try:
             self._send(req)
+        except WriteStalled as e:
+            out = self._failed(e.kind, e.detail)
+            if limits:
+                out["_measure"] = {"seconds": timeout if e.kind == "timeout" else 0.0,
+                                   "peak_mb": None, "time_bound": timeout}
+            return out
         except OSError:
             return self._failed("crash", "adapter closed its input")
         # The clock runs from the moment the request is completely written to the moment the
@@ -397,5 +455,8 @@ class SubprocessAdapter:
     def _failed(self, status: str, detail: str) -> dict:
         if self.proc:
             self._kill_tree(self.proc.pid)
+        # With the adapter dead a cut-off write fails at once; wait for it before closing the pipe.
+        if self._writer is not None:
+            self._writer.join(EXIT_WAIT_SECONDS)
         self.stop()
         return {"status": status, "detail": detail}

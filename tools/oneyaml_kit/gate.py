@@ -395,7 +395,13 @@ def _run_measured(argv: list, cwd: Path, env: dict, out) -> tuple[int, float | N
     p = subprocess.Popen(argv, cwd=cwd, env=env, stdout=out, stderr=subprocess.STDOUT)
     if not hasattr(os, "wait4"):
         return p.wait(), None
-    _, status, usage = os.wait4(p.pid, 0)
+    try:
+        _, status, usage = os.wait4(p.pid, 0)
+    except BaseException:
+        # An interrupt must not leave the step running behind the gate.
+        p.kill()
+        p.wait()
+        raise
     p.returncode = os.waitstatus_to_exitcode(status)
     return p.returncode, usage.ru_maxrss / 1024  # Linux reports KiB
 
