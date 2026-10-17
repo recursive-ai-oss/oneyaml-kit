@@ -10,6 +10,9 @@ benchmark harnesses and documentation fixes are all welcome.
   specification, never from what a library prints ([principles](docs/principles.md)).
 - **Want to add a library?** Read the [adapter protocol](docs/adapter-protocol.md#writing-an-adapter)
   for conformance, or the [benchmark adapters](docs/benchmark-adapters.md) page for the benchmark.
+- **Found a vulnerability?** Do not open an issue. Follow [SECURITY.md](SECURITY.md).
+
+By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Set up
 
