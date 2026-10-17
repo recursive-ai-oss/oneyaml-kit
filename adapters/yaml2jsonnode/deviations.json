@@ -5096,6 +5096,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "adapter exited (killed by signal 6)"
+  },
+  {
+   "case": "own:diagnostics/malformed-utf-8-after-a-byte-order-mark",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the encoding error with no position; the case expects 1:4."
+  },
+  {
+   "case": "own:diagnostics/unpaired-surrogate-in-utf-16-after-a-byte-order-mark",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the encoding error with no position; the case expects 1:4."
   }
  ]
 }

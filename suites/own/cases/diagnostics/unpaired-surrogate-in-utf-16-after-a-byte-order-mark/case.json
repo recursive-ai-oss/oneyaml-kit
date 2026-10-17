@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/unpaired-surrogate-in-utf-16-after-a-byte-order-mark",
+ "title": "An unpaired surrogate in UTF-16 after a byte order mark is an encoding error at its unit, and the mark is not counted",
+ "category": "diagnostics",
+ "origin": "spec",
+ "productions": [
+  "3",
+  "1"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 5.1",
+  "docs/case-format.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The stream is a UTF-16LE byte order mark (0xFF 0xFE), the characters U+00E9, colon and space, a high surrogate (U+D800) that is followed by the character b instead of a low surrogate, and a line break. A high surrogate must be paired with a low one (section 5.2 names UTF-16 as an allowed encoding), so the stream is refused as an encoding error. The position is the kit rule: the first byte of the ill-formed sequence, with the column counting the characters decoded before it, and the byte order mark is not a character of the text. Three characters come before the surrogate, so it is at 1:4; a reader that counts the mark reports column 5, and one that counts bytes or code units reports a later column.",
+ "provenance": {
+  "reference": "Written for the kit to fill a gap: no case fixed the position of an encoding error in a stream that starts with a byte order mark."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "encoding",
+  "line": 1,
+  "column": 4
+ }
+}
