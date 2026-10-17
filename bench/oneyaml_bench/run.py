@@ -17,6 +17,7 @@ import json
 import os
 import signal
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -83,12 +84,32 @@ def parse_lines(path: Path) -> tuple[dict | None, list[dict], list[str]]:
     return harness, cells, begun
 
 
+def text_hits(text: str) -> list[str]:
+    """The kit's public-text check over a string (the same one the end-of-run check uses)."""
+    sys.path.insert(0, str(ROOT.parent / "tools"))
+    from oneyaml_kit import public_text  # noqa: E402
+
+    return [m.group(0) for line in text.split("\n") if (m := public_text.PATTERN.search(line))]
+
+
+def record_hits(value, field: str = "harness") -> list[tuple[str, str]]:
+    """(field, offending text) for every string in a harness record, keys included: all of it is published."""
+    if isinstance(value, str):
+        return [(field, h) for h in text_hits(value)]
+    if isinstance(value, dict):
+        return [x for k, v in value.items() for x in record_hits(k, f"{field}.{k} (key)") + record_hits(v, f"{field}.{k}")]
+    if isinstance(value, list):
+        return [x for i, v in enumerate(value) for x in record_hits(v, f"{field}[{i}]")]
+    return []
+
+
 class Progress:
     """Follows the harness output file while the harness runs and prints one line per finished cell."""
 
     def __init__(self, path: Path, lang: str, log):
         self.path, self.lang, self.log = path, lang, log
         self.pos, self.began, self.n = 0, time.monotonic(), 0
+        self.checked = False
 
     def poll(self) -> None:
         try:
@@ -105,6 +126,15 @@ class Progress:
                 rec = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            if rec.get("type") == "harness" and not self.checked:
+                # The record goes into the published method text, and is known before the first cell:
+                # refuse it now rather than after a long measurement.
+                self.checked = True
+                hits = record_hits({k: v for k, v in rec.items() if k != "type"})
+                if hits:
+                    raise HarnessError(f"the {self.lang} harness record holds text that cannot be published; "
+                                       "stopped before measuring:\n  "
+                                       + "\n  ".join(f"{f}: {t!r}" for f, t in hits))
             if rec.get("type") == "begin":
                 self.began = time.monotonic()
             elif rec.get("type") == "cell":
