@@ -144,7 +144,9 @@ def main(argv: list[str] | None = None) -> int:
     w.add_argument("--out")
     w.add_argument("--tier", choices=("quick", "full"), default="full")
     w.set_defaults(fn=cmd_workloads)
-    m = sub.add_parser("readme", help="write the generated blocks of a library README and docs between their markers")
+    m = sub.add_parser("readme", help="write generated blocks between markers: bench-chart in the README, bench-hero "
+                       "and bench-full on docs/performance.md (every loss appears there; the chart cannot omit a "
+                       "losing task), conformance blocks on docs/conformance.md")
     m.add_argument("--results", required=True, help="directory with the benchmark result and the conformance results")
     m.add_argument("--library", required=True, help="the library to feature")
     m.add_argument("--readme", required=True)
@@ -162,7 +164,8 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--chart-omit-task", action="append", metavar="TASK",
                    help="leave this task (an id from the result, e.g. unchanged-emit) out of the hero and chart "
                         "blocks, including the chart's alt text and description; repeatable. The full table keeps "
-                        "every task. An id the result does not have is an error")
+                        "every task. An id the result does not have is an error, and so is a task we lose, mix or have no "
+                        "time for: the chart never drops a loss")
     m.add_argument("--allow-smoke", action="store_true",
                    help="accept a smoke result (the blocks are labelled as such)")
     m.set_defaults(fn=cmd_readme)
