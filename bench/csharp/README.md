@@ -89,6 +89,21 @@ available.
 libraries that work on strings decode the input and encode the output inside the timed work, and VYaml,
 which works on bytes, does not. This is stated in each library's settings.
 
+**One process for each cell.** In full mode every cell (library, task, workload) is measured in a process of
+its own, for every library alike: the harness starts a copy of itself for the cell, which checks the answer
+with the guard and then times it, and the first process only collects the result lines. The reason is heap
+state. The first batches a process writes into memory it has not touched yet pay page faults that later
+ones do not, and how long that lasts depends on the garbage the earlier cells left. In one long process the
+same library read about 5 µs per document on a 64 KB `unchanged-emit` workload in one cell and 12 to 27 µs
+in the next, and the cells that ran before it decided which; the bytes allocated did not move. A cell
+that starts from a fresh process starts from the same heap whatever ran before it, so the heap that earlier
+cells leave behind no longer reaches a later cell's time. Collection work a library causes inside its own timed
+iterations is still timed, and the allocated bytes are read exactly as before. A task the library cannot do
+is answered without starting a process, and a process that dies is a cell with status `error`. A new process also starts at the runtime's first, unoptimised code tier, and promotes hot methods on a background thread after a quiet period of 100 ms, which a small cell's three warm-up iterations never outlast. So every child sets `DOTNET_TC_CallCountingDelayMs=0` and first runs whole batches of its cell for 1000 ms before BenchmarkDotNet's own warm-up and measured iterations, the same for every library. Repeated runs of the small `gha-workflow` cells agree with a long process more closely this way; the run's `timer` text states both settings, and any other runtime tuning variable the children inherit.
+
+Quick mode keeps all its cells in one process, because a process per cell takes about three times as long, and
+it is a smoke result in any case: its figures depend on the cells that ran before and are never published.
+
 ## Self-tests
 
 `SELFTEST=1 ./build.sh BUILD_DIR` builds the self-test assembly: the control libraries (a right one, a

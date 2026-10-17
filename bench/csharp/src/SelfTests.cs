@@ -134,6 +134,12 @@ public static class SelfTests
         return false;
     }
 
+    sealed class CountingBatch(Action run) : Batch
+    {
+        public override void Run() => run();
+        public override IReadOnlyList<object?> States => [];
+    }
+
     static readonly List<(string, Action)> Tests =
     [
         ("an integer is not the float with the same digits, and \"1\" is not 1", () =>
@@ -424,6 +430,76 @@ public static class SelfTests
                 Check(false, "removal inside a flow mapping was prepared");
             }
             catch (Unsupported) { }
+        }),
+        ("full mode measures every cell in a process of its own, quick mode does not", () =>
+        {
+            Check(Program.IsolatesCells(new Program.Args { Mode = "full" }), "full mode shares a process");
+            Check(!Program.IsolatesCells(new Program.Args { Mode = "quick" }), "quick mode was meant to stay in one process");
+            Check(!Program.IsolatesCells(new Program.Args { Mode = "full", SameProcess = true }), "a child process must not start more");
+            var w = Wl("a: 1\n", """{"a":1}""");
+            var lib = new ControlLib("correct");
+            var started = new List<string>();
+            Program.Spawned Fake(string name)
+            {
+                started.Add(name);
+                return new Program.Spawned(0, Encoding.UTF8.GetBytes("{\"type\":\"cell\",\"n\":" + started.Count + "}\n"));
+            }
+            var tasks = new[] { BenchTask.GenericLoad, BenchTask.Dump, BenchTask.DocumentParse, BenchTask.UnchangedEmit };
+            var lines = tasks.Select(t => Encoding.UTF8.GetString(Program.IsolatedLine(lib, t, w, Fake))).ToList();
+            Equal(started.Count, tasks.Length, "one new process for each cell");
+            Equal(started.Distinct().Count(), tasks.Length, "each cell has its own process");
+            for (int i = 0; i < tasks.Length; i++)
+                Equal(lines[i], "{\"type\":\"cell\",\"n\":" + (i + 1) + "}\n", "the cell is what its process wrote");
+            // A task the library cannot do needs no process.
+            var none = Encoding.UTF8.GetString(Program.IsolatedLine(lib, BenchTask.TypedLoad, w, Fake));
+            Equal(started.Count, tasks.Length, "an unsupported cell started a process");
+            Check(none.Contains("\"status\":\"unsupported\"", StringComparison.Ordinal), "unsupported: " + none);
+            // A process that dies is a cell with status error, and the run goes on.
+            var dead = Encoding.UTF8.GetString(Program.IsolatedLine(lib, BenchTask.Dump, w, _ => new Program.Spawned(134, null)));
+            Check(dead.Contains("\"status\":\"error\"", StringComparison.Ordinal) && dead.Contains("exit status 134", StringComparison.Ordinal), "died: " + dead);
+        }),
+        ("a child process measures its one cell in place, with the runtime set to optimise at once", () =>
+        {
+            var psi = Program.ChildStartInfo(new Program.Args { Mode = "full", Workloads = "wl" }, "lib-x/dump/wl-y", "out.jsonl");
+            var args = psi.ArgumentList.ToList();
+            Check(args.Contains("--same-process"), "the child would start children of its own");
+            foreach (var (flag, value) in new[] { ("--library", "lib-x"), ("--task", "dump"), ("--workload", "wl-y"), ("--mode", "full") })
+                Equal(args[args.IndexOf(flag) + 1], value, flag);
+            Equal(psi.Environment["DOTNET_TC_CallCountingDelayMs"], "0", "tier-up delay");
+            Check(Program.ChildRuntimeSettings().Contains("DOTNET_TC_CallCountingDelayMs=0", StringComparison.Ordinal), "the timer text omits the setting");
+            // Every inherited DOTNET_ and COMPlus_ variable is named with its value, whatever it is.
+            Environment.SetEnvironmentVariable("DOTNET_ProcessorCount", "4");
+            try { Check(Program.ChildRuntimeSettings().Contains("DOTNET_ProcessorCount=4", StringComparison.Ordinal), "an inherited variable went unsaid"); }
+            finally { Environment.SetEnvironmentVariable("DOTNET_ProcessorCount", null); }
+        }),
+        ("a warm-up runs whole batches for the stated time, and at least one", () =>
+        {
+            long clock = 0; int runs = 0;
+            Batch Prepare() => new CountingBatch(() => { runs++; clock += 60; });
+            Equal(Measure.WarmUp(Prepare, () => clock, 1000), 17, "batches that fill 1000 ms at 60 ms each");
+            Equal(runs, 17, "batches run");
+            clock = 0; runs = 0;
+            Equal(Measure.WarmUp(Prepare, () => clock, 50), 1, "a batch longer than the warm-up is run once");
+            Check(Measure.WarmUpMilliseconds >= 1000, "the warm-up is shorter than the one the small-cell repeats were checked with");
+        }),
+        ("full mode warms every cell up before it is measured, and quick mode does not", () =>
+        {
+            const int input = 1000;
+            int batch = Measure.BatchFor(input);
+            int Batches(bool quick)
+            {
+                int states = 0;
+                var r = new FnRunner<int, int>(() => { states++; return 0; }, _ => 0, _ => new Product.Bytes([]));
+                Measure.Run(r, input, quick);
+                return states / batch;
+            }
+            Measure.ArtifactsPath = Path.Combine(Path.GetTempPath(), "oneyaml-bench-selftest-" + Environment.ProcessId);
+            // BenchmarkDotNet alone prepares a handful of batches (about one per iteration); a warm-up of whole
+            // batches over the stated time prepares many more of this instant task.
+            int full = Batches(false), quick = Batches(true);
+            Check(full > 50, $"full mode prepared only {full} batches, so the warm-up did not run");
+            Check(quick <= 20, $"quick mode prepared {quick} batches, so it was warmed up");
+            try { Directory.Delete(Measure.ArtifactsPath, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }),
     ];
 

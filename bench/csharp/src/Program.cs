@@ -12,12 +12,14 @@ namespace OneYamlKit.Bench;
 /// See docs/benchmarks.md and docs/benchmark-adapters.md for the protocol and the result format.</summary>
 public static class Program
 {
-    sealed class Args
+    internal sealed class Args
     {
         public string Cmd = "";
         public string Workloads = "workloads";
         public string? Out;
         public string Mode = "quick";
+        /// <summary>Measure the cell in this process. The child processes of an isolated run are started with it.</summary>
+        public bool SameProcess;
         public List<string> Libraries = [], Tasks = [], Only = [], Skip = [];
     }
 
@@ -37,6 +39,7 @@ public static class Program
                 case "--task": a.Tasks.Add(Val()); break;
                 case "--workload": a.Only.Add(Val()); break;
                 case "--skip": a.Skip.Add(Val()); break;
+                case "--same-process": a.SameProcess = true; break;
                 default: throw new ArgumentException($"unknown option {argv[i]}");
             }
         }
@@ -127,13 +130,17 @@ public static class Program
 
     // ---- records -------------------------------------------------------------------------------
 
-    static void WriteLine(Stream s, Action<Utf8JsonWriter> write)
+    static byte[] Line(Action<Utf8JsonWriter> write)
     {
         using var ms = new MemoryStream();
         using (var w = new Utf8JsonWriter(ms)) write(w);
         ms.WriteByte((byte)'\n');
-        ms.Position = 0;
-        ms.CopyTo(s);
+        return ms.ToArray();
+    }
+
+    static void WriteLine(Stream s, Action<Utf8JsonWriter> write)
+    {
+        s.Write(Line(write));
         s.Flush();
     }
 
@@ -148,8 +155,16 @@ public static class Program
         w.WriteString("target", RuntimeInformation.RuntimeIdentifier);
         w.WriteString("mode", a.Mode);
         w.WriteString("tool", "BenchmarkDotNet " + Support.Version("BenchmarkDotNet"));
+        // Said by what the run does, not by the mode alone: a child process of an isolated run is told to measure in place.
+        string own = IsolatesCells(a)
+            ? "; every cell is measured in a process of its own, because the heap that earlier cells leave behind changed the result. "
+              + "Each process runs with " + ChildRuntimeSettings() + ", and every cell is first warmed up for "
+              + Measure.WarmUpMilliseconds + " ms of whole batches before BenchmarkDotNet's own warm-up, because a new process starts at the runtime's unoptimised tier"
+            : a.SameProcess
+                ? "; all the cells of this run share one process"
+                : "; the cells of a quick run share one process, so the run is a smoke result";
         var job = a.Mode == "quick" ? "dry job (one iteration)" : "ShortRun job (3 warm-up and 3 measured iterations)";
-        w.WriteString("timer", "mean time per task from BenchmarkDotNet's " + job + " run in process; one invocation per iteration runs a batch of prepared tasks and the time is divided by the batch size");
+        w.WriteString("timer", "mean time per task from BenchmarkDotNet's " + job + " run in process; one invocation per iteration runs a batch of prepared tasks and the time is divided by the batch size" + own);
         w.WriteString("memory", "bytes allocated per task from BenchmarkDotNet's MemoryDiagnoser; allocation calls are not available");
         w.WriteStartArray("libraries");
         foreach (var l in libs)
@@ -170,7 +185,7 @@ public static class Program
 
     // ---- cells ---------------------------------------------------------------------------------
 
-    sealed record Cell(string Status, string Detail, string? Variant = null, Measured? Measured = null);
+    internal sealed record Cell(string Status, string Detail, string? Variant = null, Measured? Measured = null);
 
     static readonly System.Text.RegularExpressions.Regex LeadingPosition = new(@"^\(Lin: \d+, Col: \d+, Chr: \d+\)( - \(Lin: \d+, Col: \d+, Chr: \d+\))?: ");
 
@@ -247,6 +262,85 @@ public static class Program
         w.WriteEndObject();
     }
 
+    /// <summary>Full mode, the one that is published, measures every cell in a process of its own. Quick mode is a
+    /// smoke run: one process for all its cells keeps it to minutes, and its report says it is not a result.
+    /// The child processes of an isolated run measure their cell in place.</summary>
+    internal static bool IsolatesCells(Args a) => a.Mode == "full" && !a.SameProcess;
+
+    /// <summary>What a child process reports for the one cell it ran.</summary>
+    internal sealed record Spawned(int ExitCode, byte[]? CellLine);
+
+    /// <summary>The result line of one cell, measured in a process of its own. Heap state left by earlier cells
+    /// (their garbage, the memory they touched) changed the time of later ones, so no two cells share a process
+    /// and a cell cannot be helped or hurt by the library that ran before it. A task the library cannot do
+    /// needs no measurement and is answered here; any other cell, including one the guard will refuse, is
+    /// handed to <paramref name="spawn"/>, which runs the whole cell (guard, then clock) in a fresh process.
+    /// A process that dies is a cell with status error, as the driver records it.</summary>
+    internal static byte[] IsolatedLine(ILibrary lib, BenchTask task, Workload w, Func<string, Spawned> spawn)
+    {
+        try { lib.Runner(task, w); }
+        catch (Unsupported u) { return Line(x => WriteCell(x, lib, task, w, new Cell("unsupported", u.Message))); }
+        catch (Exception) { /* the child reports it */ }
+        var name = $"{lib.Id}/{task.Id()}/{w.Id}";
+        var got = spawn(name);
+        if (got is { ExitCode: 0, CellLine: { } line }) return line;
+        var why = got.ExitCode == 0 ? "the process wrote no result" : $"the process died (exit status {got.ExitCode})";
+        return Line(x => WriteCell(x, lib, task, w, new Cell("error", why)));
+    }
+
+    /// <summary>The runtime settings every child process runs with, as the run's timer text states them: the one this
+    /// harness sets, and every DOTNET_ and COMPlus_ variable that was already in the environment (the children inherit
+    /// them), each with its value, so that nothing a cell ran with goes unsaid.</summary>
+    internal static string ChildRuntimeSettings()
+    {
+        var inherited = Environment.GetEnvironmentVariables().Keys.Cast<string>()
+            .Where(k => k != "DOTNET_TC_CallCountingDelayMs" &&
+                        (k.StartsWith("COMPlus_", StringComparison.OrdinalIgnoreCase) || k.StartsWith("DOTNET_", StringComparison.OrdinalIgnoreCase)))
+            .Order(StringComparer.Ordinal).Select(k => $"{k}={Environment.GetEnvironmentVariable(k)}").ToList();
+        return "DOTNET_TC_CallCountingDelayMs=0 (call counting starts immediately instead of after the default delay)" +
+               (inherited.Count == 0 ? ", and no other DOTNET_ or COMPlus_ variable set" : ", and, inherited from the caller, " + string.Join(", ", inherited));
+    }
+
+    /// <summary>How a child process is started for one cell: this program again, told to measure that cell in place.</summary>
+    internal static System.Diagnostics.ProcessStartInfo ChildStartInfo(Args a, string cell, string outFile)
+    {
+        var parts = cell.Split('/', 3);
+        var psi = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
+        // Run through the same host that started this process: a framework-dependent build is a dll, an apphost is not.
+        var entry = System.Reflection.Assembly.GetEntryAssembly()!.Location;
+        if (!string.Equals(Path.GetFileNameWithoutExtension(Environment.ProcessPath!), Path.GetFileNameWithoutExtension(entry), StringComparison.Ordinal))
+            psi.ArgumentList.Add(entry);
+        foreach (var x in new[] { "run", "--same-process", "--workloads", a.Workloads, "--mode", a.Mode, "--out", outFile,
+                                 "--library", parts[0], "--task", parts[1], "--workload", parts[2] })
+            psi.ArgumentList.Add(x);
+        // A new process runs its code at the first, unoptimised tier, and the runtime waits 100 ms of quiet before it
+        // starts promoting hot methods. The warm-up iterations of a small cell are shorter than that in total, so
+        // without this the measured iterations would time unoptimised code (a 13 us task read 90 us). Starting the
+        // promotion at once lets the warm-up do what it is for. Every library gets the same setting.
+        // Set outright, not inherited, so the value a cell ran with is the one the run's timer text states.
+        psi.Environment["DOTNET_TC_CallCountingDelayMs"] = "0";
+        return psi;
+    }
+
+    static int _children;
+
+    /// <summary>Runs one cell in a new process of this program and returns the cell line it wrote.</summary>
+    static Spawned SpawnChild(Args a, string home, string cell)
+    {
+        var file = Path.Combine(home, $"dotnet-cell-{Environment.ProcessId}-{++_children}.jsonl");
+        using var p = System.Diagnostics.Process.Start(ChildStartInfo(a, cell, file))!;
+        p.WaitForExit();
+        byte[]? line = null;
+        try
+        {
+            foreach (var l in File.ReadAllLines(file))
+                if (l.Contains("\"type\":\"cell\"", StringComparison.Ordinal)) line = Encoding.UTF8.GetBytes(l + "\n");
+        }
+        catch (IOException) { }
+        try { File.Delete(file); } catch (IOException) { }
+        return new Spawned(p.ExitCode, line);
+    }
+
     static void Run(Args a)
     {
         bool quick = a.Mode switch { "quick" => true, "full" => false, _ => throw new ArgumentException($"unknown mode {a.Mode}") };
@@ -269,8 +363,14 @@ public static class Program
                         // A crash cannot be caught, so mark the cell first; the driver reads the last mark
                         // to find the cell that killed the process.
                         WriteLine(outp, w => { w.WriteStartObject(); w.WriteString("type", "begin"); w.WriteString("cell", name); w.WriteEndObject(); });
-                        var cell = OneCell(lib, task, wl, quick);
-                        WriteLine(outp, w => WriteCell(w, lib, task, wl, cell));
+                        if (!IsolatesCells(a))
+                            WriteLine(outp, w => WriteCell(w, lib, task, wl, OneCell(lib, task, wl, quick)));
+                        else
+                        {
+                            var line = IsolatedLine(lib, task, wl, n => SpawnChild(a, home, n));
+                            outp.Write(line);
+                            outp.Flush();
+                        }
                     }
         }
         try { Directory.Delete(Measure.ArtifactsPath, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }

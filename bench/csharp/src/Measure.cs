@@ -62,9 +62,29 @@ public static class Measure
             .WithArtifactsPath(ArtifactsPath);
     }
 
+    /// <summary>How long a full-mode cell is warmed up before BenchmarkDotNet's own warm-up and measured iterations.
+    /// A process that has just started runs its code unoptimised, and the runtime promotes hot methods on a
+    /// background thread, so the first stretch of a short cell times code that is not yet what a user gets. Three
+    /// warm-up iterations of a cell whose iteration takes under a millisecond cover a few milliseconds, which was
+    /// not enough: repeated runs of one small cell disagreed with each other. Warming up for a fixed time, whatever the cell, gives every library the
+    /// same chance to reach steady state; a cell whose single iteration is longer than this is warmed up once.</summary>
+    public const int WarmUpMilliseconds = 1000;
+
+    /// <summary>Runs whole batches until <paramref name="milliseconds"/> have passed on <paramref name="now"/>, and at
+    /// least once. Returns the number of batches run.</summary>
+    public static int WarmUp(Func<Batch> prepare, Func<long> now, int milliseconds)
+    {
+        long start = now();
+        int rounds = 0;
+        do { prepare().Run(); rounds++; } while (now() - start < milliseconds);
+        return rounds;
+    }
+
     public static Measured Run(Runner r, int inputBytes, bool quick)
     {
         int batch = BatchFor(inputBytes);
+        // Quick mode is a smoke run that keeps its cost down, and takes no extra warm-up.
+        if (!quick) WarmUp(() => r.Prepare(batch), () => Environment.TickCount64, WarmUpMilliseconds);
         CellBenchmark.Current = r;
         CellBenchmark.BatchSize = batch;
         var summary = BenchmarkRunner.Run(typeof(CellBenchmark), Config(quick));
