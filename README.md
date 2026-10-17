@@ -1,110 +1,74 @@
 # oneyaml-kit
 
-A versioned, language-neutral YAML 1.2 test suite and conformance runner. It defines
-expected behaviour as data (events, values, exact output bytes, error categories and
-positions), runs any library through a small adapter protocol, and generates reports
-from the results.
+**A language-neutral YAML 1.2 conformance suite and benchmark harness.** Connect your YAML
+library with one small adapter, and the kit shows you, case by case, where it departs from the
+specification and how it compares with the strongest competitor in its language.
 
-## What is in it
+[![gate](https://github.com/recursive-ai-oss/oneyaml-kit/actions/workflows/gate.yml/badge.svg)](https://github.com/recursive-ai-oss/oneyaml-kit/actions/workflows/gate.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](docs/running.md#what-you-need)
+[![yaml-test-suite data-2022-01-17](https://img.shields.io/badge/yaml--test--suite-data--2022--01--17-blue.svg)](suites/yaml-test-suite/SOURCE.md)
+[![Licence: MIT OR Apache-2.0, cases CC0](https://img.shields.io/badge/licence-MIT%20OR%20Apache--2.0%2C%20cases%20CC0-blue.svg)](#licence)
 
-| Path | Contents |
-|---|---|
-| `suites/yaml-test-suite/` | The yaml-test-suite release `data-2022-01-17`, vendored untouched, with its source record, licence and our corrections. |
-| `suites/own/cases/` | The kit's own cases: parse, schema, edits by patch, diagnostics, safety. |
-| `adapters/` | One directory per library under test: manifest, adapter program, known deviations. |
-| `tools/oneyaml_kit/` | Loader, runner, comparison, report generator (Python standard library only). |
-| `bench/` | The benchmark harness: workloads, the Rust, Go and .NET harnesses, the driver and the report generator. See [docs/benchmarks.md](docs/benchmarks.md). |
-| `tests/` | The kit's own tests. |
-| `docs/` | [Case format](docs/case-format.md), [adapter protocol](docs/adapter-protocol.md), [result format](docs/result-format.md), [edit semantics](docs/edit-semantics.md), [benchmarks](docs/benchmarks.md), [benchmark adapters](docs/benchmark-adapters.md). |
+## What it checks
 
-## Running it
+- **Spec conformance.** Every case of the yaml-test-suite, with corrections scored beside the
+  upstream expectation where the suite is wrong, plus the kit's own parse cases
+  ([case format](docs/case-format.md#upstream-cases-and-corrections)).
+- **Schema.** What each scalar resolves to under the YAML 1.2 Core schema, compared exactly:
+  `1` and `1.0` are different values ([kit values](docs/case-format.md#kit-values)).
+- **Edits and patches.** RFC 6902 and RFC 7396 patches with the exact bytes expected afterwards:
+  only the edited value changes, and comments stay ([edit semantics](docs/edit-semantics.md)).
+- **Safety.** Hostile inputs with time and memory bounds that the runner enforces
+  ([bounded cases](docs/case-format.md#bounded-outcomes-safety)).
+- **Diagnostics.** The error category, line and column a library reports
+  ([expectations](docs/case-format.md#expectations)).
+- **Speed and memory.** Each language's own benchmark tool, every answer checked before it is
+  timed, against the strongest competitor on each task ([benchmarks](docs/benchmarks.md)).
 
-Python 3.10 or newer and each adapter's own toolchain (the oneyaml-rust adapter needs
-a Rust toolchain; the Go adapters, described in [adapters/gokit](adapters/gokit/README.md),
-need Go).
+## Quick start
+
+You need Python 3.10 or newer, and a Rust toolchain for the adapter this example runs.
 
 ```sh
-bin/kit fast                      # every adapter, whole fast set, writes out/
-bin/kit fast --adapter oneyaml-rust --suite own
-KIT_ONEYAML_GO_SRC=/path/to/oneyaml-go bin/kit fast --adapter oneyaml-go   # the Go library, from a checkout
-KIT_ONEYAML_CSHARP_SRC=/path/to/oneyaml-csharp bin/kit fast --adapter oneyaml-csharp   # the C# library, likewise
-bin/kit report out/results/*.json # render a report from result files
-bin/kit list                      # case counts
-bin/kit coverage                  # which YAML 1.2.2 productions the own cases name (names, not coverage)
-bin/gate                          # hand-over gate: the kit core and the areas your change touched
-bin/gate --full                   # everything, every adapter (CI runs this)
-bin/gate --plan                   # show what would run
-bin/gate --areas bench-go         # named areas instead of choosing by changes
-bin/bench run                     # benchmarks, quick mode: results.json, report.md and charts in out/bench/
-bin/bench run --mode full         # full mode: each tool at its defaults
-bin/bench-cloud quick|full        # the same on one rented machine, results and report brought back
+git clone https://github.com/recursive-ai-oss/oneyaml-kit
+cd oneyaml-kit
+bin/kit fast --adapter oneyaml-rust   # build the adapter and run every fast case
+bin/bench run --lang rust             # a quick benchmark run of the Rust libraries
 ```
 
-`bin/kit fast` writes `out/results/<adapter>.json` and `out/conformance.md`
-(`$KIT_OUT` moves the directory) and exits non-zero when a library fails a case that
-its deviation list does not name, or when a list entry has gone stale.
+The first command writes `out/results/oneyaml-rust.json` and the report `out/conformance.md`;
+the second writes `out/bench/report.md` and its charts. To put your own library through the
+kit, add a directory under `adapters/` with a manifest and a program that speaks the
+[adapter protocol](docs/adapter-protocol.md), then run `bin/kit fast --adapter <name>`.
 
-The gate has two tiers. The hand-over gate (`bin/gate`) always runs the kit core (corpus
-pins, the kit's own tests, the public-text check, and `bin/kit blobs`, which refuses tracked executables, core dumps and
-files over 1 MiB) and adds an area only when the files that
-differ from `main` touch it, and then only that area's quick steps: format and lint checks,
-unit and self-tests, and for a benchmark harness a smoke run over three small workloads. Areas
-are the adapter languages (`rust`, `go`, `csharp`, ...), `bench` (the benchmark driver, report
-and workloads), one benchmark area per harness language (`bench-rust`, `bench-go`,
-`bench-csharp`, so a change to one harness never builds another) and `core`. A change to the
-kit's code or cases also runs the reference adapter, and a change to the benchmark driver also
-smoke-tests the Rust harness. Areas run side by side: as many as the memory available to the gate holds (the tightest cgroup
-limit, else available memory), at most four; the first output line says how many and why, unless `--jobs` says
-otherwise. The hand-over gate has a time budget of 150 seconds (`--budget`) and fails when a run
-exceeds it, which keeps the tier inside its three-minute limit; the fix is a faster step or
-moving it to the full tier. The full gate (`bin/gate --full`) runs every area and every
-step, including the slow ones (the end-to-end benchmark pipeline tests, the quick benchmark
-run over every workload, the plain-build lint of the Rust harness), and it
-has no budget. CI runs it as one job per area (`--areas <area>`, each on its own runner with
-its own caches), so the slowest area sets the time. A bounded case's time limit is a hang guard set far above any reader that answers (see the case format), so a
-verdict does not depend on how fast the machine is; its memory bound is the real check. Each step
-logs under `out/gate/` and shows its output only when it fails. Before any step the gate
-prints, and `out/gate/summary.json` records, the revision it checked: HEAD, the base and merge
-base, a fingerprint of the change against the merge base (the binary diff plus the path and
-content hash of every untracked file) and whether the tree is dirty, so two runs can be
-compared. Renames count as a deletion and an addition, so the area a file left is checked too.
+## Where to go
 
-In CI the `blobs` check also walks the whole fetched history (every branch and tag), because a large or core file
-added and then deleted still ships in the history, and a cancelled run must not leave a pushed commit unchecked.
-
-## Principles
-
-- **Cases are data.** Inputs and expected bytes are stored raw; nothing normalises
-  them.
-- **Expectations come from the specification**, YAML 1.2.2 and the RFCs, never from a
-  library's output. Where the upstream suite is wrong, our expectation, the reason and
-  the citation are recorded beside it and both are scored.
-- **Comparison is full.** Every byte, the whole event stream, the whole value. A
-  narrower view is a named mode.
-- **Results are per capability, strict and loose.** A case an adapter cannot do is counted
-  as unsupported, separately from passes and failures.
-- **Safety cases name the acceptable outcomes** (an exact result, a limit error, or both)
-  and carry their own time and memory bounds, which the runner enforces and records.
-- **Behaviour an adapter supplies itself is declared and marked.** Passes that depend on
-  it are counted in the Loose and Strict columns and again in their own Emulated column,
-  so a reader can subtract them.
-- **Known deviations are listed per library and verified.** A new failure, or an entry
-  that no longer holds, fails the run.
-- **Reports are generated** from result files.
+- **Running the kit:** [commands, output and exit status](docs/running.md).
+- **Writing cases:** the [case format](docs/case-format.md) and the
+  [edit semantics](docs/edit-semantics.md) the edit cases follow.
+- **Connecting a library:** the [adapter protocol](docs/adapter-protocol.md) and the
+  [result format](docs/result-format.md) it produces.
+- **Benchmarks:** [how they are measured and reported](docs/benchmarks.md), and the
+  [benchmark adapters](docs/benchmark-adapters.md) contract for adding a library or a language.
+- **How the kit judges:** [principles](docs/principles.md).
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) and [the gate](docs/gate.md) that checks
+  every change.
+- **The oneyaml family:** [oneyaml-rust](https://github.com/recursive-ai-oss/oneyaml-rust),
+  [oneyaml-go](https://github.com/recursive-ai-oss/oneyaml-go) and
+  [oneyaml-csharp](https://github.com/recursive-ai-oss/oneyaml-csharp), each checked and
+  measured by this kit.
 
 ## Licence
 
-- The kit's code (`tools/`, `bin/`, `adapters/`, `bench/` harnesses, `tests/` and `docs/`) is
-  dual licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
-  So are `.github/` and the other files under `bench/` that are not vendored workloads: they are
-  kit code and data.
-- The kit's own cases (`suites/own/`) are dedicated to the public domain under
-  [CC0 1.0](suites/own/LICENSE), so other YAML projects can copy them without attribution.
-  A `licence` field in a case's provenance names the licence of the source the case was derived
-  from; the case data itself is CC0.
-- Vendored material keeps its own licence: the yaml-test-suite data in `suites/yaml-test-suite/`
-  (MIT, see its `LICENSE`; `SOURCE.md` records where it came from) and the real-world benchmark files in
-  `bench/workloads/real/` (each file's repository, revision and licence are in its
-  `workload.json` and in `SOURCES.md`, with the licence texts in `LICENSES/`).
-  Inside that vendored directory, `corrections.json` and `SOURCE.md` are the kit's own text and
-  are CC0 like the own cases.
+- **Kit code and docs** (`tools/`, `bin/`, `adapters/`, `bench/`, `tests/`, `docs/`, `.github/`):
+  [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option. This covers every file
+  under `bench/` except the vendored workloads.
+- **The kit's own cases** (`suites/own/`): [CC0 1.0](suites/own/LICENSE), so other YAML projects
+  can copy them without attribution. A `licence` field in a case's provenance names the licence
+  of the source the case was derived from; the case data itself is CC0.
+- **Vendored material keeps its own licence:** the yaml-test-suite data in `suites/yaml-test-suite/`
+  is MIT (see its `LICENSE`; `SOURCE.md` records where it came from), and each real-world
+  benchmark file in `bench/workloads/real/` names its repository, revision and licence in its
+  `workload.json` and in `SOURCES.md`, with the licence texts in `LICENSES/`. In
+  `suites/yaml-test-suite/`, `corrections.json` and `SOURCE.md` are the kit's own text and are
+  CC0 like the own cases.
