@@ -468,8 +468,9 @@ def load_own_case(case_dir: Path, cases_root: Path = OWN_DIR, skip_slow: bool = 
     A case is built once per process and handed out as a shallow copy, so a process that loads
     the whole corpus again (the kit's own tests do, from many files) does not parse, check and
     generate every case again. The copy shares the input bytes and the nested expectation values;
-    nothing in the kit edits those in place. A change to any file of the case directory builds it
-    again."""
+    nothing in the kit edits those in place. A change to the name, size, modification time or inode
+    of a file in the case directory builds it again; an edit that keeps the size within one tick of
+    the file system's clock is not seen."""
     key = (str(case_dir), str(cases_root))
     try:
         sig = _signature(case_dir)

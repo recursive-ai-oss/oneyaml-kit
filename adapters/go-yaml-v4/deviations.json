@@ -692,5 +692,7 @@
   {"case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."}
+  {"case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/malformed-utf-8-after-a-byte-order-mark", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Reports the encoding error with no position; the case expects 1:4."},
+  {"case": "own:diagnostics/unpaired-surrogate-in-utf-16-after-a-byte-order-mark", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Reports the encoding error with no position; the case expects 1:4."}
 ]}

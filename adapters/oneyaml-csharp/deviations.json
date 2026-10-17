@@ -14,6 +14,13 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The upstream value reads 450.00 as the integer 450; the library reads the float 450.0, which is right under the core schema (the corrected expectation passes)."
+  },
+  {
+   "case": "own:diagnostics/unpaired-surrogate-in-utf-16-after-a-byte-order-mark",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 1:4, got 1:5"
   }
  ]
 }

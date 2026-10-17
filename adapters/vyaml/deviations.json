@@ -3423,6 +3423,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/malformed-utf-8-after-a-byte-order-mark",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/malformed-utf-8-after-a-byte-order-mark",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
   }
  ]
 }
