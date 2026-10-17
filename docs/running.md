@@ -69,3 +69,20 @@ revision to name.
 It exits non-zero when a library fails a case that its deviation list does not name, or when a
 list entry has gone stale. The deviation lists are described in the
 [adapter protocol](adapter-protocol.md#known-deviations).
+
+## Hang guard and cleanup in benchmark runs
+
+`bin/bench run` waits on each language harness, but not for ever. A cell that runs longer than the cell
+limit, measured from the harness's mark that the cell began, is stopped and recorded as an `error` cell
+whose detail says it ran past the limit. The driver then starts the harness again past that cell, as it
+does for a cell that kills the process. The report shows it like any other cell without a number.
+
+- The limit is a guard against a hang, not a bound on speed, and it is the same for every library and
+  language. The default is 1800 seconds: the slowest cell of the full runs so far took 134 s, so the limit
+  is about 13 times that, and a hang costs at most half an hour. Change it with
+  `--cell-limit SECONDS`; the value used is recorded as `run.cell_limit_seconds` in `results.json`.
+- A harness that hangs before its first cell cannot be skipped past; the run stops with an error.
+- Each harness runs in its own process group. When the harness ends, by finishing, crashing, hitting the
+  limit, or the driver receiving SIGINT or SIGTERM, the driver kills the whole group, so child processes
+  (such as the .NET harness's per-cell processes) do not outlive it. SIGKILL of the driver itself cannot
+  be handled; then stop the group by hand.

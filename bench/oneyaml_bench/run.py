@@ -12,9 +12,12 @@ It writes JSON lines: one `harness` record, then for each cell a `begin` mark fo
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
+import signal
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -22,6 +25,9 @@ from . import environment, results, taskstate, workloads
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_RESTARTS = 50
+# A hang guard, not a bound on any real cell: the slowest cell of the full runs so far took 134 s, so
+# this is about 13 times that. The same limit applies to every library and language.
+CELL_LIMIT_SECONDS = 1800.0
 
 
 class HarnessError(Exception):
@@ -107,10 +113,50 @@ class Progress:
                          f"({time.monotonic() - self.began:.1f} s)")
 
 
+def kill_group(proc: subprocess.Popen) -> None:
+    """Kills every process in the harness's group, children and grandchildren included. The group
+    outlives its leader, so this also finds what a harness that exited or crashed left behind."""
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+    try:
+        proc.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        pass
+
+
+class Terminated(SystemExit):
+    """Raised by the signal handler so that cleanup runs on the way out."""
+
+
+@contextlib.contextmanager
+def _terminate_as_exception():
+    # SIGTERM would end the process with no cleanup at all. SIGINT is set too: a driver started in the
+    # background by a launcher (nohup, or a shell's `&`) inherits it as ignored, and would never stop.
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
+
+    def handler(signum, frame):
+        raise Terminated(128 + signum)
+
+    signals = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP)
+    old = {s: signal.signal(s, handler) for s in signals}
+    try:
+        yield
+    finally:
+        for s, h in old.items():
+            signal.signal(s, h)
+
+
 def run_harness(h: dict, build_dir: Path, workloads_dir: Path, mode: str, out_dir: Path,
-                libraries=(), tasks=(), only=(), log=say, on_poll=None) -> tuple[dict, list[dict]]:
-    """Runs the harness to completion, restarting past any cell that kills it. `on_poll` is called
-    from the loop that already waits on the harness, so watching the machine adds no thread."""
+                libraries=(), tasks=(), only=(), log=say, on_poll=None,
+                cell_limit: float = CELL_LIMIT_SECONDS) -> tuple[dict, list[dict]]:
+    """Runs the harness to completion, restarting past any cell that kills it or runs past `cell_limit`
+    seconds. `on_poll` is called from the loop that already waits on the harness, so watching the
+    machine adds no thread. The harness runs in its own process group, which is killed when the
+    harness ends by any route (including this driver being terminated)."""
     lang = h["language"]
     harness, cells, skip = None, [], []
     for attempt in range(MAX_RESTARTS + 1):
@@ -124,32 +170,46 @@ def run_harness(h: dict, build_dir: Path, workloads_dir: Path, mode: str, out_di
         # The harness's messages go to a file, not a pipe nobody reads while it runs.
         err_path = out_dir / f"{lang}.stderr"
         progress = Progress(out, lang, log)
-        with open(err_path, "wb") as err:
-            proc = subprocess.Popen(cmd, cwd=h["_dir"], stdout=subprocess.DEVNULL, stderr=err)
-            while proc.poll() is None:
-                progress.poll()
-                if on_poll:
-                    on_poll()
-                time.sleep(0.2)
+        timed_out = False
+        with open(err_path, "wb") as err, _terminate_as_exception():
+            proc = subprocess.Popen(cmd, cwd=h["_dir"], stdout=subprocess.DEVNULL, stderr=err,
+                                    start_new_session=True)
+            try:
+                while proc.poll() is None:
+                    progress.poll()
+                    if on_poll:
+                        on_poll()
+                    if time.monotonic() - progress.began > cell_limit:
+                        timed_out = True
+                        break
+                    time.sleep(0.2)
+            finally:
+                kill_group(proc)
         progress.poll()
         stderr = err_path.read_text(encoding="utf-8", errors="replace")
         h_rec, got, begun = parse_lines(out)
         harness = harness or h_rec
         cells += got
-        if proc.returncode == 0:
+        if proc.returncode == 0 and not timed_out:
             return harness or {}, cells
-        if proc.returncode == 2 and not begun:
+        if proc.returncode == 2 and not begun and not timed_out:
             raise HarnessError(f"the {lang} harness refused to start: {stderr.strip()[-500:]}")
         done = {f"{c['library']}/{c['task']}/{c['workload']}" for c in got}
         in_flight = [b for b in begun if b not in done]
         if not in_flight:
-            raise HarnessError(f"the {lang} harness stopped between cells (exit status {proc.returncode})\n"
-                               f"{stderr.strip()[-500:]}")
+            what = (f"ran past the limit of {cell_limit:g} s before its first cell" if timed_out
+                    else f"stopped between cells (exit status {proc.returncode})")
+            raise HarnessError(f"the {lang} harness {what}\n{stderr.strip()[-500:]}")
         name = in_flight[-1]
         lib, task, wl = name.split("/", 2)
-        log(f"  {name}: the process died (exit status {proc.returncode}); continuing without it")
+        if timed_out:
+            detail = f"the cell ran past the limit of {cell_limit:g} s and was stopped"
+            log(f"  {name}: {detail}; continuing without it")
+        else:
+            detail = f"the process died (exit status {proc.returncode})"
+            log(f"  {name}: the process died (exit status {proc.returncode}); continuing without it")
         cells.append({"type": "cell", "library": lib, "task": task, "workload": wl, "status": "error",
-                      "detail": f"the process died (exit status {proc.returncode})", "input_bytes": None})
+                      "detail": detail, "input_bytes": None})
         skip += list(begun)
     raise HarnessError("too many harness restarts")
 
@@ -198,7 +258,8 @@ def unpublishable(revs: dict[str, dict]) -> dict[str, dict]:
 
 def assemble(mode: str, smoke: bool, records: dict[str, dict], cells_by_lang: dict[str, list[dict]],
              metas: list[dict], load_start: float, load_end: float, seconds: float,
-             expected: list[str] = (), load_peak: float | None = None, revisions: dict | None = None) -> dict:
+             expected: list[str] = (), load_peak: float | None = None, revisions: dict | None = None,
+             cell_limit: float | None = None) -> dict:
     cells = []
     for lang, recs in cells_by_lang.items():
         libs = {l["id"]: l for l in records[lang].get("libraries", [])}
@@ -217,6 +278,8 @@ def assemble(mode: str, smoke: bool, records: dict[str, dict], cells_by_lang: di
                   "expected_languages": sorted(set(expected) | set(records))}
     if load_peak is not None:
         run_record["load"]["peak"] = max(load_peak, load_start, load_end)
+    if cell_limit is not None:
+        run_record["cell_limit_seconds"] = cell_limit
     if revisions:
         run_record["library_revisions"] = {l: v for l, v in revisions.items() if l in records}
     sources = library_sources(records)
@@ -237,7 +300,7 @@ def assemble(mode: str, smoke: bool, records: dict[str, dict], cells_by_lang: di
 
 def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries: list[str] = (),
         tasks: list[str] = (), only: list[str] = (), smoke: bool | None = None,
-        build_dir: Path | None = None, log=say) -> dict:
+        build_dir: Path | None = None, log=say, cell_limit: float = CELL_LIMIT_SECONDS) -> dict:
     """The whole pipeline up to the result dict. A quick run is always a smoke run; `smoke=True`
     (or KIT_SMOKE in the environment) labels a full run the same way. A full run is a measurement
     wherever it ran; the result records where, and how busy the machine was."""
@@ -283,7 +346,7 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
     def assemble_for(ls: list[str]) -> dict:
         return assemble(mode, is_smoke, {l: records[l] for l in ls}, {l: cells_by_lang[l] for l in ls}, metas,
                         load_start, environment.loadavg()[0], time.monotonic() - t0, expected,
-                        max(peak[0], environment.loadavg()[0]), revisions)
+                        max(peak[0], environment.loadavg()[0]), revisions, cell_limit)
 
     records, cells_by_lang = {}, {}
     for l in langs:
@@ -292,7 +355,7 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
         build(h, build_dir)
         log(f"start {l} ({mode})")
         t_lang = time.monotonic()
-        records[l], cells_by_lang[l] = run_harness(h, build_dir, wl_dir, mode, out_dir, libraries, tasks, only, log, sample_load)
+        records[l], cells_by_lang[l] = run_harness(h, build_dir, wl_dir, mode, out_dir, libraries, tasks, only, log, sample_load, cell_limit)
         if mode == "full" and not is_smoke and l in revisions:
             # The revision was read before the build; the build stamps what it found. Both must agree, or the
             # tree changed in between and the result would name a commit it did not measure.
