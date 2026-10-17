@@ -15,13 +15,11 @@ if [ "${SELFTEST:-}" = 1 ]; then set -- "$@" -p:Selftest=true; art=$build/dotnet
 if [ -n "${KIT_ONEYAML_CSHARP_SRC:-}" ]; then
 	src=$(cd "$KIT_ONEYAML_CSHARP_SRC" && pwd)
 	test -f "$src/src/OneYaml/OneYaml.csproj" || { echo "no src/OneYaml/OneYaml.csproj in KIT_ONEYAML_CSHARP_SRC" >&2; exit 1; }
-	rev=devel
-	if [ "$(git -C "$src" rev-parse --show-toplevel 2>/dev/null)" = "$src" ]; then
-		rev=$(git -C "$src" rev-parse --short=12 HEAD 2>/dev/null || echo devel)
-	elif [ -n "${KIT_ONEYAML_CSHARP_REV:-}" ]; then
-		# A source unpacked from an archive has no history; the launcher names its revision.
-		rev=$KIT_ONEYAML_CSHARP_REV
-	fi
+	# The version the report shows. tools/library-rev.sh holds the rule: a git checkout gives its commit
+	# (with +modified when tracked files changed), an export gives devel, and KIT_ONEYAML_CSHARP_REV
+	# overrides both.
+	rev=$(sh "$dir/../../tools/library-rev.sh" CSHARP "$src")
+	rev=${rev%% *}
 	set -- "$@" "-p:OneYamlSrc=$src" "-p:OneYamlRevision=$rev"
 fi
 KIT_DOTNET_ARTIFACTS=$art exec "${DOTNET:-dotnet}" build "$dir/Bench.csproj" -c Release \

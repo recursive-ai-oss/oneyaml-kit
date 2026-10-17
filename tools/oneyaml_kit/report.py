@@ -134,10 +134,20 @@ def _strict_convention_section(cases: list[dict]) -> list[str]:
     return out
 
 
+def version_text(version: str) -> str:
+    """The version a report names. "devel" is what a build from a source without history is stamped
+    with, and "+modified" marks uncommitted changes; neither is a version, so neither is shown as one."""
+    if version == "devel":
+        return "(revision unknown)"
+    if version.endswith("+modified"):
+        return f"{version} (uncommitted changes)"
+    return version
+
+
 def render_one(res: dict) -> str:
     a, k, run = res["adapter"], res["kit"], res["run"]
     lines = []
-    lib = f"{a['name']} {a['version']}"
+    lib = f"{a['name']} {version_text(a['version'])}"
     lines.append(f"## {lib}")
     lines.append("")
     lines.append(f"Language: {a['language']}. Run date: {run['date']}. "

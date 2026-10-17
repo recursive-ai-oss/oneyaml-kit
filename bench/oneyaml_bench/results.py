@@ -201,6 +201,14 @@ def merge(parts: list[dict]) -> dict:
     if peaks:
         merged["run"]["load"]["peak"] = max(peaks)
     merged["run"]["expected_languages"] = sorted({l for p in parts for l in p["run"].get("expected_languages", [])})
+    revs = {}
+    for p in parts:
+        for l, v in p["run"].get("library_revisions", {}).items():
+            if revs.setdefault(l, v) != v:
+                raise ResultError(f"the parts name different {l} library revisions ({revs[l]['revision']} and "
+                                  f"{v['revision']}); they are not one run")
+    if revs:
+        merged["run"]["library_revisions"] = revs
     for p in parts:
         merged["harnesses"].update(p["harnesses"])
         merged["cells"] += p["cells"]

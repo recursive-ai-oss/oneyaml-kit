@@ -249,9 +249,12 @@ class Ctx:
         l = next((l for l in self.harness["libraries"] if l["id"] == lib), None)
         if not l:
             return lib
+        # A revision the person running the benchmark named, not one read from git, is said to be so.
+        rec = (self.run.get("library_revisions") or {}).get(self.lang) or {}
+        note = " (revision supplied, not read from git)" if lib == self.library and rec.get("origin") == "supplied" else ""
         if lib == self.library and self.tag:
-            return f"{lib} {self.tag} ({l['version']})"
-        return f"{lib} {l['version']}"
+            return f"{lib} {self.tag} ({l['version']}){note}"
+        return f"{lib} {l['version']}{note}"
 
     def kit_text(self) -> str:
         # The bench result records the kit revision it ran at, not a version; a conformance result adds the

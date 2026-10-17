@@ -27,13 +27,10 @@ replace example.invalid/oneyaml-kit/gokit => $kit
 
 replace oneyaml.dev/go => $src
 EOF
-# The version the report shows: the checkout's commit when it is a git checkout.
-rev=devel
-if [ "$(git -C "$src" rev-parse --show-toplevel 2>/dev/null)" = "$src" ]; then
-	rev=$(git -C "$src" rev-parse --short=12 HEAD 2>/dev/null || echo devel)
-elif [ -n "${KIT_ONEYAML_GO_REV:-}" ]; then
-	# A source unpacked from an archive has no history; the launcher names its revision.
-	rev=$KIT_ONEYAML_GO_REV
-fi
+# The version the report shows. tools/library-rev.sh holds the rule: a git checkout gives its commit
+# (with +modified when tracked files changed), an export gives devel, and KIT_ONEYAML_GO_REV
+# overrides both.
+rev=$(sh "$(dirname "$0")/../../tools/library-rev.sh" GO "$src")
+rev=${rev%% *}
 exec go build -trimpath -modfile="$mod" -tags oneyaml_go_src \
 	-ldflags "-X main.version=$rev" -o "$bin/oneyaml-go" .

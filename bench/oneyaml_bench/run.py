@@ -170,9 +170,35 @@ def library_sources(records: dict[str, dict]) -> dict[str, dict]:
     return out
 
 
+def library_revisions(langs) -> dict[str, dict]:
+    """The revision each of our libraries will be recorded under, for every language whose build is
+    pointed at a checkout by KIT_ONEYAML_<LANG>_SRC. The rule lives in tools/library-rev.sh, which
+    the build scripts also call, so what is checked here is what gets stamped into the build.
+    `origin` is "supplied" (named through KIT_ONEYAML_<LANG>_REV), "git" or "unknown"."""
+    out = {}
+    for lang in sorted(langs):
+        src = os.environ.get(f"KIT_ONEYAML_{lang.upper()}_SRC")
+        if not src:
+            continue
+        r = subprocess.run(["sh", str(ROOT.parent / "tools" / "library-rev.sh"), lang.upper(), src],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            raise HarnessError(f"cannot name the {lang} library revision: {r.stderr.strip()}")
+        rev, origin = r.stdout.split()
+        out[lang] = {"revision": rev, "origin": origin}
+    return out
+
+
+def unpublishable(revs: dict[str, dict]) -> dict[str, dict]:
+    """The revisions a published result may not carry: an export with no history ("devel") or a
+    checkout with uncommitted changes ("+modified"), unless the revision was supplied."""
+    return {l: v for l, v in revs.items()
+            if v["origin"] != "supplied" and (v["revision"] == "devel" or v["revision"].endswith("+modified"))}
+
+
 def assemble(mode: str, smoke: bool, records: dict[str, dict], cells_by_lang: dict[str, list[dict]],
              metas: list[dict], load_start: float, load_end: float, seconds: float,
-             expected: list[str] = (), load_peak: float | None = None) -> dict:
+             expected: list[str] = (), load_peak: float | None = None, revisions: dict | None = None) -> dict:
     cells = []
     for lang, recs in cells_by_lang.items():
         libs = {l["id"]: l for l in records[lang].get("libraries", [])}
@@ -191,6 +217,8 @@ def assemble(mode: str, smoke: bool, records: dict[str, dict], cells_by_lang: di
                   "expected_languages": sorted(set(expected) | set(records))}
     if load_peak is not None:
         run_record["load"]["peak"] = max(load_peak, load_start, load_end)
+    if revisions:
+        run_record["library_revisions"] = {l: v for l, v in revisions.items() if l in records}
     sources = library_sources(records)
     if sources:
         run_record["sources"] = sources
@@ -238,6 +266,15 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
     # was, so a reader can judge it. Quick mode and an explicit request are smoke.
     is_smoke = bool(smoke) or mode == "quick" or bool(os.environ.get("KIT_SMOKE"))
     peak = [load_start]
+    revisions = library_revisions(langs)
+    bad = unpublishable(revisions)
+    if bad and mode == "full" and not is_smoke:
+        what = ", ".join(f"{l}: {v['revision']}" for l, v in sorted(bad.items()))
+        raise HarnessError(
+            f"refusing a full run: the library revision would be recorded as {what}. A full run is meant for "
+            "publication and must name the library commit. Build from a clean checkout; for a source with no "
+            "git history, name its commit as KIT_ONEYAML_GO_REV=<commit> (the same for CSHARP); or add "
+            "--smoke, which labels the result a smoke result.")
 
     def sample_load() -> None:
         # One read of /proc/loadavg per poll of the running harness: cheap, and on no thread of its own.
@@ -246,7 +283,7 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
     def assemble_for(ls: list[str]) -> dict:
         return assemble(mode, is_smoke, {l: records[l] for l in ls}, {l: cells_by_lang[l] for l in ls}, metas,
                         load_start, environment.loadavg()[0], time.monotonic() - t0, expected,
-                        max(peak[0], environment.loadavg()[0]))
+                        max(peak[0], environment.loadavg()[0]), revisions)
 
     records, cells_by_lang = {}, {}
     for l in langs:
@@ -256,6 +293,15 @@ def run(mode: str, out_dir: Path, languages: list[str] | None = None, libraries:
         log(f"start {l} ({mode})")
         t_lang = time.monotonic()
         records[l], cells_by_lang[l] = run_harness(h, build_dir, wl_dir, mode, out_dir, libraries, tasks, only, log, sample_load)
+        if mode == "full" and not is_smoke and l in revisions:
+            # The revision was read before the build; the build stamps what it found. Both must agree, or the
+            # tree changed in between and the result would name a commit it did not measure.
+            stamped = {lib["id"]: str(lib.get("version")) for lib in records[l].get("libraries", [])
+                       if lib.get("role") == "own"}
+            wrong = {k: v for k, v in stamped.items() if v != revisions[l]["revision"]}
+            if wrong:
+                raise HarnessError(f"refusing a full run: the {l} library was built as {wrong} but its revision was "
+                                   f"read as {revisions[l]['revision']}; the source changed during the run")
         log(f"end {l}: {len(cells_by_lang[l])} cells in {time.monotonic() - t_lang:.1f} s")
         # Written now, so a run that is cut short keeps every language that finished.
         write(assemble_for([l]), out_dir / f"results-{l}.json")

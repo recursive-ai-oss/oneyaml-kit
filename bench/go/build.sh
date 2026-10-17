@@ -16,12 +16,10 @@ mod=$out/oneyaml-bench-go.mod
 cp go.mod "$mod"
 cp go.sum "$out/oneyaml-bench-go.sum"
 printf '\nrequire oneyaml.dev/go v0.0.0\n\nreplace oneyaml.dev/go => %s\n' "$src" >> "$mod"
-rev=devel
-if [ "$(git -C "$src" rev-parse --show-toplevel 2>/dev/null)" = "$src" ]; then
-	rev=$(git -C "$src" rev-parse --short=12 HEAD 2>/dev/null || echo devel)
-elif [ -n "${KIT_ONEYAML_GO_REV:-}" ]; then
-	# A source unpacked from an archive has no history; the launcher names its revision.
-	rev=$KIT_ONEYAML_GO_REV
-fi
+# The version the report shows. tools/library-rev.sh holds the rule: a git checkout gives its commit
+# (with +modified when tracked files changed), an export gives devel, and KIT_ONEYAML_GO_REV
+# overrides both.
+rev=$(sh "$(dirname "$0")/../../tools/library-rev.sh" GO "$src")
+rev=${rev%% *}
 exec go build -trimpath -mod=readonly -modfile="$mod" -tags oneyaml_go_src \
 	-ldflags "-X main.sourceRevision=$rev" -o "$out/oneyaml-bench-go" .
