@@ -294,7 +294,8 @@ class Pins(unittest.TestCase):
 
     def test_the_pins_file_holds_the_digest_of_every_generated_result_in_the_kit(self):
         pinned = json.loads((support.ROOT / "tests" / "pins.json").read_bytes())["own"]["generated_results"]
-        self.assertEqual(sorted(pinned), sorted(C.generated_result_digests()))
+        # Names and digests both: a recipe that builds different bytes must fail here, not only a renamed case.
+        self.assertEqual(pinned, C.generated_result_digests())
         self.assertIn("safety/patch-many-large-appends-into-a-created-flow-sequence", pinned)
         self.assertGreaterEqual(len(pinned), 4)
 

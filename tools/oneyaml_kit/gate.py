@@ -347,6 +347,7 @@ def _all_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[S
                 Step("core", "kit tests", [py(), "-m", "unittest", "discover", "-s", "tests", "-q"],
                      drop_env=("KIT_ADAPTER_TESTS",)),
                 Step("core", "public text", [py(), "bin/kit", "public-text"]),
+                Step("core", "relative links", [py(), "bin/kit", "links"]),
                 Step("core", "no executables, dumps or large blobs", [py(), "bin/kit", "blobs"]),
             ]
         elif area == "bench":

@@ -59,8 +59,24 @@ class Safety(unittest.TestCase):
         # The same for an expected result a recipe builds: it is megabytes to build and to compare.
         for c in ALL:
             acc = c.expect.get("accept") if c.expect["kind"] == "bounded" else c.expect
-            if acc and acc["kind"] == "bytes" and len(acc["bytes"]) > 1_000_000:
+            if acc and self.result_size(acc) > 1_000_000:
                 self.assertIn("slow", c.tags, c.id)
+
+    @staticmethod
+    def result_size(expect):
+        # Every generated result kind counts: exact bytes, or event lines (one newline each).
+        if expect["kind"] == "bytes":
+            return len(expect["bytes"])
+        if expect["kind"] == "events":
+            return sum(len(line) + 1 for line in expect["events"])
+        return 0
+
+
+    def test_the_size_check_counts_event_results_too(self):
+        big = {"kind": "events", "events": ["+STR"] * 300_000}
+        self.assertGreater(self.result_size(big), 1_000_000)
+        self.assertGreater(self.result_size({"kind": "bytes", "bytes": b"x" * 1_000_001}), 1_000_000)
+        self.assertEqual(self.result_size({"kind": "value", "value": []}), 0)
 
 
 class Provenance(unittest.TestCase):

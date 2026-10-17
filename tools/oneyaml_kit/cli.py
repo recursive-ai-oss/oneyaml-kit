@@ -164,6 +164,15 @@ def cmd_public_text(args) -> int:
     return 1 if hits else 0
 
 
+def cmd_links(args) -> int:
+    from . import links
+    problems = links.check()
+    for line in problems:
+        print(line)
+    print(f"links: {len(links.doc_files())} files, {len(problems)} dead")
+    return 1 if problems else 0
+
+
 def cmd_list(args) -> int:
     cases = load_all(include_slow=True)
     from collections import Counter
@@ -219,6 +228,8 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("public-text", help="scan files for internal process text")
     p.add_argument("paths", nargs="*")
     p.set_defaults(fn=cmd_public_text)
+    p = sub.add_parser("links", help="check that relative links in the docs point at files and headings")
+    p.set_defaults(fn=cmd_links)
     p = sub.add_parser("blobs", help="refuse executables, core dumps and blobs over 1 MiB "
                                      "(the index, and history on request)")
     p.add_argument("--root", help="repository to check (default: this one)")
