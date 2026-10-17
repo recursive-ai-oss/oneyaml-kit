@@ -117,6 +117,7 @@ class Choosing(unittest.TestCase):
                      "benchmark go self-test", "benchmark .NET harness format"):
             self.assertIn(step, text)
         self.assertIn("public text", text)
+        self.assertIn("relative links", text)
 
     def test_every_language_is_either_tested_or_run_by_name(self):
         for name, a in gate.adapter_dirs(ROOT).items():

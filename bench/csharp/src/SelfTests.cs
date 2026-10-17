@@ -93,14 +93,35 @@ public static class SelfTests
     {
         // Immutable configuration a library hands to every document it makes: default limits, the default tag
         // directives, the serializer's built-in converters. None holds a document or its text.
-        _ when ConfigTypes.Contains(o.GetType().FullName ?? "") => true,
-        _ when (o.GetType().Namespace ?? "").StartsWith("System.Text.Json.Serialization.Converters", StringComparison.Ordinal) => true,
+        _ when ConfigTypes.Contains(o.GetType().FullName ?? "") => Hit(o.GetType().FullName!),
+        _ when (o.GetType().Namespace ?? "").StartsWith(ConverterNamespace, StringComparison.Ordinal) => Hit(ConverterNamespace),
         string s => s.Length < minLen,
         Array a => a.Length == 0,
         Type or System.Reflection.MemberInfo or System.Reflection.Assembly => true,
         // A stateless singleton, or a comparer the runtime hands out, cannot hold an input.
         _ => !HoldsState(o.GetType()) || o.GetType().GetInterfaces().Any(i => i.Name.Contains("Comparer")),
     };
+
+    const string ConverterNamespace = "System.Text.Json.Serialization.Converters";
+
+    /// <summary>The allowlist entries that matched something in this run. An entry that never matches has gone
+    /// stale and would silently excuse a future object of that type.</summary>
+    static readonly HashSet<string> AllowlistHits = [];
+
+    static bool Hit(string entry) { AllowlistHits.Add(entry); return true; }
+
+    /// <summary>Entries that matched nothing. A type from a library the build does not include (the harness measures
+    /// the .NET library only when its source is given) cannot match, so only entries of loaded assemblies count.</summary>
+    static IEnumerable<string> StaleEntries(IEnumerable<string> entries, ISet<string> hits, Func<string, bool>? applies = null) =>
+        entries.Where(e => !hits.Contains(e) && (applies?.Invoke(e) ?? true));
+
+    static bool AssemblyLoaded(string entry) =>
+        OwnedByLoaded(entry, AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName().Name ?? ""));
+
+    /// <summary>An entry belongs to the loaded assembly whose name is a dotted prefix of it. The first segment alone
+    /// would not do: every framework type starts with <c>System</c>, so a stale entry there would always be skipped.</summary>
+    static bool OwnedByLoaded(string entry, IEnumerable<string> assemblyNames) =>
+        assemblyNames.Any(n => n != "System" && n.Length > 0 && entry.StartsWith(n + ".", StringComparison.Ordinal));
 
     static readonly HashSet<string> ConfigTypes = ["OneYaml.YamlLimits", "SharpYaml.Tokens.TagDirective"];
 
@@ -314,8 +335,25 @@ public static class SelfTests
                     judged++;
                     seen.Add(lib.Id + " " + task.Id());
                 }
+            var stale = StaleEntries([.. ConfigTypes, ConverterNamespace], AllowlistHits, AssemblyLoaded).ToList();
+            Check(stale.Count == 0, $"allowlist entries that matched no object: {string.Join(", ", stale)}");
             Check(judged >= 10, $"only {judged} library and task pairs were checked");
             Check(seen.Contains("sharpyaml-syntax unchanged-emit"), "the pair that once shared its source string was not checked");
+        }),
+        ("an allowlist entry that matches nothing is reported as stale", () =>
+        {
+            var stale = StaleEntries(["A.Used", "B.Gone"], new HashSet<string> { "A.Used" }).ToList();
+            Check(stale.Count == 1 && stale[0] == "B.Gone", "the unmatched entry must be named");
+            Check(!StaleEntries(["A.Used"], new HashSet<string> { "A.Used" }).Any(), "a matched entry is not stale");
+            Check(!StaleEntries(["B.Gone"], new HashSet<string>(), _ => false).Any(), "an entry of an absent library is not judged");
+            string[] loaded = ["System", "System.Text.Json", "SharpYaml"];
+            Check(OwnedByLoaded("System.Text.Json.NoSuchType", loaded), "a System-rooted entry is judged by its real assembly");
+            Check(OwnedByLoaded("SharpYaml.Tokens.TagDirective", loaded), "a library entry is judged");
+            Check(!OwnedByLoaded("System.Other.Thing", loaded), "a bare System assembly owns nothing");
+            Check(!OwnedByLoaded("OneYaml.YamlLimits", loaded), "an entry of an absent library is not judged");
+            Check(!OwnedByLoaded("SharpYamlX.Thing", loaded), "a name must match on a segment boundary");
+            var gone = StaleEntries(["System.Text.Json.NoSuchType"], new HashSet<string>(), e => OwnedByLoaded(e, loaded)).ToList();
+            Check(gone.Count == 1, "a stale System-rooted entry is reported");
         }),
         ("the sharing check finds a shared string, array or memory", () =>
         {

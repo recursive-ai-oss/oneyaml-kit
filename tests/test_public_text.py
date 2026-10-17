@@ -135,6 +135,32 @@ class LicenceFiles(unittest.TestCase):
         finally:
             shutil.rmtree(t)
 
+    def test_the_code_of_conduct_is_skipped_only_at_the_root_and_only_at_its_digest(self):
+        import hashlib
+        from unittest import mock
+        self.assertEqual(public_text.CONDUCT_PATH, "CODE_OF_CONDUCT.md")
+        self.assertEqual(public_text.CONDUCT_SHA256,
+                         "13f35927635581f323a94d1af9dbf2e89b7b1ef73310efe6bbb0d4b98f4c631c")
+        # The real text is not in this tree's tests, so a stand-in with the same kind of wording gets its digest pinned.
+        standard = (j("Community leaders will rev", "iew and investigate all complaints.\n") +
+                    j("We hold ourselves to high stan", "dards.\n")).encode()
+        digest = hashlib.sha256(standard).hexdigest()
+        t = tmp()
+        try:
+            with mock.patch.object(public_text, "CONDUCT_SHA256", digest):
+                (t / "docs").mkdir()
+                root_file, other = t / "CODE_OF_CONDUCT.md", t / "docs" / "CODE_OF_CONDUCT.md"
+                root_file.write_bytes(standard)
+                other.write_bytes(standard)
+                self.assertEqual(scan([root_file], root=t), [])
+                # The same content elsewhere is scanned.
+                self.assertTrue(scan([other], root=t))
+                # One byte of change at the root puts the file back under the scan.
+                root_file.write_bytes(standard + b"\n")
+                self.assertTrue(scan([root_file], root=t))
+        finally:
+            shutil.rmtree(t)
+
 
 if __name__ == "__main__":
     unittest.main()

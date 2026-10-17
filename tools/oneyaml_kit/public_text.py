@@ -60,6 +60,11 @@ LICENSE_TEXTS = {"suites/yaml-test-suite/LICENSE"}
 # ships): any edit puts it back under the scan.
 CC0_PATH = "suites/own/LICENSE"
 CC0_SHA256 = "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+# The Code of Conduct is the Contributor Covenant 2.1 with our reporting route filled in, and its ordinary
+# words trip the check. As with the CC0 text, it is skipped only at the root and only while its bytes match the
+# pinned digest; any edit puts it back under the scan.
+CONDUCT_PATH = "CODE_OF_CONDUCT.md"
+CONDUCT_SHA256 = "13f35927635581f323a94d1af9dbf2e89b7b1ef73310efe6bbb0d4b98f4c631c"
 # Files that may mention a commit hash (provenance records and lockfiles).
 HASH_OK_NAMES = {"SOURCE.md", "Cargo.lock", "pins.json"}
 
@@ -86,6 +91,8 @@ def scan(paths: list[Path], root: Path = ROOT) -> list[str]:
         if rel.startswith(SKIP_PREFIXES) or rel in LICENSE_TEXTS:
             continue
         if rel == CC0_PATH and hashlib.sha256(p.read_bytes()).hexdigest() == CC0_SHA256:
+            continue
+        if rel == CONDUCT_PATH and hashlib.sha256(p.read_bytes()).hexdigest() == CONDUCT_SHA256:
             continue
         vendored = p.name in ("input.yaml", "expected.json") or "/LICENSES/" in rel
         if rel.startswith("bench/workloads/real/") and vendored:

@@ -26,6 +26,8 @@ The gate has two tiers.
 - the corpus pins,
 - the kit's own tests,
 - the public-text check,
+- `bin/kit links`, which fails on a relative link in a top-level Markdown file (the README, CONTRIBUTING.md, SECURITY.md, ...) or under `docs/` whose file or
+  heading does not exist (absolute URLs are not fetched),
 - `bin/kit blobs`, which refuses tracked executables, core dumps and files over 1 MiB.
 
 It adds an area only when the files that differ from `main` touch it, and then runs only that
