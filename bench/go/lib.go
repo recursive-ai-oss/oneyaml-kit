@@ -8,9 +8,8 @@ import (
 	"errors"
 	"io"
 	"reflect"
-	"runtime"
 	"runtime/debug"
-	"sync"
+	"slices"
 )
 
 type docAPI struct {
@@ -124,12 +123,19 @@ func treeProduct(docs []any) Product {
 
 func bytesProduct(b []byte) Product { return Product{Kind: BytesProduct, Bytes: b} }
 
+// ownCopy is the input as one starting state holds it: bytes of its own, made in setup and so
+// outside the clock. No two states, and not the workload, share a buffer, whatever a library
+// does with the buffer it is given (keep it, slice it, read it lazily).
+func ownCopy(in []byte) func() []byte {
+	return func() []byte { return slices.Clone(in) }
+}
+
 func typedOf[T any](parse func([]byte, any) error, in []byte) Runner {
 	return newRunner(
-		func() struct{} { return struct{}{} },
-		func(*struct{}) (*T, error) {
+		ownCopy(in),
+		func(own *[]byte) (*T, error) {
 			var t T
-			if err := parse(in, &t); err != nil {
+			if err := parse(*own, &t); err != nil {
 				return nil, err
 			}
 			return &t, nil
@@ -163,8 +169,8 @@ func (l *yamlLib) Runner(task Task, w *Workload) (Runner, string) {
 			return unsupported(l.whyNoGeneric, "no generic decoding")
 		}
 		return newRunner(
-			func() struct{} { return struct{}{} },
-			func(*struct{}) ([]any, error) { return l.loadAll(in, w.Documents) },
+			ownCopy(in),
+			func(own *[]byte) ([]any, error) { return l.loadAll(*own, w.Documents) },
 			treeProduct), ""
 	case Dump:
 		if l.marshal == nil {
@@ -176,7 +182,7 @@ func (l *yamlLib) Runner(task Task, w *Workload) (Runner, string) {
 		return newRunner(
 			func() any {
 				// The library's own tree, read from the input, outside the clock.
-				docs, err := l.loadAll(in, 1)
+				docs, err := l.loadAll(slices.Clone(in), 1)
 				if err != nil {
 					return err
 				}
@@ -207,7 +213,7 @@ func (l *yamlLib) docRunner(task Task, w *Workload) (Runner, string) {
 	}
 	in := w.Input
 	parseState := func() any {
-		doc, err := d.parse(in, w.Documents)
+		doc, err := d.parse(slices.Clone(in), w.Documents)
 		if err != nil {
 			return err
 		}
@@ -216,8 +222,8 @@ func (l *yamlLib) docRunner(task Task, w *Workload) (Runner, string) {
 	switch task {
 	case DocumentParse:
 		return newRunner(
-			func() struct{} { return struct{}{} },
-			func(*struct{}) (any, error) { return d.parse(in, w.Documents) },
+			ownCopy(in),
+			func(own *[]byte) (any, error) { return d.parse(*own, w.Documents) },
 			func(doc any) Product {
 				p := Product{Kind: DocumentProduct}
 				if d.value != nil {
@@ -235,26 +241,10 @@ func (l *yamlLib) docRunner(task Task, w *Workload) (Runner, string) {
 				return p
 			}), ""
 	case UnchangedEmit:
-		// Writing out an unchanged document does not touch it and can take a few nanoseconds,
-		// which makes the benchmark ask for millions of runs; parsing a fresh document for each
-		// of them (outside the clock) would take far longer than the measurement. So when a
-		// write of a used document costs the same allocations as a write of a fresh one, every
-		// run shares one parsed document. A library that does less on the second write (it
-		// keeps a rendering) gets a fresh document per run, or its figures would be too good.
-		var once sync.Once
-		var shared any
-		var reuse bool
-		setup := func() any {
-			once.Do(func() {
-				shared = parseState()
-				reuse = emitCostsTheSame(d.emit, parseState)
-			})
-			if reuse {
-				return shared
-			}
-			return parseState()
-		}
-		return newRunner(setup,
+		// Every run writes its own freshly parsed document, parsed outside the clock. A document
+		// that several runs shared would be written warm, and a library that keeps its rendering
+		// would be timed on the first write for one run and on a cached one for the rest.
+		return newRunner(parseState,
 			func(doc *any) ([]byte, error) {
 				if err, bad := (*doc).(error); bad {
 					return nil, err
@@ -304,8 +294,8 @@ func (l *yamlLib) patchRunner(w *Workload) (Runner, string) {
 		return nil, "the failing patch cannot be built: " + err.Error()
 	}
 	return newPatchRunner(
-		func() struct{} { return struct{}{} },
-		func(*struct{}) ([]byte, error) { return pa.apply(in, good) },
+		ownCopy(in),
+		func(own *[]byte) ([]byte, error) { return pa.apply(*own, good) },
 		func(b []byte) Product {
 			p := bytesProduct(b)
 			p.ValueOnly = pa.valueOnly
@@ -318,36 +308,4 @@ func (l *yamlLib) patchRunner(w *Workload) (Runner, string) {
 			_, err := pa.apply(held, bad)
 			return FailedPatch{Errored: err != nil, Bytes: held}
 		}), ""
-}
-
-// emitCostsTheSame says whether writing out a document that was already written 20 times
-// allocates what writing a freshly parsed one does (within 2%). A document that cannot be
-// parsed or written counts as not the same, so the guard reports it from fresh states.
-func emitCostsTheSame(emit func(any) ([]byte, error), parse func() any) bool {
-	mallocs := func(doc any) (uint64, bool) {
-		if _, bad := doc.(error); bad {
-			return 0, false
-		}
-		var before, after runtime.MemStats
-		runtime.ReadMemStats(&before)
-		_, err := emit(doc)
-		runtime.ReadMemStats(&after)
-		return after.Mallocs - before.Mallocs, err == nil
-	}
-	fresh, ok := mallocs(parse())
-	if !ok {
-		return false
-	}
-	used := parse()
-	for i := 0; i < 20; i++ {
-		if _, ok := mallocs(used); !ok {
-			return false
-		}
-	}
-	again, _ := mallocs(used)
-	diff := float64(fresh) - float64(again)
-	if diff < 0 {
-		diff = -diff
-	}
-	return diff <= 0.02*float64(fresh)+2
 }

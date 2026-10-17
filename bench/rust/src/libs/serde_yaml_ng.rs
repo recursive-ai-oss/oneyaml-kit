@@ -9,11 +9,16 @@ use serde_yaml_ng::Value as YValue;
 
 pub struct SerdeYamlNg;
 
+/// A parsed document owns all of its text.
+impl Held for Vec<YValue> {
+    fn held(&self, _: &mut Vec<(usize, usize)>) {}
+}
+
 #[derive(Clone, Copy)]
 struct Typed;
 
 impl TypedParser for Typed {
-    fn parse<T: DeserializeOwned>(&self, src: &'static str) -> Result<T, String> {
+    fn parse<T: DeserializeOwned>(&self, src: &str) -> Result<T, String> {
         serde_yaml_ng::from_str::<T>(src).map_err(|e| e.to_string())
     }
 }
@@ -80,8 +85,8 @@ impl Library for SerdeYamlNg {
                 typed_runner(Typed, model, src).ok_or(Unsupported("unknown typed model"))?
             }
             Task::GenericLoad => runner(
-                || (),
-                move |()| load_all(src, single),
+                move || OwnedInput::new(src),
+                move |own| load_all(own.as_str(), single),
                 |docs| match docs.iter().map(to_json).collect::<Result<Vec<_>, _>>() {
                     Ok(d) => Product::Value(docs_value(d)),
                     Err(e) => Product::Value(Value::String(e)),
@@ -92,7 +97,7 @@ impl Library for SerdeYamlNg {
                     return Err(Unsupported("dump is defined for one document"));
                 }
                 runner(
-                    move || load_all(src, single),
+                    move || load_all(OwnedInput::new(src).as_str(), single),
                     |t| match t {
                         Ok(docs) => docs
                             .first()

@@ -50,6 +50,14 @@ LANG_TESTS = {"rust": "test_adapter_oneyaml_rust.py", "go": "test_adapters_go.py
 DOTNET_FORMAT_ALL = (
     'pids=; for p in "$@"; do "$0" format whitespace "$p" --verify-no-changes & pids="$pids $!"; done; '
     'rc=0; for pid in $pids; do wait "$pid" || rc=1; done; exit $rc')
+# The input-ownership check over the Go harness with our library linked in, through a module file in a
+# temporary directory (the same way bench/go/build.sh does it), so no tracked go.mod changes.
+GO_OWN_CHECK = (
+    'src=$(cd "$KIT_ONEYAML_GO_SRC" && pwd) && tmp=$(mktemp -d) && cp go.mod "$tmp/m.mod" && cp go.sum "$tmp/m.sum" && '
+    'printf "\\nrequire oneyaml.dev/go v0.0.0\\n\\nreplace oneyaml.dev/go => %s\\n" "$src" >> "$tmp/m.mod" && '
+    'go test -short -mod=readonly -modfile="$tmp/m.mod" -tags oneyaml_go_src -run "Prepared|Sharing|Reads" ./...'
+)
+
 GO_CHECK = ["sh", "-c", 'test -z "$(gofmt -l .)" && go vet ./... && go test -short ./...']
 REFERENCE = "rust"  # the quick adapter that stands in for the rest on a core change
 # The benchmark harness languages. Each has an area of its own, `bench-<language>`.
@@ -303,7 +311,8 @@ def bench_lang_steps(area: str, root: Path, out: Path, target: str, dotnet: str)
             Step(area, "benchmark go self-test",
                  ["sh", "-c", "go vet -tags selftest ./... && go test -short -tags selftest ./..."], d),
             smoke, pipe,
-        ]
+        ] + ([Step(area, "benchmark go ownership check with oneyaml-go linked",
+                   ["sh", "-c", GO_OWN_CHECK], d, tier="full")] if os.environ.get("KIT_ONEYAML_GO_SRC") else [])
     return [
         Step(area, "benchmark .NET harness format",
              [dotnet, "format", "whitespace", "bench/csharp/Bench.csproj", "--verify-no-changes"]),

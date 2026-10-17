@@ -166,6 +166,11 @@ func oneCell(lib Library, task Task, w *Workload, mode string) map[string]any {
 		return rec
 	}
 	rec["time"] = map[string]any{"ns": m.NsPerOp, "stat": "mean", "iterations": m.Iterations}
+	if m.Fixed {
+		// The probe figures the choice rested on: per state, the ns to build it and the ns to run it.
+		rec["time"].(map[string]any)["fixed_iterations"] = map[string]any{
+			"setup_ns": m.Probe.SetupNs, "run_ns": m.Probe.RunNs, "iterations": m.Probe.BudgetIterations}
+	}
 	rec["memory"] = map[string]any{"allocated_bytes": m.BytesPerOp, "allocations": m.AllocsPerOp}
 	return rec
 }

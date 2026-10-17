@@ -185,6 +185,10 @@ pub struct FailedPatch {
 /// is the only code the clock sees.
 pub trait Batch {
     fn run(&mut self);
+    /// The address ranges of the text each starting state holds or borrows. A test uses it to
+    /// check that no two states, and not the workload, share input bytes.
+    #[cfg_attr(not(test), allow(dead_code))]
+    fn held_inputs(&self) -> Vec<Vec<(usize, usize)>>;
 }
 
 pub trait Runner {
@@ -234,6 +238,87 @@ pub trait Library {
     fn runner(&self, task: Task, w: &'static Workload) -> Result<Box<dyn Runner>, Unsupported>;
 }
 
+// ---- the input a starting state owns -------------------------------------------------------
+
+/// A copy of the workload's input that one starting state owns. It is made in setup, outside the
+/// clock, so no two states (and not the workload) read the same bytes, whatever a library does
+/// with the text it is given.
+///
+/// The copy sits behind a raw pointer, freed in `Drop`, so that text borrowed from it stays valid
+/// when the state is moved (a moved `Box` would invalidate borrows made before the move).
+pub struct OwnedInput(*mut str);
+
+impl OwnedInput {
+    pub fn new(src: &str) -> Self {
+        OwnedInput(Box::into_raw(Box::<str>::from(src)))
+    }
+
+    pub fn as_str(&self) -> &str {
+        // SAFETY: the pointer came from `Box::into_raw` in `new` and is freed only in `drop`.
+        unsafe { &*self.0 }
+    }
+
+    /// The text with its lifetime extended, for a library whose result borrows from its input
+    /// (saphyr's tree). The copy is freed only when the state is dropped, so the extension holds as
+    /// long as nothing derived from it outlives the state: a result is dropped inside the run, and
+    /// a state that holds such a tree lists the tree before this input, so the tree is dropped first.
+    pub fn borrowed_for_state(&self) -> &'static str {
+        // SAFETY: as above; the allocation does not move while the state exists.
+        unsafe { &*self.0 }
+    }
+}
+
+impl Drop for OwnedInput {
+    fn drop(&mut self) {
+        // SAFETY: the pointer came from `Box::into_raw` and has not been freed.
+        unsafe { drop(Box::from_raw(self.0)) }
+    }
+}
+
+/// The address ranges of the text a starting state holds or borrows: its own input copy, and any
+/// part of a tree that points into text. A state type must say so itself; there is no blanket
+/// answer, so a new kind of state cannot slip through as "owns everything".
+pub trait Held {
+    #[cfg_attr(not(test), allow(dead_code))]
+    fn held(&self, out: &mut Vec<(usize, usize)>);
+}
+
+pub fn range_of(s: &str) -> (usize, usize) {
+    let p = s.as_ptr() as usize;
+    (p, p + s.len())
+}
+
+impl Held for OwnedInput {
+    fn held(&self, out: &mut Vec<(usize, usize)>) {
+        out.push(range_of(self.as_str()));
+    }
+}
+
+/// A result typed as borrowing from the text it was parsed from. It is a state only together with
+/// the copy it borrows, so that it cannot be built on the workload's own text unnoticed.
+pub trait Borrows {}
+
+impl<T: Borrows, E> Borrows for Result<T, E> {}
+
+impl<A: Borrows> Held for (A, OwnedInput) {
+    fn held(&self, out: &mut Vec<(usize, usize)>) {
+        self.1.held(out);
+    }
+}
+
+impl Held for () {
+    fn held(&self, _: &mut Vec<(usize, usize)>) {}
+}
+
+/// A parsed value, or the error that stopped it.
+impl<T: Held, E> Held for Result<T, E> {
+    fn held(&self, out: &mut Vec<(usize, usize)>) {
+        if let Ok(t) = self {
+            t.held(out);
+        }
+    }
+}
+
 // ---- building runners from closures ------------------------------------------------------
 
 /// The timed task: it borrows its starting state, which is released after the clock stops.
@@ -251,7 +336,17 @@ struct FnBatch<S, O> {
     run: RunFn<S, O>,
 }
 
-impl<S, O> Batch for FnBatch<S, O> {
+impl<S: Held, O> Batch for FnBatch<S, O> {
+    fn held_inputs(&self) -> Vec<Vec<(usize, usize)>> {
+        self.states
+            .iter()
+            .map(|s| {
+                let mut out = vec![];
+                s.held(&mut out);
+                out
+            })
+            .collect()
+    }
     fn run(&mut self) {
         for s in self.states.iter_mut() {
             // The result is dropped inside the timed region, as a caller's would be. The
@@ -261,7 +356,7 @@ impl<S, O> Batch for FnBatch<S, O> {
     }
 }
 
-impl<S: 'static, O: 'static> Runner for FnRunner<S, O> {
+impl<S: Held + 'static, O: 'static> Runner for FnRunner<S, O> {
     fn check(&self) -> Result<Product, String> {
         let mut state = (self.setup)();
         let out = (self.run)(&mut state)?;
@@ -281,7 +376,7 @@ impl<S: 'static, O: 'static> Runner for FnRunner<S, O> {
 /// Builds a runner. `setup` makes one starting state (not timed), `run` is the timed task
 /// and borrows that state, so its release happens after the clock stops, and `product`
 /// converts the output for the guard (not timed).
-pub fn runner<S: 'static, O: 'static>(
+pub fn runner<S: Held + 'static, O: 'static>(
     setup: impl Fn() -> S + 'static,
     run: impl Fn(&mut S) -> Result<O, String> + 'static,
     product: impl Fn(O) -> Product + 'static,
@@ -296,7 +391,7 @@ pub fn runner<S: 'static, O: 'static>(
 
 #[cfg_attr(not(feature = "selftest"), allow(dead_code))]
 /// As [`runner`], for a patch task that also checks the failing patch.
-pub fn patch_runner<S: 'static, O: 'static>(
+pub fn patch_runner<S: Held + 'static, O: 'static>(
     setup: impl Fn() -> S + 'static,
     run: impl Fn(&mut S) -> Result<O, String> + 'static,
     product: impl Fn(O) -> Product + 'static,

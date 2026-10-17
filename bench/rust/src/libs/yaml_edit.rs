@@ -9,6 +9,11 @@ use yaml_edit::{Document, Mapping, Sequence, YamlFile, YamlNode};
 
 pub struct YamlEdit;
 
+/// A parsed document owns all of its text.
+impl Held for YamlFile {
+    fn held(&self, _: &mut Vec<(usize, usize)>) {}
+}
+
 fn parse(src: &str) -> Result<YamlFile, String> {
     let p = YamlFile::parse(src);
     if let Some(e) = p.errors().first() {
@@ -155,15 +160,15 @@ impl Library for YamlEdit {
             Task::GenericLoad => return Err(Unsupported("no data model: it is a syntax tree")),
             Task::Dump => return Err(Unsupported("no data model to dump")),
             Task::DocumentParse => runner(
-                || (),
-                move |()| parse(src),
+                move || OwnedInput::new(src),
+                move |own| parse(own.as_str()),
                 |f| Product::Document {
                     value: None,
                     emitted: f.to_string().into_bytes(),
                 },
             ),
             Task::UnchangedEmit => runner(
-                move || parse(src),
+                move || parse(OwnedInput::new(src).as_str()),
                 |f| {
                     f.as_ref()
                         .map(|f| f.to_string().into_bytes())
@@ -181,7 +186,7 @@ impl Library for YamlEdit {
                 };
                 let root_is_mapping = w.base_value().is_object();
                 runner(
-                    move || parse(src),
+                    move || parse(OwnedInput::new(src).as_str()),
                     move |f| {
                         let f = f.as_ref().map_err(|e| e.clone())?;
                         apply(f, &steps, root_is_mapping)?;

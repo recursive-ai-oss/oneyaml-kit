@@ -60,10 +60,35 @@ the same code twice: once for the correctness guard, and then many times under t
 | `patch` | .NET: the library's parsed document (or, for a baseline that keeps no text, its loaded data tree). Go: the input bytes. Rust: the same as .NET, but no library there has a patch engine yet, so the task has no cells | .NET: apply an RFC 6902 patch atomically, write the bytes. Go: every library's patch is timed from text to text, so the parse and the write are inside the clock (the harness records this as `text_tasks`) | the bytes equal the expected bytes, and a second patch with a failing step leaves the document unchanged and reports an error |
 
 The state each task starts from is built fresh for every iteration, outside the clock, and
-is released after the clock stops. The one exception is the Go `unchanged-emit` task: writing out an unchanged
-document can take nanoseconds, so the harness shares one parsed document between runs, but only for a library
-whose write of a used document allocates the same as a write of a fresh one (checked before timing, within 2%).
-A library that does less the second time gets a fresh document for every run. The result of every iteration (a value tree, an output
+is released after the clock stops.
+
+**Every prepared state owns its input.** The harnesses run a batch of iterations per measured call, so a
+batch holds many prepared states. Each of them gets a copy of the input of its own, whatever form the
+library takes it in (bytes, a decoded string, a stream, a file), and the copy is made in setup, outside the
+clock. No two states, and not the workload itself, share an input object. Without this rule a library that
+keeps a reference to the text it is given, or reads it lazily, would find one cache-hot buffer in every
+state, while a library that copies would find many cold ones, and a cell would depend on how the harness
+happened to hand out its input. No caller shares one source string between independent documents. A
+document parsed in setup is parsed from its own copy, and a task that parses inside the clock reads the
+copy its state holds. The same applies to our libraries and to competitors. Each harness has a test that
+inspects the prepared states and fails when two of them reach the same input buffer, or one of them reaches the
+workload's own. The check is strictest where the clock reads the input (typed load, generic load, document
+parse, and the Go text-to-text patch): there every state must hold an input-sized buffer of its own. For states
+parsed in setup it also fails when two states reach the same object, a parsed document included. The checks run
+over the libraries linked into the build. The C# check includes oneyaml-csharp when `KIT_ONEYAML_CSHARP_SRC` is
+set for the full gate, and the Go check includes oneyaml-go when `KIT_ONEYAML_GO_SRC` is set; CI has no checkout of
+either, so there they cover the competitors only. The Rust check always includes oneyaml. Allocation figures leave the copy out: it is made while the clock and the allocation
+counter are stopped (BenchmarkDotNet's iteration setup, `testing.B` with its timer stopped, and a counter
+that starts around the timed call in Rust).
+
+Because every iteration has a state of its own, a task that takes nanoseconds on a state that takes
+microseconds to build (the Go `unchanged-emit` of a library that returns the text it kept) would need a
+million states from `testing.B`'s time-based loop. When building the states would take more than 50 times the
+benchtime, the Go harness runs a fixed number of iterations that fits that budget (at least 64) and marks the
+cell's `time` with `fixed_iterations`, which records what the choice rested on: the nanoseconds to build one state
+(`setup_ns`), the nanoseconds to run one (`run_ns`) and the iterations the budget allowed (`iterations`).
+
+The result of every iteration (a value tree, an output
 buffer) is dropped inside the clock, as a caller's would be. Edit paths are resolved from the
 workload's pointers once, before the clock, into the library's own path syntax.
 

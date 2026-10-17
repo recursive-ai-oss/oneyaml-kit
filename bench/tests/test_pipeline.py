@@ -202,6 +202,15 @@ class CSharpPipeline(Pipeline, unittest.TestCase):
         with mock.patch.dict(os.environ, {"SELFTEST": "1"}):
             super().test_a_crashing_library_is_named_and_the_run_continues()
 
+    def test_the_harness_own_checks_pass(self):
+        # The checks inside the harness: the guard, the reference parsers, the edit renderer and
+        # the one that fails when two prepared states share an input.
+        r = subprocess.run([str(run.ROOT / "csharp" / "run.sh"), str(self.controls), "selftest"],
+                           env=dict(os.environ, SELFTEST="1"), capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr[-500:])
+        self.assertNotIn("FAIL", r.stdout)
+        self.assertIn("no two prepared states share an input", r.stdout)
+
 
 class Pins(unittest.TestCase):
     def test_every_library_is_pinned_to_one_exact_release(self):

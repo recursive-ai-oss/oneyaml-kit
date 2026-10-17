@@ -241,6 +241,8 @@ type Batch interface {
 	Run()
 	// Panic is the first panic Run recovered, or nil.
 	Panic() any
+	// States are the prepared starting states, for the check that none shares an input.
+	States() []any
 }
 
 // Runner is one library's way to do one task on one workload.
@@ -282,6 +284,14 @@ func (b *fnBatch[S, O]) Run() {
 }
 
 func (b *fnBatch[S, O]) Panic() any { return b.panicV }
+
+func (b *fnBatch[S, O]) States() []any {
+	out := make([]any, len(b.states))
+	for i := range b.states {
+		out[i] = &b.states[i]
+	}
+	return out
+}
 
 func (r *fnRunner[S, O]) Check() (Product, error) {
 	st := r.setup()

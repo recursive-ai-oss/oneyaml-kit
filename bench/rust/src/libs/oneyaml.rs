@@ -9,11 +9,26 @@ use serde_json::Value;
 
 pub struct OneYaml;
 
+/// A parsed document owns all of its text.
+impl Held for Document {
+    fn held(&self, _: &mut Vec<(usize, usize)>) {}
+}
+
+/// A parsed document owns all of its text.
+impl Held for Stream {
+    fn held(&self, _: &mut Vec<(usize, usize)>) {}
+}
+
+/// A parsed document owns all of its text.
+impl Held for Vec<YValue> {
+    fn held(&self, _: &mut Vec<(usize, usize)>) {}
+}
+
 #[derive(Clone, Copy)]
 struct Typed;
 
 impl TypedParser for Typed {
-    fn parse<T: DeserializeOwned>(&self, src: &'static str) -> Result<T, String> {
+    fn parse<T: DeserializeOwned>(&self, src: &str) -> Result<T, String> {
         oneyaml::from_str::<T>(src).map_err(|e| e.to_string())
     }
 }
@@ -85,7 +100,7 @@ fn path_escape(k: &str) -> String {
 }
 
 fn parse_doc(w: &Workload) -> Result<Document, String> {
-    Document::parse(w.input_str).map_err(|e| e.to_string())
+    Document::parse(OwnedInput::new(w.input_str).as_str()).map_err(|e| e.to_string())
 }
 
 fn apply(doc: &mut Document, steps: &[Step]) -> Result<(), String> {
@@ -139,8 +154,8 @@ impl Library for OneYaml {
                 typed_runner(Typed, model, src).ok_or(Unsupported("unknown typed model"))?
             }
             Task::GenericLoad => runner(
-                || (),
-                move |()| load_all(src, single),
+                move || OwnedInput::new(src),
+                move |own| load_all(own.as_str(), single),
                 |docs| match docs.iter().map(to_json).collect::<Result<Vec<_>, _>>() {
                     Ok(d) => Product::Value(docs_value(d)),
                     Err(e) => Product::Value(Value::String(e)),
@@ -151,7 +166,7 @@ impl Library for OneYaml {
                     return Err(Unsupported("dump is defined for one document"));
                 }
                 runner(
-                    move || load_all(src, single),
+                    move || load_all(OwnedInput::new(src).as_str(), single),
                     |t| match t {
                         Ok(docs) => docs
                             .first()
@@ -165,8 +180,8 @@ impl Library for OneYaml {
             Task::DocumentParse => {
                 if multi {
                     runner(
-                        || (),
-                        move |()| Stream::parse(src).map_err(|e| e.to_string()),
+                        move || OwnedInput::new(src),
+                        move |own| Stream::parse(own.as_str()).map_err(|e| e.to_string()),
                         |s| {
                             let docs: Result<Vec<_>, _> = s
                                 .documents()
@@ -190,8 +205,8 @@ impl Library for OneYaml {
                     )
                 } else {
                     runner(
-                        || (),
-                        move |()| Document::parse(src).map_err(|e| e.to_string()),
+                        move || OwnedInput::new(src),
+                        move |own| Document::parse(own.as_str()).map_err(|e| e.to_string()),
                         |d| match d
                             .to_value()
                             .map_err(|e| e.to_string())
@@ -212,7 +227,9 @@ impl Library for OneYaml {
             Task::UnchangedEmit => {
                 if multi {
                     runner(
-                        move || Stream::parse(src).map_err(|e| e.to_string()),
+                        move || {
+                            Stream::parse(OwnedInput::new(src).as_str()).map_err(|e| e.to_string())
+                        },
                         |s| s.as_ref().map(|s| s.to_bytes()).map_err(|e| e.clone()),
                         Product::Bytes,
                     )

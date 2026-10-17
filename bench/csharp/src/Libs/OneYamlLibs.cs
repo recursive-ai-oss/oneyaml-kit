@@ -34,21 +34,20 @@ public abstract class OneYamlLibBase : ILibrary
 
     public Runner Runner(BenchTask task, Workload w)
     {
-        var input = w.Input;
         switch (task)
         {
             case BenchTask.TypedLoad:
                 return w.TypedModel switch
                 {
                     "gha" => Generated
-                        ? new FnRunner<int, Workflow?>(() => 0, _ => YamlSerializer.Deserialize(input, OneYamlContext.Default.Workflow),
+                        ? new FnRunner<byte[], Workflow?>(w.OwnBytes, input => YamlSerializer.Deserialize(input, OneYamlContext.Default.Workflow),
                             t => new Product.Value(Conv.WorkflowJ(t!)))
-                        : new FnRunner<int, Workflow?>(() => 0, _ => YamlSerializer.Deserialize<Workflow>(input),
+                        : new FnRunner<byte[], Workflow?>(w.OwnBytes, input => YamlSerializer.Deserialize<Workflow>(input),
                             t => new Product.Value(Conv.WorkflowJ(t!))),
                     "records" => Generated
-                        ? new FnRunner<int, List<Record>?>(() => 0, _ => YamlSerializer.Deserialize(input, OneYamlContext.Default.ListRecord),
+                        ? new FnRunner<byte[], List<Record>?>(w.OwnBytes, input => YamlSerializer.Deserialize(input, OneYamlContext.Default.ListRecord),
                             t => new Product.Value(Conv.Records(t!)))
-                        : new FnRunner<int, List<Record>?>(() => 0, _ => YamlSerializer.Deserialize<List<Record>>(input),
+                        : new FnRunner<byte[], List<Record>?>(w.OwnBytes, input => YamlSerializer.Deserialize<List<Record>>(input),
                             t => new Product.Value(Conv.Records(t!))),
                     _ => throw Support.No("no typed model for this workload"),
                 };
@@ -56,28 +55,28 @@ public abstract class OneYamlLibBase : ILibrary
                 if (w.Documents != 1)
                 {
                     return Generated
-                        ? new FnRunner<int, IReadOnlyList<object?>>(() => 0, _ => YamlSerializer.DeserializeAll(input, OneYamlContext.Default.Object)!,
+                        ? new FnRunner<byte[], IReadOnlyList<object?>>(w.OwnBytes, input => YamlSerializer.DeserializeAll(input, OneYamlContext.Default.Object)!,
                             l => new Product.Value(Conv.Docs(l.Select(Conv.FromObject).ToList())))
-                        : new FnRunner<int, IReadOnlyList<object?>>(() => 0, _ => YamlSerializer.DeserializeAll<object>(input)!,
+                        : new FnRunner<byte[], IReadOnlyList<object?>>(w.OwnBytes, input => YamlSerializer.DeserializeAll<object>(input)!,
                             l => new Product.Value(Conv.Docs(l.Select(Conv.FromObject).ToList())));
                 }
                 return Generated
-                    ? new FnRunner<int, object?>(() => 0, _ => YamlSerializer.Deserialize(input, OneYamlContext.Default.Object),
+                    ? new FnRunner<byte[], object?>(w.OwnBytes, input => YamlSerializer.Deserialize(input, OneYamlContext.Default.Object),
                         t => new Product.Value(Conv.FromObject(t)))
-                    : new FnRunner<int, object?>(() => 0, _ => YamlSerializer.Deserialize<object>(input),
+                    : new FnRunner<byte[], object?>(w.OwnBytes, input => YamlSerializer.Deserialize<object>(input),
                         t => new Product.Value(Conv.FromObject(t)));
             case BenchTask.Dump:
                 // The starting state is the library's own generic tree, read from the input.
                 if (w.Documents != 1) throw Support.No("dump is defined for one document");
                 return Generated
-                    ? new FnRunner<object?, byte[]>(() => YamlSerializer.Deserialize(input, OneYamlContext.Default.Object),
+                    ? new FnRunner<object?, byte[]>(() => YamlSerializer.Deserialize(w.OwnBytes(), OneYamlContext.Default.Object),
                         tree => YamlSerializer.SerializeToUtf8Bytes(tree, OneYamlContext.Default.Object), b => new Product.Bytes(b))
-                    : new FnRunner<object?, byte[]>(() => YamlSerializer.Deserialize<object>(input),
+                    : new FnRunner<object?, byte[]>(() => YamlSerializer.Deserialize<object>(w.OwnBytes()),
                         tree => YamlSerializer.SerializeToUtf8Bytes(tree), b => new Product.Bytes(b));
             case BenchTask.DocumentParse:
-                return new ParseRunner(input);
+                return new ParseRunner(w);
             case BenchTask.UnchangedEmit:
-                return new FnRunner<YamlDocument, byte[]>(() => YamlDocument.Parse(input), d => d.ToUtf8Bytes(),
+                return new FnRunner<YamlDocument, byte[]>(() => YamlDocument.Parse(w.OwnBytes()), d => d.ToUtf8Bytes(),
                     b => new Product.Bytes(b));
             case BenchTask.EditScript:
                 {
@@ -85,7 +84,7 @@ public abstract class OneYamlLibBase : ILibrary
                     // converted before the clock.
                     var edits = w.EditOps.Select(o => (o.Name, o.Path, Value: o.Value == null ? null : ToObject(o.Value))).ToList();
                     if (edits.Any(e => e.Name is not ("replace" or "remove"))) throw Support.No("edit scripts hold replace and remove only");
-                    return new FnRunner<YamlDocument, byte[]>(() => YamlDocument.Parse(input), d => Edit(d, edits),
+                    return new FnRunner<YamlDocument, byte[]>(() => YamlDocument.Parse(w.OwnBytes()), d => Edit(d, edits),
                         b => new Product.Bytes(b));
                 }
             default:
@@ -95,7 +94,7 @@ public abstract class OneYamlLibBase : ILibrary
                     var patch = YamlPatch.Parse(PatchJson(w.PatchOps));
                     var failing = YamlPatch.Parse(PatchJson(w.PatchFailingOps));
                     return new FnRunner<YamlDocument, byte[]>(
-                        () => YamlDocument.Parse(input),
+                        () => YamlDocument.Parse(w.OwnBytes()),
                         d =>
                         {
                             using (d)
@@ -108,7 +107,7 @@ public abstract class OneYamlLibBase : ILibrary
                         () =>
                         {
                             // The library refuses a patch with a failing step and leaves the document as it was.
-                            using var d = YamlDocument.Parse(input);
+                            using var d = YamlDocument.Parse(w.Input);
                             bool errored = false;
                             try { d.ApplyPatch(failing); }
                             catch (YamlException) { errored = true; }
@@ -196,21 +195,29 @@ public abstract class OneYamlLibBase : ILibrary
 
 /// <summary>document-parse: parse and release, as a <c>using</c> block does. The document's buffers come from a
 /// pool and go back on release, so a run that never released would measure an allocation a caller does not make.</summary>
-sealed class ParseRunner(byte[] input) : Runner
+sealed class ParseRunner(Workload w) : Runner
 {
     public override Product Check()
     {
-        using var doc = YamlDocument.Parse(input);
+        using var doc = YamlDocument.Parse(w.Input);
         return new Product.Document(OneYamlLibBase.Tree(doc), doc.ToUtf8Bytes());
     }
 
-    public override Batch Prepare(int n) => new ParseBatch(input, n);
-
-    sealed class ParseBatch(byte[] input, int n) : Batch
+    // Each iteration parses its own copy of the input, made here and not in the batch.
+    public override Batch Prepare(int n)
     {
+        var inputs = new byte[n][];
+        for (int i = 0; i < n; i++) inputs[i] = w.OwnBytes();
+        return new ParseBatch(inputs);
+    }
+
+    sealed class ParseBatch(byte[][] inputs) : Batch
+    {
+        public override IReadOnlyList<object?> States => inputs;
+
         public override void Run()
         {
-            for (int i = 0; i < n; i++)
+            foreach (var input in inputs)
             {
                 using var doc = YamlDocument.Parse(input);
             }
