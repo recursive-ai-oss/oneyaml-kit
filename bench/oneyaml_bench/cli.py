@@ -55,7 +55,8 @@ def cmd_run(a: argparse.Namespace) -> int:
     out = Path(a.out) if a.out else default_out()
     t0 = time.monotonic()
     try:
-        result = run.run(a.mode, out, a.lang or None, a.library or [], a.task or [], a.workload or [], a.smoke)
+        result = run.run(a.mode, out, a.lang or None, a.library or [], a.task or [], a.workload or [], a.smoke,
+                         cell_limit=a.cell_limit)
     except run.HarnessError as e:
         print(f"bench: {e}", file=sys.stderr)
         return 2
@@ -135,6 +136,9 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--workload", action="append")
     r.add_argument("--smoke", action="store_true", default=None,
                    help="label the run a smoke result; a quick run always is, a full run is a measurement wherever it runs")
+    r.add_argument("--cell-limit", type=float, default=run.CELL_LIMIT_SECONDS, metavar="SECONDS",
+                   help="hang guard: a cell that runs longer than this is stopped and recorded as an error "
+                        f"(default {run.CELL_LIMIT_SECONDS:g}; the same for every library)")
     r.set_defaults(fn=cmd_run)
     g = sub.add_parser("report", help="render a report from a results file")
     g.add_argument("result", help="a results file, or the directory of a run (a run cut short has one file per language)")

@@ -223,8 +223,8 @@ A library gets a number only if its answer was right.
   parsers, and when they disagree with each other (or only one accepts it) the cell is
   `unjudged` with both readings, not `differs`. It is the harness's problem, not a verdict
   on the library under test.
-- `error`: the harness could not measure it (the process died). The driver
-  restarts the harness past that cell.
+- `error`: the harness could not measure it (the process died, or the cell ran past the hang
+  guard). The driver restarts the harness past that cell.
 
 Cells that are not `ok` never carry a time or a memory figure; the result validator and the
 harnesses' own tests enforce that. A cell that is a `differs`, `rejects`, `unjudged` or `error` is
