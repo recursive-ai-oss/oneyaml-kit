@@ -258,17 +258,19 @@ class SubprocessAdapter:
         if outcome and outcome[0] is not None:
             raise outcome[0]
 
-    def _recv(self, timeout: float, watch=None):
+    def _recv(self, timeout: float, watch=None, clock=time.monotonic):
         """Next response line. `watch`, if given, is called about every 50 ms while waiting and
         returns a reason string to abort. Returns (answer, time the answer's last byte arrived);
-        the time is None when nothing arrived."""
-        deadline = time.monotonic() + timeout
+        the time is None when nothing arrived. `clock` times the deadline: start-up and hello waits use
+        real time; a case passes the kit's own clock so its whole-bound deadline is testable."""
+        deadline = clock() + timeout
         while True:
-            left = deadline - time.monotonic()
+            left = deadline - clock()
             if left <= 0:
                 return "timeout", None
             try:
-                line = self._q.get(timeout=min(left, POLL_SECONDS) if watch else left)
+                # Short waits, so the deadline is re-read from the clock.
+                line = self._q.get(timeout=min(left, POLL_SECONDS))
             except queue.Empty:
                 if watch:
                     why = watch()
@@ -375,13 +377,23 @@ class SubprocessAdapter:
 
         req = {"type": "run", "id": case_id, "op": op, "input": b64(data), "args": args}
         self._write_limit = (timeout, watch)
+        started = self.clock()
+
+        def peak_mb():
+            if not (limits and measurable):
+                return None
+            # Per-process peaks of everything alive now, and the highest sum seen while waiting.
+            high = max(seen[0], tree_kb(tree_pids(pid) or [], "VmHWM"))
+            return max(0, high - base_kb) / 1024
+
         try:
             self._send(req)
         except WriteStalled as e:
+            peak = peak_mb()  # before the adapter is killed: a dead process has no peak to read
             out = self._failed(e.kind, e.detail)
             if limits:
                 out["_measure"] = {"seconds": timeout if e.kind == "timeout" else 0.0,
-                                   "peak_mb": None, "time_bound": timeout}
+                                   "peak_mb": peak, "time_bound": timeout}
             return out
         except OSError:
             return self._failed("crash", "adapter closed its input")
@@ -390,14 +402,10 @@ class SubprocessAdapter:
         # last pipe buffer of it), plus the answer's trip through the pipe. Building the request,
         # decoding the answer and watching memory are the kit's own work and are not charged.
         t0 = self.clock()
-        r, arrived = self._recv(timeout, watch)
+        # The bound covers the whole case in wall time: the answer gets what the write left of it.
+        r, arrived = self._recv(max(0.0, timeout - (t0 - started)), watch, self.clock)
         secs = (arrived if arrived is not None else self.clock()) - t0
-        peak = None
-        if limits and measurable:
-            after = tree_pids(pid) or []
-            # Per-process peaks of everything alive now, and the highest sum seen while waiting.
-            high = max(seen[0], tree_kb(after, "VmHWM"))
-            peak = max(0, high - base_kb) / 1024
+        peak = peak_mb()
         if isinstance(r, tuple):
             out = self._failed("memory", r[1])
         elif r == "timeout":

@@ -94,6 +94,79 @@ class CaseClock(unittest.TestCase):
         self.assertEqual(r["_measure"]["seconds"], 30)
 
 
+class WholeBound(CaseClock):
+    """The write and the wait for the answer share one bound; the test clock decides how long each took."""
+
+    def run_case(self, write_s, answer_s, bound=20):
+        clock, a = self.clock, self.a
+        real_send = a._send
+
+        def send(obj):
+            if obj.get("type") == "run":
+                clock.now += write_s   # a reader that is slow to take the request
+            return real_send(obj)
+
+        calls = [0]
+
+        def watched_kb(pids, field):
+            calls[0] += 1
+            if calls[0] == 2:   # the first read is the starting level; this one is the adapter's turn
+                clock.now += answer_s
+                a.proc.stdin.write(b"go\n")
+            return 0
+
+        with mock.patch.object(a, "_send", send), mock.patch.object(P, "tree_kb", watched_kb):
+            return a.run("c", "events", b"x\n", {}, {"time_seconds": bound, "memory_mb": 100})
+
+    def test_each_alone_within_the_bound_passes(self):
+        r = self.run_case(15, 0)
+        self.assertEqual(r["status"], "ok")
+        self.assertEqual(r["_measure"]["seconds"], 0)
+        self.setUp()
+        r = self.run_case(0, 15)
+        self.assertEqual(r["status"], "ok")
+        self.assertEqual(r["_measure"]["seconds"], 15)
+
+    def test_together_over_the_bound_times_out(self):
+        r = self.run_case(15, 10)
+        self.assertEqual(r["status"], "timeout")
+
+    def test_the_answer_is_still_the_only_thing_charged(self):
+        r = self.run_case(12, 7)
+        self.assertEqual(r["status"], "ok")
+        self.assertEqual(r["_measure"]["seconds"], 7)
+
+
+# Answers the hello and then never reads again, so a large request blocks in the pipe.
+DEAF = r'''
+import json, sys, time
+json.loads(sys.stdin.readline())
+print(json.dumps({"type": "hello", "protocol": 2, "name": "stub", "version": "0",
+                  "language": "python", "capabilities": ["events"]}), flush=True)
+time.sleep(60)
+'''
+
+
+class MemoryWhileWriting(unittest.TestCase):
+    def test_the_peak_is_recorded_when_memory_aborts_the_write(self):
+        t = Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))
+        self.addCleanup(shutil.rmtree, t)
+        (t / "deaf.py").write_text(DEAF)
+        a = SubprocessAdapter([sys.executable, str(t / "deaf.py")], timeout=60)
+        self.addCleanup(a.close)
+        a.start()
+        calls = [0]
+
+        def kb(pids, field):
+            calls[0] += 1
+            return 0 if calls[0] == 1 else 512 * 1024   # starting level, then 512 MB
+
+        with mock.patch.object(P, "tree_kb", kb):
+            r = a.run("c", "events", b"x" * 8_000_000, {}, {"time_seconds": 50, "memory_mb": 100})
+        self.assertEqual(r["status"], "memory")
+        self.assertEqual(r["_measure"]["peak_mb"], 512.0)
+
+
 class Pump(unittest.TestCase):
     def lines(self, pieces):
         r, w = os.pipe()

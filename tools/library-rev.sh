@@ -7,7 +7,9 @@
 #             dirty tree never looks like a clean one. KIT_ONEYAML_<LANG>_REV is accepted here only
 #             as a check: it must be a prefix of the commit and the tree must be clean.
 #   supplied  SRC has no git history of its own (an export) and KIT_ONEYAML_<LANG>_REV names its
-#             commit; the revision is recorded as given.
+#             commit (7 to 40 hexadecimal characters); the revision is recorded as given. A source
+#             holding files that another git checkout tracks is refused: the revision would be that
+#             repository's.
 #   unknown   an export and no KIT_ONEYAML_<LANG>_REV: the revision is "devel".
 # A revision that is "devel" or contains "+modified" is not one a published result may name.
 set -eu
@@ -44,6 +46,17 @@ if [ "$(git -C "$src" rev-parse --show-toplevel 2>/dev/null)" = "$src" ]; then
 	[ -z "$dirty" ] || rev=$rev+modified
 	echo "$rev git"
 elif [ -n "$given" ]; then
+	# A revision names a commit of the library. If another checkout tracks files here, the commit
+	# would be that repository's, so nothing can say which library commit the tree came from. A
+	# directory the enclosing checkout ignores or does not track counts as having no history.
+	if top=$(git -C "$src" rev-parse --show-toplevel 2>/dev/null) &&
+		[ -n "$(git -C "$src" ls-files -- . 2>/dev/null | head -n 1)" ]; then
+		fail "$src holds files tracked by the git checkout $top, so a revision given here would describe that repository, not the library; point at the top of the library checkout"
+	fi
+	case $given in
+	*[!0-9A-Fa-f]*) fail "$given must be a commit: 7 to 40 hexadecimal characters" ;;
+	esac
+	[ "${#given}" -ge 7 ] && [ "${#given}" -le 40 ] || fail "$given must be a commit: 7 to 40 hexadecimal characters"
 	echo "$given supplied"
 else
 	echo "devel unknown"

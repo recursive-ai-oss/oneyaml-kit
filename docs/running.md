@@ -38,12 +38,12 @@ checkout named by `KIT_ONEYAML_GO_SRC` or `KIT_ONEYAML_CSHARP_SRC`, one rule
 | Source | Recorded revision |
 |---|---|
 | a git checkout | its short commit; `<commit>+modified` when tracked files have uncommitted changes, when there are untracked files that git does not ignore, or when git cannot say |
-| a tree with no git history of its own, such as an export, and `KIT_ONEYAML_<LANG>_REV` set (`GO` or `CSHARP`) | the value as given, marked as supplied rather than read from git |
+| a tree with no git history of its own, such as an export, and `KIT_ONEYAML_<LANG>_REV` set (`GO` or `CSHARP`) | the value as given (7 to 40 hexadecimal characters), marked as supplied rather than read from git |
 | the same, without the variable | `devel`, marked as unknown |
 
 On a git checkout `KIT_ONEYAML_<LANG>_REV` is only a check: it must be at least 7 characters, a prefix of
 the checkout's commit, and the tree must be clean; otherwise the build and the run refuse. `devel` and
-anything containing `+modified` are refused as a supplied value.
+anything containing `+modified` are refused as a supplied value. A supplied value is also refused when the source holds files that another git checkout tracks: the revision would then describe that repository, not the library. A directory the enclosing checkout ignores or does not track counts as having no history.
 
 `devel` and `+modified` are not revisions anyone can check out, so they are never publishable:
 
