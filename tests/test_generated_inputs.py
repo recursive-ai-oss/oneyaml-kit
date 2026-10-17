@@ -502,6 +502,51 @@ class ValueRecipe(unittest.TestCase):
             if p.name != "case.json":
                 self.assertLess(p.stat().st_size, 512 * 1024, p)
 
+class DeepValue(unittest.TestCase):
+    DEPTH = 100_000
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+    def deep_case(self, leaf: str):
+        n = self.DEPTH
+        recipe = [{"text": "[", "repeat": n + 1}, {"text": leaf}, {"text": "]", "repeat": n + 1}]
+        exp = {"kind": "value", "recipe": recipe}
+        d = write_case(self.tmp, "deep", [{"text": "a"}], {"expect": exp, "operation": {"type": "value"}})
+        return C.load_own_case(d, self.tmp)
+
+    def test_a_value_nested_deeper_than_the_stack_loads_and_compares(self):
+        from oneyaml_kit import compare as K
+        c = self.deep_case("1")
+
+        def nest(leaf):
+            v = leaf
+            for _ in range(self.DEPTH + 1):
+                v = [v]
+            return v
+        caps = set(support.ALL_CAPS)
+        same = K.evaluate(c, c.expect, {"status": "ok", "value": nest(1)}, caps)
+        other = K.evaluate(c, c.expect, {"status": "ok", "value": nest(2)}, caps)
+        self.assertEqual((same["loose"], same["strict"]), ("pass", "pass"))
+        self.assertEqual(other["loose"], "fail")
+        self.assertIn("expected 1, got 2", other["detail"])
+
+    def test_a_changed_case_file_is_loaded_again_not_taken_from_memory(self):
+        c1 = self.deep_case("1")
+        d = self.tmp / "safety" / "deep"
+        spec = json.loads((d / "case.json").read_text())
+        spec["expect"]["recipe"][1] = {"text": "22"}
+        (d / "case.json").write_text(json.dumps(spec))
+        c2 = C.load_own_case(d, self.tmp)
+        def leaf(v):
+            while isinstance(v, list):
+                v = v[0]
+            return v
+        self.assertEqual((leaf(c1.expect["value"]), leaf(c2.expect["value"])), (1, 22))
+        c2.expect["kind"] = "changed"  # a copy: the stored case is not affected
+        self.assertEqual(C.load_own_case(d, self.tmp).expect["kind"], "value")
+
 
 if __name__ == "__main__":
     unittest.main()

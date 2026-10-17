@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import base64
 import copy
+import dataclasses
 import hashlib
 import itertools
 import json
@@ -446,9 +447,56 @@ _BUILT: dict[str, bytes] = {}
 _REMEMBER_FROM = 1024 * 1024
 
 
+# Keyed by case directory; the value is None when only the slow tag was read.
+_LOADED: dict[tuple, tuple[tuple, "Case | None"]] = {}
+
+
+def _signature(case_dir: Path) -> tuple:
+    """Name, size, modification time and inode of every file in a case directory: a cached case
+    is reused only while none of them has changed."""
+    out = []
+    for p in sorted(case_dir.iterdir()):
+        st = p.stat()
+        out.append((p.name, st.st_size, st.st_mtime_ns, st.st_ino))
+    return tuple(out)
+
+
 def load_own_case(case_dir: Path, cases_root: Path = OWN_DIR, skip_slow: bool = False) -> Case | None:
     """One own case. With `skip_slow`, a case tagged slow comes back as None before its
-    generated input and expectation are built, which is most of the cost of the large ones."""
+    generated input and expectation are built, which is most of the cost of the large ones.
+
+    A case is built once per process and handed out as a shallow copy, so a process that loads
+    the whole corpus again (the kit's own tests do, from many files) does not parse, check and
+    generate every case again. The copy shares the input bytes and the nested expectation values;
+    nothing in the kit edits those in place. A change to any file of the case directory builds it
+    again."""
+    key = (str(case_dir), str(cases_root))
+    try:
+        sig = _signature(case_dir)
+    except OSError:
+        sig = None
+    hit = _LOADED.get(key) if sig is not None else None
+    if hit is not None and hit[0] == sig:
+        c = hit[1]
+        if c is None:  # known to be tagged slow, and only that was read
+            return _built(key, sig, case_dir, cases_root, skip_slow)
+        return None if skip_slow and "slow" in c.tags else _copy_case(c)
+    return _built(key, sig, case_dir, cases_root, skip_slow)
+
+
+def _built(key: tuple, sig: tuple | None, case_dir: Path, cases_root: Path, skip_slow: bool) -> Case | None:
+    c = _load_own_case(case_dir, cases_root, skip_slow)
+    if sig is not None and (c is not None or skip_slow):
+        _LOADED[key] = (sig, c)
+    return None if c is None else _copy_case(c)
+
+
+def _copy_case(c: "Case") -> "Case":
+    return dataclasses.replace(c, expect=dict(c.expect), args=dict(c.args), productions=list(c.productions),
+                               refs=list(c.refs), tags=list(c.tags), provenance=dict(c.provenance))
+
+
+def _load_own_case(case_dir: Path, cases_root: Path, skip_slow: bool) -> Case | None:
     rel = case_dir.relative_to(cases_root).as_posix()
     where = f"own:{rel}"
     try:
