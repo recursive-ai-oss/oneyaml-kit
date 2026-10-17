@@ -98,7 +98,10 @@ same library read about 5 µs per document on a 64 KB `unchanged-emit` workload 
 in the next, and the cells that ran before it decided which; the bytes allocated did not move. A cell
 that starts from a fresh process starts from the same heap whatever ran before it, so the heap that earlier
 cells leave behind no longer reaches a later cell's time. Collection work a library causes inside its own timed
-iterations is still timed, and the allocated bytes are read exactly as before. A task the library cannot do
+iterations is still timed, and the allocated bytes are read exactly as before. BenchmarkDotNet collects garbage before
+every iteration, so each one starts from a freshly collected heap: a task that allocates a new large buffer per call
+(an 8 MB output, say) pays to touch that memory again each time, as it would after a collection in a real process.
+The same holds for every library, and longer warm-ups or more iterations do not change it. A task the library cannot do
 is answered without starting a process, and a process that dies is a cell with status `error`. A new process also starts at the runtime's first, unoptimised code tier, and promotes hot methods on a background thread after a quiet period of 100 ms, which a small cell's three warm-up iterations never outlast. So every child sets `DOTNET_TC_CallCountingDelayMs=0` and first runs whole batches of its cell for 1000 ms before BenchmarkDotNet's own warm-up and measured iterations, the same for every library. Repeated runs of the small `gha-workflow` cells agree with a long process more closely this way; the run's `timer` text states both settings, and any other runtime tuning variable the children inherit. Variables that only say where the runtime or its tools live (`DOTNET_ROOT`, `DOTNET_ROOT_<ARCH>`, `DOTNET_ROOT(x86)`, `DOTNET_HOST_PATH`, `DOTNET_CLI_HOME`, `DOTNET_INSTALL_DIR`, `DOTNET_BUNDLE_EXTRACT_BASE_DIR`) do not change how code runs and are left out, so the text names no directory of the machine; any other inherited variable whose value is a path is named as `NAME=<a path>`, value withheld. The children still run with the full environment.
 
 Quick mode keeps all its cells in one process, because a process per cell takes about three times as long, and
