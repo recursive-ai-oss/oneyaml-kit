@@ -14,6 +14,9 @@
   "YAML 1.2.2 section 5.1",
   "YAML 1.2.2 section 7.3.1"
  ],
+ "tags": [
+  "convention"
+ ],
  "notes": "The input is `- \"`, the character U+FFFE (bytes 0xEF 0xBF 0xBE), the byte 0xFF, which is never part of UTF-8, and `\"`. U+FFFE is not printable (production 1 stops at U+FFFD), but it is a character of nb-json (production 2) and so acceptable in a quoted scalar. The column counts the decoded characters before the fault, and the invalid byte is the next one: the shortest prefix that no continuation can make valid ends at it, so it sits at column 5. The text is not valid UTF-8, which the stream must be (YAML 1.2.2 section 5.2), so the category is `encoding`; a reader that stops at the earlier character, or that reports the byte as a syntax error, or that takes the stream as valid, fails the case.",
  "provenance": {
   "reference": "A scanner that, after a character that quoted scalars allow but that is not printable, no longer checked the bytes after it as UTF-8 and so took malformed text as valid."

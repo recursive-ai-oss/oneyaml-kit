@@ -14,6 +14,9 @@
   "YAML 1.2.2 section 5.1",
   "YAML 1.2.2 section 7.3.2"
  ],
+ "tags": [
+  "convention"
+ ],
  "notes": "The input is `a: '`, the character U+007F and then the lone continuation byte 0x8E, and `'`. U+007F (DEL) is not printable (production 1 leaves it out), but the characters of a quoted scalar are any of nb-json (production 2: tab and U+0020 up to U+10FFFF), so it is acceptable there and the text up to it is a valid prefix. The column counts the decoded characters before the fault, and the invalid byte is the next one: the shortest prefix that no continuation can make valid ends at it, so it sits at column 6. The text is not valid UTF-8, which the stream must be (YAML 1.2.2 section 5.2), so the category is `encoding`; a reader that stops at the earlier character, or that reports the byte as a syntax error, or that takes the stream as valid, fails the case.",
  "provenance": {
   "reference": "A scanner that, after a character that quoted scalars allow but that is not printable, no longer checked the bytes after it as UTF-8 and so took malformed text as valid."
