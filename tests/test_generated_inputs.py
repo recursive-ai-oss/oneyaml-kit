@@ -411,5 +411,97 @@ class PatchRecipe(unittest.TestCase):
         self.assertEqual(pinned["safety/patch-many-large-appends-into-a-created-flow-sequence"]["ops"], 100001)
 
 
+class ValueRecipe(unittest.TestCase):
+    """An expected value too large to store, written as the parts of its JSON text."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    @staticmethod
+    def expect(accept):
+        return {"kind": "bounded", "time_seconds": 1, "memory_mb": 64, "error": "limit", "accept": accept}
+
+    def load(self, name, accept):
+        return write_case(self.tmp, name, [{"text": "a"}],
+                          {"expect": self.expect(accept), "operation": {"type": "value"}})
+
+    RECIPE = [{"text": "[{"}, {"numbers": {"count": 2, "prefix": '"x', "suffix": '": 1, '}}, {"text": '"x2": 1}]'}]
+
+    def test_the_recipe_builds_the_documents_of_its_json_text(self):
+        d = self.load("v", {"kind": "value", "recipe": self.RECIPE})
+        c = C.load_own_case(d, self.tmp)
+        self.assertEqual(c.expect["accept"], {"kind": "value", "value": [{"x0": 1, "x1": 1, "x2": 1}], "tags": "keep"})
+        # The same text in a file, or the same value written out, is the same expectation.
+        (d / "x.json").write_text('[{"x0": 1, "x1": 1, "x2": 1}]')
+        for n, accept in enumerate(({"kind": "value", "file": "x.json"},
+                                    {"kind": "value", "value": [{"x0": 1, "x1": 1, "x2": 1}]})):
+            dd = self.load("same%d" % n, accept)
+            (dd / "x.json").write_text('[{"x0": 1, "x1": 1, "x2": 1}]')
+            self.assertEqual(C.load_own_case(dd, self.tmp).expect, c.expect)
+
+    def test_a_value_can_be_generated_beside_a_stored_one_at_the_top_level_too(self):
+        exp = {"kind": "value", "recipe": [{"text": "[1, "}, {"text": "2, ", "repeat": 3}, {"text": "3]"}]}
+        d = write_case(self.tmp, "top", [{"text": "a"}], {"expect": exp, "operation": {"type": "value"}})
+        self.assertEqual(C.load_own_case(d, self.tmp).expect["value"], [1, 2, 2, 2, 3])
+
+    def test_two_sources_or_none_are_refused(self):
+        both = [{"kind": "value", "recipe": self.RECIPE, "file": "x.json"},
+                {"kind": "value", "recipe": self.RECIPE, "value": []},
+                {"kind": "value", "file": "x.json", "value": []},
+                {"kind": "value"}]
+        for n, accept in enumerate(both):
+            d = self.load("b%d" % n, accept)
+            (d / "x.json").write_text("[]")
+            with self.assertRaisesRegex(C.CaseError, r"exactly one of file/value/recipe", msg=repr(accept)):
+                C.load_own_case(d, self.tmp)
+
+    def test_a_malformed_recipe_is_refused_before_anything_is_built(self):
+        bad = [None, [], {}, "x", [1], [{}], [{"text": 5}], [{"text": "[]", "repeat": -1}],
+               [{"numbers": {}}], [{"text": "x", "also": 1}], [{"product": {}}],
+               [{"text": "[]"}] * (C.MAX_RECIPE_PARTS + 1),
+               [{"text": "[", "repeat": C.MAX_GENERATED_BYTES + 1}],
+               [{"text": "[]", "repeat": 10 ** 15}]]
+        for n, r in enumerate(bad):
+            d = self.load("m%d" % n, {"kind": "value", "recipe": r})
+            with self.assertRaises(C.CaseError, msg=repr(r)[:60]) as ctx:
+                C.load_own_case(d, self.tmp)
+            self.assertNotIn("unknown expect keys", str(ctx.exception))  # refused for the recipe, not the key
+
+    def test_text_that_is_not_kit_json_or_not_a_list_of_documents_is_refused(self):
+        for n, text in enumerate(("[1, ", "[1] [2]", "{\"a\": 1}", "[{\"a\": 1, \"a\": 2}]", "[{\"$x\": 1}]",
+                                  "\xff")):
+            d = self.load("j%d" % n, {"kind": "value", "recipe": [{"text": text}]})
+            with self.assertRaises(C.CaseError, msg=repr(text)) as ctx:
+                C.load_own_case(d, self.tmp)
+            self.assertNotIn("unknown expect keys", str(ctx.exception))
+
+    def test_a_value_recipe_has_a_pin_of_the_text_it_builds(self):
+        parts = [{"text": "[1, "}, {"text": "2, ", "repeat": 2}, {"text": "3]"}]
+        d = self.load("p", {"kind": "value", "recipe": parts})
+        text = b"[1, 2, 2, 3]"
+        self.assertEqual(C.generated_result_digests(self.tmp),
+                         {"safety/p": {"bytes": len(text), "sha256": hashlib.sha256(text).hexdigest()}})
+        case = d / "case.json"
+        original = json.loads(case.read_text())
+        before = C.own_case_digests(self.tmp)
+        for recipe, same_text in (([{"text": "[1, 2, 2, 4]"}], False), ([{"text": "[1, 2, 2, 3] "}], False),
+                                  ([{"text": "[1, "}, {"text": "2, 2, 3]"}], True)):
+            changed = json.loads(json.dumps(original))
+            changed["expect"]["accept"]["recipe"] = recipe
+            case.write_text(json.dumps(changed))
+            now = C.generated_result_digests(self.tmp)["safety/p"]
+            self.assertEqual(now == {"bytes": len(text), "sha256": hashlib.sha256(text).hexdigest()}, same_text, recipe)
+            self.assertNotEqual(C.own_case_digests(self.tmp), before, recipe)
+
+    def test_the_kit_has_no_stored_expected_value_near_the_size_limit(self):
+        # A stored file may not exceed 1 MB; a value that would need more is written as a recipe.
+        for p in C.OWN_DIR.rglob("*.json"):
+            if p.name != "case.json":
+                self.assertLess(p.stat().st_size, 512 * 1024, p)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -91,6 +91,68 @@ class ModelReaderNeedsMoreThanTheGuard(unittest.TestCase):
         self.assertEqual(big.input.split(b"{")[-1], small.input.split(b"{")[-1])
         self.assertEqual(big.expect, small.expect)
 
+    def test_many_definitions_of_one_anchor_name(self):
+        # One visit to an earlier definition of the name for every alias: the alias after the k-th
+        # definition meets k definitions, so n definitions make n(n+1)/2 visits of one step each.
+        cid = "safety/many-anchors-sharing-one-name"
+        c = CASES[f"own:{cid}"]
+        n = repeats(raw(cid)["input_recipe"], "&a 0, *a, ")
+        self.assertEqual(c.input.count(b"&a 0"), n)
+        self.assertEqual(c.input.count(b"*a,"), n)
+        self.assertEqual(c.expect["accept"]["value"], [[0] * (2 * n)])
+        self.need(n * (n + 1) / 2, SCAN_RATE, cid)
+
+    def test_anchor_names_sharing_one_hash_stays_small_because_it_cannot_grow(self):
+        # All names land in one chain, so the name met in step j is compared with the j-1 names
+        # before it, and each comparison reads the two names until they first differ. Names that
+        # first differ in stage s share s blocks, so a comparison reads at least s blocks and one
+        # byte more. Pairs that first differ in stage s: 2^s prefixes, each with two halves of
+        # 2^(k-s-1) names. The model reader needs the margin only at 2^19 names and 53 MB of
+        # input, and linear readers then hold more than the memory bound (1 GB) in six of the
+        # twelve libraries that can run it, so the case is not resized: it catches only a hang.
+        cid = "safety/anchor-names-sharing-one-fnv-hash"
+        c = CASES[f"own:{cid}"]
+        stages = raw(cid)["input_recipe"][0]["product"]["choices"]
+        k, block = len(stages), len(stages[0][0])
+        self.assertTrue(all(len(s) == 2 and len(s[0]) == len(s[1]) == block for s in stages))
+        self.assertEqual(c.input.count(b"\n"), 2 ** k)
+        state = 2166136261
+        for a, b in stages:
+            ends = set()
+            for option in (a, b):
+                h = state
+                for byte in option.encode():
+                    h = ((h ^ byte) * 16777619) & 0xFFFFFFFF
+                ends.add(h)
+            self.assertEqual(len(ends), 1, (a, b))  # both options leave the hash in the same state
+            state = ends.pop()
+
+        def model_bytes(stages_n):
+            pairs = [2 ** s * (2 ** (stages_n - s - 1)) ** 2 for s in range(stages_n)]
+            self.assertEqual(sum(pairs), 2 ** stages_n * (2 ** stages_n - 1) // 2)
+            return sum(p * (block * s + 1) for s, p in enumerate(pairs))
+
+        line = len(c.input) / 2 ** k
+        seconds = model_bytes(k) / SCAN_RATE
+        self.assertLess(seconds, MARGIN * guard(cid), "the case reaches the margin: say so in its notes")
+        # The first size that reaches the margin, and the input it needs.
+        need = next(n for n in range(k, 40) if model_bytes(n) / SCAN_RATE >= MARGIN * guard(cid))
+        self.assertEqual(need, k + 2)
+        self.assertGreater((line + block * (need - k)) * 2 ** need, 50e6)
+
+    def test_duplicate_key_detection_in_a_wide_mapping(self):
+        # One comparison with every earlier key. All keys begin with the same text, so a comparison
+        # reads at least that text and the byte after it.
+        cid = "safety/wide-mapping-600000-keys"
+        c = CASES[f"own:{cid}"]
+        (part,) = raw(cid)["input_recipe"]
+        keys, prefix = part["numbers"]["count"], part["numbers"]["prefix"]
+        self.assertEqual(c.input.count(b"\n"), keys)
+        self.assertTrue(all(line.startswith(prefix.encode()) for line in c.input.split(b"\n")[:-1]))
+        (mapping,) = c.expect["accept"]["value"]
+        self.assertEqual(len(mapping), keys)
+        self.need(keys * (keys - 1) / 2 * (len(prefix) + 1), SCAN_RATE, cid)
+
 
 if __name__ == "__main__":
     unittest.main()

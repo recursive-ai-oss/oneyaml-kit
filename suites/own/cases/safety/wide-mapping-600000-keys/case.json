@@ -1,0 +1,55 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/wide-mapping-600000-keys",
+ "title": "A block mapping of six hundred thousand keys",
+ "category": "safety",
+ "origin": "spec",
+ "productions": [
+  "187"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.2.2"
+ ],
+ "notes": "The input is valid: one block mapping of 600,000 keys, `key000000: 1` to `key599999: 1`, all different. A library that reads it gives exactly the expected result, a mapping from every key to 1; one that refuses it says so with a limit error. A crash, a hang, a wrong result, or more than the stated time or memory fails. The resource bounds are the robustness requirement of the kit, not a rule of the specification. Detecting duplicate keys must not take quadratic time. The time limit is 100 seconds and is a hang guard, not a measure of cost. A reader that compares each key with all the keys before it makes about 180 billion comparisons, and each reads at least the three bytes that all keys start with and the byte after them; a loop that only walks those bytes (about 5 GB/s, measured once) needs about 144 seconds for them, 1.4 times the limit, so such a reader runs over it and fails; the tests of the kit check this arithmetic from the recipe. The guard does not catch a reader whose comparisons are faster than that loop, or one that is slower than linear but much better than quadratic: it catches only a reader that really does run over 100 seconds. A library that reads the input in linear time answered in under 4 seconds on a shared workstation. The memory bound of 1024 MB is unchanged: a library that needs more than that for the 600,000 keys fails, whatever its time. The input and the expected result are generated from the recipes in case.json (docs/case-format.md). Fast mode leaves this case out (tag `slow`); the full gate and a run with --slow include it.",
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 100,
+  "memory_mb": 1024,
+  "error": "limit",
+  "accept": {
+   "kind": "value",
+   "recipe": [
+    {
+     "text": "[{"
+    },
+    {
+     "numbers": {
+      "count": 599999,
+      "prefix": "\"key",
+      "suffix": "\": 1,",
+      "width": 6
+     }
+    },
+    {
+     "text": "\"key599999\": 1}]"
+    }
+   ]
+  }
+ },
+ "tags": [
+  "slow"
+ ],
+ "input_recipe": [
+  {
+   "numbers": {
+    "count": 600000,
+    "prefix": "key",
+    "suffix": ": 1\n",
+    "width": 6
+   }
+  }
+ ]
+}

@@ -1,7 +1,7 @@
 {
  "format": "oneyaml-kit-case/2",
  "id": "safety/many-anchors-sharing-one-name",
- "title": "Two hundred and forty thousand definitions of one anchor name, each used once",
+ "title": "Eight hundred and fifty thousand definitions of one anchor name, each used once",
  "category": "safety",
  "origin": "bug",
  "productions": [
@@ -16,7 +16,7 @@
  "tags": [
   "slow"
  ],
- "notes": "The input is valid. A flow sequence holds the pair `&a 0, *a, ` two hundred and forty thousand times. Every `&a` gives the name `a` to a new node, and the alias after it refers to the most recent node with that name (section 3.2.2.2: an alias refers to the most recent anchor; section 7.1: an anchor may be defined again, and the alias before the next definition still means the earlier one). Every item is therefore the integer 0, 480,000 of them. A reader that looks a name up by scanning the earlier anchors of that name, or that keeps every definition in a list per name, does work that grows with the square of the number of definitions: 240,000 definitions are about 29 billion steps. A reader may also refuse the input with a limit error. The time limit is 50 seconds and is a hang guard, not a measure of cost. A linear reader needs about 1 second per megabyte, so about 3 seconds for this 2.4 megabyte input. A reader whose work grows with the square of the definitions takes longer than that, but one that finishes inside 50 seconds now passes: on time this case no longer separates quadratic readers from linear ones, and catches only a reader that hangs. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The input is generated from the recipe in case.json (docs/case-format.md); the expected result is `[[0, 0, ...]]`, one document of 480,000 zeros, stored without spaces to stay under the size a stored file may have. Fast mode leaves this case out (tag `slow`); the full gate and a run with --slow include it.",
+ "notes": "The input is valid. A flow sequence holds the pair `&a 0, *a, ` eight hundred and fifty thousand times. Every `&a` gives the name `a` to a new node, and the alias after it refers to the most recent node with that name (section 3.2.2.2: an alias refers to the most recent anchor; section 7.1: an anchor may be defined again, and the alias before the next definition still means the earlier one). Every item is therefore the integer 0, 1,700,000 of them. A reader that looks a name up by scanning the earlier anchors of that name, or that keeps every definition in a list per name and searches it, does work that grows with the square of the number of definitions: 850,000 definitions are about 361 billion steps. A reader may also refuse the input with a limit error. The time limit is 50 seconds and is a hang guard, not a measure of cost. The input is large enough that a reader taking one step of a plain byte-walking loop (about 5 GB/s, measured once) for each earlier definition needs about 72 seconds, 1.4 times the limit, so such a reader runs over it and fails; the tests of the kit check this arithmetic from the recipe. The guard does not catch a reader whose steps are faster than that loop, a reader whose work grows faster than the input but more slowly than the square, or a reader that finishes inside the limit by any other means: it catches only a reader that really does run over 50 seconds. A library that reads the input in linear time answered in under 4 seconds on a shared workstation. The memory bound of 1024 MB is unchanged and applies to the 1.7 million nodes of the answer: a library that needs more than that fails, whatever its time. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The input and the expected result are generated from the recipes in case.json (docs/case-format.md); the expected result is `[[0, 0, ...]]`, one document of 1,700,000 zeros. Fast mode leaves this case out (tag `slow`); the full gate and a run with --slow include it.",
  "provenance": {
   "reference": "A reader that kept every definition of an anchor name in a list and searched it for each alias, so many definitions of one name took quadratic time."
  },
@@ -26,7 +26,7 @@
   },
   {
    "text": "&a 0, *a, ",
-   "repeat": 240000
+   "repeat": 850000
   },
   {
    "text": "]\n"
@@ -42,7 +42,18 @@
   "error": "limit",
   "accept": {
    "kind": "value",
-   "file": "expected.json"
+   "recipe": [
+    {
+     "text": "[["
+    },
+    {
+     "text": "0,",
+     "repeat": 1699999
+    },
+    {
+     "text": "0]]"
+    }
+   ]
   }
  }
 }

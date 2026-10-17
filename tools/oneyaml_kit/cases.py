@@ -160,10 +160,19 @@ def _expect_from_json(d: Any, base: Path | None, where: str, nested: bool = Fals
         raw = read(d["file"]) if "file" in d else generate_input(d["recipe"], where, "recipe")
         return {"kind": "bytes", "bytes": raw}
     if kind == "value":
-        only("file", "value")
-        if ("file" in d) == ("value" in d):
-            raise CaseError(f"{where}: value expectation needs exactly one of file/value")
-        v = kitjson.loads(read(d["file"])) if "file" in d else d["value"]
+        only("file", "value", "recipe")
+        if sum(k in d for k in ("file", "value", "recipe")) != 1:
+            raise CaseError(f"{where}: value expectation needs exactly one of file/value/recipe")
+        if "file" in d:
+            v = kitjson.loads(read(d["file"]))
+        elif "recipe" in d:
+            # The recipe builds the JSON text of the documents, as a stored file would hold it.
+            try:
+                v = kitjson.loads(generate_input(d["recipe"], where, "recipe"))
+            except ValueError as e:
+                raise CaseError(f"{where}: the recipe does not build kit JSON: {e}") from e
+        else:
+            v = d["value"]
         if not isinstance(v, list):
             raise CaseError(f"{where}: value must be a list of documents")
         check_kit_value(v, where)

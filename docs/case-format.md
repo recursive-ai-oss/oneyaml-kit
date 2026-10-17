@@ -167,7 +167,7 @@ A position is a 1-based `line` and `column`.
 | `kind` | Fields | Passes when |
 |---|---|---|
 | `events` | `file` (event lines) or `recipe` (see *Generated inputs*) | no error, and the event lines are equal |
-| `value` | `value` (list of documents) or `file` (JSON) | no error, and the documents are equal |
+| `value` | `value` (list of documents), `file` (JSON) or `recipe` (see *Generated inputs*) | no error, and the documents are equal |
 | `bytes` | `file` or `recipe` (see *Generated inputs*) | no error, and every output byte is equal |
 | `error` | `category`, `line`, `column`, `events_file`, `unchanged` | an error is reported (see below) |
 | `bounded` | `time_seconds`, `memory_mb`, `accept`, `error`, `unchanged` | see below |
@@ -395,6 +395,25 @@ key, a value and a flow sequence of four thousand copies of that value:
 ]}
 ```
 
+A `value` expectation that is too large to store (a stored file may not exceed 1 MB) uses a recipe
+the same way: `{"kind": "value", "recipe": [...]}` builds the JSON text of the list of documents,
+in the notation of a stored `file`, and the kit reads that text like a stored one. A `value`
+expectation has exactly one of `file`, `value` and `recipe`. The text must be valid kit JSON
+(no duplicate keys, only the three `$` escape forms) and a list of documents, or the case is
+refused when it loads. A recipe that is malformed or too large is refused before anything is built.
+For example, a mapping of three keys to 1:
+
+```json
+"accept": {"kind": "value", "recipe": [
+  {"text": "[{"},
+  {"numbers": {"count": 2, "prefix": "\"x", "suffix": "\": 1, "}},
+  {"text": "\"x2\": 1}]"}
+]}
+```
+
+The whole text is built and read when the case loads, so a case with a large value is tagged
+`slow`.
+
 A JSON Patch of very many identical operations is too large for a stored file in the same way, so
 `operation.patch_recipe` can stand in for `patch`: a list of at most 64 parts, each
 `{"ops": [operations], "repeat": n}`, written one after another (`repeat` defaults to 1). It builds
@@ -404,7 +423,7 @@ has a `patch` or a `patch_recipe`, never both. The runner sends the built array 
 
 The runner sends a generated input like a stored one: the bytes, base64, in the request. Nothing
 is written to disk. `tests/pins.json` pins the size and the SHA-256 of every generated input
-(`generated_inputs`) and of every expected result built from a recipe (`generated_results`),
+(`generated_inputs`) and of every expected result built from a recipe (`generated_results`; for a value, the digest of the JSON text),
 besides the digest of the case directory that holds the recipe, so a change to a recipe, or to
 what a recipe builds, fails the kit's tests until the pins are regenerated and the diff is
 checked.

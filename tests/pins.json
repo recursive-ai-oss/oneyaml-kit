@@ -492,7 +492,7 @@
    "safety/alias-byte-expansion-bomb": "c7fc7402966e263870b1f7e95b5475fc3886c600ced3aa8f7212e11baea9b57f",
    "safety/alias-expansion-bomb": "340b8f1397beb6d651cdd1175261ecdbafb17f5fc795ba277e20cc6ab7e08b0e",
    "safety/alias-expansion-bomb-ten-by-ten": "6ff65e5e774fbc5da98248e463e7df35198242814ef4c6354ce18c5e6ddf3f10",
-   "safety/anchor-names-sharing-one-fnv-hash": "039f90c0dd8c4af888c2e47f239bd246d43158ce19de2abbab18379949e599dd",
+   "safety/anchor-names-sharing-one-fnv-hash": "c28e09d0f00f2e143e9adaf988bd51909e498a9abff8f611877d3d1d9892d938",
    "safety/deep-block-sequences-100000-value": "0fe15f7ddb9626c3a5c2ff2e48c237058295a3d65bc7f2e3cfe3a64782070948",
    "safety/deep-block-sequences-3000": "bddc36faa5b849fd74702edebfb28be44b1621bc8423a11eeb218259efe5e1b7",
    "safety/deep-block-sequences-50000": "6ca15b5900eab228b7eafea7f244f3337547f2dc7783dfaec97bc893da0da34b",
@@ -531,7 +531,7 @@
    "safety/malformed-utf-8-overlong-form": "58f78381c4676720cb255a534068c92153a5b3561b89765245dc5d4d07ef0d68",
    "safety/malformed-utf-8-truncated-sequence-at-the-end": "c15707cfc5475fa72c21823a0f1d923020226ccc405648d7eef0df4a4b70300e",
    "safety/many-anchors-and-aliases": "df0b6f58e912e9e96821d03b5b060507de3b4270f0d6636c153d05d12f670276",
-   "safety/many-anchors-sharing-one-name": "4196a981cf508cef0629778fe13efc88c9875362814d723aec692bac29cee695",
+   "safety/many-anchors-sharing-one-name": "b2d1647071d0776d34e1c51bf00637905108a104058fbaaf14d0d976cad8ccd9",
    "safety/merge-patch-many-deletions-from-a-large-mapping": "568c0a6cbd8fb3318c3f83eb933fee48480cd47ffab86e82dc72ad4cd8707577",
    "safety/one-line-flow-mapping-many-pairs": "84f456cf9e315da9334bd9c3f236d5d4bddb0506510ae38444d9aa6636ae8ec2",
    "safety/one-line-flow-mapping-ten-megabytes": "e7fb134a79037c16b4295753aaaf47774eb5ba5209a20ba1de5ae8c662e0e7ab",
@@ -549,6 +549,7 @@
    "safety/two-thousand-documents": "f0233537adc9ad919e37eed729966bff3af20c6b903a8d06cec9b319ee969fa3",
    "safety/wide-flow-sequence-30000": "969418d9a0e4a38dbd5eddf9a136f65c4c4367ed92470b09aef5f0310a73aa36",
    "safety/wide-mapping-20000-keys": "2ee2d930bc68380325ce871aaf2baa7a0624071ca3d62c169b07f135c11d90ef",
+   "safety/wide-mapping-600000-keys": "dffcda1ef0417612a775a08aa45f3f9ada1915004f2be3389d690f8f36b656eb",
    "schema/alias-as-a-mapping-key": "b85128617772e7b85da018db26fbbedebd8acaa3710fdef0f4972f01b5dbd81c",
    "schema/alias-to-a-collection-is-shared-content": "894ec1fdc8ea3802c939a888f8331d1f3dfd4fe5c16746c01835c1609885f551",
    "schema/anchor-can-be-redefined": "cd12fe90c478301d6cae5a8ce3797934dbf3656ed73e385ae8abd21cb7278d27",
@@ -638,8 +639,8 @@
     "sha256": "ffe27ed22634391f72f40b7976d488993499e12ceb3eabf04087574416d423f3"
    },
    "safety/many-anchors-sharing-one-name": {
-    "bytes": 2400003,
-    "sha256": "b43a830b13afd72aaaf1b5fcadf048b59e3d381f28da161290906bfd0367a26d"
+    "bytes": 8500003,
+    "sha256": "6bdc830c3de7cbfdad41d2b0e66e2843be91931809f58bfeecefa47c082d1b25"
    },
    "safety/merge-patch-many-deletions-from-a-large-mapping": {
     "bytes": 24000000,
@@ -664,6 +665,10 @@
    "safety/ten-million-digit-plain-scalar-events": {
     "bytes": 10000001,
     "sha256": "3f294670b34e468cb7cdce79381fdc27dd5aad383c06918a1246e10ca2dd0260"
+   },
+   "safety/wide-mapping-600000-keys": {
+    "bytes": 7800000,
+    "sha256": "7436f8b1ac9ad170b10d5562bc6935eaeae69bcfce6d4018270077b87d22fa3c"
    },
    "schema/duplicate-key-float-with-borrowed-exponent-of-a-million-digits": {
     "bytes": 2000023,
@@ -693,6 +698,10 @@
     "bytes": 16000021,
     "sha256": "a515aa1b39d5a0115964bdf6e6b54c917f1e3bd5d1195d9b13773ae3fc7ba669"
    },
+   "safety/many-anchors-sharing-one-name": {
+    "bytes": 3400003,
+    "sha256": "d6b47ae7271381e299f9d0b520909d5c167ec05e224fca494981f7615d398785"
+   },
    "safety/merge-patch-many-deletions-from-a-large-mapping": {
     "bytes": 23360160,
     "sha256": "50f902f98a0096462f46e35af3d4da95d5e35847fb703920ceadb718382a3a1b"
@@ -720,6 +729,10 @@
    "safety/ten-million-digit-plain-scalar-events": {
     "bytes": 10000027,
     "sha256": "0956039e7a91011484464ad3ee5dce11df1774113593f6ea1a10cb6b4efd04ec"
+   },
+   "safety/wide-mapping-600000-keys": {
+    "bytes": 9000003,
+    "sha256": "db92c0010ff170a639043730ab9a140e03eb6c28e0893377ec893b64284eab1d"
    }
   }
  },
