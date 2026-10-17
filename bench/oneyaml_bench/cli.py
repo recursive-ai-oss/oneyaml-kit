@@ -111,7 +111,8 @@ def cmd_readme(a: argparse.Namespace) -> int:
         docs = Path(a.docs)
         readme_path = Path(a.readme)
         ctx = readme.Ctx(bench, a.library, revision, conf,
-                         readme_path.parent / a.charts.rstrip("/"), a.allow_smoke, a.library_source)
+                         readme_path.parent / a.charts.rstrip("/"), a.allow_smoke, a.library_source,
+                         a.chart_omit_task or ())
         targets = [readme_path, docs / "performance.md", docs / "conformance.md"]
         new = readme.update(ctx, targets, a.charts.rstrip("/"), docs / "conformance.md", a.chart_base)
         changed = readme.check_and_write(ctx, new, ctx.chart_dir, text_hits)
@@ -158,6 +159,10 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--library-source", metavar="DIR",
                    help="a checkout of the featured library; its release tag is shown beside the commit when the "
                         "checkout is at that commit and the run did not record the tag")
+    m.add_argument("--chart-omit-task", action="append", metavar="TASK",
+                   help="leave this task (an id from the result, e.g. unchanged-emit) out of the hero and chart "
+                        "blocks, including the chart's alt text and description; repeatable. The full table keeps "
+                        "every task. An id the result does not have is an error")
     m.add_argument("--allow-smoke", action="store_true",
                    help="accept a smoke result (the blocks are labelled as such)")
     m.set_defaults(fn=cmd_readme)

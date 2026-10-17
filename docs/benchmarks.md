@@ -311,7 +311,8 @@ result files as the evidence page:
 
 ```
 bin/bench readme --results out --library oneyaml-go --readme ../oneyaml-go/README.md \
-    --docs ../oneyaml-go/docs [--charts docs/img] [--allow-smoke] [--chart-base URL] [--library-source DIR]
+    --docs ../oneyaml-go/docs [--charts docs/img] [--allow-smoke] [--chart-base URL] [--library-source DIR] \
+    [--chart-omit-task TASK ...]
 ```
 
 `--results` is a directory holding the benchmark result (`bench/results.json` or `results.json`)
@@ -332,6 +333,11 @@ name in it (`main`, `master`, `HEAD`, `refs/heads/...`) is refused. `--library-s
 featured library: when the run did not record the library's release tag, the tag of the commit the
 result names is looked up there and shown beside it, as `v0.3.0 (30e7fc4bf7b4)`. Only a commit with
 exactly one version tag gets one; a tag is never guessed.
+
+`--chart-omit-task TASK` (repeatable, a task id such as `unchanged-emit`) leaves a task out of the
+`bench-hero` and `bench-chart` blocks: the chart, its alt text and description, and the hero table.
+The `bench-full` table keeps every task. An id the result does not have is an error that lists the
+ones it has.
 
 The hero is the headline and speaks in the family's form, higher is better: the **speed** of a row
 is the strongest competitor's time divided by ours, written "N× faster", or "N× slower" for a loss,

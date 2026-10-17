@@ -188,7 +188,8 @@ def aggregate(result: dict, library: str, rows: list[dict]) -> list[dict]:
 # ---- shared pieces ----------------------------------------------------------------------
 
 class Ctx:
-    def __init__(self, result, library, renderer_revision, conformance, chart_dir, allow_smoke, source=None):
+    def __init__(self, result, library, renderer_revision, conformance, chart_dir, allow_smoke, source=None,
+                 chart_omit=()):
         results.validate(result)
         result = taskstate.mark_text_tasks(copy.deepcopy(result))
         self.result, self.library, self.renderer_revision = result, library, renderer_revision
@@ -211,6 +212,13 @@ class Ctx:
         self.not_run.sort(key=key)
         self.files: dict[str, str] = {}  # chart files to write: name -> text
         self.pinned = pinned_yts  # a field so that a test can stand in for the vendored suite
+        # Tasks left out of the hero and chart blocks; the full page keeps every task.
+        self.chart_omit = frozenset(chart_omit)
+        known = sorted({r["task"] for r in every})
+        unknown = sorted(self.chart_omit - set(known))
+        if unknown:
+            raise ReadmeError(f"cannot leave out unknown task {', '.join(unknown)} (the tasks in this result: "
+                              f"{', '.join(known)})")
 
     def libs(self):
         return [l for l in self.harness["libraries"] if l["role"] != "control"]
@@ -283,10 +291,11 @@ def verdict_text(v: str | None) -> str:
     return "—" if v is None else MARK[v]
 
 
-def not_run_text(ctx: Ctx) -> list[str]:
-    if not ctx.not_run:
+def not_run_text(ctx: Ctx, rows: list[dict] | None = None) -> list[str]:
+    rows = ctx.not_run if rows is None else rows
+    if not rows:
         return []
-    items = ", ".join(f"{TASK_LABEL.get(r['task'], r['task'])} `{r['workload']}`" for r in ctx.not_run)
+    items = ", ".join(f"{TASK_LABEL.get(r['task'], r['task'])} `{r['workload']}`" for r in rows)
     return [f"Not run by `{ctx.library}` (competitors have a cell, we have none): {items}.", ""]
 
 
@@ -373,7 +382,9 @@ def chart_files(ctx: Ctx, aggs: list[dict], rel: str, short_alt: bool = False) -
         return []
     name = f"{ctx.library}-hero"
     title = f"{ctx.library}: speed per task against the strongest competitor"
-    desc = hero_desc(title, HERO_NOTE + " " + HERO_DESC_MARKS, aggs)
+    # Only an explicit omission drops the sentence, so a chart without the option reads as before.
+    marks = HERO_DESC_DAGGER if "unchanged-emit" in ctx.chart_omit else HERO_DESC_MARKS
+    desc = hero_desc(title, HERO_NOTE + " " + marks, aggs)
     alt = hero_alt(ctx.library, aggs)
     for theme in report.THEMES:
         ctx.files[f"{name}-{theme}.svg"] = report.svg_chart(title, HERO_NOTE, data, theme, report.fmt_time, alt,
@@ -386,18 +397,24 @@ def speed_label(ratio: float) -> str:
     return speed_text(ratio)
 
 
+HERO_DESC_DAGGER = "A † marks a cell measured differently from the task as specified."
+# The sentence about unchanged emit is left out when that task is left out of the chart.
 HERO_DESC_MARKS = ("Unchanged emit times the write path of a document that was not edited; a library that keeps the "
-                   "text returns it without rendering, so it is not a rendering speed. A † marks a cell measured differently from the task as "
-                   "specified.")
+                   "text returns it without rendering, so it is not a rendering speed. " + HERO_DESC_DAGGER)
 
 
 # ---- the blocks -------------------------------------------------------------------------
+
+def chart_aggs(ctx: Ctx) -> list[dict]:
+    """The per-task entries of the hero and chart blocks: every task except those left out."""
+    return [a for a in aggregate(ctx.result, ctx.library, ctx.rows) if a["task"] not in ctx.chart_omit]
+
 
 def render_hero(ctx: Ctx, chart_rel: str, **_) -> str:
     """Time only, one row per task: the headline is how many times faster we are than the strongest
     competitor (their time ÷ ours, higher is better; a loss reads "slower"). Memory and the counts of
     better, level and worse workloads are on the full page."""
-    aggs = aggregate(ctx.result, ctx.library, ctx.rows)
+    aggs = chart_aggs(ctx)
     out = smoke_notice(ctx) + chart_files(ctx, aggs, chart_rel)
     body = []
     covers = []
@@ -423,14 +440,15 @@ def render_hero(ctx: Ctx, chart_rel: str, **_) -> str:
             mine += f"{report.MARK_NOT_BEST} ({'; '.join(sorted(a['own_marks']))})"
         mark = verdict_text(a["verdict"]) + (" (partial: a workload has no number)" if a["missing"] else "")
         body.append([hero_name(a), mine, vs, report.fmt_time(a["best_time"]), speed_text(a["ratio"], a["verdict"]), mark])
-    for task in task_sort({r["task"] for r in ctx.not_run} - {a["task"] for a in aggs}):
+    not_run = [r for r in ctx.not_run if r["task"] not in ctx.chart_omit]
+    for task in task_sort({r["task"] for r in not_run} - {a["task"] for a in aggs}):
         body.append([HERO_LABEL.get(task, TASK_LABEL.get(task, task)), "—", "—", "—", "—", "NOT RUN"])
     kinds = {a["basis"] for a in aggs}
     out.append(report.md_table(
         ["Task", f"`{ctx.library}` time (geometric mean)", "Strongest competitor",
          "Its time (geometric mean)", "Speed against it (its time ÷ ours; higher is better)", "Verdict"], body))
     out.append("")
-    out += not_run_text(ctx)
+    out += not_run_text(ctx, not_run)
     if covers:
         out.append("Not in a row's mean: " + "; ".join(covers) + ".")
         out.append("")
@@ -455,7 +473,7 @@ def render_hero(ctx: Ctx, chart_rel: str, **_) -> str:
 def render_chart(ctx: Ctx, chart_rel: str, performance_link: str = "docs/performance.md", **_) -> str:
     """The hero chart alone, with a link to the full results: for a README that keeps the numbers on a
     page of their own."""
-    aggs = aggregate(ctx.result, ctx.library, ctx.rows)
+    aggs = chart_aggs(ctx)
     out = smoke_notice(ctx) + chart_files(ctx, aggs, chart_rel, short_alt=True)
     out.append(f"[Full results, with memory and the method →]({performance_link})")
     return "\n".join(out)
