@@ -4328,6 +4328,20 @@
    "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: the library overflows the stack and the process ends"
   },
   {
+   "case": "own:safety/deep-flow-mappings-200000-then-many-lines-unclosed",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Does not stay inside the time or memory bound on 200,000 unclosed flow mappings followed by 140,608 lines: the library overflows the stack and the process ends"
+  },
+  {
+   "case": "own:safety/deep-flow-mappings-200000-then-many-lines-unclosed",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Does not stay inside the time or memory bound on 200,000 unclosed flow mappings followed by 140,608 lines: the library overflows the stack and the process ends"
+  },
+  {
    "case": "own:edit/add-nested-copies-sibling-indent-past-256",
    "expectation": "primary",
    "mode": "loose",

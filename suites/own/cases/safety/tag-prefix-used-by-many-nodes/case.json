@@ -1,7 +1,7 @@
 {
  "format": "oneyaml-kit-case/2",
  "id": "safety/tag-prefix-used-by-many-nodes",
- "title": "A tag handle whose prefix is a million characters long, used by 8,000 nodes, in a document that is edited",
+ "title": "A tag handle whose prefix is 24 million characters long, used by 64,000 nodes, in a document that is edited",
  "category": "safety",
  "origin": "bug",
  "productions": [
@@ -15,7 +15,7 @@
  "tags": [
   "slow"
  ],
- "notes": "The document declares `%TAG !e! tag:x,2000:` followed by a million `a` (the prefix is a run of URI characters, section 6.8.2, production 93 via [88]), then a block sequence of 8,000 items `- !e!x a`. The tag of each item is the prefix followed by `x` (section 6.9.1), a string of a million characters, so a reader that builds that string for every node holds 8,000 strings of a million characters, 8 billion characters in all, or spends that much time copying them. The input is valid. The case appends one item (`add` at `/-`) and nothing else, so the answer is the input followed by `- z`, or a limit error. It is a patch, not a value or an events case, because those would have to state the tag of every node: the full tag is part of the result, 8,000 strings of a million characters, which no stored expectation can hold. A reader that does not recognize the tag `tag:x,2000:aaa...x` may only compose a partial representation of these scalars (section 3.3.3), but the document is well-formed and an edit of its presentation needs no native value, so an unrecognized-tag error is a different answer and is not accepted here. The time limit is 30 seconds and is a hang guard, not a measure of cost: a reader that is linear in the 1 MB input needs well under a second. A reader that builds the 8,000 tag strings may finish inside 30 seconds and so pass on time; the memory bound is what catches it where it holds the strings, and only a reader that hangs goes over the time limit. The limits are the robustness requirement of the kit, not a rule of the specification: the memory is the whole adapter process, and the input is 1 MB. The input and the expected result are generated from the recipe in case.json (docs/case-format.md).",
+ "notes": "The document declares `%TAG !e! tag:x,2000:` followed by 24 million `a` (the prefix is a run of URI characters, section 6.8.2, production 93 via [88]), then a block sequence of 64,000 items `- !e!x a`. The tag of each item is the prefix followed by `x` (section 6.9.1), a string of 24 million characters, so a reader that builds that string for every node holds 64,000 strings of 24 million characters, 1.5 trillion characters in all, or spends that much time copying them. The input is valid. The case appends one item (`add` at `/-`) and nothing else, so the answer is the input followed by `- z`, or a limit error. It is a patch, not a value or an events case, because those would have to state the tag of every node: the full tag is part of the result, which no stored expectation can hold. A reader that does not recognize the tag `tag:x,2000:aaa...x` may only compose a partial representation of these scalars (section 3.3.3), but the document is well-formed and an edit of its presentation needs no native value, so an unrecognized-tag error is a different answer and is not accepted here. The time limit is 30 seconds and is a hang guard, not a measure of cost. The prefix is as long as it is so that the guard still has force: a reader that builds the tag of every node, even if it throws each string away at once, copies 24 million characters 64,000 times, 1.5 trillion bytes, and a model reader that does nothing but allocate, copy and free needed 117 seconds at 13 GB/s; a reader that keeps the strings goes over the memory bound long before that. Readers that work through the prefix once needed between 1.5 and 2.5 seconds. A prefix of a million characters, as this case used before, left that model reader under one second. The memory is the whole adapter process, and the input is about 24 MB. The limits are the robustness requirement of the kit, not a rule of the specification. The input and the expected result are generated from the recipe in case.json (docs/case-format.md).",
  "provenance": {
   "reference": "A tag prefix of a million characters that each node using it copied into its own tag string."
  },
@@ -25,14 +25,14 @@
   },
   {
    "text": "a",
-   "repeat": 1000000
+   "repeat": 24000000
   },
   {
    "text": "\n---\n"
   },
   {
    "text": "- !e!x a\n",
-   "repeat": 8000
+   "repeat": 64000
   }
  ],
  "operation": {
@@ -58,14 +58,14 @@
     },
     {
      "text": "a",
-     "repeat": 1000000
+     "repeat": 24000000
     },
     {
      "text": "\n---\n"
     },
     {
      "text": "- !e!x a\n",
-     "repeat": 8000
+     "repeat": 64000
     },
     {
      "text": "- z\n"

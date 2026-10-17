@@ -214,6 +214,30 @@ def _expect_from_json(d: Any, base: Path | None, where: str, nested: bool = Fals
     }
 
 
+# A patch with tens of thousands of identical operations would be larger than a stored file may be,
+# so it can be written as parts too: {"ops": [operations], "repeat": n}, written one after another.
+MAX_PATCH_OPS = 1_000_000
+
+
+def expand_patch_recipe(recipe, where: str) -> list:
+    """The operations a patch_recipe describes. The count is worked out before anything is built."""
+    if not isinstance(recipe, list) or not recipe or len(recipe) > MAX_RECIPE_PARTS:
+        raise CaseError(f"{where}: patch_recipe must be a list of 1 to {MAX_RECIPE_PARTS} parts")
+    total = 0
+    for i, part in enumerate(recipe):
+        w = f"{where}: patch_recipe part {i}"
+        if not isinstance(part, dict) or set(part) - {"ops", "repeat"} or not isinstance(part.get("ops"), list) \
+                or not part["ops"]:
+            raise CaseError(f"{w} holds a non-empty list `ops` and an optional `repeat`")
+        for o in part["ops"]:
+            if not isinstance(o, dict) or not isinstance(o.get("op"), str):
+                raise CaseError(f"{w}: operations must be objects with a string op")
+        total += len(part["ops"]) * _int(part.get("repeat", 1), w, "repeat")
+        if total > MAX_PATCH_OPS:
+            raise CaseError(f"{where}: patch_recipe builds more than {MAX_PATCH_OPS} operations")
+    return [dict(o) for part in recipe for _ in range(part.get("repeat", 1)) for o in part["ops"]]
+
+
 def _check_operation(op: dict, where: str) -> tuple[str, dict]:
     if not isinstance(op, dict) or op.get("type") not in OPERATIONS:
         raise CaseError(f"{where}: operation.type must be one of {OPERATIONS}")
@@ -226,12 +250,16 @@ def _check_operation(op: dict, where: str) -> tuple[str, dict]:
             raise CaseError(f"{where}: a dump operation needs a value")
         check_kit_value(args["value"], where)
     if typ == "patch":
-        allowed |= {"format", "patch", "document"}
+        allowed |= {"format", "patch", "patch_recipe", "document"}
         fmt = args.get("format", "json-patch")
         if fmt not in PATCH_FORMATS:
             raise CaseError(f"{where}: unknown patch format {fmt!r}")
-        if "patch" not in args:
-            raise CaseError(f"{where}: patch operation needs a patch")
+        if ("patch" in args) == ("patch_recipe" in args):
+            raise CaseError(f"{where}: patch operation needs exactly one of patch and patch_recipe")
+        if "patch_recipe" in args:
+            if fmt != "json-patch":
+                raise CaseError(f"{where}: only a json-patch can be written as a patch_recipe")
+            args["patch"] = expand_patch_recipe(args.pop("patch_recipe"), where)
         if fmt == "json-patch":
             if not isinstance(args["patch"], list):
                 raise CaseError(f"{where}: a json-patch is an array of operations")
@@ -388,11 +416,24 @@ def generate_input(recipe, where: str, what: str = "input_recipe") -> bytes:
     p + the number + s for k, k+1, ... (n numbers), the number zero-padded to w digits, or
     {"product": {"prefix": p, "suffix": s, "choices": [[a, b], [c, d], ...]}}, which writes
     p + one string of each list + s for every combination (the last list varies fastest).
-    The total size is limited to MAX_GENERATED_BYTES."""
+    The total size is limited to MAX_GENERATED_BYTES.
+
+    A large result is remembered by its recipe, so a process that loads the cases again (the
+    kit's own tests do, many times) builds each large input once and shares the bytes."""
+    key = json.dumps(recipe, sort_keys=True) if isinstance(recipe, list) else None
+    if key is not None and key in _BUILT:
+        return _BUILT[key]
     out = bytearray()
     for piece in iter_input(recipe, where, what):
         out += piece
-    return bytes(out)
+    data = bytes(out)
+    if key is not None and len(data) >= _REMEMBER_FROM:
+        _BUILT[key] = data
+    return data
+
+
+_BUILT: dict[str, bytes] = {}
+_REMEMBER_FROM = 1024 * 1024
 
 
 def load_own_case(case_dir: Path, cases_root: Path = OWN_DIR, skip_slow: bool = False) -> Case | None:
@@ -700,6 +741,23 @@ def generated_input_digests(cases_root: Path = OWN_DIR) -> dict[str, dict]:
     return out
 
 
+def generated_patch_digests(cases_root: Path = OWN_DIR) -> dict[str, dict]:
+    """The operation count and digest of every patch that a patch_recipe builds, so a change in
+    what a recipe builds shows even when the recipe text does not change."""
+    out = {}
+    if cases_root.is_dir():
+        for cj in sorted(cases_root.rglob("case.json")):
+            raw = kitjson.loads(cj.read_bytes())
+            recipe = (raw.get("operation") or {}).get("patch_recipe")
+            if recipe is None:
+                continue
+            rel = cj.parent.relative_to(cases_root).as_posix()
+            ops = expand_patch_recipe(recipe, f"own:{rel}")
+            blob = json.dumps(ops, separators=(",", ":"), sort_keys=True).encode()
+            out[rel] = {"ops": len(ops), "sha256": hashlib.sha256(blob).hexdigest()}
+    return out
+
+
 def _result_recipes(expect) -> list:
     """The recipes that an expectation builds its expected result from: its own, or the one of
     the result it accepts (a bounded case)."""
@@ -742,7 +800,8 @@ def current_pins() -> dict:
             "error_cases": 94,
         },
         "own": {"cases": own_case_digests(), "generated_inputs": generated_input_digests(),
-                "generated_results": generated_result_digests()},
+                "generated_results": generated_result_digests(),
+                "generated_patches": generated_patch_digests()},
     }
 
 

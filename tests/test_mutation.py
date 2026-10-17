@@ -26,7 +26,9 @@ def mutate(expect):
     elif k == "value":
         e["value"] = e["value"] + [None]
     elif k == "bytes":
-        e["bytes"] = e["bytes"] + b" "
+        # A byte at the front: the first difference is then at byte 0, so a result of tens of
+        # megabytes is judged at once instead of after a pass over all of it.
+        e["bytes"] = b" " + e["bytes"]
     return e
 
 

@@ -1,7 +1,7 @@
 {
  "format": "oneyaml-kit-case/2",
  "id": "safety/implicit-key-window-rescan",
- "title": "A 24-million-character scalar inside 1,100 nested flow sequences",
+ "title": "A 24-million-character scalar inside 9,000 nested flow sequences",
  "category": "safety",
  "origin": "bug",
  "productions": [
@@ -13,7 +13,7 @@
   "YAML 1.2.2 section 7.4.1",
   "YAML 1.2.2 section 7.4.3"
  ],
- "notes": "The input is valid: 1,100 nested flow sequences around one plain scalar of 24 million characters. Every `[` allows an implicit key, and a key is at most 1024 characters, so the reader needs only a window of that many characters behind its position; it must not look again at the whole scalar for each open sequence. A reader may also refuse the nesting or the scalar with a limit error. The scalar is 24 million characters, not 32 million, because at 32 million two readers needed between 0.8 and 1.1 GB just to hold the answer, which put them on the 1024 MB bound. The reader that rescanned took 10.5 to 11 seconds on this input and a reader with a bounded window took 0.01 seconds; linear readers took at most 1.1 seconds. The time limit is 30 seconds and is a hang guard, not a measure of cost: the reader that rescanned finished in about 11 seconds, so it now passes on time, and this case no longer catches the rescan by speed. Only a reader that needs more than 30 seconds goes over it (one library needs over 120 seconds at 100 levels). The resource bounds are the robustness requirement of the kit, not a rule of the specification. The input is generated from the recipe in case.json (docs/case-format.md).",
+ "notes": "The input is valid: 9,000 nested flow sequences around one plain scalar of 24 million characters. Every `[` allows an implicit key, and a key is at most 1024 characters, so the reader needs only a window of that many characters behind its position; it must not look again at the whole scalar for each open sequence. A reader may also refuse the nesting or the scalar with a limit error. The scalar is 24 million characters, not 32 million, because at 32 million two readers needed between 0.8 and 1.1 GB just to hold the answer, which put them on the 1024 MB bound. The nesting is what gives the time limit its force. A reader that scans the scalar again for every open sequence does work in proportion to the depth times the length: 216 billion byte steps here, 8 times as many as at 1,100 levels, where such a reader needed 10.5 to 11 seconds and a reader with a bounded window needed 0.01 seconds. At that speed 9,000 levels would take about 90 seconds (projected, not measured). Even a model reader that does nothing but walk the bytes, at 5 GB/s, needs 42 seconds, more than the limit. Linear readers needed between 0.2 and 1.6 seconds for this input, so they stay far inside it. The time limit is 30 seconds and is a hang guard, not a measure of cost: only a reader whose cost is quadratic in this way, or one that hangs, goes over it. The depth stays under 10,000 because several libraries refuse deeper nesting with an error that is not a limit error, which would turn the answer into a different failure. The resource bounds are the robustness requirement of the kit, not a rule of the specification. The input is generated from the recipe in case.json (docs/case-format.md).",
  "provenance": {
   "reference": "A reader that, for each open flow sequence, scanned back over the characters since the sequence began to decide whether an implicit key was still possible, taking time in proportion to the depth times the length of the scalar."
  },
@@ -23,7 +23,7 @@
  "input_recipe": [
   {
    "text": "[",
-   "repeat": 1100
+   "repeat": 9000
   },
   {
    "text": "x",
@@ -31,7 +31,7 @@
   },
   {
    "text": "]",
-   "repeat": 1100
+   "repeat": 9000
   },
   {
    "text": "\n"
@@ -50,7 +50,7 @@
     },
     {
      "text": "+SEQ []\n",
-     "repeat": 1100
+     "repeat": 9000
     },
     {
      "text": "=VAL :"
@@ -64,7 +64,7 @@
     },
     {
      "text": "-SEQ\n",
-     "repeat": 1100
+     "repeat": 9000
     },
     {
      "text": "-DOC\n-STR\n"

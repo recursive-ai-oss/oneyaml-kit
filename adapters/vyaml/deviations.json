@@ -2729,14 +2729,14 @@
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Over the time bound: no answer within 30 s for 1,100 nested sequences around a scalar of 24 million characters. The time follows the length of the scalar, not the nesting: at 100 levels 24 million characters take over 120 s, and at 1,100 levels 6 million characters take 0.2 s"
+   "reason": "Over the time bound: no answer within 30 s for 9,000 nested sequences around a scalar of 24 million characters. The time follows the length of the scalar, not the nesting: at 100 levels 24 million characters take over 120 s, and at 1,100 levels 6 million characters take 0.2 s"
   },
   {
    "case": "own:safety/implicit-key-window-rescan",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Over the time bound: no answer within 30 s for 1,100 nested sequences around a scalar of 24 million characters. The time follows the length of the scalar, not the nesting: at 100 levels 24 million characters take over 120 s, and at 1,100 levels 6 million characters take 0.2 s"
+   "reason": "Over the time bound: no answer within 30 s for 9,000 nested sequences around a scalar of 24 million characters. The time follows the length of the scalar, not the nesting: at 100 levels 24 million characters take over 120 s, and at 1,100 levels 6 million characters take 0.2 s"
   },
   {
    "case": "own:diagnostics/bom-in-a-comment-is-an-error",
@@ -2821,6 +2821,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Does not stay inside the time or memory bound on a million unclosed flow mappings: no answer within 100 s, with memory growth at 39 MB"
+  },
+  {
+   "case": "own:safety/deep-flow-mappings-200000-then-many-lines-unclosed",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Does not stay inside the time bound on 200,000 unclosed flow mappings followed by 140,608 lines: no answer within 100 s"
+  },
+  {
+   "case": "own:safety/deep-flow-mappings-200000-then-many-lines-unclosed",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Does not stay inside the time bound on 200,000 unclosed flow mappings followed by 140,608 lines: no answer within 100 s"
   },
   {
    "case": "own:emit/carriage-return-in-a-string-is-preserved",
