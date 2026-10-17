@@ -225,8 +225,10 @@ A `bounded` case names the acceptable outcomes and the resources it may use:
   Without that, the number depends on the cases that ran before: a runtime keeps memory it has
   freed (a collector's heap, buffers a parser reuses), so a case that grows a fresh process by
   hundreds of megabytes can show half that, or nothing, after a case that already grew it.
-  Ordinary cases share one process as before. Time is measured from the case's request to its
-  answer. The process first answers one trivial request of the same kind (the text `a` and a line
+  Ordinary cases share one process as before. Time is measured from the moment the kit has finished writing the
+  request to the moment the last byte of the answer was read. Building the request, decoding the
+  answer and watching memory are not charged, and neither is the adapter's reading of the request,
+  which overlaps the write. The process first answers one trivial request of the same kind (the text `a` and a line
   break, and an empty patch for a patch case), so first-use costs, such as compiling code just in
   time or loading types, are not counted against the case's bounds.
 - The time bound is a hang guard, not a speed claim, and it is generous by design. It is set

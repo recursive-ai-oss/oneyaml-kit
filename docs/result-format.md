@@ -51,7 +51,8 @@ Per case: `loose` and `strict` are each `pass`, `fail` or `unsupported`.
 - `got` (for error and bounded expectations) is what the library actually returned: its
   status, error category, position and message, the number of events, so a verdict can be
   audited without re-running.
-- `measured` (bounded cases): `seconds`, `time_bound` (the time bound that was enforced:
+- `measured` (bounded cases): `seconds` (from the request completely written to the last byte of the
+  answer read), `time_bound` (the time bound that was enforced:
   the case's own bound, a hang guard, see the case format) and `peak_mb`,
   the peak resident-memory growth (null where it cannot be measured). A case whose adapter
   could not be started has `seconds` 0 and `peak_mb` null.
