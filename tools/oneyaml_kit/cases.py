@@ -14,6 +14,7 @@ module decodes them except where a file is defined to be text (event lists).
 from __future__ import annotations
 
 import base64
+import copy
 import hashlib
 import itertools
 import json
@@ -235,7 +236,7 @@ def expand_patch_recipe(recipe, where: str) -> list:
         total += len(part["ops"]) * _int(part.get("repeat", 1), w, "repeat")
         if total > MAX_PATCH_OPS:
             raise CaseError(f"{where}: patch_recipe builds more than {MAX_PATCH_OPS} operations")
-    return [dict(o) for part in recipe for _ in range(part.get("repeat", 1)) for o in part["ops"]]
+    return [copy.deepcopy(o) for part in recipe for _ in range(part.get("repeat", 1)) for o in part["ops"]]
 
 
 def _check_operation(op: dict, where: str) -> tuple[str, dict]:

@@ -231,5 +231,37 @@ class Patches(unittest.TestCase):
                          ({"events|outcome:events", "profile:yaml-1.1"}, {"error-category", "error-position"}))
 
 
+class ByteDiff(unittest.TestCase):
+    @staticmethod
+    def reference(exp, act):
+        # The original per-byte walk, kept as the oracle for the faster search.
+        n = min(len(exp), len(act))
+        i = next((k for k in range(n) if exp[k] != act[k]), n)
+        if i == n and len(exp) == len(act):
+            return ""
+        return (f"first difference at byte {i}: expected {K._short(exp[i:i + 40])}, "
+                f"got {K._short(act[i:i + 40])} (lengths {len(exp)} and {len(act)})")
+
+    def test_text_matches_the_byte_walk_for_front_middle_end_and_length_differences(self):
+        base = bytes(range(256)) * 80  # 20480 bytes: several chunks
+        def with_byte(i):
+            return base[:i] + bytes([base[i] ^ 1]) + base[i + 1:]
+        pairs = [(base, base), (b"", b""), (b"", b"a"), (b"a", b"")]
+        pairs += [(base, with_byte(i)) for i in (0, 1, 4095, 4096, 4097, 10000, len(base) - 1)]
+        pairs += [(base, base[:k]) for k in (0, 1, 4096, 8192, len(base) - 1)]
+        pairs += [(base[:k], base) for k in (4096, len(base) - 1)]
+        pairs += [(base, base + b"x"), (b"\xef\xbb\xbfa\r\n", b"a\n")]
+        for exp, act in pairs:
+            self.assertEqual(K.diff_bytes(exp, act), self.reference(exp, act), (len(exp), len(act)))
+        self.assertEqual(K.diff_bytes(base, base), "")
+        self.assertIn("byte 10000", K.diff_bytes(base, with_byte(10000)))
+
+    def test_equal_inputs_are_not_walked(self):
+        # A deterministic guard instead of a timer: equal inputs must return before any search.
+        from unittest import mock
+        with mock.patch.object(K, "_first_difference", side_effect=AssertionError("searched")):
+            self.assertEqual(K.diff_bytes(b"abc" * 1000, b"abc" * 1000), "")
+
+
 if __name__ == "__main__":
     unittest.main()

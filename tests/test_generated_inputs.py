@@ -350,6 +350,14 @@ class PatchRecipe(unittest.TestCase):
         self.assertEqual(c.args["patch"], [add, cp, cp, cp])
         self.assertNotIn("patch_recipe", c.args)
 
+    def test_repeated_operations_do_not_share_nested_values(self):
+        op = {"op": "add", "path": "/f", "value": {"k": [1]}}
+        d = self.case("s", {"type": "patch", "patch_recipe": [{"ops": [op], "repeat": 2}]})
+        ops = C.load_own_case(d, self.tmp).args["patch"]
+        ops[0]["value"]["k"].append(2)
+        self.assertEqual(ops[1]["value"], {"k": [1]})
+        self.assertEqual(op["value"], {"k": [1]})
+
     def test_a_repeat_of_zero_writes_nothing(self):
         op = {"op": "remove", "path": "/a"}
         d = self.case("z", {"type": "patch", "patch_recipe": [{"ops": [op], "repeat": 0}, {"ops": [op]}]})

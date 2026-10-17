@@ -388,6 +388,18 @@ def _all_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[S
     return steps
 
 
+def _run_measured(argv: list, cwd: Path, env: dict, out) -> tuple[int, float | None]:
+    """Run a command and return its exit code and the resident-set peak of its largest process
+    (itself or a descendant it waited for), in MiB; None where the platform gives no figure.
+    wait4 hands the kernel's own accounting back, so there is no sampling."""
+    p = subprocess.Popen(argv, cwd=cwd, env=env, stdout=out, stderr=subprocess.STDOUT)
+    if not hasattr(os, "wait4"):
+        return p.wait(), None
+    _, status, usage = os.wait4(p.pid, 0)
+    p.returncode = os.waitstatus_to_exitcode(status)
+    return p.returncode, usage.ru_maxrss / 1024  # Linux reports KiB
+
+
 def run_step(step: Step, root: Path, out: Path, base_env: dict, index: int) -> dict:
     env = dict(base_env)
     for k in step.drop_env:
@@ -399,15 +411,15 @@ def run_step(step: Step, root: Path, out: Path, base_env: dict, index: int) -> d
     log = out / "gate" / f"{index:02d}-{step.area}.log"
     log.parent.mkdir(parents=True, exist_ok=True)
     t0 = clock()
+    peak = None
     try:
         with open(log, "wb") as f:
-            p = subprocess.run(step.argv, cwd=root / step.cwd, env=env, stdout=f, stderr=subprocess.STDOUT)
-        rc = p.returncode
+            rc, peak = _run_measured(step.argv, root / step.cwd, env, f)
     except OSError as e:
         log.write_text(f"cannot run {step.argv[0]}: {e}\n")
         rc = 127
     return {"area": step.area, "name": step.name, "rc": rc, "seconds": clock() - t0,
-            "log": log, "argv": step.argv}
+            "log": log, "argv": step.argv, "peak_mib": peak}
 
 
 # Peak memory of each area under the gate, in MiB, measured as the summed proportional set size of
@@ -424,6 +436,19 @@ TYPICAL_AREA_MIB = 2560
 # The share of the limit the areas may use; the rest is for the gate itself, the page cache the
 # builds fill and the error of the measurement.
 MEMORY_SHARE = 0.85
+
+
+def stale_estimates(results: list[dict]) -> list[str]:
+    """One warning per area whose measured peak is above its estimate. The measurement is the
+    largest single process of any step, so it is a floor under the area's true peak: a warning
+    means the estimate is certainly too low, and silence means nothing more than "not shown wrong"."""
+    peak: dict[str, float] = {}
+    for r in results:
+        if r.get("peak_mib") is not None:
+            peak[r["area"]] = max(peak.get(r["area"], 0.0), r["peak_mib"])
+    return [f"area {a} had a process of {m:.0f} MiB, above its {AREA_PEAK_MIB.get(a, UNKNOWN_AREA_MIB)} MiB "
+            f"estimate: raise AREA_PEAK_MIB" for a, m in sorted(peak.items())
+            if m > AREA_PEAK_MIB.get(a, UNKNOWN_AREA_MIB)]
 
 
 def _read_limit(path: Path) -> int | None:
@@ -618,12 +643,16 @@ def main(args) -> int:
     failed = [r for r in results if r["rc"] != 0]
     budget = None if args.full else (BUDGET_SECONDS if args.budget is None else args.budget)
     over = over_budget(total, budget, results)
+    stale = stale_estimates(results)
+    for w in stale:
+        print(f"gate: warning: {w}", file=sys.stderr)
     print("gate: " + ", ".join(f"{a} {t:.1f} s" for a, t in by_area.items()) + f"; wall-clock {total:.1f} s")
     (out / "gate" / "summary.json").write_text(json.dumps({
         "mode": "full" if args.full else "hand-over", "revision": rev, "areas": areas, "wall_seconds": round(total, 1),
-        "jobs": jobs, "budget_seconds": budget, "over_budget": over is not None,
+        "jobs": jobs, "budget_seconds": budget, "estimate_warnings": stale, "over_budget": over is not None,
         "areas_seconds": {a: round(t, 1) for a, t in by_area.items()},
-        "steps": [{"area": r["area"], "name": r["name"], "ok": r["rc"] == 0, "seconds": round(r["seconds"], 1)}
+        "steps": [{"area": r["area"], "name": r["name"], "ok": r["rc"] == 0, "seconds": round(r["seconds"], 1),
+                   "peak_mib": None if r.get("peak_mib") is None else round(r["peak_mib"])}
                   for r in results]}, indent=1) + "\n")
     if over:
         print(over, file=sys.stderr)

@@ -161,6 +161,25 @@ class Running(unittest.TestCase):
         self.assertEqual(r["log"].read_text().strip(), str(t / "target"))
 
 
+class EstimateCheck(unittest.TestCase):
+    def test_a_step_records_the_peak_of_its_largest_process(self):
+        t = Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))
+        self.addCleanup(shutil.rmtree, t)
+        code = "b = bytearray(200 * 2**20); b[::4096] = bytes(len(b[::4096]))"
+        r = gate.run_step(gate.Step("core", "big", [gate.py(), "-c", code]), t, t, dict(os.environ), 0)
+        self.assertGreater(r["peak_mib"], 150)
+
+    def test_an_area_over_its_estimate_is_reported_and_one_under_is_not(self):
+        over = gate.AREA_PEAK_MIB["go"] + 1
+        res = [{"area": "go", "peak_mib": 10}, {"area": "go", "peak_mib": over},
+               {"area": "rust", "peak_mib": 5}, {"area": "bench", "peak_mib": None},
+               {"area": "new-area", "peak_mib": gate.UNKNOWN_AREA_MIB + 1}]
+        warnings = gate.stale_estimates(res)
+        self.assertEqual(len(warnings), 2)
+        self.assertIn("area go", warnings[0])
+        self.assertIn("area new-area", warnings[1])
+
+
 def run_main(areas=None, without_core=False):
     args = argparse.Namespace(full=False, base="main", areas=areas, without_core=without_core, jobs=1, plan=True,
                               out=str(Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))))
