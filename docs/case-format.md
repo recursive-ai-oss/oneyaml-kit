@@ -237,6 +237,12 @@ A `bounded` case names the acceptable outcomes and the resources it may use:
   readers by cost. The memory bound is the real check of a bounded case. The runner enforces the
   time number as written, with no scaling for the machine, and each result records the bound that
   was enforced (`measured.time_bound`). A bounded case states at least five seconds.
+- A case that exists to catch cost that grows faster than the input is sized so that the guard
+  still has force: the work a reader with that cost must do, counted in bytes walked or copied,
+  takes longer than the guard even at the speed of a simple byte-at-a-time loop or a plain memory copy that does nothing else (measured on one machine, not a bound). The kit's own
+  tests check that arithmetic from the case data and time nothing, so a case cannot be shrunk
+  below it unnoticed. Where a case has to stay in the fast set, its input is a stored file and is
+  too small for this; a larger sibling in the slow set carries the cost check and the case says so.
 - Loose passes when the outcome is the accepted result or any error, inside both bounds.
   Strict also needs the named category. If memory cannot be measured on the platform
   (see the adapter protocol: the whole process tree is measured), the memory bound is not
@@ -386,6 +392,13 @@ key, a value and a flow sequence of four thousand copies of that value:
   {"text": "<value>]\n"}
 ]}
 ```
+
+A JSON Patch of very many identical operations is too large for a stored file in the same way, so
+`operation.patch_recipe` can stand in for `patch`: a list of at most 64 parts, each
+`{"ops": [operations], "repeat": n}`, written one after another (`repeat` defaults to 1). It builds
+at most 1,000,000 operations, counted before anything is built, and only for a `json-patch`; a case
+has a `patch` or a `patch_recipe`, never both. The runner sends the built array like a stored one.
+`tests/pins.json` pins the operation count and the SHA-256 of the built array (`generated_patches`).
 
 The runner sends a generated input like a stored one: the bytes, base64, in the request. Nothing
 is written to disk. `tests/pins.json` pins the size and the SHA-256 of every generated input

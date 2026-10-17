@@ -3810,6 +3810,13 @@
    "reason": "Refuses the input with an error category other than limit or syntax: category: expected one of limit, syntax, got other"
   },
   {
+   "case": "own:safety/deep-flow-mappings-200000-then-many-lines-unclosed",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected one of limit, syntax, got other"
+  },
+  {
    "case": "own:edit/sequence-item-set-equal-to-next-keeps-keep-chomp",
    "expectation": "primary",
    "mode": "loose",

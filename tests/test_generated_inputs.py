@@ -80,6 +80,17 @@ class Recipe(unittest.TestCase):
         recipe = [{"product": {"choices": [["", "x"]] + [["", ""]] * 14}}]
         self.assertEqual(C.generate_input(recipe, "t"), b"x" * 16384)
 
+    def test_a_large_result_is_built_once_and_a_small_one_is_not_kept(self):
+        big = [{"text": "ab", "repeat": 600000}]
+        first = C.generate_input(big, "t")
+        self.assertIs(C.generate_input(big, "t"), first)
+        self.assertEqual(first, b"ab" * 600000)
+        other = C.generate_input([{"text": "ab", "repeat": 600001}], "t")
+        self.assertEqual(other, b"ab" * 600001)
+        small = [{"text": "ab", "repeat": 3}]
+        self.assertEqual(C.generate_input(small, "t"), b"ababab")
+        self.assertNotIn(json.dumps(small, sort_keys=True), C._BUILT)
+
     def test_text_is_never_evaluated(self):
         text = "{__import__('os').system('x')} %s {0} \\n"
         self.assertEqual(C.generate_input([{"text": text}], "t"), text.encode())
@@ -312,6 +323,83 @@ class Pins(unittest.TestCase):
         for cid, c in ids.items():
             self.assertEqual(pinned[cid], {"bytes": len(c.input), "sha256": hashlib.sha256(c.input).hexdigest()})
             self.assertLessEqual(len(c.input), C.MAX_GENERATED_BYTES)
+
+
+class PatchRecipe(unittest.TestCase):
+    """A patch of many identical operations, written as parts, as an input is."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def case(self, name, operation):
+        d = write_case(self.tmp, name, None, {"input": "input.yaml", "operation": operation,
+                                              "expect": {"kind": "bounded", "time_seconds": 5, "memory_mb": 64,
+                                                         "error": "limit"}})
+        (d / "input.yaml").write_bytes(b"a: 1\n")
+        return d
+
+    def test_the_parts_expand_in_order_and_repeat(self):
+        add = {"op": "add", "path": "/f", "value": []}
+        cp = {"op": "copy", "from": "/v", "path": "/f/-"}
+        d = self.case("p", {"type": "patch", "patch_recipe": [{"ops": [add]}, {"ops": [cp], "repeat": 3}]})
+        c = C.load_own_case(d, self.tmp)
+        self.assertEqual(c.args["patch"], [add, cp, cp, cp])
+        self.assertNotIn("patch_recipe", c.args)
+
+    def test_a_repeat_of_zero_writes_nothing(self):
+        op = {"op": "remove", "path": "/a"}
+        d = self.case("z", {"type": "patch", "patch_recipe": [{"ops": [op], "repeat": 0}, {"ops": [op]}]})
+        self.assertEqual(C.load_own_case(d, self.tmp).args["patch"], [op])
+
+    def test_malformed_recipes_are_refused(self):
+        op = {"op": "remove", "path": "/a"}
+        for name, operation in (
+            ("both", {"type": "patch", "patch": [], "patch_recipe": [{"ops": [op]}]}),
+            ("merge", {"type": "patch", "format": "merge-patch", "patch_recipe": [{"ops": [op]}]}),
+            ("empty", {"type": "patch", "patch_recipe": []}),
+            ("noops", {"type": "patch", "patch_recipe": [{"repeat": 2}]}),
+            ("extra", {"type": "patch", "patch_recipe": [{"ops": [op], "text": "x"}]}),
+            ("badop", {"type": "patch", "patch_recipe": [{"ops": ["remove"]}]}),
+            ("negative", {"type": "patch", "patch_recipe": [{"ops": [op], "repeat": -1}]}),
+            ("toomany", {"type": "patch", "patch_recipe": [{"ops": [op]}] * (C.MAX_RECIPE_PARTS + 1)}),
+            ("toolarge", {"type": "patch", "patch_recipe": [{"ops": [op], "repeat": C.MAX_PATCH_OPS + 1}]}),
+        ):
+            with self.subTest(name):
+                d = self.case(name, operation)
+                with self.assertRaises(C.CaseError):
+                    C.load_own_case(d, self.tmp)
+
+    def test_the_size_is_checked_before_anything_is_built(self):
+        op = {"op": "remove", "path": "/a"}
+        with self.assertRaises(C.CaseError):
+            C.expand_patch_recipe([{"ops": [op] * 1000, "repeat": 10 ** 12}], "t")
+
+    def test_changing_a_recipe_changes_the_pins(self):
+        op = {"op": "remove", "path": "/a"}
+        d = self.case("q", {"type": "patch", "patch_recipe": [{"ops": [op], "repeat": 4}]})
+        before = C.generated_patch_digests(self.tmp)["safety/q"]
+        self.assertEqual(before["ops"], 4)
+        raw = json.loads((d / "case.json").read_text())
+        for repeat in (5, 3):
+            raw["operation"]["patch_recipe"][0]["repeat"] = repeat
+            (d / "case.json").write_text(json.dumps(raw))
+            self.assertNotEqual(C.generated_patch_digests(self.tmp)["safety/q"]["sha256"], before["sha256"])
+        raw["operation"]["patch_recipe"] = [{"ops": [op, op]}, {"ops": [op], "repeat": 2}]
+        (d / "case.json").write_text(json.dumps(raw))
+        self.assertEqual(C.generated_patch_digests(self.tmp)["safety/q"], before)  # same operations
+
+    def test_a_case_with_a_plain_patch_has_no_patch_pin(self):
+        d = self.case("s", {"type": "patch", "patch": []})
+        self.assertEqual(C.generated_patch_digests(self.tmp), {})
+
+    def test_the_pins_file_holds_the_digest_of_every_generated_patch_in_the_kit(self):
+        pinned = json.loads((support.ROOT / "tests" / "pins.json").read_bytes())["own"]["generated_patches"]
+        self.assertEqual(sorted(pinned), sorted(C.generated_patch_digests()))
+        self.assertIn("safety/patch-many-large-appends-into-a-created-flow-sequence", pinned)
+        self.assertEqual(pinned["safety/patch-many-large-appends-into-a-created-flow-sequence"]["ops"], 100001)
 
 
 if __name__ == "__main__":

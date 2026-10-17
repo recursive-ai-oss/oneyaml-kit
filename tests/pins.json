@@ -497,16 +497,17 @@
    "safety/deep-block-sequences-3000": "bddc36faa5b849fd74702edebfb28be44b1621bc8423a11eeb218259efe5e1b7",
    "safety/deep-block-sequences-50000": "6ca15b5900eab228b7eafea7f244f3337547f2dc7783dfaec97bc893da0da34b",
    "safety/deep-explicit-keys-2000": "cccc63a226247d0e95f210234b21e625f6d83aea5274350a54565681fbbb2c50",
+   "safety/deep-flow-mappings-200000-then-many-lines-unclosed": "382aa921305bb34e4975ab707caf1360913db01f2bc79867de43ca6119f28e26",
    "safety/deep-flow-mappings-3000": "4dae6ee37238f01fe38e44064d59eacb80a1eafbedf0ccc4429b634ae6b05d62",
    "safety/deep-flow-mappings-999999": "d9492634736c6f6864b4ba35e9bebd1ce4f9240c6f11fa8fb97b3cd8933b1203",
-   "safety/deep-flow-mappings-then-many-lines-unclosed": "629535ee99914257cc2b0adeb3d3228e5b5053b56084863f64ec2e638201c36b",
+   "safety/deep-flow-mappings-then-many-lines-unclosed": "2e2aca09443cfe6c07916e8fc70a570053391db69109a2d64dc4195025efafde",
    "safety/deep-flow-sequences-100000-value": "669361ee270860c8b3ba11851f37721409a2f0684b52a516fefba9297686b498",
    "safety/deep-indented-mappings-600": "888ff805bdb3e9efa86f58c7e14d4e6aa11133382e06412cc9b64521b9c519f3",
    "safety/deeply-nested-flow-sequences": "f22a9622caccf9774ca89104869407047e3a99a13c8a9855a8eba0bdb21a9158",
    "safety/early-error-in-first-line-then-64-mebibytes": "0321a455489f41f9cb6b5a4bc350b8dbdffb0af4fdf9c2f856f64c13aedde5cc",
    "safety/float-keys-with-million-digit-exponents": "d10729c313a6fd9d752c6a65b45db79096d5b2f5fad035829b2cb3abeab58fe9",
    "safety/flow-mapping-of-16000-float-keys-beyond-the-double-range": "25f8b32f7e555720d967ed5874acde8bca962223e9149f0a1eaaac4e726920d6",
-   "safety/implicit-key-window-rescan": "894e5b15580bb2cd358f243e6c0324afab0a823928a9cbffdf7744d87f23db0d",
+   "safety/implicit-key-window-rescan": "b6670d03e6b5b3fc634ea422742b15daf9f4f115ccd3c183c7befc98c86b8aa6",
    "safety/integer-keys-beyond-the-digit-limit-in-a-document": "8a39a81b24f608b832eb35fad61b69f2cb9c9ea272410ee9d80226c7d2b40e16",
    "safety/integer-of-4300-digits-is-exact-or-refused": "26a56e6fc25156abd3a0f73b7519f7bd50f39b09f90fb664f9bce6b7778b000d",
    "safety/invalid-utf-8-byte": "d1f288d229ee85d8dd0bd15a272e3769358e8174b3e47b350077ca9b8588d461",
@@ -531,19 +532,19 @@
    "safety/malformed-utf-8-truncated-sequence-at-the-end": "c15707cfc5475fa72c21823a0f1d923020226ccc405648d7eef0df4a4b70300e",
    "safety/many-anchors-and-aliases": "df0b6f58e912e9e96821d03b5b060507de3b4270f0d6636c153d05d12f670276",
    "safety/many-anchors-sharing-one-name": "4196a981cf508cef0629778fe13efc88c9875362814d723aec692bac29cee695",
-   "safety/merge-patch-many-deletions-from-a-large-mapping": "a1ffad99878cb53720386f3cd7d13e553766cb5e129454f5f0cc07e84f1e7f11",
+   "safety/merge-patch-many-deletions-from-a-large-mapping": "30c56a119f19a48828780c1b20757cd3e25c102b2875a7093c2425923325a983",
    "safety/one-line-flow-mapping-many-pairs": "4315749f129901b22d838398e8c0e15939d830a5c131c8d68292d2ed1c6a3c71",
    "safety/one-line-flow-mapping-ten-megabytes": "eb8e4830ba09dc225277163789d8a2d10512759905ade820f48969a09510f2bf",
    "safety/one-line-flow-mapping-with-duplicate-keys": "dbf99eef39f0830991d995a736e8d7765df3fe3478f132becd74c263d6dabd67",
    "safety/patch-copy-doubling": "b8243689f3d8a97a3f77cfe4bd3a8e2cc5d96610b9abd65d16c085b2c59549b0",
-   "safety/patch-many-appends-into-a-created-flow-sequence": "4af0c6010f78c89630ff3f0441b85f027c488e4c83b5ef8d395136558f4dee36",
-   "safety/patch-many-large-appends-into-a-created-flow-sequence": "00cba1591dd97af679030d82706e5b98ea266636eb81ec1fa8fb5c128678efc1",
+   "safety/patch-many-appends-into-a-created-flow-sequence": "136fa7c27840f99b97d01166fe2742e128ee7a59f25299079f3f68a4407ad22e",
+   "safety/patch-many-large-appends-into-a-created-flow-sequence": "abf260da2f260c1e74f1067d9de8e5a5fc4fc93a67b86c2639edd130b9a52511",
    "safety/patch-pointer-with-many-tokens-names-nothing": "36fd022138af0bc490adfcc180a8c7684c29a8475565af1a8674a9cd1d797660",
    "safety/plain-scalar-over-twenty-thousand-lines": "2adfab81834496fadc2fed7cfd6dc2193674c3e894901bd5904281db0cdd4d56",
    "safety/shallow-flow-mappings-then-many-lines-unclosed": "2146a5b0429472ee95a4ab79c7c804b6886ee247d251e1a20fea70591c28b466",
-   "safety/tag-prefix-distinct-suffixes": "349a99077a7c9a714cbc355e317b14fce4d7b29d7722ef890fcf17e7fa731128",
-   "safety/tag-prefix-used-by-many-nodes": "2ee5b954ed23bf9ddce049025758fd73f758f7d9d56774e3179747c21d1fae31",
-   "safety/tag-prefix-with-alternating-suffixes": "df0abd023651fb103877b404d599d83fe3d93548cefd6926e8abfec448231308",
+   "safety/tag-prefix-distinct-suffixes": "a40fdef61ba79fc14061de3d4dcb5cd36433179283c5834a3485621dc7865dda",
+   "safety/tag-prefix-used-by-many-nodes": "4ef3cea5443ff6076c8b3d3a87b7e6431ce9aa55358649d3624ec904cb5941c8",
+   "safety/tag-prefix-with-alternating-suffixes": "60b7865205a0333a42c928920cfc5035705171f4cb9ea666aadbd19a88b4a197",
    "safety/ten-million-digit-plain-scalar-events": "b56e246233f61f6b30ad850d2b7820041e44edd84981df1ab7be9a0e0ddc31e4",
    "safety/two-thousand-documents": "f0233537adc9ad919e37eed729966bff3af20c6b903a8d06cec9b319ee969fa3",
    "safety/wide-flow-sequence-30000": "969418d9a0e4a38dbd5eddf9a136f65c4c4367ed92470b09aef5f0310a73aa36",
@@ -612,6 +613,10 @@
     "bytes": 11927552,
     "sha256": "3331b8f2f8d62f522477a67d4575277bc224c4f2195c45e41192fcd898b52fde"
    },
+   "safety/deep-flow-mappings-200000-then-many-lines-unclosed": {
+    "bytes": 1043648,
+    "sha256": "06f43958865641e3378167ed05ea11f51879e7c47d124a0979769b55adc02c69"
+   },
    "safety/early-error-in-first-line-then-64-mebibytes": {
     "bytes": 67108862,
     "sha256": "e80d1c26459bbb67219e893e1881bb5ed1d2d26d947c2ac16cfa82fbcf31c89d"
@@ -625,8 +630,8 @@
     "sha256": "b07d8316f13f48ce9fe0574f76e72fd92ce920d9a7b8db001f74cdc520cf1e5c"
    },
    "safety/implicit-key-window-rescan": {
-    "bytes": 24002201,
-    "sha256": "7caa99ebf42e730a4e32eac92ac555861956acc96e696c39574ce46e3e8009d8"
+    "bytes": 24018001,
+    "sha256": "f40e6a76cc5066f819a4da267a477c401c190ab3dd8410c42e25138491d54b16"
    },
    "safety/integer-keys-beyond-the-digit-limit-in-a-document": {
     "bytes": 16000021,
@@ -637,24 +642,24 @@
     "sha256": "b43a830b13afd72aaaf1b5fcadf048b59e3d381f28da161290906bfd0367a26d"
    },
    "safety/merge-patch-many-deletions-from-a-large-mapping": {
-    "bytes": 7500000,
-    "sha256": "568ef4c5b2ae72bbfc2e31ecdbcea979982372874d38c6f491e17d29937689e0"
+    "bytes": 24000000,
+    "sha256": "e2890d2b56d1a2e38fed2bff5add102a1d44d77042af5500159f38f66ef7d9ae"
    },
    "safety/one-line-flow-mapping-ten-megabytes": {
     "bytes": 9788893,
     "sha256": "41a2320eae7b1cc8b33f4860cab30196a15ad223c9b264a6767e61e53929121f"
    },
    "safety/tag-prefix-distinct-suffixes": {
-    "bytes": 1436915,
-    "sha256": "896b5bba9c25b131e0aa2d91665017b7c15b6f47711b01cb70e027ffa703676b"
+    "bytes": 24884915,
+    "sha256": "e381c60ed3f81e60bc1cb6561ea44864f5bf8a3b013550bd327a64c49575a010"
    },
    "safety/tag-prefix-used-by-many-nodes": {
-    "bytes": 1072025,
-    "sha256": "2e34b2c5875f1fd93e77e87e14898a247f48e692dc2afe21f05d38ad02f42dc2"
+    "bytes": 24576025,
+    "sha256": "a793df5593cfaa3e2f52cbee8caf8deb61b4d0c465781c3096327a1a7370646a"
    },
    "safety/tag-prefix-with-alternating-suffixes": {
-    "bytes": 1288025,
-    "sha256": "ec49a9b6d19eb82cfd537d8333153fdd61334985d86d420ff6d963591c152805"
+    "bytes": 24576025,
+    "sha256": "772f97713ab0c927bf1a0b0df88ca3f95a18a5f6e0f0cd355412dd88f60c79a7"
    },
    "safety/ten-million-digit-plain-scalar-events": {
     "bytes": 10000001,
@@ -663,6 +668,12 @@
    "schema/duplicate-key-float-with-borrowed-exponent-of-a-million-digits": {
     "bytes": 2000023,
     "sha256": "9f3c7b6d1f823ef163963e45d96cfedd69ff75ad0bdc483c3f9693cbb700328c"
+   }
+  },
+  "generated_patches": {
+   "safety/patch-many-large-appends-into-a-created-flow-sequence": {
+    "ops": 100001,
+    "sha256": "100d6e9bde80dec18d19a99626e01efc513b0c8a55108919ac57d26824a749dc"
    }
   },
   "generated_results": {
@@ -675,36 +686,36 @@
     "sha256": "07ace033508921265808b4120276db8db5b6e3d0f37ee5d6a9a948e89603ca65"
    },
    "safety/implicit-key-window-rescan": {
-    "bytes": 24014327,
-    "sha256": "225792848119600f48dbf9dd254d2e5199ee496fff1dfd0708bd3688463f7a85"
+    "bytes": 24117027,
+    "sha256": "6eed80fb020a6a720779e2344bfda7e1231ffbe9a15eb438adb64265ed9419fc"
    },
    "safety/integer-keys-beyond-the-digit-limit-in-a-document": {
     "bytes": 16000021,
     "sha256": "a515aa1b39d5a0115964bdf6e6b54c917f1e3bd5d1195d9b13773ae3fc7ba669"
    },
    "safety/merge-patch-many-deletions-from-a-large-mapping": {
-    "bytes": 7320000,
-    "sha256": "72c90116aa3904cfe3724db9c7b7cf4fee6811d6461139ec6b823f2ae7c66828"
+    "bytes": 23360160,
+    "sha256": "50f902f98a0096462f46e35af3d4da95d5e35847fb703920ceadb718382a3a1b"
    },
    "safety/one-line-flow-mapping-ten-megabytes": {
     "bytes": 18788923,
     "sha256": "4493880ff9c4e9ac7b9a75997aab536c616a66d3c28f4244df607feac1aecfa6"
    },
    "safety/patch-many-large-appends-into-a-created-flow-sequence": {
-    "bytes": 4105037,
-    "sha256": "31b6755870ab262b831d186c2998f407667140a1d54cf2617df5ef29a6536617"
+    "bytes": 64200653,
+    "sha256": "75c86693698a1536a442bf49d9018449dadbb6302ca3c6003d7774ea0fa42f4f"
    },
    "safety/tag-prefix-distinct-suffixes": {
-    "bytes": 1436919,
-    "sha256": "36d116483d335bcd1ccb27a5e11e5b6128a959e9e0bf6109d4539edd65abbc52"
+    "bytes": 24884919,
+    "sha256": "c1f78084bf731231ec86d93143771884ffa4cf60051c70a48f77dcea5ef0862c"
    },
    "safety/tag-prefix-used-by-many-nodes": {
-    "bytes": 1072029,
-    "sha256": "1d34689a666dc1a1f668bc0e0b78e9644518ef2e226360cebb2dc93d000bedcc"
+    "bytes": 24576029,
+    "sha256": "3cf5b5a045c1ec0296c6460b97c569718d623be61a3f8259f5e0acc61fd145ca"
    },
    "safety/tag-prefix-with-alternating-suffixes": {
-    "bytes": 1288029,
-    "sha256": "1c489e06cad61189064d3a453646131db52dc152d74ec727033554f326de319f"
+    "bytes": 24576029,
+    "sha256": "b14fafe9f2239625aa9b397509e3acbae4f4cd0e2b9f0c23c0abb9ba96172850"
    },
    "safety/ten-million-digit-plain-scalar-events": {
     "bytes": 10000027,
