@@ -290,16 +290,37 @@ public static class Program
 
     /// <summary>The runtime settings every child process runs with, as the run's timer text states them: the one this
     /// harness sets, and every DOTNET_ and COMPlus_ variable that was already in the environment (the children inherit
-    /// them), each with its value, so that nothing a cell ran with goes unsaid.</summary>
+    /// them), each with its value, so that nothing a cell ran with goes unsaid. Two exceptions keep the published text
+    /// free of the machine's file system: variables that only locate the runtime are left out, and any other variable
+    /// whose value is a path is named with the value withheld. The children's environment is not touched.</summary>
     internal static string ChildRuntimeSettings()
     {
         var inherited = Environment.GetEnvironmentVariables().Keys.Cast<string>()
-            .Where(k => k != "DOTNET_TC_CallCountingDelayMs" &&
+            .Where(k => k != "DOTNET_TC_CallCountingDelayMs" && !OnlyLocatesTheRuntime(k) &&
                         (k.StartsWith("COMPlus_", StringComparison.OrdinalIgnoreCase) || k.StartsWith("DOTNET_", StringComparison.OrdinalIgnoreCase)))
-            .Order(StringComparer.Ordinal).Select(k => $"{k}={Environment.GetEnvironmentVariable(k)}").ToList();
+            .Order(StringComparer.Ordinal).Select(k => Environment.GetEnvironmentVariable(k) is { } v && LooksLikePath(v) ? $"{k}=<a path>" : $"{k}={Environment.GetEnvironmentVariable(k)}").ToList();
         return "DOTNET_TC_CallCountingDelayMs=0 (call counting starts immediately instead of after the default delay)" +
                (inherited.Count == 0 ? ", and no other DOTNET_ or COMPlus_ variable set" : ", and, inherited from the caller, " + string.Join(", ", inherited));
     }
+
+    // These tell the host where the runtime, the SDK or the tool cache lives; they do not change how managed code runs.
+    // Microsoft documents them as install and host locations: https://learn.microsoft.com/dotnet/core/tools/dotnet-environment-variables
+    // (DOTNET_ROOT, DOTNET_ROOT_<ARCH>, DOTNET_ROOT(x86), DOTNET_HOST_PATH, DOTNET_CLI_HOME, DOTNET_INSTALL_DIR) and
+    // https://learn.microsoft.com/dotnet/core/deploying/single-file/overview (DOTNET_BUNDLE_EXTRACT_BASE_DIR, where a
+    // single-file app unpacks). Their values are the user's own directories, so they are not published.
+    static bool OnlyLocatesTheRuntime(string name) =>
+        name.Equals("DOTNET_ROOT", StringComparison.OrdinalIgnoreCase) ||
+        name.StartsWith("DOTNET_ROOT_", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("DOTNET_ROOT(x86)", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("DOTNET_HOST_PATH", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("DOTNET_CLI_HOME", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("DOTNET_INSTALL_DIR", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("DOTNET_BUNDLE_EXTRACT_BASE_DIR", StringComparison.OrdinalIgnoreCase);
+
+    // A separator, a drive letter or a leading ~ marks a file system path (a list of them too); plain numbers and names do not.
+    static bool LooksLikePath(string value) =>
+        value.Contains('/') || value.Contains('\\') || value.StartsWith('~') ||
+        (value.Length >= 2 && char.IsAsciiLetter(value[0]) && value[1] == ':');
 
     /// <summary>How a child process is started for one cell: this program again, told to measure that cell in place.</summary>
     internal static System.Diagnostics.ProcessStartInfo ChildStartInfo(Args a, string cell, string outFile)
