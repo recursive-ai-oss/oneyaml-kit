@@ -4,6 +4,8 @@
 !/.gitignore
 !/README.md
 !/CONTRIBUTING.md
+!/SECURITY.md
+!/CODE_OF_CONDUCT.md
 !/LICENSE-MIT
 !/LICENSE-APACHE
 !/bin

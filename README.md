@@ -51,8 +51,8 @@ kit, add a directory under `adapters/` with a manifest and a program that speaks
 - **Benchmarks:** [how they are measured and reported](docs/benchmarks.md), and the
   [benchmark adapters](docs/benchmark-adapters.md) contract for adding a library or a language.
 - **How the kit judges:** [principles](docs/principles.md).
-- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) and [the gate](docs/gate.md) that checks
-  every change.
+- **Contributing and security:** [CONTRIBUTING.md](CONTRIBUTING.md), [the gate](docs/gate.md)
+  that checks every change, [SECURITY.md](SECURITY.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - **The oneyaml family:** [oneyaml-rust](https://github.com/recursive-ai-oss/oneyaml-rust),
   [oneyaml-go](https://github.com/recursive-ai-oss/oneyaml-go) and
   [oneyaml-csharp](https://github.com/recursive-ai-oss/oneyaml-csharp), each checked and
