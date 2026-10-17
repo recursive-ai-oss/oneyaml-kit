@@ -9,7 +9,7 @@ and implements it; the driver, the workloads and the reports do not change.
 |---|---|---|
 | Rust | `bench/rust/` | criterion for time; a counting global allocator for allocation |
 | Go | `bench/go/` | `testing.Benchmark` with `ReportAllocs` (ns/op, B/op, allocs/op) |
-| .NET | `bench/csharp/` | BenchmarkDotNet's default job, run in process, with `MemoryDiagnoser` |
+| .NET | `bench/csharp/` | BenchmarkDotNet's ShortRun job with `MemoryDiagnoser`, one child process per cell in full mode |
 
 Quick mode shortens the tool's time settings (criterion's warm-up and measurement time, Go's
 benchtime, BenchmarkDotNet's dry job) and changes nothing else.

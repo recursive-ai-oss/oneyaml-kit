@@ -202,6 +202,21 @@ class CSharpPipeline(Pipeline, unittest.TestCase):
         with mock.patch.dict(os.environ, {"SELFTEST": "1"}):
             super().test_a_crashing_library_is_named_and_the_run_continues()
 
+    def test_a_full_run_survives_a_crashing_cell_without_a_restart(self):
+        # In full mode each cell runs in a process of its own, so the process that dies is the cell's and the
+        # run that collects the results goes on by itself: exit status 0 and no restart by the driver.
+        out = self.out / "full-isolated.jsonl"
+        r = subprocess.run([str(run.ROOT / "csharp" / "run.sh"), str(self.controls), "run", "--workloads", str(self.wl),
+                            "--mode", "full", "--out", str(out), "--library", "control-crash", "--library", "control-correct",
+                            "--task", "generic-load", "--workload", "reference-a"],
+                           env=dict(os.environ, SELFTEST="1"), capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr[-1500:])
+        cells = {c["library"]: c for c in map(json.loads, out.read_text(encoding="utf-8").splitlines()) if c["type"] == "cell"}
+        self.assertEqual(cells["control-crash"]["status"], "error")
+        self.assertIn("the process died", cells["control-crash"]["detail"])
+        self.assertEqual(cells["control-correct"]["status"], "ok")
+        self.assertIn("process of its own", json.loads(out.read_text(encoding="utf-8").splitlines()[0])["timer"])
+
     def test_the_harness_own_checks_pass(self):
         # The checks inside the harness: the guard, the reference parsers, the edit renderer and
         # the one that fails when two prepared states share an input.

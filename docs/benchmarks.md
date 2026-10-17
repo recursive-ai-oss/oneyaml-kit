@@ -26,7 +26,7 @@ runs each cell for about as long as a person would wait for one benchmark:
 |---|---|---|
 | Go | `testing.B` with allocation reporting | the standard `-benchtime` of 1 s |
 | Rust | criterion | a 1 s warm-up, 2 s of measurement and its smallest sample size, 10 |
-| C# | BenchmarkDotNet | its `ShortRun` job: 3 warm-up and 3 measured iterations, in process |
+| C# | BenchmarkDotNet | its `ShortRun` job: 3 warm-up and 3 measured iterations, preceded by 1 s of warm-up batches, with each cell run by a child process of the harness |
 
 The tools' own defaults (criterion's 3 s, 5 s and 100 samples; BenchmarkDotNet's default job, which
 iterates until the spread settles) took tens of seconds to minutes per cell on the large inputs, so a
@@ -153,7 +153,7 @@ Each language reports what its standard tool reports, and the report names the t
 |---|---|---|
 | Rust | criterion, mean time of one run | bytes and calls requested in one run, counted by a global allocator |
 | Go | `testing.Benchmark`, ns/op | B/op and allocs/op from `ReportAllocs` |
-| .NET | BenchmarkDotNet's default job, run in process, mean time per task | bytes allocated per task from `MemoryDiagnoser` |
+| .NET | BenchmarkDotNet's ShortRun job, one child process per cell in full mode, mean time per task | bytes allocated per task from `MemoryDiagnoser` |
 
 None of these is a peak: each is the memory one operation asked for, so the memory columns are
 headed by what the language reports (`Allocated bytes per operation (B/op)` for Go,
