@@ -29,6 +29,38 @@ The oneyaml-go and oneyaml-csharp adapters build the library from a checkout nam
 variable; without it they are skipped, not failed. Their READMEs say more:
 [oneyaml-go](../adapters/oneyaml-go/README.md), [oneyaml-csharp](../adapters/oneyaml-csharp/README.md).
 
+## Naming the library revision
+
+A result must say which commit of the library it measured. For the Go and C# libraries, built from a
+checkout named by `KIT_ONEYAML_GO_SRC` or `KIT_ONEYAML_CSHARP_SRC`, one rule
+(`tools/library-rev.sh`, used by every build script and by the benchmark driver) names it:
+
+| Source | Recorded revision |
+|---|---|
+| a git checkout | its short commit; `<commit>+modified` when tracked files have uncommitted changes, when there are untracked files that git does not ignore, or when git cannot say |
+| a tree with no git history of its own, such as an export, and `KIT_ONEYAML_<LANG>_REV` set (`GO` or `CSHARP`) | the value as given, marked as supplied rather than read from git |
+| the same, without the variable | `devel`, marked as unknown |
+
+On a git checkout `KIT_ONEYAML_<LANG>_REV` is only a check: it must be at least 7 characters, a prefix of
+the checkout's commit, and the tree must be clean; otherwise the build and the run refuse. `devel` and
+anything containing `+modified` are refused as a supplied value.
+
+`devel` and `+modified` are not revisions anyone can check out, so they are never publishable:
+
+- `bin/bench run --mode full` refuses to start when any of these libraries would be recorded that way
+  and no override is given. The message names the library and the revision. Build from a clean checkout;
+  for a source with no git history, name its commit as `KIT_ONEYAML_GO_REV=<commit>` (the same for
+  `CSHARP`); or add `--smoke`, which labels the result a smoke result. A full run also refuses when the
+  built library reports a different revision from the one read before the build.
+- Quick and smoke runs work as before. Their report says the revision is unknown, was supplied, or had
+  uncommitted changes, and `results.json` holds it under `run.library_revisions`.
+- The conformance report shows the stamped version as `(revision unknown)` for `devel` and as
+  `<commit>+modified (uncommitted changes)`, never as a version number. `bin/kit` does not refuse,
+  because its results are not benchmark claims; a supplied revision appears there as given.
+
+The Rust adapter and harness build the published crate at an exact locked version, so they have no
+revision to name.
+
 ## Output and exit status
 
 `bin/kit fast` writes `out/results/<adapter>.json` (the [result format](result-format.md)) and

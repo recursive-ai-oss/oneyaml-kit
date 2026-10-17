@@ -121,6 +121,23 @@ def memory_cell(c: dict, notes: reasons.Notes | None = None) -> str:
     return text + (MARK_NOT_BEST if results.non_reference_label(c) else "")
 
 
+def revision_text(v: dict) -> str:
+    """How a report names a library revision: as given, with the way it was found when that matters."""
+    rev, origin = v["revision"], v["origin"]
+    if origin == "supplied":
+        return f"`{rev}` (supplied by the person who ran the benchmark, not read from git)"
+    if origin == "unknown":
+        return f"unknown (`{rev}`: the source had no git history)"
+    if rev.endswith("+modified"):
+        return f"`{rev}` (the checkout had uncommitted changes)"
+    return f"`{rev}`"
+
+
+def revision_lines(run: dict) -> list[str]:
+    return [f"The {lang} library revision is {revision_text(v)}.\n"
+            for lang, v in sorted((run.get("library_revisions") or {}).items())]
+
+
 def md_table(header: list[str], rows: list[list[str]]) -> str:
     out = ["| " + " | ".join(header) + " |", "|" + "|".join("---" for _ in header) + "|"]
     out += ["| " + " | ".join(r) + " |" for r in rows]
@@ -352,6 +369,7 @@ def render(result: dict, out_dir: Path, chart_dir_name: str = "charts") -> str:
     ] + ([["Instance type", env["instance_type"]]] if env.get("instance_type") else [])
       + ([["Where", "a shared workstation (local run)"]] if env.get("where") == "local" else [])))
     L.append("")
+    L += revision_lines(run)
     for lang, h in sorted(result["harnesses"].items()):
         L.append(f"**{lang}** measured with {h['tool']} ({h['runtime']}, {h['target']}). Time: {timer_text(h, run['mode'])}. "
                  f"Memory: {h['memory']}.\n")
