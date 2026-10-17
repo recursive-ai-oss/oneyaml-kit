@@ -315,6 +315,33 @@ bin/bench readme --results out --library oneyaml-go --readme ../oneyaml-go/READM
     [--chart-omit-task TASK ...]
 ```
 
+**Recommended layout.** The README stays short and the evidence lives on the docs pages:
+
+| File | Blocks |
+|---|---|
+| `README.md` | `bench-chart` (the chart, with a link to the performance page), and `conformance-line` if wanted |
+| `docs/performance.md` | `bench-hero` (the headline table) and `bench-full` (every task, workload and competitor, time and memory) |
+| `docs/conformance.md` | `conformance-line` and `conformance-deviations` |
+
+A marker is one comment line that opens the block and the end marker that closes it; the generator
+replaces what lies between them:
+
+```
+README.md:               <!-- generated:bench-chart -->
+                         ...old text, replaced on each run...
+                         <!-- end generated -->
+
+docs/performance.md:     <!-- generated:bench-hero -->  ...  <!-- end generated -->
+                         <!-- generated:bench-full -->  ...  <!-- end generated -->
+
+docs/conformance.md:     <!-- generated:conformance-line -->        ...  <!-- end generated -->
+                         <!-- generated:conformance-deviations --> ...  <!-- end generated -->
+```
+
+Losses always appear on the performance page: `bench-hero` and `bench-full` keep every task and
+nothing can leave them out. The README chart cannot omit a losing task either (see
+`--chart-omit-task` below).
+
 `--results` is a directory holding the benchmark result (`bench/results.json` or `results.json`)
 and the library's conformance result (`conformance/<library>.json`, `results/<library>.json` or
 `<library>.json`); `--bench` and `--conformance` name the files directly. `--charts` is relative to
@@ -337,7 +364,10 @@ exactly one version tag gets one; a tag is never guessed.
 `--chart-omit-task TASK` (repeatable, a task id such as `unchanged-emit`) leaves a task out of the
 `bench-hero` and `bench-chart` blocks: the chart, its alt text and description, and the hero table.
 The `bench-full` table keeps every task. An id the result does not have is an error that lists the
-ones it has.
+ones it has. The option is for a task whose winning ratio is so large it distorts the chart: a task
+whose verdict for the library is a loss or mixed, or that is not comparable because the library has
+no time for it, is refused with an error naming the task and its verdict, and nothing is written.
+Omitting a winning or level task works.
 
 The hero is the headline and speaks in the family's form, higher is better: the **speed** of a row
 is the strongest competitor's time divided by ours, written "N× faster", or "N× slower" for a loss,

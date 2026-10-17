@@ -219,6 +219,17 @@ class Ctx:
         if unknown:
             raise ReadmeError(f"cannot leave out unknown task {', '.join(unknown)} (the tasks in this result: "
                               f"{', '.join(known)})")
+        # The chart is the front page: a task we lose, or have no number for, may not be dropped from it.
+        # The performance page always shows every row.
+        verdicts = {a["task"]: a["verdict"] for a in aggregate(result, library, self.rows)}
+        for task in sorted(self.chart_omit):
+            v = verdicts.get(task)
+            if v not in ("win", "tie"):
+                said = {"loss": "a loss", "mixed": "mixed (wins and losses)"}.get(
+                    v, "not comparable: our library has no time for it")
+                raise ReadmeError(f"cannot leave {task} out of the chart: its verdict for {library} is {said}. "
+                                  "A task we lose or cannot be compared on stays in the chart; "
+                                  "the performance page shows every task either way")
 
     def libs(self):
         return [l for l in self.harness["libraries"] if l["role"] != "control"]

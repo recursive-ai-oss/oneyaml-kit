@@ -416,6 +416,52 @@ class OmitTask(Base):
         self.assertIn("dump, generic-load, patch, unchanged-emit", str(cm.exception))
         self.assertIn("generic-load", str(cm.exception))
 
+    def refused(self, task, result=None):
+        self.readme.write_bytes(f"{CHART}\nold\n{END}\n".encode())
+        (self.docs / "performance.md").write_bytes(f"{FULL}\nold\n{END}\n".encode())
+        before = self.files()
+        res = self.put(result or self.result())
+        err = io.StringIO()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+            code = cli.main(["readme", "--results", str(res), "--library", "ours", "--readme", str(self.readme),
+                             "--docs", str(self.docs), "--allow-smoke", "--chart-omit-task", task])
+        self.assertEqual(code, 1)
+        self.assertEqual(before, self.files())  # nothing written, not even charts
+        self.assertFalse(list(self.dir.glob("docs/img/*")))
+        return err.getvalue()
+
+    def test_a_losing_task_cannot_be_left_out(self):
+        r = self.result()
+        r["cells"] += [cell("ours", "own", task="typed-load", workload="w1", t=300.0),
+                       cell("rival", task="typed-load", workload="w1", t=100.0),
+                       cell("other", task="typed-load", workload="w1", t=150.0)]
+        err = self.refused("typed-load", r)
+        self.assertIn("typed-load", err)
+        self.assertIn("a loss", err)
+
+    def test_a_mixed_task_cannot_be_left_out(self):
+        err = self.refused("generic-load")  # wins w1, loses w2
+        self.assertIn("generic-load", err)
+        self.assertIn("mixed", err)
+
+    def test_a_task_with_no_number_for_us_cannot_be_left_out(self):
+        err = self.refused("patch")  # our cell is unsupported
+        self.assertIn("patch", err)
+        self.assertIn("not comparable", err)
+
+    def test_a_task_we_did_not_run_cannot_be_left_out(self):
+        r = self.result()
+        r["cells"].append(cell("rival", task="typed-load", workload="w1", t=100.0))
+        err = self.refused("typed-load", r)
+        self.assertIn("not comparable", err)
+
+    def test_a_level_task_can_be_left_out(self):
+        r = self.result()
+        r["cells"] += [cell("ours", "own", task="typed-load", workload="w1", t=100.0),
+                       cell("rival", task="typed-load", workload="w1", t=100.0)]
+        self.readme.write_bytes(f"{CHART}\nold\n{END}\n".encode())
+        self.assertEqual(self.run_cmd(r, extra=("--chart-omit-task", "typed-load")), 0)
+
 
 class Other(Base):
     def test_full_table_has_every_workload_and_every_competitor(self):
