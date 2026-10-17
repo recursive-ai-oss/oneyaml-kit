@@ -53,8 +53,9 @@ Per case: `loose` and `strict` are each `pass`, `fail` or `unsupported`.
   audited without re-running.
 - `measured` (bounded cases): `seconds` (from the request completely written to the last byte of the
   answer read), `time_bound` (the time bound that was enforced:
-  the case's own bound, a hang guard, see the case format) and `peak_mb`,
-  the peak resident-memory growth (null where it cannot be measured). A case whose adapter
+  the case's own bound, a hang guard that covers writing the request and waiting for the answer together,
+  see the case format) and `peak_mb`, the peak resident-memory growth, also when the case was cut off
+  while the request was still being written (null where it cannot be measured). A case whose adapter
   could not be started has `seconds` 0 and `peak_mb` null.
 - `tags`: the kit case's tags, for kit cases that have any (for example `convention`), so a
   report can count verdicts that rest on a kit rule apart from the rest.

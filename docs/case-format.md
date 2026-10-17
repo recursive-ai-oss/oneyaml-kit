@@ -231,7 +231,10 @@ A `bounded` case names the acceptable outcomes and the resources it may use:
   which overlaps the write. The process first answers one trivial request of the same kind (the text `a` and a line
   break, and an empty patch for a patch case), so first-use costs, such as compiling code just in
   time or loading types, are not counted against the case's bounds.
-- The time bound is a hang guard, not a speed claim, and it is generous by design. It is set
+- The time bound is a hang guard, not a speed claim, and it is generous by design. It covers the
+  whole case in wall time: the answer is waited for only for what the bound leaves after the request
+  was written, so a slow reader of the request and a slow answer together can never take longer than
+  the bound. Only the answer is charged to the case (above). It is set
   far above the time any passing reader was measured to need, including on one or two cores; a
   reader that passes close to its bound would make the verdict depend on the machine, and the case
   is then corrected. A hang or a runaway cost trips it; a slow or busy

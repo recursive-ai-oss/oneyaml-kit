@@ -283,7 +283,10 @@ class Subprocess(unittest.TestCase):
         with mock.patch.object(SubprocessAdapter, "_recv", record):
             res = R.execute(a, set(h["capabilities"]), [self.bounded(seconds=0.5)])
         # The last wait is the one for the case's answer; the earlier ones are the start-up of its process.
-        self.assertEqual(waits[-1], 0.5)
+        # The answer gets what the bound leaves after the request was written, so never more than the
+        # case's own number, and far more than the manifest's would be if it were not that number.
+        self.assertLessEqual(waits[-1], 0.5)
+        self.assertGreater(waits[-1], 0)
         self.assertEqual((res[0]["loose"], res[0]["strict"]), ("fail", "fail"))
         self.assertIn("0.5", res[0]["detail"])
 

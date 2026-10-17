@@ -25,6 +25,10 @@ SCRIPT = KIT / "tools" / "library-rev.sh"
 GIT = ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false"]
 
 
+# Export-like sources must not find a git checkout above the temporary directory, wherever it is.
+os.environ["GIT_CEILING_DIRECTORIES"] = os.path.realpath(tempfile.gettempdir())
+
+
 def tmpdir() -> tempfile.TemporaryDirectory:
     return tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR") or None)
 
@@ -72,8 +76,8 @@ class Rule(unittest.TestCase):
 
     def test_supplied_revision_is_recorded_as_given(self):
         with tmpdir() as d:
-            self.assertEqual(library_rev("GO", make_tree(Path(d)), KIT_ONEYAML_GO_REV="v1.2.3+abc"),
-                             "v1.2.3+abc supplied")
+            self.assertEqual(library_rev("GO", make_tree(Path(d)), KIT_ONEYAML_GO_REV="0123abc"),
+                             "0123abc supplied")
 
     def test_supplied_revision_on_a_clean_checkout_is_only_a_check(self):
         with tmpdir() as d:
@@ -101,6 +105,35 @@ class Rule(unittest.TestCase):
             make_tree(Path(d))
             for bad in ("devel", "abc1234+modified"):
                 self.assertIn("not a commit", library_rev_refused("GO", Path(d), KIT_ONEYAML_GO_REV=bad))
+
+    def test_a_supplied_revision_without_history_must_be_7_to_40_hex(self):
+        with tmpdir() as d:
+            make_tree(Path(d))
+            for bad in ("v1.2.3", "abc12", "abc123g", "a" * 41, "1.2.3+abc"):
+                self.assertIn("hexadecimal", library_rev_refused("GO", Path(d), KIT_ONEYAML_GO_REV=bad), bad)
+            for ok in ("abc1234", "A" * 40):
+                self.assertEqual(library_rev("GO", Path(d), KIT_ONEYAML_GO_REV=ok), f"{ok} supplied")
+
+    def test_a_supplied_revision_is_refused_for_a_tracked_subdirectory(self):
+        with tmpdir() as d:
+            make_checkout(Path(d))
+            sub = make_tree(Path(d) / "vendor" / "lib")
+            subprocess.run([*GIT, "add", "."], cwd=d, check=True)
+            subprocess.run([*GIT, "commit", "-q", "-m", "y"], cwd=d, check=True)
+            err = library_rev_refused("GO", sub, KIT_ONEYAML_GO_REV="abc1234")
+            self.assertIn("tracked by the git checkout", err)
+            # Without a supplied revision the subdirectory is still just an unknown source.
+            self.assertEqual(library_rev("GO", sub), "devel unknown")
+
+    def test_an_export_in_an_ignored_directory_of_a_checkout_is_supplied(self):
+        # No ceiling here: the export really sits inside a checkout, which ignores it.
+        with tmpdir() as d:
+            make_checkout(Path(d))
+            (Path(d) / ".gitignore").write_text("scratch/\n")
+            sub = make_tree(Path(d) / "scratch" / "lib")
+            env = {k: v for k, v in clean_env(KIT_ONEYAML_GO_REV="abc1234").items() if k != "GIT_CEILING_DIRECTORIES"}
+            r = subprocess.run(["sh", str(SCRIPT), "GO", str(sub)], capture_output=True, text=True, env=env)
+            self.assertEqual((r.returncode, r.stdout.strip()), (0, "abc1234 supplied"), r.stderr)
 
     def test_symlinked_source_reads_its_commit(self):
         with tmpdir() as d:
@@ -187,8 +220,8 @@ class BuildScripts(unittest.TestCase):
     def test_supplied_revision_is_stamped(self):
         for script, lang, cwd, key in self.CASES:
             with self.subTest(script), tmpdir() as d:
-                out = self.stamped(script, lang, make_tree(Path(d)), cwd, **{f"KIT_ONEYAML_{lang}_REV": "abc123"})
-                self.assertIn(f"{key}abc123", out)
+                out = self.stamped(script, lang, make_tree(Path(d)), cwd, **{f"KIT_ONEYAML_{lang}_REV": "abc1234"})
+                self.assertIn(f"{key}abc1234", out)
 
     def test_dirty_checkout_is_stamped_modified(self):
         for script, lang, cwd, key in self.CASES:
