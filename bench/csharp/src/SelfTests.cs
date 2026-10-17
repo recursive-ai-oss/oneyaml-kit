@@ -115,11 +115,13 @@ public static class SelfTests
     static IEnumerable<string> StaleEntries(IEnumerable<string> entries, ISet<string> hits, Func<string, bool>? applies = null) =>
         entries.Where(e => !hits.Contains(e) && (applies?.Invoke(e) ?? true));
 
-    static bool AssemblyLoaded(string entry)
-    {
-        var root = entry.Split('.')[0];
-        return AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == root);
-    }
+    static bool AssemblyLoaded(string entry) =>
+        OwnedByLoaded(entry, AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName().Name ?? ""));
+
+    /// <summary>An entry belongs to the loaded assembly whose name is a dotted prefix of it. The first segment alone
+    /// would not do: every framework type starts with <c>System</c>, so a stale entry there would always be skipped.</summary>
+    static bool OwnedByLoaded(string entry, IEnumerable<string> assemblyNames) =>
+        assemblyNames.Any(n => n != "System" && n.Length > 0 && entry.StartsWith(n + ".", StringComparison.Ordinal));
 
     static readonly HashSet<string> ConfigTypes = ["OneYaml.YamlLimits", "SharpYaml.Tokens.TagDirective"];
 
@@ -344,6 +346,14 @@ public static class SelfTests
             Check(stale.Count == 1 && stale[0] == "B.Gone", "the unmatched entry must be named");
             Check(!StaleEntries(["A.Used"], new HashSet<string> { "A.Used" }).Any(), "a matched entry is not stale");
             Check(!StaleEntries(["B.Gone"], new HashSet<string>(), _ => false).Any(), "an entry of an absent library is not judged");
+            string[] loaded = ["System", "System.Text.Json", "SharpYaml"];
+            Check(OwnedByLoaded("System.Text.Json.NoSuchType", loaded), "a System-rooted entry is judged by its real assembly");
+            Check(OwnedByLoaded("SharpYaml.Tokens.TagDirective", loaded), "a library entry is judged");
+            Check(!OwnedByLoaded("System.Other.Thing", loaded), "a bare System assembly owns nothing");
+            Check(!OwnedByLoaded("OneYaml.YamlLimits", loaded), "an entry of an absent library is not judged");
+            Check(!OwnedByLoaded("SharpYamlX.Thing", loaded), "a name must match on a segment boundary");
+            var gone = StaleEntries(["System.Text.Json.NoSuchType"], new HashSet<string>(), e => OwnedByLoaded(e, loaded)).ToList();
+            Check(gone.Count == 1, "a stale System-rooted entry is reported");
         }),
         ("the sharing check finds a shared string, array or memory", () =>
         {

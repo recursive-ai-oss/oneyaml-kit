@@ -55,6 +55,11 @@ class Links(unittest.TestCase):
     def test_absolute_urls_are_not_fetched(self):
         self.assertEqual(self.problems({"README.md": "[x](https://example.invalid/404) [m](mailto:a@b.invalid)\n"}), [])
 
+    def test_every_top_level_markdown_file_is_checked(self):
+        files = {"SECURITY.md": "[a](gone.md)\n", "CODE_OF_CONDUCT.md": "[b](#nope)\n", "notes.txt": "[c](gone.md)\n"}
+        got = self.problems(files)
+        self.assertEqual(sorted(g.split(":")[0] for g in got), ["CODE_OF_CONDUCT.md", "SECURITY.md"])
+
     def test_the_kits_own_docs_have_no_dead_relative_links(self):
         self.assertEqual(links.check(), [])
         self.assertGreaterEqual(len(links.doc_files()), 10)

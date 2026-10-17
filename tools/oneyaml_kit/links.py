@@ -22,7 +22,8 @@ SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 
 
 def doc_files(root: Path = ROOT) -> list[Path]:
-    out = [root / n for n in ("README.md", "CONTRIBUTING.md") if (root / n).is_file()]
+    # Every top-level Markdown file: README, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT and whatever joins them.
+    out = sorted(p for p in root.glob("*.md") if p.is_file())
     out += sorted((root / "docs").rglob("*.md")) if (root / "docs").is_dir() else []
     return out
 
