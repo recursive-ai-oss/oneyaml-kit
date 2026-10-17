@@ -29,9 +29,15 @@ STUB = textwrap.dedent('''
     hang = os.environ.get("STUB_HANG", "")
     pidfile = os.environ.get("STUB_PIDFILE", "")
     leave_child = os.environ.get("STUB_LEAVE_CHILD") == "1"
+    # STUB_NOTE is text for the harness record; STUB_STALL_AFTER_RECORD makes the stub wait before its first
+    # cell, so a driver that does not stop it on the record alone would reach the cell limit instead.
+    note = os.environ.get("STUB_NOTE", "")
     with open(out, "w") as f:
-        f.write(json.dumps({"type": "harness", "name": "stub", "libraries": []}) + "\\n")
+        f.write(json.dumps({"type": "harness", "name": "stub", "libraries": [],
+                            "settings": {"note": note}}) + "\\n")
         f.flush()
+        if os.environ.get("STUB_STALL_AFTER_RECORD") == "1":
+            time.sleep(3600)
         for name in ["lib/t/one", "lib/t/two", "lib/t/three"]:
             if name in skip:
                 continue
@@ -125,6 +131,28 @@ class HangGuard(Stub):
         rec = run.assemble("quick", True, {"stub": {"libraries": []}}, {"stub": []}, [], 0.0, 0.0, 0.0,
                            cell_limit=run.CELL_LIMIT_SECONDS)
         self.assertEqual(rec["run"]["cell_limit_seconds"], run.CELL_LIMIT_SECONDS)
+
+
+class RecordText(Stub):
+    def test_a_record_with_a_home_path_stops_the_run_before_any_cell(self):
+        # Built in pieces so that this file passes the public-text check itself.
+        self.env(STUB_NOTE="built in " + "/ho" + "me/someone/work", STUB_STALL_AFTER_RECORD="1")
+        with self.assertRaises(run.HarnessError) as e:
+            run.run_harness(self.h, self.dir, self.dir, "quick", self.dir, log=lambda *_: None, cell_limit=2.0)
+        self.assertIn("harness.settings.note", str(e.exception))
+        self.assertIn("/ho" + "me/", str(e.exception))
+        self.assertEqual(run.parse_lines(self.dir / "stub.jsonl")[1], [], "a cell was written after the record")
+
+    def test_a_clean_record_runs_normally(self):
+        self.env(STUB_NOTE="a plain note")
+        harness, cells = run.run_harness(self.h, self.dir, self.dir, "quick", self.dir, log=lambda *_: None)
+        self.assertEqual(harness["settings"], {"note": "a plain note"})
+        self.assertEqual(len(cells), 3)
+
+    def test_record_hits_name_the_field(self):
+        bad = "/ho" + "me/x"
+        self.assertEqual([f for f, _ in run.record_hits({"a": ["ok", {"b": bad}]})], ["harness.a[1].b"])
+        self.assertEqual(run.record_hits({"a": "fine", "n": 3}), [])
 
 
 class Cleanup(Stub):

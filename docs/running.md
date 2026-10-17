@@ -72,6 +72,8 @@ list entry has gone stale. The deviation lists are described in the
 
 ## Hang guard and cleanup in benchmark runs
 
+The driver runs the public-text check on each harness's `harness` record as soon as it is written, and stops the run at once, naming the field and the text, if the record holds anything that cannot be published.
+
 `bin/bench run` waits on each language harness, but not for ever. A cell that runs longer than the cell
 limit, measured from the harness's mark that the cell began, is stopped and recorded as an `error` cell
 whose detail says it ran past the limit. The driver then starts the harness again past that cell, as it
