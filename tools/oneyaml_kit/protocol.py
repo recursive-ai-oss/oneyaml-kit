@@ -92,8 +92,11 @@ class AdapterError(Exception):
 
 class SubprocessAdapter:
     def __init__(self, command: list[str], cwd: Path | None = None, env: dict | None = None,
-                 timeout: float = 10.0, memory_limit_mb: int | None = None):
+                 timeout: float = 10.0, memory_limit_mb: int | None = None, clock=time.monotonic):
         self.command = command
+        # Reads the time a bounded case is charged for. A parameter so that a test can say exactly
+        # which moments the clock is read at, without depending on how fast the host is.
+        self.clock = clock
         self.cwd = cwd
         self.env = env
         self.timeout = timeout
@@ -129,7 +132,7 @@ class SubprocessAdapter:
             # SubprocessError is what a failing pre-exec step (the address-space limit) raises.
             raise AdapterError(f"cannot start {self.command[0]}: {e}") from e
         self._q = queue.Queue()
-        threading.Thread(target=self._pump, args=(self.proc, self._q), daemon=True).start()
+        threading.Thread(target=self._pump, args=(self.proc, self._q, self.clock), daemon=True).start()
         try:
             self._send({"type": "hello", "protocol": PROTOCOL})
         except OSError as e:
@@ -137,7 +140,7 @@ class SubprocessAdapter:
             # reason to stop the run.
             self.stop()
             raise AdapterError(f"adapter closed its input before the hello: {e}") from e
-        h = self._recv(self.timeout * 3)
+        h, _ = self._recv(self.timeout * 3)
         if not isinstance(h, dict) or h.get("type") != "hello" or h.get("protocol") not in SUPPORTED_PROTOCOLS:
             self.stop()
             raise AdapterError(f"bad hello from adapter: {h!r}")
@@ -172,18 +175,34 @@ class SubprocessAdapter:
         return out
 
     @staticmethod
-    def _pump(proc, q) -> None:
-        buf = b""
+    def _pump(proc, q, clock=time.monotonic) -> None:
+        """Cut the adapter's output into lines. Each line is queued with the time its last byte was
+        read, so the time a case is charged for ends when the adapter has finished answering and
+        does not include what the kit does with the answer afterwards.
+
+        Pieces are kept in a list and joined once: appending every read to one growing buffer
+        copies the whole line again for each read, which for an answer of tens of megabytes (a pipe
+        hands over at most 64 KiB at a time) is quadratic and slower than the adapter itself."""
+        parts: list[bytes] = []
         out = proc.stdout
         while True:
             chunk = os.read(out.fileno(), 1 << 20)
+            now = clock()
             if not chunk:
-                q.put(_EOF)
+                q.put((_EOF, now))
                 return
-            buf += chunk
-            while b"\n" in buf:
-                line, buf = buf.split(b"\n", 1)
-                q.put(line)
+            # Only the new bytes are searched for a line break.
+            start = 0
+            while True:
+                i = chunk.find(b"\n", start)
+                if i < 0:
+                    break
+                parts.append(chunk[start:i])
+                q.put((parts[0] if len(parts) == 1 else b"".join(parts), now))
+                parts = []
+                start = i + 1
+            if start < len(chunk):
+                parts.append(chunk[start:])
 
     def _send(self, obj: dict) -> None:
         assert self.proc and self.proc.stdin
@@ -191,27 +210,29 @@ class SubprocessAdapter:
 
     def _recv(self, timeout: float, watch=None):
         """Next response line. `watch`, if given, is called about every 50 ms while waiting and
-        returns a reason string to abort."""
+        returns a reason string to abort. Returns (answer, time the answer's last byte arrived);
+        the time is None when nothing arrived."""
         deadline = time.monotonic() + timeout
         while True:
             left = deadline - time.monotonic()
             if left <= 0:
-                return "timeout"
+                return "timeout", None
             try:
                 line = self._q.get(timeout=min(left, POLL_SECONDS) if watch else left)
             except queue.Empty:
                 if watch:
                     why = watch()
                     if why:
-                        return ("abort", why)
+                        return ("abort", why), None
                 continue
             break
+        line, arrived = line
         if line is _EOF:
-            return "eof"
+            return "eof", arrived
         try:
-            return kitjson.loads(line)
+            return kitjson.loads(line), arrived
         except (ValueError, RecursionError):
-            return "garbage"
+            return "garbage", arrived
 
     def _exit_detail(self) -> str:
         """Say how the adapter ended. Its output closes a moment before the process is reaped,
@@ -302,13 +323,17 @@ class SubprocessAdapter:
                 return None
 
         req = {"type": "run", "id": case_id, "op": op, "input": b64(data), "args": args}
-        t0 = time.monotonic()
         try:
             self._send(req)
         except OSError:
             return self._failed("crash", "adapter closed its input")
-        r = self._recv(timeout, watch)
-        secs = time.monotonic() - t0
+        # The clock runs from the moment the request is completely written to the moment the
+        # answer's last byte was read: the adapter's work after it has the request (all but the
+        # last pipe buffer of it), plus the answer's trip through the pipe. Building the request,
+        # decoding the answer and watching memory are the kit's own work and are not charged.
+        t0 = self.clock()
+        r, arrived = self._recv(timeout, watch)
+        secs = (arrived if arrived is not None else self.clock()) - t0
         peak = None
         if limits and measurable:
             after = tree_pids(pid) or []
