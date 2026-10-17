@@ -39,6 +39,80 @@ public static class SelfTests
     static Product V(string json) => new Product.Value(P(json));
     static Product B(string s) => new Product.Bytes(Encoding.UTF8.GetBytes(s));
 
+    /// <summary>Every string, byte array or char array of at least <paramref name="minLen"/> elements that can
+    /// be reached from <paramref name="root"/> through fields, array elements and closures. Compared by
+    /// identity, they show whether two states hold the same input object.</summary>
+    static IEnumerable<object> Buffers(object? root, int minLen) => Walk(root, minLen, out _);
+
+    /// <summary>As <see cref="Buffers"/>, and every reference object reached, for the identity check.</summary>
+    static List<object> Walk(object? root, int minLen, out HashSet<object> seen)
+    {
+        var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        seen = visited;
+        var found = new List<object>();
+        var todo = new Stack<object>();
+        void Add(object? o)
+        {
+            if (o == null || o is Type or System.Reflection.Assembly or System.Reflection.MemberInfo) return;
+            if (o.GetType().IsPointer) return;
+            if (o.GetType().IsValueType) { Fields(o); return; }
+            if (visited.Add(o)) todo.Push(o);
+        }
+        void Fields(object o)
+        {
+            for (var t = o.GetType(); t != null && t != typeof(object); t = t.BaseType)
+                foreach (var f in t.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public |
+                                              System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly))
+                {
+                    if (f.FieldType.IsPointer || f.FieldType.IsPrimitive || f.FieldType.IsEnum) continue;
+                    Add(f.GetValue(o));
+                }
+        }
+        Add(root);
+        while (todo.Count > 0)
+        {
+            var o = todo.Pop();
+            switch (o)
+            {
+                case string s: if (s.Length >= minLen) found.Add(s); continue;
+                case byte[] b: if (b.Length >= minLen) found.Add(b); continue;
+                case char[] c: if (c.Length >= minLen) found.Add(c); continue;
+                case Array a:
+                    if (a.GetType().GetElementType()!.IsPrimitive) continue;
+                    foreach (var e in a) Add(e);
+                    continue;
+            }
+            Fields(o);
+        }
+        return found;
+    }
+
+    /// <summary>Objects every state may reach: small strings (tags and keys the runtime interns), empty arrays,
+    /// and the runtime's own type and comparer objects.</summary>
+    static bool SharedByDesign(object o, int minLen) => o switch
+    {
+        // Immutable configuration a library hands to every document it makes: default limits, the default tag
+        // directives, the serializer's built-in converters. None holds a document or its text.
+        _ when ConfigTypes.Contains(o.GetType().FullName ?? "") => true,
+        _ when (o.GetType().Namespace ?? "").StartsWith("System.Text.Json.Serialization.Converters", StringComparison.Ordinal) => true,
+        string s => s.Length < minLen,
+        Array a => a.Length == 0,
+        Type or System.Reflection.MemberInfo or System.Reflection.Assembly => true,
+        // A stateless singleton, or a comparer the runtime hands out, cannot hold an input.
+        _ => !HoldsState(o.GetType()) || o.GetType().GetInterfaces().Any(i => i.Name.Contains("Comparer")),
+    };
+
+    static readonly HashSet<string> ConfigTypes = ["OneYaml.YamlLimits", "SharpYaml.Tokens.TagDirective"];
+
+    static bool HoldsState(Type t)
+    {
+        for (; t != null && t != typeof(object); t = t.BaseType!)
+            if (t.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public |
+                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly).Length > 0)
+                return true;
+        return false;
+    }
+
     static readonly List<(string, Action)> Tests =
     [
         ("an integer is not the float with the same digits, and \"1\" is not 1", () =>
@@ -182,6 +256,75 @@ public static class SelfTests
             Equal(ran, 0, "nothing ran while preparing");
             b.Run();
             Equal(ran, 7, "tasks run");
+        }),
+        ("no two prepared states share an input, for any library and task", () =>
+        {
+            // A mapping long enough that its text is far larger than any scalar a tree could hold, so a string
+            // or array of at least half its length can only be a copy of the input itself.
+            var sb = new StringBuilder("# top\nname: demo\nitems:\n");
+            for (int i = 0; i < 60; i++) sb.Append($"  - id: {i}\n    label: \"entry number {i}\"\n");
+            var input = sb.ToString();
+            var w = new Workload
+            {
+                Id = "t",
+                Input = Encoding.UTF8.GetBytes(input),
+                InputText = input,
+                Expected = [("spec", P("""{"name":"demo","items":[]}"""))],
+                TypedModel = "records",
+                Tasks = [.. TaskIds.All],
+                EditOps = [new Op("replace", "/name", J.Of("other"))],
+                PatchOps = [new Op("replace", "/name", J.Of("other"))],
+                PatchFailingOps = [new Op("remove", "/nope", null)],
+            };
+            int minLen = input.Length / 2, judged = 0;
+            var seen = new HashSet<string>();
+            foreach (var lib in Program.AllLibraries().Where(l => l.Role != Role.Control))
+                foreach (var task in TaskIds.All)
+                {
+                    Runner runner;
+                    try { runner = lib.Runner(task, w); }
+                    catch (Exception e) when (e is Unsupported or Rejected) { continue; }
+                    var states = runner.Prepare(4).States;
+                    Equal(states.Count, 4, $"{lib.Id} {task.Id()}: states");
+                    bool reads = task is BenchTask.TypedLoad or BenchTask.GenericLoad or BenchTask.DocumentParse;
+                    var owners = new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
+                    var reached = new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
+                    for (int i = 0; i < states.Count; i++)
+                    {
+                        var bigs = Walk(states[i], minLen, out var objects);
+                        // These tasks read the input inside the clock, so each state must hold a copy of it.
+                        Check(!reads || bigs.Count > 0, $"{lib.Id} {task.Id()}: state {i} holds no copy of the input its task reads");
+                        foreach (var big in bigs)
+                        {
+                            Check(!ReferenceEquals(big, w.Input) && !ReferenceEquals(big, w.InputText),
+                                $"{lib.Id} {task.Id()}: state {i} holds the workload's own input");
+                            if (owners.TryGetValue(big, out var other) && other != i)
+                                throw new Failure($"{lib.Id} {task.Id()}: states {other} and {i} share one input object");
+                            owners[big] = i;
+                        }
+                        // A parsed document, tree or map that two states both reach is shared state, whatever it holds.
+                        foreach (var o in objects)
+                        {
+                            if (SharedByDesign(o, minLen)) continue;
+                            if (reached.TryGetValue(o, out var other) && other != i)
+                                throw new Failure($"{lib.Id} {task.Id()}: states {other} and {i} reach the same {o.GetType().FullName}");
+                            reached[o] = i;
+                        }
+                    }
+                    judged++;
+                    seen.Add(lib.Id + " " + task.Id());
+                }
+            Check(judged >= 10, $"only {judged} library and task pairs were checked");
+            Check(seen.Contains("sharpyaml-syntax unchanged-emit"), "the pair that once shared its source string was not checked");
+        }),
+        ("the sharing check finds a shared string, array or memory", () =>
+        {
+            var text = new string('x', 100);
+            var bytes = new byte[100];
+            Check(Buffers((text, 1), 50).Count() == 1, "string in a tuple");
+            Check(Buffers(new object[] { new ReadOnlyMemory<byte>(bytes) }, 50).Count() == 1, "memory in an array");
+            Check(Buffers(new Func<int>(() => text.Length), 50).Count() == 1, "string captured by a closure");
+            Check(!Buffers("short", 50).Any(), "short strings are not inputs");
         }),
         ("edits are worked out from pointers and applied to the exact bytes", () =>
         {

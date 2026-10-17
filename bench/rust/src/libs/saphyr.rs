@@ -9,6 +9,10 @@ use serde_json::Value;
 
 pub struct Saphyr;
 
+/// The tree is typed as borrowing from the text it was parsed from, so a state that holds one must
+/// also hold the copy it points into (a tuple of the two); the tree alone has no `Held` impl.
+impl Borrows for Vec<Yaml<'static>> {}
+
 fn to_json(v: &Yaml) -> Result<Value, String> {
     Ok(match v {
         Yaml::Value(s) => match s {
@@ -73,8 +77,8 @@ impl Library for Saphyr {
         Ok(match task {
             Task::TypedLoad => return Err(Unsupported("no serde binding in this crate")),
             Task::GenericLoad => runner(
-                || (),
-                move |()| load_all(src),
+                move || OwnedInput::new(src),
+                move |own| load_all(own.borrowed_for_state()),
                 |docs| match docs.iter().map(to_json).collect::<Result<Vec<_>, _>>() {
                     Ok(d) => Product::Value(docs_value(d)),
                     Err(e) => Product::Value(Value::String(e)),
@@ -84,9 +88,13 @@ impl Library for Saphyr {
                 if w.documents > 1 {
                     return Err(Unsupported("dump is defined for one document"));
                 }
+                // The tree borrows the copy, so the state lists the tree first and the copy after it.
                 runner(
-                    move || load_all(src),
-                    |t| {
+                    move || {
+                        let own = OwnedInput::new(src);
+                        (load_all(own.borrowed_for_state()), own)
+                    },
+                    |(t, _own)| {
                         let docs = t.as_ref().map_err(|e| e.clone())?;
                         let doc = docs.first().ok_or("no document")?;
                         let mut out = String::new();

@@ -46,6 +46,13 @@ public sealed class Workload
 
     public J BaseValue => Expected[0].Value;
 
+    /// <summary>A fresh copy of the input bytes. Every prepared state takes its own, in setup and outside
+    /// the clock, so no state reads memory that another state, or the harness, has just touched.</summary>
+    public byte[] OwnBytes() => (byte[])Input.Clone();
+
+    /// <summary>A fresh copy of the input as a string object of its own (never the shared instance).</summary>
+    public string OwnText() => InputText.Length == 0 ? InputText : new string(InputText.AsSpan());
+
     static readonly UTF8Encoding Strict = new(false, true);
 
     public static Workload Load(string dir)
@@ -125,6 +132,8 @@ public enum Role { Own, Competitor, Control }
 public abstract class Batch
 {
     public abstract void Run();
+    /// <summary>The prepared states, so a self-test can check that no two of them share an object.</summary>
+    public abstract IReadOnlyList<object?> States { get; }
 }
 
 public abstract class Runner
@@ -172,6 +181,8 @@ public sealed class FnRunner<TState, TOut>(
 
     sealed class FnBatch(TState[] states, Func<TState, TOut> run) : Batch
     {
+        public override IReadOnlyList<object?> States => states.Select(s => (object?)s).ToList();
+
         public override void Run()
         {
             var s = states;

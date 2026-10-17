@@ -1,14 +1,14 @@
 //! Typed models for the typed-load task: Rust structs that hold every field of the
 //! workload, so the serialised result can be compared with the whole expected value.
 
-use crate::model::{runner, Product, Runner};
+use crate::model::{runner, OwnedInput, Product, Runner};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// A library's typed entry point, usable for any model.
 pub trait TypedParser: Copy + 'static {
-    fn parse<T: DeserializeOwned>(&self, src: &'static str) -> Result<T, String>;
+    fn parse<T: DeserializeOwned>(&self, src: &str) -> Result<T, String>;
 }
 
 /// The runner for a typed model, or None when the workload names an unknown model.
@@ -29,8 +29,8 @@ fn go<P: TypedParser, T: DeserializeOwned + Serialize + 'static>(
     src: &'static str,
 ) -> Box<dyn Runner> {
     runner(
-        || (),
-        move |()| p.parse::<T>(src),
+        move || OwnedInput::new(src),
+        move |own| p.parse::<T>(own.as_str()),
         |t| match serde_json::to_value(&t) {
             Ok(v) => Product::Value(v),
             Err(e) => Product::Value(serde_json::Value::String(format!("cannot serialise: {e}"))),

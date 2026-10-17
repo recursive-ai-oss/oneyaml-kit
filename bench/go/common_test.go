@@ -296,28 +296,3 @@ func TestExplainBytesNamesTheKindOfDifference(t *testing.T) {
 		t.Error("equal texts differ")
 	}
 }
-
-func TestSharingNeedsAUsedDocumentToCostTheSame(t *testing.T) {
-	var sink [][]byte
-	parse := func() any { return new(int) }
-	// The second write of a document costs nothing extra: sharing is allowed.
-	same := func(any) ([]byte, error) { sink = append(sink, make([]byte, 64)); return nil, nil }
-	if !emitCostsTheSame(same, parse) {
-		t.Error("a write that costs the same on a used document was refused")
-	}
-	// A library that keeps its rendering allocates only on the first write of a document.
-	rendered := map[any]bool{}
-	cached := func(d any) ([]byte, error) {
-		if !rendered[d] {
-			rendered[d] = true
-			for i := 0; i < 200; i++ {
-				sink = append(sink, make([]byte, 64))
-			}
-		}
-		return nil, nil
-	}
-	if emitCostsTheSame(cached, parse) {
-		t.Error("a write that is cheaper on a used document was shared")
-	}
-	_ = sink
-}

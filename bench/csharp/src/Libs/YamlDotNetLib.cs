@@ -47,24 +47,22 @@ public sealed class YamlDotNetLib : ILibrary
 
     public Runner Runner(BenchTask task, Workload w)
     {
-        var input = w.Input;
-        var text = w.InputText;
         bool single = w.Documents == 1;
         switch (task)
         {
             case BenchTask.TypedLoad:
                 return w.TypedModel switch
                 {
-                    "gha" => new FnRunner<int, Workflow>(() => 0, _ => D.Deserialize<Workflow>(Support.Utf8.GetString(input)), t => new Product.Value(Conv.WorkflowJ(t))),
-                    "records" => new FnRunner<int, List<Record>>(() => 0, _ => D.Deserialize<List<Record>>(Support.Utf8.GetString(input)), t => new Product.Value(Conv.Records(t))),
+                    "gha" => new FnRunner<byte[], Workflow>(w.OwnBytes, input => D.Deserialize<Workflow>(Support.Utf8.GetString(input)), t => new Product.Value(Conv.WorkflowJ(t))),
+                    "records" => new FnRunner<byte[], List<Record>>(w.OwnBytes, input => D.Deserialize<List<Record>>(Support.Utf8.GetString(input)), t => new Product.Value(Conv.Records(t))),
                     _ => throw Support.No("no typed model for this workload"),
                 };
             case BenchTask.GenericLoad:
-                return new FnRunner<int, List<object?>>(() => 0, _ => LoadAll(Support.Utf8.GetString(input), single),
+                return new FnRunner<byte[], List<object?>>(w.OwnBytes, input => LoadAll(Support.Utf8.GetString(input), single),
                     docs => new Product.Value(Conv.Docs(docs.Select(Conv.FromObject).ToList())));
             case BenchTask.Dump:
                 if (!single) throw Support.No("dump is defined for one document");
-                return new FnRunner<object?, byte[]>(() => D.Deserialize<object>(text), tree => Support.Utf8.GetBytes(S.Serialize(tree!)),
+                return new FnRunner<object?, byte[]>(() => D.Deserialize<object>(w.OwnText()), tree => Support.Utf8.GetBytes(S.Serialize(tree!)),
                     b => new Product.Bytes(b));
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
                 throw Support.No("no lossless document: comments and layout are discarded");

@@ -25,29 +25,28 @@ public sealed class VYamlLib : ILibrary
 
     public Runner Runner(BenchTask task, Workload w)
     {
-        var bytes = new ReadOnlyMemory<byte>(w.Input);
         bool single = w.Documents == 1;
         switch (task)
         {
             case BenchTask.TypedLoad:
                 return w.TypedModel switch
                 {
-                    "gha" => new FnRunner<int, Workflow>(() => 0, _ => VYaml.Serialization.YamlSerializer.Deserialize<Workflow>(bytes),
+                    "gha" => new FnRunner<byte[], Workflow>(w.OwnBytes, input => VYaml.Serialization.YamlSerializer.Deserialize<Workflow>(input),
                         t => new Product.Value(Conv.WorkflowJ(t))),
-                    "records" => new FnRunner<int, List<Record>>(() => 0, _ => VYaml.Serialization.YamlSerializer.Deserialize<List<Record>>(bytes),
+                    "records" => new FnRunner<byte[], List<Record>>(w.OwnBytes, input => VYaml.Serialization.YamlSerializer.Deserialize<List<Record>>(input),
                         t => new Product.Value(Conv.Records(t))),
                     _ => throw Support.No("no typed model for this workload"),
                 };
             case BenchTask.GenericLoad:
                 if (single)
-                    return new FnRunner<int, object?>(() => 0, _ => VYaml.Serialization.YamlSerializer.Deserialize<object>(bytes),
+                    return new FnRunner<byte[], object?>(w.OwnBytes, input => VYaml.Serialization.YamlSerializer.Deserialize<object>(input),
                         t => new Product.Value(Conv.FromObject(t)));
-                return new FnRunner<int, List<object>>(() => 0,
-                    _ => VYaml.Serialization.YamlSerializer.DeserializeMultipleDocuments<object>(bytes).ToList(),
+                return new FnRunner<byte[], List<object>>(w.OwnBytes,
+                    input => VYaml.Serialization.YamlSerializer.DeserializeMultipleDocuments<object>(input).ToList(),
                     docs => new Product.Value(Conv.Docs(docs.Select(Conv.FromObject).ToList())));
             case BenchTask.Dump:
                 if (!single) throw Support.No("dump is defined for one document");
-                return new FnRunner<object?, ReadOnlyMemory<byte>>(() => VYaml.Serialization.YamlSerializer.Deserialize<object>(bytes),
+                return new FnRunner<object?, ReadOnlyMemory<byte>>(() => VYaml.Serialization.YamlSerializer.Deserialize<object>(w.OwnBytes()),
                     tree => VYaml.Serialization.YamlSerializer.Serialize<object?>(tree),
                     m => new Product.Bytes(m.ToArray()));
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
@@ -86,28 +85,26 @@ public sealed class Yaml2JsonNodeLib : ILibrary
 
     public Runner Runner(BenchTask task, Workload w)
     {
-        var input = w.Input;
-        var text = w.InputText;
         bool single = w.Documents == 1;
         switch (task)
         {
             case BenchTask.TypedLoad:
                 return w.TypedModel switch
                 {
-                    "gha" => new FnRunner<int, Workflow?>(() => 0, _ => Yaml2JsonNode.YamlSerializer.Deserialize<Workflow>(Support.Utf8.GetString(input), Typed),
+                    "gha" => new FnRunner<byte[], Workflow?>(w.OwnBytes, input => Yaml2JsonNode.YamlSerializer.Deserialize<Workflow>(Support.Utf8.GetString(input), Typed),
                         t => new Product.Value(Conv.WorkflowJ(t!))),
-                    "records" => new FnRunner<int, List<Record>?>(() => 0, _ => Yaml2JsonNode.YamlSerializer.Deserialize<List<Record>>(Support.Utf8.GetString(input), Typed),
+                    "records" => new FnRunner<byte[], List<Record>?>(w.OwnBytes, input => Yaml2JsonNode.YamlSerializer.Deserialize<List<Record>>(Support.Utf8.GetString(input), Typed),
                         t => new Product.Value(Conv.Records(t!))),
                     _ => throw Support.No("no typed model for this workload"),
                 };
             case BenchTask.GenericLoad:
-                return new FnRunner<int, List<System.Text.Json.Nodes.JsonNode?>>(() => 0,
-                    _ => Yaml2JsonNode.YamlSerializer.Parse(Support.Utf8.GetString(input)).ToJsonNode().ToList(),
+                return new FnRunner<byte[], List<System.Text.Json.Nodes.JsonNode?>>(w.OwnBytes,
+                    input => Yaml2JsonNode.YamlSerializer.Parse(Support.Utf8.GetString(input)).ToJsonNode().ToList(),
                     docs => new Product.Value(Conv.Docs(docs.Select(Support.FromJsonNode).ToList())));
             case BenchTask.Dump:
                 if (!single) throw Support.No("dump is defined for one document");
                 return new FnRunner<System.Text.Json.Nodes.JsonNode?, byte[]>(
-                    () => Yaml2JsonNode.YamlSerializer.Parse(text).ToJsonNode().First(), WriteBytes,
+                    () => Yaml2JsonNode.YamlSerializer.Parse(w.OwnText()).ToJsonNode().First(), WriteBytes,
                     b => new Product.Bytes(b));
             case BenchTask.DocumentParse or BenchTask.UnchangedEmit or BenchTask.EditScript:
                 throw Support.No("no lossless document: the tree is data, and comments and layout are discarded");
@@ -116,7 +113,7 @@ public sealed class Yaml2JsonNodeLib : ILibrary
                     if (!single) throw Support.No("a patch addresses one document");
                     var patch = BuildPatch(w.PatchOps);
                     var failing = BuildPatch(w.PatchFailingOps);
-                    System.Text.Json.Nodes.JsonNode? Load() => Yaml2JsonNode.YamlSerializer.Parse(text).ToJsonNode().First();
+                    System.Text.Json.Nodes.JsonNode? Load() => Yaml2JsonNode.YamlSerializer.Parse(w.OwnText()).ToJsonNode().First();
                     return new FnRunner<System.Text.Json.Nodes.JsonNode?, byte[]>(
                         Load,
                         doc =>
