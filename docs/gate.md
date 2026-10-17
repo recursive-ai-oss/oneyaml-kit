@@ -70,6 +70,13 @@ Areas run side by side: as many as the memory available to the gate holds (the t
 limit, else the available memory), at most four. The first output line says how many and why.
 `--jobs` sets the number instead.
 
+The count rests on a fixed peak-memory estimate per area. Each step's largest process is measured
+by the kernel while it runs and recorded as `peak_mib` in `out/gate/summary.json`. When an area's
+largest process is above its estimate, the gate prints a warning and lists it under
+`estimate_warnings`. The figure is the largest single process, a floor under the area's real peak,
+so a warning is proof the estimate is too low and silence is not proof that it is right. The
+warning does not fail the run.
+
 ## Output
 
 Each step logs under `out/gate/` and shows its output only when it fails.

@@ -11,8 +11,7 @@
   "154"
  ],
  "refs": [
-  "YAML 1.2.2 section 7.4.2",
-  "YAML 1.2.2 section 7.4.3"
+  "YAML 1.2.2 section 7.4.2"
  ],
  "notes": "The input is valid: the keys are the numbers 0 to 29999, all different. An implicit key is at most 1024 characters on one line, so a pending key candidate expires once it is that far behind, and time and memory must stay linear in the length of the line. A reader that keeps every candidate of a long line pending used 931 MB for a ten megabyte line; at the size stored here it stays under the bound, so the case pins the exact events of a long one-line mapping and the bounds are only a guard. The bounds are the robustness requirement of the kit, not a rule of the specification. Input: `{`, then `0: v, `, `1: v, ` and so on up to `29999: v, `, then `}`.",
  "provenance": {

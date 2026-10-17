@@ -99,11 +99,26 @@ def diff_lines(exp: list, act: list) -> str:
     return ""
 
 
-def diff_bytes(exp: bytes, act: bytes) -> str:
+_CHUNK = 4096
+
+
+def _first_difference(exp: bytes, act: bytes) -> int:
+    """Index of the first byte where the two differ, or the shorter length when one is a prefix of
+    the other. Whole chunks are compared by the interpreter's native compare; only the chunk that
+    differs is walked byte by byte, so equal inputs cost no Python-level loop."""
     n = min(len(exp), len(act))
-    i = next((k for k in range(n) if exp[k] != act[k]), n)
-    if i == n and len(exp) == len(act):
+    i = 0
+    while i < n and exp[i:i + _CHUNK] == act[i:i + _CHUNK]:
+        i += _CHUNK
+    if i >= n:
+        return n
+    return next((k for k in range(i, min(i + _CHUNK, n)) if exp[k] != act[k]), n)
+
+
+def diff_bytes(exp: bytes, act: bytes) -> str:
+    if exp == act:
         return ""
+    i = _first_difference(exp, act)
     return (f"first difference at byte {i}: expected {_short(exp[i:i + 40])}, "
             f"got {_short(act[i:i + 40])} (lengths {len(exp)} and {len(act)})")
 
