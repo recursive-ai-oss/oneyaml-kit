@@ -125,11 +125,16 @@ def mark_of(t: dict, ratio: float) -> str:
 
 
 def aggregate(result: dict, library: str, rows: list[dict]) -> list[dict]:
-    """One entry per task. The workloads used are the real-world ones the library has a cell for; a
+    """One entry per task. The ratio is taken over the real-world workloads the library has a cell for; a
     task with none of those uses every workload it has (`basis` says which). Each workload's ratio
     is ours ÷ that workload's strongest competitor; the entry's ratio is their geometric mean, which
     equals the geometric mean of our times ÷ the geometric mean of the strongest competitors' times.
-    The entry's mark comes from the per-workload verdicts (see `mark_of`), for time and for memory alike.
+
+    The entry's mark is not taken over that basis. It comes from the verdicts of every workload of the task
+    where both we and a competitor have a number, generated ones included (see `mark_of`), for time and for
+    memory alike: a loss on a generated workload must show on the front page even when every real-world
+    workload is won. `tally` and `m_tally` count all of those workloads; `basis_tally` counts the ratio's
+    own, and `outside` says how the rest went.
 
     A workload where our cell has no number is not dropped: `missing` lists it with its status, and the
     entry says the aggregate covers the rest. A workload with no competitor answer is listed in `no_rival`."""
@@ -142,30 +147,37 @@ def aggregate(result: dict, library: str, rows: list[dict]) -> list[dict]:
         e = {"task": task, "basis": basis, "workloads": [r["workload"] for r in used], "missing": [],
              "no_rival": [], "tally": {"win": 0, "tie": 0, "loss": 0},
              "t_own": [], "t_best": [], "vs": {}, "marks": set(), "own_marks": set(),
-             "m_own": [], "m_best": [], "m_vs": {}, "m_tally": {"win": 0, "tie": 0, "loss": 0}}
-        for r in used:
+             "m_own": [], "m_best": [], "m_vs": {}, "m_tally": {"win": 0, "tie": 0, "loss": 0},
+             "basis_tally": {"win": 0, "tie": 0, "loss": 0}, "outside": {"win": 0, "tie": 0, "loss": 0}}
+        for r in trs:
+            inside = r in used
             mine = next(c for c in r["cells"] if c["library"] == library)
             ent = next(x for x in r["own"] if x["library"] == library)
             if mine["status"] != "ok":
-                e["missing"].append((r["workload"], mine["status"]))
+                if inside:
+                    e["missing"].append((r["workload"], mine["status"]))
                 continue
             if ent["time"] is None:
-                e["no_rival"].append(r["workload"])
+                if inside:
+                    e["no_rival"].append(r["workload"])
             else:
+                e["tally"][ent["time"]["verdict"]] += 1
+                e["basis_tally" if inside else "outside"][ent["time"]["verdict"]] += 1
+            if ent["time"] is not None and inside:
                 best = r["best"]["time"]
                 e["t_own"].append(mine["time"]["ns"])
                 if results.non_reference_label(mine):
                     e["own_marks"].add(results.non_reference_label(mine))
                 e["t_best"].append(best["time"]["ns"])
-                e["tally"][ent["time"]["verdict"]] += 1
                 e["vs"][best["library"]] = e["vs"].get(best["library"], 0) + 1
                 if results.non_reference_label(best):
                     e["marks"].add(f"{best['library']}: {results.non_reference_label(best)}")
             if ent["memory"] is not None:
+                e["m_tally"][ent["memory"]["verdict"]] += 1
+            if ent["memory"] is not None and inside:
                 bm = r["best"]["memory"]
                 e["m_own"].append(max(mine["memory"]["allocated_bytes"], 1))
                 e["m_best"].append(max(bm["memory"]["allocated_bytes"], 1))
-                e["m_tally"][ent["memory"]["verdict"]] += 1
                 e["m_vs"][bm["library"]] = e["m_vs"].get(bm["library"], 0) + 1
                 if results.non_reference_label(bm):
                     e["marks"].add(f"{bm['library']}: {results.non_reference_label(bm)}")
@@ -317,12 +329,23 @@ def task_name(a: dict) -> str:
     return TASK_LABEL.get(a["task"], a["task"])
 
 
+def outside_loss_text(a: dict) -> str:
+    """Said beside a mark when generated workloads, which the ratio leaves out, lost: the ratio alone would
+    read as a clean win. Empty when none lost or when the ratio already covers every workload."""
+    o = a["outside"]
+    if not o["loss"]:
+        return ""
+    return f"loses {o['loss']} of {sum(o.values())} generated workloads"
+
+
 def chart_tag(a: dict) -> str:
     """The words after a bar (or in place of one): the mark, and what keeps the row from being whole."""
     if a["ratio"] is None:
         why = ", ".join(f"{w} {s}" for w, s in a["missing"]) or "no competitor answer"
         return f"NOT COMPARABLE ({why})" if a["missing"] else "no rival"
     tag = "  " + MARK[a["verdict"]]
+    if outside_loss_text(a):
+        tag += f" ({outside_loss_text(a)})"
     if a["missing"]:
         tag += " (partial: " + ", ".join(f"{w} {s}" for w, s in a["missing"]) + ")"
     return tag
@@ -358,9 +381,12 @@ def hero_alt(ctx_library: str, aggs: list[dict]) -> str:
     repeats for readers who open the image on its own."""
     n = {k: sum(1 for a in aggs if a["verdict"] == k) for k in ("win", "tie", "mixed", "loss")}
     none = sum(1 for a in aggs if a["ratio"] is None)
+    only_generated = [task_name(a) for a in aggs if a["outside"]["loss"] and not a["basis_tally"]["loss"]]
     return (f"Bar chart of the table below: how many times faster {ctx_library} is than the strongest competitor "
             f"on each task, log scale, higher is better. {len(aggs)} tasks: {n['win']} better, {n['tie']} level, "
-            f"{n['mixed']} mixed, {n['loss']} worse, {none} not comparable.")
+            f"{n['mixed']} mixed, {n['loss']} worse, {none} not comparable. "
+            "Speeds are over real-world workloads; a mark counts every workload."
+            + (f" Loses only on generated workloads: {', '.join(only_generated)}." if only_generated else ""))
 
 
 def hero_desc(title: str, note: str, aggs: list[dict]) -> str:
@@ -372,18 +398,21 @@ def hero_desc(title: str, note: str, aggs: list[dict]) -> str:
             items.append(f"{hero_name(a)} {chart_tag(a)}")
             continue
         t = a["tally"]
-        used = len(a["t_own"])
+        used, every = len(a["t_own"]), sum(t.values())
         items.append(f"{hero_name(a)} {speed_text(a['ratio'], a['verdict'])} {MARK[a['verdict']].split(' ', 1)[1]} "
                      f"(ours {report.fmt_time(a['own_time'])} vs {report.fmt_time(a['best_time'])}; workloads: "
-                     f"{t['win']} better, {t['tie']} level, {t['loss']} worse of {used}"
+                     f"{t['win']} better, {t['tie']} level, {t['loss']} worse of {every}"
+                     + (f"; the speed is over the {used} real-world workloads and the mark counts all {every}"
+                        + (f", {outside_loss_text(a)}" if outside_loss_text(a) else "") if every != used and a["basis"] == "real-world" else "")
                      + ("; partial, no number for " + ", ".join(f"{w} ({s})" for w, s in a["missing"]) if a["missing"] else "")
                      + ")")
     parts.append("; ".join(items) + ".")
     return " ".join(parts)
 
 
-HERO_NOTE = ("Times faster than the strongest competitor on each task (geometric mean over its workloads), log scale: "
-             "bars to the right are faster, higher is better, bars to the left are slower.")
+HERO_NOTE = ("Times faster than the strongest competitor on each task (geometric mean over its real-world workloads), log scale: "
+             "bars to the right are faster, higher is better, bars to the left are slower. "
+             "The mark beside a bar counts every workload of the task, generated ones included.")
 
 
 def chart_files(ctx: Ctx, aggs: list[dict], rel: str, short_alt: bool = False) -> list[str]:
@@ -452,7 +481,8 @@ def render_hero(ctx: Ctx, chart_rel: str, **_) -> str:
         mine = report.fmt_time(a["own_time"])
         if a["own_marks"]:
             mine += f"{report.MARK_NOT_BEST} ({'; '.join(sorted(a['own_marks']))})"
-        mark = verdict_text(a["verdict"]) + (" (partial: a workload has no number)" if a["missing"] else "")
+        mark = (verdict_text(a["verdict"]) + (f" ({outside_loss_text(a)})" if outside_loss_text(a) else "")
+                + (" (partial: a workload has no number)" if a["missing"] else ""))
         body.append([hero_name(a), mine, vs, report.fmt_time(a["best_time"]), speed_text(a["ratio"], a["verdict"]), mark])
     not_run = [r for r in ctx.not_run if r["task"] not in ctx.chart_omit]
     for task in task_sort({r["task"] for r in not_run} - {a["task"] for a in aggs}):
@@ -477,7 +507,9 @@ def render_hero(ctx: Ctx, chart_rel: str, **_) -> str:
                "says how. A marked competitor still counts. A workload where our library has no number is listed "
                "and the row is marked as partial, never counted as a win. The verdict is never better than the "
                "per-workload verdicts allow: a row with a losing workload is marked mixed or loss, and a row with "
-               "no winning workload is never marked a win. Memory and the count of better, level and worse "
+               "no winning workload is never marked a win. The speed is over the real-world workloads, but the "
+               "verdict counts every workload the task has, generated ones included, so a task that loses a "
+               "generated workload is never marked a clean win, and the row says how many it lost. Memory and the count of better, level and worse "
                "workloads in each row are on the full page.")
     out.append("")
     out += method_strip(ctx)
@@ -530,7 +562,9 @@ def render_full(ctx: Ctx, **_) -> str:
         out.append("")
     out.append("Relative figures are ours ÷ the strongest competitor in that row, so below 1.0× is better for us "
                "and ▼ marks a loss. A † marks a cell measured differently from the task as specified; the note "
-               "beside each mark says how. Cells without a number say why.")
+               "beside each mark says how. Cells without a number say why. The verdict of a task in the chart and "
+               "the first table counts every workload in these tables, generated ones included, while its speed "
+               "figure is over the real-world workloads.")
     out.append("")
     out += method_strip(ctx)
     return "\n".join(out)
