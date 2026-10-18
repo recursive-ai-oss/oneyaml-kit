@@ -186,13 +186,8 @@ class Hero(Base):
         self.run_cmd(real_world(synthetic(), "w2"))
         line = self.hero_line("generic load")
         self.assertIn("2.00× slower", line)
-        # The generated w1 is won, so the row as a whole is mixed, never better.
-        self.assertIn("◆ mixed", line)
-        self.assertNotIn("▲ win", line)
-        r = real_world(synthetic(), "w2")
-        r["cells"] = [c for c in r["cells"] if c["workload"] not in ("w1", "w3")]
-        self.run_cmd(r)
-        self.assertIn("▼ loss", self.hero_line("generic load"))
+        # The generated workloads that are won cannot lift the loss on the only real-world workload.
+        self.assertIn("▼ loss", line)
 
     def test_not_comparable_workload_is_not_dropped(self):
         self.run_cmd(real_world(synthetic(), "w1", "w4"))  # ours differs on w4
@@ -218,8 +213,7 @@ class Hero(Base):
 
     def test_marked_competitor_is_named_and_counts(self):
         r = real_world(synthetic(), "w2")
-        # Only w2 is compared, so the generated workloads cannot soften the loss into a mixed row.
-        r["cells"] = [c for c in r["cells"] if c["workload"] not in ("w1", "w2", "w3")] + [
+        r["cells"] = [c for c in r["cells"] if c["workload"] != "w2"] + [
             cell("ours", "own", workload="w2", t=200.0),
             cell("rival", workload="w2", t=100.0, variant="bytes-only")]
         self.run_cmd(r)
@@ -595,11 +589,11 @@ class Marks(Base):
         self.assertIn("◆ mixed (loses 1 of 1 generated workloads)", line)
         self.assertNotIn("▲ win", line)
         self.assertIn("1 mixed, 0 worse", self.alt())
-        self.assertIn("a mark counts every workload", self.alt())
-        self.assertIn("Loses only on generated workloads: generic load", self.alt())
+        self.assertIn("A mark counts every workload", self.alt())
+        self.assertIn("Loses only outside the real-world workloads: generic load", self.alt())
         chart = self.block(self.readme, "bench-chart")
         self.assertIn("1 mixed, 0 worse", chart)
-        self.assertIn("Loses only on generated workloads: generic load", chart)
+        self.assertIn("Loses only outside the real-world workloads: generic load", chart)
         self.assertNotIn("2 tasks", chart)
         for theme in ("light", "dark"):
             svg = (self.dir / "docs" / "img" / f"ours-hero-{theme}.svg").read_text()
@@ -610,7 +604,56 @@ class Marks(Base):
                           "loses 1 of 1 generated workloads", desc)
             self.assertIn("◆ mixed (loses 1 of 1 generated workloads)", svg)
             self.assertIn(f'fill="{P.THEMES[theme]["mixed"]}"', svg)
-        self.assertIn("generated ones included", self.block(self.readme, "bench-hero"))
+        self.assertIn("generated and reference ones included", self.block(self.readme, "bench-hero"))
+
+    def test_a_generated_win_cannot_lift_a_level_row(self):
+        r = self.kinds_result(("a", 99.8, "real-world"), ("b", 99.9, "real-world"), ("g", 50.0, "generated"))
+        self.run_cmd(r)
+        line = self.hero_line("generic load")
+        self.assertIn("● tie", line)
+        self.assertNotIn("▲ win", line)
+
+    def kinds_result(self, *spec):
+        c = []
+        for w, t, _ in spec:
+            c += [cell("ours", "own", workload=w, t=t) if t else
+                  cell("ours", "own", workload=w, status="differs", detail="byte 3: got x, expected y"),
+                  cell("rival", workload=w, t=100.0)]
+        r = probe_result(c)
+        kinds = {w: k for w, _, k in spec}
+        for w in r["workloads"]:
+            w["kind"] = kinds[w["id"]]
+        return r
+
+    def test_each_outside_kind_is_counted_on_its_own(self):
+        r = self.kinds_result(("a", 50.0, "real-world"), ("g1", 190.0, "generated"), ("g2", 50.0, "generated"),
+                              ("ref-x", 190.0, "reference"), ("ref-y", 50.0, "reference"), ("ref-z", 190.0, "reference"))
+        self.run_cmd(r)
+        line = self.hero_line("generic load")
+        self.assertIn("loses 1 of 2 generated workloads and 2 of 3 reference workloads", line)
+        self.assertIn("◆ mixed", line)
+        r = self.kinds_result(("a", 50.0, "real-world"), ("ref-x", 190.0, "reference"), ("ref-y", 50.0, "reference"))
+        self.run_cmd(r)
+        self.assertIn("loses 1 of 2 reference workloads)", self.hero_line("generic load"))
+        self.assertNotIn("generated", self.hero_line("generic load"))
+
+    def test_a_workload_of_ours_without_a_number_outside_the_basis_makes_the_row_partial(self):
+        r = self.kinds_result(("a", 50.0, "real-world"), ("g", None, "generated"))
+        self.run_cmd(r)
+        line = self.hero_line("generic load")
+        self.assertIn("partial", line)
+        self.assertIn("`g` (differs)", self.block(self.readme, "bench-hero"))
+        self.assertIn("partial: g differs", (self.dir / "docs" / "img" / "ours-hero-light.svg").read_text())
+
+    def test_a_task_without_a_real_world_workload_does_not_claim_real_world_speeds(self):
+        r = self.kinds_result(("a", 50.0, "generated"), ("b", 50.0, "generated"))
+        self.run_cmd(r)
+        self.assertNotIn("over real-world workloads", self.alt())
+        self.assertIn("over all of each task", self.alt())
+        svg = (self.dir / "docs" / "img" / "ours-hero-light.svg").read_text()
+        desc = svg[svg.index("<desc>"):svg.index("</desc>")]
+        self.assertIn("over all its workloads", desc)
+        self.assertNotIn("over its real-world workloads", desc)
 
     def test_a_generated_win_does_not_change_a_clean_row(self):
         c = []
