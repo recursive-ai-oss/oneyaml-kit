@@ -33,6 +33,8 @@ under "Not run", and `bin/gate` stays green. They are never built then.
 
 ## What they declare
 
-Nothing yet: the library has no features, so the hello carries no capabilities and every case is
-reported as unsupported. The hello's `info` names the package version, the backend that imported
-(`native` or `pure`) and the engine version. Capabilities are added as the library gains them.
+Both adapters run the same code and declare `events`, `error-events`, `value`, `error-category` and
+`error-position`: they read events (through the library's internal `events_text`) and values
+(`oneyaml.loads_all`) with the library's default limits, and map its `YAMLError` to the kit's category and
+position. Neither declares `dump` or `patch` yet. The hello's `info` names the package version, the
+backend that imported (`native` or `pure`) and, for the native backend, the engine version.

@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/closing-single-quote-at-the-margin-of-a-sequence-entry",
+ "title": "A closing single quote on its own line needs the indentation of the scalar's continuation lines",
+ "category": "diagnostics",
+ "origin": "fuzz",
+ "productions": [
+  "69",
+  "74",
+  "124",
+  "125"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.5",
+  "YAML 1.2.2 section 7.3.2"
+ ],
+ "notes": "The entry is in a block sequence at indentation 0, so a continuation line needs at least 1 space of indentation (production 69), and that includes a line that holds only the closing quote. The quote at line 2, column 1 is the first character that cannot belong.",
+ "provenance": {
+  "reference": "A reader that checked the indentation of continuation lines but not of the line with the closing quote."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 1
+ }
+}

@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/three-dashes-before-a-closing-quote-are-not-a-marker",
+ "title": "`---` directly before the closing quote of a multi-line scalar is text",
+ "category": "parse",
+ "origin": "fuzz",
+ "productions": [
+  "109",
+  "111",
+  "206"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.3.1",
+  "YAML 1.2.2 section 9.1.2"
+ ],
+ "notes": "A document marker is `---` or `...` at the start of a line and followed by a break or white space (production 206). Here `---` is followed by the closing quote, so it is text and the scalar is `x ---`. A reader that tests for the end of the text instead of the next character sees a marker when the quote is cut off.",
+ "provenance": {
+  "reference": "A reader that looked for a marker in the scalar's text without its closing quote and refused the input with a document marker inside a quoted scalar."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

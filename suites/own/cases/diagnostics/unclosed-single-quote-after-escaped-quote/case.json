@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/unclosed-single-quote-after-escaped-quote",
+ "title": "A single-quoted scalar with an escaped quote that never ends",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "117",
+  "120"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.3.2"
+ ],
+ "notes": "A doubled quote is an escaped quote, not the end of the scalar, so the scalar is still open at the end of the input; the error is at the end of the input.",
+ "provenance": {
+  "reference": "A reader that reported the error at the opening quote instead of the end of the input."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 6
+ }
+}

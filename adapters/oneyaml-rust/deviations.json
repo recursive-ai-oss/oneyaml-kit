@@ -994,6 +994,76 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/second-anchor-on-one-node-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at the first anchor (1:4) instead of the second (1:7)"
+  },
+  {
+   "case": "own:diagnostics/second-yaml-directive-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error as other instead of syntax, at the end of the second directive (2:10) instead of its start (2:1)"
+  },
+  {
+   "case": "own:diagnostics/unclosed-single-quote-after-escaped-quote",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at the opening quote (1:1) instead of the end of the input (1:6)"
+  },
+  {
+   "case": "own:diagnostics/c1-control-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a DEL or C1 control character inside a comment; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/c1-control-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a DEL or C1 control character inside a comment; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/del-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Accepts a DEL or C1 control character inside a comment; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/del-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Accepts a DEL or C1 control character inside a comment; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/closing-quote-at-the-margin-of-a-nested-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at the opening quote (1:4) instead of the unindented closing quote line (2:1)"
+  },
+  {
+   "case": "own:diagnostics/closing-single-quote-at-the-margin-of-a-sequence-entry",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at the opening quote (1:3) instead of the unindented closing quote line (2:1)"
+  },
+  {
+   "case": "own:diagnostics/properties-on-their-own-line-before-a-key-of-an-open-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Reports the error at the start of the properties line (2:1) instead of the line break after them (2:6)"
   }
-]
+ ]
 }

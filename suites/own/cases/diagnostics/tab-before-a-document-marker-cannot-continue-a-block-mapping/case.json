@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/tab-before-a-document-marker-cannot-continue-a-block-mapping",
+ "title": "A tab in front of `---` does not end a block mapping and does not indent anything",
+ "category": "diagnostics",
+ "origin": "fuzz",
+ "productions": [
+  "63",
+  "69",
+  "74",
+  "206"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.1",
+  "YAML 1.2.2 section 6.5",
+  "YAML 1.2.2 section 9.1.2"
+ ],
+ "notes": "The tab is not at the start of the line, so `---` is no marker and cannot end the document. As in `diagnostics/tab-indented-plain-continuation`, a tab does not provide the 1 space of indentation a continuation line of the value needs, so the line cannot continue the scalar `1`. A tab may start a comment line, so the tab is acceptable and the `-` after it, line 2 column 2, is the first character that cannot belong.",
+ "provenance": {
+  "reference": "A reader that skipped the tab before looking for a marker, ended the first document there and started a second one."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 2
+ }
+}

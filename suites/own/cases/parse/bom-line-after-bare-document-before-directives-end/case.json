@@ -1,0 +1,28 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/bom-line-after-bare-document-before-directives-end",
+ "title": "A byte order mark alone on a line between a bare document and an explicit one",
+ "category": "parse",
+ "origin": "fuzz",
+ "productions": [
+  "3",
+  "202",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 9.1.1",
+  "YAML 1.2.2 section 9.2"
+ ],
+ "notes": "A bare document may be followed by another that has a prefix: an optional byte order mark followed by comment lines (production 202), here the mark and its line break. The first document is not closed by an end marker, which the document prefix does not need (production 211). Compare `parse/bom-after-bare-document-before-directives-end`, where the start marker follows the mark on the same line.",
+ "provenance": {
+  "reference": "A reader that accepted a byte order mark in front of `---` on the same line but refused one on a line of its own."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

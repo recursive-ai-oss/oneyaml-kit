@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/tab-before-a-document-marker-makes-it-text",
+ "title": "`---` after a tab at the start of a line is a plain scalar, not a document start",
+ "category": "parse",
+ "origin": "fuzz",
+ "productions": [
+  "66",
+  "206"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.2",
+  "YAML 1.2.2 section 9.1.2"
+ ],
+ "notes": "A document marker must be at the start of the line (production 206), so after a tab `--- b` is the plain scalar `--- b`. After the end marker a new bare document begins and the tab is separation in front of its scalar (production 66). The second document is the string `--- b`, not a document with the value `b`.",
+ "provenance": {
+  "reference": "A reader that skipped the tab before looking for a marker and started a second document with the value `b`."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "a": 1
+   },
+   "--- b"
+  ]
+ }
+}

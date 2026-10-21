@@ -1,0 +1,11 @@
++STR
++DOC
++MAP
+=VAL :a
++MAP &b
+=VAL :se
+=VAL :1
+-MAP
+-MAP
+-DOC
+-STR

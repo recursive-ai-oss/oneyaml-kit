@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/second-anchor-on-one-node-is-an-error",
+ "title": "Two anchors on one node",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "96",
+  "101"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9"
+ ],
+ "notes": "Node properties hold at most one anchor and one tag, so the second anchor is an error where it starts.",
+ "provenance": {
+  "reference": "A reader that reported the error at the first anchor instead of the second."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 7
+ }
+}

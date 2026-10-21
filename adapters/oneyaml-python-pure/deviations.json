@@ -1,1 +1,22 @@
-{"format": "oneyaml-kit-deviations/1", "entries": []}
+{
+ "format": "oneyaml-kit-deviations/1",
+ "entries": [
+  {"case": "yts:4H7K", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events lack the flow marker and end the document before the error; the corrected expectation passes"},
+  {"case": "yts:BS4K", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events end the document before the error; the corrected expectation keeps it open until a marker or the end of the stream, and passes"},
+  {"case": "yts:EB22", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events end the document before the error; the corrected expectation keeps it open until a marker or the end of the stream, and passes"},
+  {"case": "yts:MUS6/01", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"},
+  {"case": "yts:T833", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"},
+  {"case": "yts:Y79Y/004", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"},
+  {"case": "yts:Y79Y/005", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"},
+  {"case": "yts:Y79Y/006", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"},
+  {"case": "yts:Y79Y/007", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"},
+  {"case": "yts:Y79Y/008", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"},
+  {"case": "yts:Y79Y/009", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"},
+  {"case": "yts:UGM3@value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Upstream in.json writes 450.00 and 2392.00 as integers; the library reads them as floats, which the core schema requires (the corrected expectation passes)"},
+  {"case": "yts:UGM3@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream in.json writes 450.00 and 2392.00 as integers; the library reads them as floats, which the core schema requires (the corrected expectation passes)"},
+  {"case": "yts:565N@value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "A !!binary scalar is loaded as bytes, so the text the case compares against is not kept."},
+  {"case": "yts:565N@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "A !!binary scalar is loaded as bytes, so the text the case compares against is not kept."},
+  {"case": "own:schema/non-string-key", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "A Python dict cannot hold the keys 1 and true apart (they are equal and hash alike), so the load refuses the mapping instead of dropping an entry."},
+  {"case": "own:schema/non-string-key", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "A Python dict cannot hold the keys 1 and true apart (they are equal and hash alike), so the load refuses the mapping instead of dropping an entry."}
+ ]
+}

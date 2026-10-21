@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/c1-control-in-a-comment-is-an-error",
+ "title": "A C1 control character inside a comment",
+ "category": "diagnostics",
+ "origin": "fuzz",
+ "productions": [
+  "1",
+  "27",
+  "75"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.1",
+  "YAML 1.2.2 section 6.6"
+ ],
+ "notes": "Comment text is `#` followed by non-break characters (production 75), and production 27 takes them from the printable characters (production 1), which exclude U+0080 to U+0084 and U+0086 to U+009F (U+0085 is printable). U+009F is the first character that cannot belong: line 1, column 4 (`#`, a space, `c`, then the control).",
+ "provenance": {
+  "reference": "A reader that accepted any character but a line break in a comment."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 1,
+  "column": 4
+ }
+}

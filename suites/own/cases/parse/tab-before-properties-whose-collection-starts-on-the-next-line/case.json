@@ -1,0 +1,29 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/tab-before-properties-whose-collection-starts-on-the-next-line",
+ "title": "A tab between `:` and an anchor does not indent the block mapping on the next line",
+ "category": "parse",
+ "origin": "fuzz",
+ "productions": [
+  "66",
+  "96",
+  "200",
+  "187"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.2",
+  "YAML 1.2.2 section 6.9",
+  "YAML 1.2.2 section 8.2.3"
+ ],
+ "notes": "The tab separates the colon from the anchor (production 66 allows tabs as separation in a line). The anchor stands alone on its line, so the block mapping that follows starts on the next line and is indented by that line's own spaces; the tab is not part of its indentation. The anchor belongs to the inner mapping.",
+ "provenance": {
+  "reference": "A reader that remembered the tab as the indentation of the block collection on the next line and refused the input with a tab cannot indent a block collection."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

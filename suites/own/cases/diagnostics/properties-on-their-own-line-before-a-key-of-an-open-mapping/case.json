@@ -1,0 +1,30 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/properties-on-their-own-line-before-a-key-of-an-open-mapping",
+ "title": "Properties alone on a line cannot belong to a key of the mapping that is already open",
+ "category": "diagnostics",
+ "origin": "fuzz",
+ "productions": [
+  "96",
+  "187",
+  "192",
+  "193"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.9",
+  "YAML 1.2.2 section 8.2.2"
+ ],
+ "notes": "Properties of an implicit key stand on the key's own line, in front of the key text (production 193: the key and its `:` share a line). `!!map` alone on line 2 would have to be the properties of a new block mapping, which cannot start at the indentation of the mapping that is open. The line break after `!!map`, line 2 column 6, is the first character that cannot belong. Compare yaml-test-suite H7J7.",
+ "provenance": {
+  "reference": "A reader that merged the properties of two lines into the next key, dropped the first line's `!!map`, and read the input as a mapping with two keys."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 6
+ }
+}

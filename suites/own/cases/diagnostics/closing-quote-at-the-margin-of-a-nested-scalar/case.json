@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/closing-quote-at-the-margin-of-a-nested-scalar",
+ "title": "A closing quote on its own line needs the indentation of the scalar's continuation lines",
+ "category": "diagnostics",
+ "origin": "fuzz",
+ "productions": [
+  "69",
+  "74",
+  "113",
+  "115",
+  "116"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.5",
+  "YAML 1.2.2 section 7.3.1"
+ ],
+ "notes": "The value of `a` is in a block mapping at indentation 0, so every line after the first break starts with a flow line prefix of at least 1 space (production 69), and that includes the line that holds nothing but the closing quote (production 115 ends a scalar after a break and its prefix). A quote at column 1 is not allowed, so the quote is the first character that cannot belong: line 2, column 1. A continuation line with text, `a: \"x\\ny\"`, is refused the same way (compare yaml-test-suite DK95/01).",
+ "provenance": {
+  "reference": "A reader that checked the indentation of continuation lines but not of the line with the closing quote, and read the input as `{a: \"x \", b: 1}`."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax",
+  "line": 2,
+  "column": 1
+ }
+}

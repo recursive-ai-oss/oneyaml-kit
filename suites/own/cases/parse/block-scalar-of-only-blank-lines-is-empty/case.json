@@ -1,0 +1,31 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/block-scalar-of-only-blank-lines-is-empty",
+ "title": "A folded scalar whose lines are all blank is empty, whatever the width of the lines",
+ "category": "parse",
+ "origin": "fuzz",
+ "productions": [
+  "163",
+  "166",
+  "174"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1.1",
+  "YAML 1.2.2 section 8.1.3"
+ ],
+ "notes": "With no indentation indicator the content indentation is that of the first non-empty line; if there is none it is the number of spaces on the longest line (section 8.1.1.1). The three lines have 1, 2 and 3 spaces, so the indentation is 3 and every line is an empty line (production 166). The comment at column 1 ends the scalar. The value is the empty string. Compare yaml-test-suite S98Z, where a comment indented by one space is the first non-empty line and the wider blank lines before it are an error.",
+ "provenance": {
+  "reference": "A reader that took the indentation from the parent and read the wider blank lines as content, giving a value of line breaks and spaces."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "value",
+  "value": [
+   {
+    "k": ""
+   }
+  ]
+ }
+}
