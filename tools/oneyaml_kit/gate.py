@@ -84,10 +84,10 @@ BENCH_PIPELINE_TESTS = {"rust": "test_pipeline.RustPipeline", "go": "test_pipeli
 # The smoke run: a few small workloads, one of them typed, through one harness.
 SMOKE_WORKLOADS = ("reference-a", "reference-b", "gha-workflow")
 # The Python harness runs every cell in processes of its own (pyperf workers and memory runs), a second or
-# more each, so its smoke run takes one library of each kind: ours in both backends, a C extension, a pure
-# Python round-trip editor, a native lossless editor and a native value library.
-PYTHON_SMOKE_LIBRARIES = ("oneyaml-python", "oneyaml-python-pure", "pyyaml-c", "ruamel-roundtrip",
-                          "yamlrocks-roundtrip", "yaml-rs")
+# more each, so its smoke run takes only ours in both backends (when a checkout is given), one C extension
+# and one native library. The harness's own tests cover the guard and the referee; the full tier's quick run
+# covers every library.
+PYTHON_SMOKE_LIBRARIES = ("oneyaml-python", "oneyaml-python-pure", "pyyaml-c", "yaml-rs")
 # The hand-over tier's wall-clock budget in seconds. The hard limit is three minutes; the margin
 # covers a slower machine and cold caches.
 BUDGET_SECONDS = 150
