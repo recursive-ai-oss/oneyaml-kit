@@ -227,6 +227,27 @@ class CSharpPipeline(Pipeline, unittest.TestCase):
         self.assertIn("no two prepared states share an input", r.stdout)
 
 
+class PythonPipeline(Pipeline, unittest.TestCase):
+    lang = "python"
+
+    @classmethod
+    def build_with_controls(cls, target):
+        # The control libraries are in the one environment and are listed only when KIT_BENCH_SELFTEST is set.
+        run.build(cls.h, target)
+
+    def harness(self, wl_dir, only, libraries=(), tasks=(), target=None):
+        with mock.patch.dict(os.environ, {"KIT_BENCH_SELFTEST": "1"} if target == self.controls else {}):
+            return super().harness(wl_dir, only, libraries, tasks, target)
+
+    def test_a_crashing_library_is_named_and_the_run_continues(self):
+        with mock.patch.dict(os.environ, {"KIT_BENCH_SELFTEST": "1"}):
+            super().test_a_crashing_library_is_named_and_the_run_continues()
+
+    def test_a_numbers_run_lists_no_control(self):
+        rec, _ = self.harness(self.wl, ["reference-a"], ["control-correct"], ["generic-load"])
+        self.assertEqual([l for l in rec["libraries"] if l["role"] == "control"], [])
+
+
 class Pins(unittest.TestCase):
     def test_every_library_is_pinned_to_one_exact_release(self):
         cargo = (run.ROOT / "rust" / "Cargo.toml").read_text(encoding="utf-8")
@@ -238,6 +259,9 @@ class Pins(unittest.TestCase):
         for line in csproj.splitlines():
             if "<PackageReference" in line:
                 self.assertRegex(line, r'Version="\[[^\]]+\]"', line)
+        for line in (run.ROOT / "python" / "libraries.in").read_text(encoding="utf-8").splitlines():
+            if line and not line.startswith("#"):
+                self.assertRegex(line, r"^[A-Za-z0-9._-]+==[0-9][0-9A-Za-z.]*$", line)
 
 
 if __name__ == "__main__":

@@ -10,9 +10,10 @@ and implements it; the driver, the workloads and the reports do not change.
 | Rust | `bench/rust/` | criterion for time; a counting global allocator for allocation |
 | Go | `bench/go/` | `testing.Benchmark` with `ReportAllocs` (ns/op, B/op, allocs/op) |
 | .NET | `bench/csharp/` | BenchmarkDotNet's ShortRun job with `MemoryDiagnoser`, one child process per cell in full mode |
+| Python | `bench/python/` | pyperf at its defaults for time; peak growth of the resident set in a fresh process for memory |
 
 Quick mode shortens the tool's time settings (criterion's warm-up and measurement time, Go's
-benchtime, BenchmarkDotNet's dry job) and changes nothing else.
+benchtime, BenchmarkDotNet's dry job, pyperf's processes, values and minimum time) and changes nothing else.
 
 ## Layout
 
@@ -87,7 +88,9 @@ running as `error` and starts `run` again with `--skip` for the cells already be
 - `time.ns` is the tool's own figure for one run, and `stat` says which (`mean` in all three
   harnesses). A harness may add the tool's other figures (`median_ns`).
 - `memory.allocated_bytes` is the bytes one run allocated. `allocations` is the number of
-  allocation calls, or null where the tool does not report it (BenchmarkDotNet).
+  allocation calls, or null where the tool does not report it (BenchmarkDotNet, and the Python
+  harness, whose figure is the peak growth of the resident set during one run; the harness's `memory`
+  field says which).
 - `variant` names which accepted expectation matched: `spec`, `merged` (`<<` applied while
   loading), `bytes-only` (a document with no value to compare, judged on its bytes),
   `harness-rendered` (an edit whose lookup and new text are the harness's code, because the
@@ -177,6 +180,28 @@ its own `settings`, so a table row says which API it measured. `Models.cs` holds
 To measure a checkout of oneyaml-csharp, set `KIT_ONEYAML_CSHARP_SRC` to it before the build;
 `KIT_ONEYAML_GO_SRC` does the same for oneyaml-go. Without them the harness measures the
 competitors alone.
+
+## Python: adding a library
+
+A library is a `YamlLib` in `bench/python/libs.py`, registered in `competitors()`, with its distribution
+pinned in `bench/python/libraries.in` and resolved, with hashes, into `libraries.lock`. It fills in
+only what the library really has: `load` (one document; `load_all` for a stream), `dump`, a `DocAPI`
+(`parse`, `emit`, and `value` and `edit` where they exist) when it has a lossless document, and a `PatchAPI`.
+What it leaves out is `unsupported`, with the reason in `why`. `only` lists the tasks the library takes part
+in; any other task gets no cell. A library that can be driven in more than one way is one `id` per way,
+each with its own `settings`. The input is copied in setup, in the form the library takes (`form`).
+
+Each cell is a process of its own (`cell.py`): it judges the answer, then times it with pyperf, then measures
+its memory in a fresh process, so a library that dies takes only its own cell. The reference reading of a
+dump (`referee.py`) takes the structure of the text from libyaml (PyYAML's C parser) and from ruamel.yaml's
+parser, and resolves it with the harness's core-schema resolver. Typed loading is the library's generic load
+followed by one conversion into the dataclasses in `models.py`.
+
+To measure a checkout of oneyaml-python, set `KIT_ONEYAML_PYTHON_SRC` to it before the build: it is installed
+into the harness's environment and measured as `oneyaml-python` (the native backend) and
+`oneyaml-python-pure` (`ONEYAML_BACKEND=pure`). Without it the harness measures the competitors alone. The
+harness's own tests run with `python -m unittest test_harness` in `bench/python`, in the environment
+`build.sh` makes; the control libraries they use are listed only when `KIT_BENCH_SELFTEST` is set.
 
 ## A cell that is a known loss or deviation
 
