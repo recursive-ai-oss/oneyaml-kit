@@ -1,0 +1,10 @@
+{
+  "format": "oneyaml-kit-adapter/1",
+  "name": "ruamel-safe",
+  "language": "python",
+  "build": ["sh", "../pykit/build.sh"],
+  "command": ["sh", "../pykit/run.sh"],
+  "timeout_seconds": 10,
+  "memory_limit_mb": 2048,
+  "deviations": "deviations.json"
+}

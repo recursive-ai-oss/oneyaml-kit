@@ -1,0 +1,4 @@
+# Build tools for the oneyaml-python adapter, pinned like the libraries.
+# tools.lock is generated with
+#   uv pip compile --universal --generate-hashes tools.in -o tools.lock
+maturin==1.15.0

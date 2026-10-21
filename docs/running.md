@@ -8,7 +8,9 @@ benchmark, see [benchmarks](benchmarks.md); for the kit's own checks, see [the g
 - Python 3.10 or newer. The kit itself uses the standard library only.
 - Each adapter's own toolchain: the oneyaml-rust adapter needs a Rust toolchain; the Go adapters,
   described in [adapters/gokit](../adapters/gokit/README.md), need Go; the .NET adapters, described in
-  [adapters/dotnet-common](../adapters/dotnet-common/README.md), need the .NET SDK.
+  [adapters/dotnet-common](../adapters/dotnet-common/README.md), need the .NET SDK; the Python adapters,
+  described in [adapters/pykit](../adapters/pykit/README.md), need [uv](https://docs.astral.sh/uv/) and
+  network access to the package index for the first build.
 
 ## Commands
 
@@ -17,6 +19,7 @@ bin/kit fast                                     # every adapter, the whole fast
 bin/kit fast --adapter oneyaml-rust --suite own  # one adapter, the kit's own cases only
 KIT_ONEYAML_GO_SRC=/path/to/oneyaml-go bin/kit fast --adapter oneyaml-go              # the Go library, from a checkout
 KIT_ONEYAML_CSHARP_SRC=/path/to/oneyaml-csharp bin/kit fast --adapter oneyaml-csharp  # the C# library, likewise
+KIT_ONEYAML_PYTHON_SRC=/path/to/oneyaml-python bin/kit fast --adapter oneyaml-python   # the Python library, likewise
 bin/kit report out/results/*.json                # render a report from result files
 bin/kit list                                     # case counts by suite, category and operation
 bin/kit coverage                                 # which YAML 1.2.2 productions the own cases name (names, not coverage)
@@ -25,9 +28,10 @@ bin/kit coverage                                 # which YAML 1.2.2 productions 
 `bin/kit fast --help` lists the other options: `--category`, `--case`, `--timeout`, `--slow`
 (include cases tagged slow) and `--no-build`.
 
-The oneyaml-go and oneyaml-csharp adapters build the library from a checkout named by their
-variable; without it they are skipped, not failed. Their READMEs say more:
-[oneyaml-go](../adapters/oneyaml-go/README.md), [oneyaml-csharp](../adapters/oneyaml-csharp/README.md).
+The oneyaml-go, oneyaml-csharp and oneyaml-python adapters build the library from a checkout named by
+their variable; without it they are skipped, not failed. Their READMEs say more:
+[oneyaml-go](../adapters/oneyaml-go/README.md), [oneyaml-csharp](../adapters/oneyaml-csharp/README.md),
+[oneyaml-python](../adapters/oneyaml-python/README.md).
 
 ## Naming the library revision
 

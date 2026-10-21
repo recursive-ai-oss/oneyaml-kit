@@ -37,7 +37,8 @@ from pathlib import Path
 from .cases import ROOT
 
 # Shared directories that belong to a language without being an adapter themselves.
-SHARED = {"gokit": "go", "dotnet-common": "csharp", "Directory.Build.props": "csharp"}
+SHARED = {"gokit": "go", "dotnet-common": "csharp", "Directory.Build.props": "csharp",
+          "pykit": "python"}
 # Paths of the kit itself. A change here can move any adapter's results.
 CORE_CODE = ("tools/", "suites/", "bin/kit", "bin/gate", "tests/support.py", "tests/fixtures/")
 # The benchmark harness imports the kit's package (the public-text check), so kit code also
@@ -45,7 +46,7 @@ CORE_CODE = ("tools/", "suites/", "bin/kit", "bin/gate", "tests/support.py", "te
 BENCH_DEPENDS_ON = ("tools/",)
 # The adapter test module of each language.
 LANG_TESTS = {"rust": "test_adapter_oneyaml_rust.py", "go": "test_adapters_go.py",
-              "csharp": "test_adapter_dotnet.py"}
+              "csharp": "test_adapter_dotnet.py", "python": "test_adapters_python.py"}
 # Checks every project given (the .NET SDK is $0) at the same time and fails if any of them does.
 DOTNET_FORMAT_ALL = (
     'pids=; for p in "$@"; do "$0" format whitespace "$p" --verify-no-changes & pids="$pids $!"; done; '
@@ -57,6 +58,15 @@ GO_OWN_CHECK = (
     'printf "\\nrequire oneyaml.dev/go v0.0.0\\n\\nreplace oneyaml.dev/go => %s\\n" "$src" >> "$tmp/m.mod" && '
     'go test -short -mod=readonly -modfile="$tmp/m.mod" -tags oneyaml_go_src -run "Prepared|Sharing|Reads" ./...'
 )
+
+# The Python adapters share one environment and run side by side in a single step. The slowest of
+# them (pure-Python parsers on the deeply nested safety cases) takes minutes alone, so the hand-over
+# tier leaves out the safety category and the full tier runs everything.
+PYTHON_HAND_OVER_CATEGORIES = ("parse", "edit", "schema", "diagnostics", "emit", "roundtrip")
+PYTHON_KIT_RUNS = (
+    'py=$0; out=$1; cats=$2; shift 2; pids=; '
+    'for n in "$@"; do "$py" bin/kit fast --adapter "$n" --out "$out/$n" $cats & pids="$pids $!"; done; '
+    'rc=0; for pid in $pids; do wait "$pid" || rc=1; done; exit $rc')
 
 GO_CHECK = ["sh", "-c", 'test -z "$(gofmt -l .)" && go vet ./... && go test -short ./...']
 REFERENCE = "rust"  # the quick adapter that stands in for the rest on a core change
@@ -363,7 +373,13 @@ def _all_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[S
                 steps.append(Step(area, f"{area} adapters: kit run and checks",
                                   [py(), "-m", "unittest", "discover", "-s", "tests", "-p", test, "-q"],
                                   env={"KIT_ADAPTER_TESTS": "1"}))
-            else:
+            if area == "python":
+                cats = " ".join(f"--category {c}" for c in PYTHON_HAND_OVER_CATEGORIES)
+                run = ["sh", "-c", PYTHON_KIT_RUNS, py(), str(out / "gate")]
+                steps += [Step(area, "python adapters: kit runs (without safety)", [*run, cats, *sel_names],
+                               tier="hand-over"),
+                          Step(area, "python adapters: kit runs", [*run, "", *sel_names], tier="full")]
+            elif not test:
                 for n in sel_names:
                     steps.append(Step(area, f"{n}: kit run", [py(), "bin/kit", "fast", "--adapter", n,
                                                               "--out", str(out / "gate" / n)]))
@@ -434,7 +450,9 @@ def run_step(step: Step, root: Path, out: Path, base_env: dict, index: int) -> d
 # (cold; 252 warm), bench-csharp 444, bench-go 166, bench 131. The figures below are those rounded
 # up. The four largest side by side need about 9 GiB, which is why a fixed job count was killed
 # under a 6 GiB limit.
-AREA_PEAK_MIB = {"core": 4096, "csharp": 2560, "bench-rust": 1792, "go": 1536, "rust": 1024,
+# The python area (eight adapters and their kit runs side by side) measured 599 on the hand-over tier;
+# its figure leaves room for the bounded safety cases of the full tier.
+AREA_PEAK_MIB = {"core": 4096, "csharp": 2560, "bench-rust": 1792, "go": 1536, "rust": 1024, "python": 1024,
                  "bench-csharp": 512, "bench-go": 256, "bench": 256}
 UNKNOWN_AREA_MIB = 1024
 # A typical big area, about the mean of the four largest, for turning a memory limit into a count.
@@ -552,7 +570,8 @@ def run_areas(areas: list[str], jobs: int, budget_mib: int | None, run_area) -> 
 
 
 # Areas that take the longest go first when they run side by side; the core tests are the longest.
-HEAVY = {"core": 6, "csharp": 5, "bench-csharp": 4, "rust": 3, "bench-rust": 3, "go": 2, "bench-go": 1, "bench": 1}
+HEAVY = {"core": 6, "csharp": 5, "bench-csharp": 4, "rust": 3, "bench-rust": 3, "python": 3, "go": 2,
+         "bench-go": 1, "bench": 1}
 
 
 def weight(area: str) -> int:

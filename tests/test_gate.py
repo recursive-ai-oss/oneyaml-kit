@@ -340,7 +340,8 @@ class Tiers(unittest.TestCase):
         # The hand-over tier's only extras are quick stand-ins that the full tier's slow steps subsume.
         extra = {s.name for s in plan(False)} - full
         self.assertEqual(extra, {"benchmark rust smoke run", "benchmark go smoke run",
-                                 "benchmark csharp smoke run"})
+                                 "benchmark csharp smoke run",
+                                 "python adapters: kit runs (without safety)"})
 
     def test_only_the_full_tier_runs_the_slow_cases(self):
         langs = [s for s in plan(True) if s.area not in ("core",) and not s.area.startswith("bench")]
