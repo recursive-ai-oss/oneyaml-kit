@@ -1,0 +1,47 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-plain-strings-that-yaml-1-1-reads-as-other-types-stay-plain-in-core",
+ "title": "Strings that only YAML 1.1 reads as another type are set plain over a plain string",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "Under the core schema these four are strings (YAML 1.2.2 section 10.3.2), so the plain style of the replaced value can hold them and keeps them; quoting them for a YAML 1.1 reader is for `dump`, not for an edit (docs/edit-semantics.md). `edit/set-plain-string-yes-stays-plain-in-core` is the same rule over a number. The exact bytes rest on a kit convention.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the same texts added as new members were written single-quoted by the native backend (`edit/add-strings-that-yaml-1-1-reads-as-other-types-stay-plain-in-core`)."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": "yes"
+   },
+   {
+    "op": "replace",
+    "path": "/b",
+    "value": "2024-05-01"
+   },
+   {
+    "op": "replace",
+    "path": "/c",
+    "value": "1_000"
+   },
+   {
+    "op": "replace",
+    "path": "/d",
+    "value": "0b101"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

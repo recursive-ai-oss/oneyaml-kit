@@ -1,0 +1,26 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "schema/duplicate-key-through-an-alias-key-in-a-large-mapping",
+ "title": "An alias key that names an earlier key is a duplicate however many keys lie between",
+ "category": "schema",
+ "origin": "bug",
+ "productions": [
+  "104"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.1.1",
+  "YAML 1.2.2 section 7.1"
+ ],
+ "tags": [],
+ "notes": "The alias `*a` is the node `foo` that the anchor names (YAML 1.2.2 section 7.1), so the mapping holds the key `foo` twice, which section 3.2.1.1 forbids. Forty other keys lie between the two, a size at which a reader that checks keys cheaply in small mappings might switch to another way of comparing.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; both backends refuse this document when it is loaded as data; the pure backend accepted it when it read it for editing (`edit/patch-of-a-document-with-a-duplicate-key-through-an-alias-key-is-refused`)."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "duplicate-key"
+ }
+}

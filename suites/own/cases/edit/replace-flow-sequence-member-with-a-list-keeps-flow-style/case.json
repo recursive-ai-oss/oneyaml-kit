@@ -1,0 +1,36 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-flow-sequence-member-with-a-list-keeps-flow-style",
+ "title": "A flow sequence replaced by a list stays a flow sequence",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The replaced value keeps its style when that style can hold the new value (docs/edit-semantics.md, The value keeps its style); a flow sequence holds any list. Members are separated by `, `. The exact bytes rest on a kit convention.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the pure backend kept the flow style; the native backend rewrote the value as a block sequence."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": [
+     3,
+     4,
+     5
+    ]
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -2,6 +2,132 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
+   "case": "own:edit/add-key-after-a-literal-with-a-tab-in-its-content-and-no-final-line-break",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library refused the patch: 'patch-edit: operation 0 (add) at \"/bar\": the edit at bar would not read back as the edited tree'"
+  },
+  {
+   "case": "own:edit/add-key-after-a-literal-with-a-tab-in-its-content-and-no-final-line-break",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library refused the patch: 'patch-edit: operation 0 (add) at \"/bar\": the edit at bar would not read back as the edited tree'"
+  },
+  {
+   "case": "own:edit/merge-patch-array-replaces-a-flow-sequence-member-in-flow-style",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [3, 4, 5]\\nb: 3\\n', got b'\\n - 3\\n - 4\\n - 5\\nb: 3\\n' (lengths 18 and 26)"
+  },
+  {
+   "case": "own:edit/merge-patch-array-replaces-a-flow-sequence-member-in-flow-style",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [3, 4, 5]\\nb: 3\\n', got b'\\n - 3\\n - 4\\n - 5\\nb: 3\\n' (lengths 18 and 26)"
+  },
+  {
+   "case": "own:edit/merge-patch-array-replaces-a-root-flow-sequence-in-flow-style",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'[3]\\n', got b'- 3\\n' (lengths 4 and 4)"
+  },
+  {
+   "case": "own:edit/merge-patch-array-replaces-a-root-flow-sequence-in-flow-style",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 0: expected b'[3]\\n', got b'- 3\\n' (lengths 4 and 4)"
+  },
+  {
+   "case": "own:edit/remove-only-entry-with-a-scalar-value-takes-an-indented-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'', got b' # n\\n' (lengths 3 and 9)"
+  },
+  {
+   "case": "own:edit/remove-only-entry-with-a-scalar-value-takes-an-indented-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'', got b' # n\\n' (lengths 3 and 9)"
+  },
+  {
+   "case": "own:edit/remove-only-item-of-a-root-sequence-takes-an-indented-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'', got b' # f\\n' (lengths 3 and 9)"
+  },
+  {
+   "case": "own:edit/remove-only-item-of-a-root-sequence-takes-an-indented-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'', got b' # f\\n' (lengths 3 and 9)"
+  },
+  {
+   "case": "own:edit/remove-only-nested-entry-takes-its-comment-and-leaves-the-footer-below",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'}\\n # e\\n', got b'\\n # d\\n # e\\n }\\n' (lengths 12 and 23)"
+  },
+  {
+   "case": "own:edit/remove-only-nested-entry-takes-its-comment-and-leaves-the-footer-below",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 4: expected b'}\\n # e\\n', got b'\\n # d\\n # e\\n }\\n' (lengths 12 and 23)"
+  },
+  {
+   "case": "own:edit/replace-flow-mapping-member-with-a-mapping-keeps-flow-style",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {p: 2, q: 3}\\nb: 3\\n', got b'\\n p: 2\\n q: 3\\nb: 3\\n' (lengths 21 and 22)"
+  },
+  {
+   "case": "own:edit/replace-flow-mapping-member-with-a-mapping-keeps-flow-style",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' {p: 2, q: 3}\\nb: 3\\n', got b'\\n p: 2\\n q: 3\\nb: 3\\n' (lengths 21 and 22)"
+  },
+  {
+   "case": "own:edit/replace-flow-sequence-member-with-a-list-keeps-flow-style",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [3, 4, 5]\\nb: 3\\n', got b'\\n - 3\\n - 4\\n - 5\\nb: 3\\n' (lengths 18 and 26)"
+  },
+  {
+   "case": "own:edit/replace-flow-sequence-member-with-a-list-keeps-flow-style",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 2: expected b' [3, 4, 5]\\nb: 3\\n', got b'\\n - 3\\n - 4\\n - 5\\nb: 3\\n' (lengths 18 and 26)"
+  },
+  {
+   "case": "own:edit/set-keep-scalar-of-a-line-of-spaces-with-no-final-line-break-to-an-integer",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'', got b'\\n ' (lengths 3 and 7)"
+  },
+  {
+   "case": "own:edit/set-keep-scalar-of-a-line-of-spaces-with-no-final-line-break-to-an-integer",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'', got b'\\n ' (lengths 3 and 7)"
+  },
+  {
    "case": "own:schema/non-string-key",
    "expectation": "primary",
    "mode": "loose",

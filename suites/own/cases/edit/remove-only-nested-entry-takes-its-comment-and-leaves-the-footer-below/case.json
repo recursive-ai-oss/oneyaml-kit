@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-only-nested-entry-takes-its-comment-and-leaves-the-footer-below",
+ "title": "The comment inside a removed only entry goes with it; a footer comment stays below the emptied mapping",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "docs/edit-semantics.md",
+  "RFC 6902 section 4.2"
+ ],
+ "tags": [
+  "convention",
+  "comment-ownership"
+ ],
+ "notes": "The only entry `a` of the mapping under `x` owns `# d`: it is indented more than the key `a` (docs/edit-semantics.md, Comments). `# e` is indented as `a`, not more, so it is a footer and stays. The emptied mapping is written `{}` on the key's line and the footer is not moved into the braces: it keeps its own line below. The exact bytes rest on a kit convention.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the pure backend wrote `x: {}` and kept `# e` below; the native backend wrote both comments inside the braces."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/x/a"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

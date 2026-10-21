@@ -1,6 +1,14 @@
 {
  "format": "oneyaml-kit-deviations/1",
  "entries": [
+  {"case": "own:edit/patch-of-a-document-with-a-duplicate-key-through-an-alias-key-is-refused", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The patch was applied; the case expects it to be refused."},
+  {"case": "own:edit/patch-of-a-document-with-a-duplicate-key-through-an-alias-key-is-refused", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The patch was applied; the case expects it to be refused."},
+  {"case": "own:edit/set-literal-ending-in-a-line-of-spaces-to-an-integer", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 7: expected b'', got b' \\n' (lengths 7 and 11)"},
+  {"case": "own:edit/set-literal-ending-in-a-line-of-spaces-to-an-integer", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 7: expected b'', got b' \\n' (lengths 7 and 11)"},
+  {"case": "own:edit/set-literal-ending-in-a-line-of-spaces-to-text", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 12: expected b'', got b' \\n' (lengths 12 and 16)"},
+  {"case": "own:edit/set-literal-ending-in-a-line-of-spaces-to-text", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 12: expected b'', got b' \\n' (lengths 12 and 16)"},
+  {"case": "own:edit/set-literal-ending-in-a-line-of-spaces-with-no-final-line-break-to-an-integer", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 6: expected b'', got b'\\n ' (lengths 6 and 10)"},
+  {"case": "own:edit/set-literal-ending-in-a-line-of-spaces-with-no-final-line-break-to-an-integer", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 6: expected b'', got b'\\n ' (lengths 6 and 10)"},
   {"case": "own:parse/two-byte-order-marks-before-the-first-document", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'character not allowed in a YAML stream' at 1:1"},
   {"case": "own:parse/two-byte-order-marks-before-the-first-document", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'character not allowed in a YAML stream' at 1:1"},
   {"case": "own:safety/integer-keys-beyond-the-digit-limit-in-a-document", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},

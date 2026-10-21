@@ -116,6 +116,8 @@
   {"case": "own:safety/alias-expansion-bomb-ten-by-ten", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "accepted; only a limit error is allowed"},
   {"case": "own:safety/deep-block-sequences-100000-value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "adapter exited (killed by signal 11)"},
   {"case": "own:safety/deep-block-sequences-100000-value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "adapter exited (killed by signal 11)"},
+  {"case": "own:schema/duplicate-key-through-an-alias-key-in-a-large-mapping", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:schema/duplicate-key-through-an-alias-key-in-a-large-mapping", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:safety/deep-flow-mappings-200000-then-many-lines-unclosed", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
   {"case": "own:safety/deep-flow-mappings-200000-then-many-lines-unclosed", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
   {"case": "own:safety/deep-flow-mappings-999999", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},

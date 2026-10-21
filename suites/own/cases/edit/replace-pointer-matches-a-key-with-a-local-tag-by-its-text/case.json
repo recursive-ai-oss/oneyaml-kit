@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-pointer-matches-a-key-with-a-local-tag-by-its-text",
+ "title": "A pointer token matches a key that carries a local tag by its text",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "RFC 6901 section 4",
+  "YAML 1.2.2 section 3.2.1.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "A pointer token matches a mapping key by the key's scalar text (docs/edit-semantics.md, Refusals), and a tag does not change a scalar's text. The key is the only one whose text is `foo`, so the edit is not ambiguous and writes onto its value; no second key is added. In YAML 1.2.2 section 3.2.1.3 a key tagged `!local` is a different node from the plain string `foo`, which matters for a library that looks keys up by value in its own data model (a dictionary lookup of the string `foo` does not find it) but not for a pointer, which is text. The exact bytes rest on a kit convention.",
+ "provenance": {
+  "reference": "Found in oneyaml-python: setting the string key `foo` by value (not by pointer) added a plain key beside the tagged one in the native backend and wrote onto the tagged key in the pure backend. A value lookup and a pointer differ here by design; a pointer reaches the tagged key in both backends, which this case pins."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/foo",
+    "value": 5
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

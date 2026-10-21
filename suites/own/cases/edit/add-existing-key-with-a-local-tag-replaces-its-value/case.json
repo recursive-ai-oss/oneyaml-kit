@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-existing-key-with-a-local-tag-replaces-its-value",
+ "title": "An add at the text of a key that carries a local tag replaces that key's value",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "RFC 6902 section 4.1",
+  "RFC 6901 section 4",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "A pointer token matches a mapping key by the key's scalar text (docs/edit-semantics.md, Refusals), so `/yes` reaches the key `!local yes`, and an add at an existing key replaces its value (`edit/add-existing-key-replaces`). The string `yes` is written plain under the core schema. No second key is added. The exact bytes rest on a kit convention.",
+ "provenance": {
+  "reference": "Found in oneyaml-python: setting the string key `yes` by value (not by pointer) added a plain key beside the tagged one in the native backend and wrote onto the tagged key in the pure backend. A value lookup and a pointer differ here by design; a pointer reaches the tagged key in both backends, which this case pins."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/yes",
+    "value": "yes"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}
