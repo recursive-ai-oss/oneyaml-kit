@@ -2,258 +2,6 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
-   "case": "own:diagnostics/anchor-directly-before-flow-collection",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Error position differs: expected 1:3, got 1:1"
-  },
-  {
-   "case": "own:diagnostics/empty-key-with-adjacent-flow-value-is-invalid",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/empty-key-with-adjacent-flow-value-is-invalid",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/explicit-key-with-adjacent-flow-value-is-invalid",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/explicit-key-with-adjacent-flow-value-is-invalid",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/hex-escape-with-a-non-hex-digit",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the opening quote, the invalid digit is at 1:7"
-  },
-  {
-   "case": "own:diagnostics/implicit-key-of-1025-characters-is-an-error",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the position where the construct starts, not the offending character: 1:1 is the start of the key, the space after the colon is at 1:1027"
-  },
-  {
-   "case": "own:diagnostics/invalid-escape-in-double-quotes",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the opening quote, the unknown escape letter is at 1:7"
-  },
-  {
-   "case": "own:diagnostics/mapping-key-without-a-colon",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the position where the construct starts, not the offending character: 2:1 is the start of the line, the line break after the key is at 2:2"
-  },
-  {
-   "case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/plain-key-with-adjacent-flow-value-is-invalid",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/position-counts-a-bare-cr-as-a-line-break",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The error is reported at 1:4, the start of the scalar that turns out to be a two-line key, not on line 2"
-  },
-  {
-   "case": "own:diagnostics/position-counts-crlf-as-one-line-break",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The error is reported at 1:4, the start of the scalar that turns out to be a two-line key, not on line 2"
-  },
-  {
-   "case": "own:diagnostics/position-implicit-key-over-two-lines",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The error is reported at 1:4, the start of the scalar that turns out to be a two-line key, not at 2:4"
-  },
-  {
-   "case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/property-only-key-with-adjacent-flow-value-is-invalid",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/second-colon-in-a-plain-scalar-value",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the start of the value, the space after the second colon is at 1:6"
-  },
-  {
-   "case": "own:diagnostics/sequence-entry-after-a-block-mapping",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the position where the construct starts, not the offending character: 2:1 is the dash, the space after it (the first character that rules out a key such as -x) is at 2:2"
-  },
-  {
-   "case": "own:diagnostics/short-unicode-escape",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the opening quote, the closing quote that ends the escape too early is at 1:9"
-  },
-  {
-   "case": "own:diagnostics/tag-percent-escape-with-one-hex-digit",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Error position differs: expected 1:5, got 1:1"
-  },
-  {
-   "case": "own:diagnostics/unclosed-double-quote",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the opening quote, the input ends at 2:1"
-  },
-  {
-   "case": "own:diagnostics/unclosed-single-quote-without-final-newline",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the opening quote, the input ends at 1:8"
-  },
-  {
-   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/verbatim-tag-of-a-lone-bang-is-invalid",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/verbatim-tag-percent-escape-with-non-hex-digits",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Error position differs: expected 1:5, got 1:1"
-  },
-  {
-   "case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The library accepted this input; the case expects it to be rejected."
-  },
-  {
-   "case": "own:diagnostics/zero-block-scalar-indentation-indicator",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the position where the construct starts, not the offending character: 1:4 is the block scalar header, the digit 0 is at 1:5"
-  },
-  {
-   "case": "own:parse/properties-need-separation-before-flow-collection",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Rejects the input but reports the error at a position other than the first character that cannot belong: position: expected 1:3, got 1:1"
-  },
-  {
-   "case": "own:parse/properties-need-separation-before-flow-mapping-value",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Rejects the input but reports the error at a position other than the first character that cannot belong: position: expected 1:6, got 1:4"
-  },
-  {
-   "case": "own:parse/tab-only-line-after-block-scalar-at-end",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Rejects valid input: 'tabs cannot be used for block indentation' at 2:1"
-  },
-  {
-   "case": "own:parse/tab-only-line-after-block-scalar-at-end",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Rejects valid input: 'tabs cannot be used for block indentation' at 2:1"
-  },
-  {
-   "case": "own:parse/tag-suffix-utf-8-percent-escape-is-kept",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Decodes the percent-escaped UTF-8 sequence in a tag suffix into the character (tag:x,1:é); the specification says escaped tag characters are preserved and compared as presented"
-  },
-  {
-   "case": "own:parse/tag-suffix-utf-8-percent-escape-is-kept",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Same as the loose verdict: the resolved tag differs"
-  },
-  {
-   "case": "own:schema/escaped-surrogate-pair-is-one-character",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Refuses an escaped surrogate pair with an error (invalid escape sequence, at 1:4); the case expects the one character the pair encodes"
-  },
-  {
-   "case": "own:schema/escaped-surrogate-pair-is-one-character",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Refuses an escaped surrogate pair with an error (invalid escape sequence, at 1:4); the case expects the one character the pair encodes"
-  },
-  {
    "case": "own:schema/non-string-key",
    "expectation": "primary",
    "mode": "loose",
@@ -287,20 +35,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "A !!binary scalar is loaded as bytes, so the text the case compares against is not kept."
-  },
-  {
-   "case": "yts:BS4K",
-   "expectation": "corrected",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The library ends the document before reporting the error; the corrected expectation keeps it open"
-  },
-  {
-   "case": "yts:EB22",
-   "expectation": "corrected",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The library ends the document before reporting the error; the corrected expectation keeps it open"
   },
   {
    "case": "yts:MUS6/01",
@@ -373,67 +107,60 @@
    "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
   },
   {
-   "case": "own:diagnostics/second-anchor-on-one-node-is-an-error",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the error at the first anchor (1:4) instead of the second (1:7)"
-  },
-  {
-   "case": "own:diagnostics/unclosed-single-quote-after-escaped-quote",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the error at the opening quote (1:1) instead of the end of the input (1:6)"
-  },
-  {
-   "case": "own:diagnostics/c1-control-in-a-comment-is-an-error",
+   "case": "own:edit/merge-into-tagged-marker-keeps-marker-comment",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Accepts a DEL or C1 control character inside a comment; the case expects it to be rejected."
+   "reason": "Replacing a root that is an empty node with a tag and a comment after it by a collection is refused (the comment would belong to another owner there); the expected text drops the tag and keeps the comment on the marker line."
   },
   {
-   "case": "own:diagnostics/c1-control-in-a-comment-is-an-error",
+   "case": "own:edit/merge-into-tagged-marker-keeps-marker-comment",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Accepts a DEL or C1 control character inside a comment; the case expects it to be rejected."
+   "reason": "Same as the loose verdict: replacing a root that is an empty node with a tag and a comment after it by a collection is refused (the comment would belong to another owner there); the expected text drops the tag and keeps the comment on the marker line."
   },
   {
-   "case": "own:diagnostics/del-in-a-comment-is-an-error",
+   "case": "own:edit/add-after-an-indented-comment-before-a-document-marker",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Accepts a DEL or C1 control character inside a comment; the case expects it to be rejected."
+   "reason": "The engine writes the new member before the indented comment line that follows the last entry, and as a quoted key with a double-quoted value; the case expects it after the comment, in block style"
   },
   {
-   "case": "own:diagnostics/del-in-a-comment-is-an-error",
+   "case": "own:edit/add-after-an-indented-comment-before-a-document-marker",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Accepts a DEL or C1 control character inside a comment; the case expects it to be rejected."
+   "reason": "Same as the loose verdict"
   },
   {
-   "case": "own:diagnostics/closing-quote-at-the-margin-of-a-nested-scalar",
+   "case": "own:emit/non-string-keys",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: a Python mapping merges keys such as 1, 1.0 and true into one"
+  },
+  {
+   "case": "own:emit/non-string-keys",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: a Python mapping merges keys such as 1, 1.0 and true into one"
+  },
+  {
+   "case": "yts:BS4K",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Reports the error at the opening quote (1:4) instead of the unindented closing quote line (2:1)"
+   "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
   },
   {
-   "case": "own:diagnostics/closing-single-quote-at-the-margin-of-a-sequence-entry",
+   "case": "yts:EB22",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Reports the error at the opening quote (1:3) instead of the unindented closing quote line (2:1)"
-  },
-  {
-   "case": "own:diagnostics/properties-on-their-own-line-before-a-key-of-an-open-mapping",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the error at the start of the properties line (2:1) instead of the line break after them (2:6)"
+   "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
   }
  ]
 }

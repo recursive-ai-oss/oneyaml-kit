@@ -426,11 +426,12 @@ def documents_json(docs, hook=None) -> str:
 
 # A mapping is filled after its children exist, so the tree is built first with placeholders and
 # the maps are closed afterwards, innermost first, which keeps the whole walk iterative.
-def from_kit(root, binary=None):
+def from_kit(root, binary=None, collection_key=None):
     """Turn a kit value (parsed JSON) into plain Python data, with an explicit stack.
 
     `binary(bytes)` makes the library's value for a byte string; None declines byte strings.
-    A mapping Python cannot hold (a collection as a key, or keys such as 1, 1.0 and true that a
+    `collection_key(value)` makes the hashable form of a list or mapping used as a key; None
+    declines such a mapping. A mapping Python cannot hold (keys such as 1, 1.0 and true that a
     dict would merge) is declined."""
     kinds: list = []  # (placeholder list, original keys or None) in creation order
     result = [None]
@@ -479,7 +480,9 @@ def from_kit(root, binary=None):
         d = {}
         for k, val in box[1]:
             if isinstance(k, (list, dict)):
-                raise Declined("a Python mapping cannot have a collection as a key")
+                if collection_key is None:
+                    raise Declined("a Python mapping cannot have a collection as a key")
+                k = collection_key(k)
             d[k] = val
         if len(d) != len(box[1]):
             raise Declined("a Python mapping merges keys such as 1, 1.0 and true into one")

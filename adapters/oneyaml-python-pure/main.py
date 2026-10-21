@@ -3,7 +3,7 @@ from pathlib import Path
 
 import oneyaml
 import pykit
-from pykit import Failure, ok
+from pykit import Declined, Failure, ok
 
 # The revision of the checkout the build recorded (the same rule as the other linked adapters).
 rev = (Path(sys.prefix) / ".kit-rev").read_text().strip()
@@ -43,11 +43,50 @@ def value(data, args):
     return ok(value=pykit.JSONText(pykit.documents_json(docs, hook)))
 
 
+def freeze(key):
+    """A list or mapping used as a key, in the form the library writes as a complex key."""
+    return oneyaml._types.freeze(key, 10**9, 10**9)[0]
+
+
+def dump(data, args):
+    # The library's ordinary dumps with its defaults; the adapter only builds the value.
+    obj = pykit.from_kit(args["value"], binary=bytes, collection_key=freeze)
+    text = oneyaml.dumps(obj)
+    return ok(output=pykit.b64(text.encode("utf-8")))
+
+
+def patch(data, args):
+    merge = args.get("format", "json-patch")
+    if merge not in ("json-patch", "merge-patch"):
+        raise Declined(f"patch format {merge!r}")
+    merge = merge == "merge-patch"
+    try:
+        doc = oneyaml.parse(data)
+    except oneyaml.YAMLError as e:
+        f = failure_of(e)
+        f.output = data
+        raise f from None
+    # The library applies the patch: it reads the pointers, edits the text and keeps the
+    # document as it was when any operation fails.
+    try:
+        if merge:
+            doc.merge_patch(args["patch"], document=args.get("document", 0))
+        else:
+            doc.patch(args["patch"], document=args.get("document", 0))
+    except oneyaml.PatchError as e:
+        f = failure_of(e)
+        f.output = bytes(doc)
+        raise f from None
+    return ok(output=pykit.b64(bytes(doc)))
+
+
 hello = {
     "name": "oneyaml-python-pure", "version": rev, "language": "python",
-    "capabilities": ["events", "error-events", "value", "error-category", "error-position"],
+    "capabilities": ["events", "error-events", "value", "error-category", "error-position",
+                     "patch:add", "patch:remove", "patch:replace", "patch:move", "patch:copy",
+                     "patch:test", "patch:merge", "dump"],
     "emulates": [],
     "info": {"python": pykit.python_version(), "package": oneyaml.__version__,
              "backend": oneyaml.backend, "engine": oneyaml.engine_version()},
 }
-pykit.serve(hello, {"events": events, "value": value}, classify)
+pykit.serve(hello, {"events": events, "value": value, "patch": patch, "dump": dump}, classify)

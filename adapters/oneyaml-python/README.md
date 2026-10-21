@@ -33,8 +33,18 @@ under "Not run", and `bin/gate` stays green. They are never built then.
 
 ## What they declare
 
-Both adapters run the same code and declare `events`, `error-events`, `value`, `error-category` and
-`error-position`: they read events (through the library's internal `events_text`) and values
-(`oneyaml.loads_all`) with the library's default limits, and map its `YAMLError` to the kit's category and
-position. Neither declares `dump` or `patch` yet. The hello's `info` names the package version, the
-backend that imported (`native` or `pure`) and the engine version the package reports (also sent by the pure backend).
+Both adapters run the same code and declare `events`, `error-events`, `value`, `error-category`,
+`error-position`, `dump` and every `patch:` operation (`patch:add`, `patch:remove`, `patch:replace`,
+`patch:move`, `patch:copy`, `patch:test`, `patch:merge`).
+
+- Reading: events (through the library's internal `events_text`) and values (`oneyaml.loads_all`) with
+  the library's default limits; the library's `YAMLError` maps to the kit's category and position.
+- Patching: the stream is parsed with `oneyaml.parse` and the patch goes to `Document.patch` or
+  `Document.merge_patch`. Nothing is emulated: the library reads the pointers, applies the operations
+  all or nothing and names the kit's category in its `PatchError`. After a failed patch the adapter
+  reports the document's own text, which the kit checks against the input.
+- Dumping: the case's value is written with the library's own `dumps` and its default settings; byte
+  strings go in as `bytes` and list or mapping keys as tuples and `FrozenMapping`s.
+
+The hello's `info` names the package version, the backend that imported (`native` or `pure`) and the
+engine version the package reports.
