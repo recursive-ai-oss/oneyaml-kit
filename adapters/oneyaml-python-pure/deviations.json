@@ -1,6 +1,18 @@
 {
  "format": "oneyaml-kit-deviations/1",
  "entries": [
+  {"case": "own:safety/integer-keys-beyond-the-digit-limit-in-a-document", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
+  {"case": "own:safety/integer-keys-beyond-the-digit-limit-in-a-document", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
+  {"case": "own:safety/merge-patch-many-deletions-from-a-large-mapping", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
+  {"case": "own:safety/merge-patch-many-deletions-from-a-large-mapping", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
+  {"case": "own:safety/patch-many-large-appends-into-a-created-flow-sequence", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
+  {"case": "own:safety/patch-many-large-appends-into-a-created-flow-sequence", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
+  {"case": "own:safety/tag-prefix-distinct-suffixes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
+  {"case": "own:safety/tag-prefix-distinct-suffixes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
+  {"case": "own:safety/tag-prefix-used-by-many-nodes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
+  {"case": "own:safety/tag-prefix-used-by-many-nodes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
+  {"case": "own:safety/tag-prefix-with-alternating-suffixes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
+  {"case": "own:safety/tag-prefix-with-alternating-suffixes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
   {"case": "yts:4H7K", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events lack the flow marker and end the document before the error; the corrected expectation passes"},
   {"case": "yts:BS4K", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events end the document before the error; the corrected expectation keeps it open until a marker or the end of the stream, and passes"},
   {"case": "yts:EB22", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Upstream events end the document before the error; the corrected expectation keeps it open until a marker or the end of the stream, and passes"},

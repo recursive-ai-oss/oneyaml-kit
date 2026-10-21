@@ -65,6 +65,10 @@ class OneyamlRust(unittest.TestCase):
         self.assertEqual([r["id"] for r in v if r["loose"] != "pass"], ["yts:UGM3@value"])
         self.assertEqual(self.by_id["yts:UGM3@value"]["corrected"]["loose"], "pass")
 
+    def test_the_hello_names_the_pinned_revision(self):
+        # The adapter builds from a repository revision, not a release, so the version says which.
+        self.assertEqual(self.res["adapter"]["version"], "1.1.0+3ea4ac94d92a")
+
     def test_nothing_is_emulated(self):
         # The library does the patching, refusals and all-or-nothing included.
         self.assertEqual(self.res["adapter"]["emulates"], [])
@@ -76,7 +80,7 @@ class OneyamlRust(unittest.TestCase):
     def test_a_byte_string_is_declined_not_written_as_a_mapping(self):
         r = self.by_id["own:emit/binary-values-are-tagged-base64"]
         self.assertEqual((r["loose"], r["strict"]), ("unsupported", "unsupported"))
-        # serialize_bytes in oneyaml 1.1.0 writes a sequence of integers, as serde_yaml does.
+        # serialize_bytes in the pinned oneyaml writes a sequence of integers, as serde_yaml does.
         self.assertIn("list of integers", r["detail"])
 
     def test_an_integer_beyond_64_bits_is_written_exactly_not_turned_into_a_float(self):

@@ -557,7 +557,7 @@ fn handle(req: &Json) -> Option<String> {
         Some("hello") => {
             let caps: Vec<String> = CAPABILITIES.iter().map(|c| js(c)).collect();
             Some(format!(
-                "{{\"type\":\"hello\",\"protocol\":2,\"name\":\"oneyaml-rust\",\"version\":\"1.1.0\",\"language\":\"rust\",\"capabilities\":[{}],\"emulates\":[],\"info\":{{\"crates\":\"oneyaml 1.1.0, oneyaml-syntax 0.1.2, oneyaml-core 1.1.0\"}}}}",
+                "{{\"type\":\"hello\",\"protocol\":2,\"name\":\"oneyaml-rust\",\"version\":\"1.1.0+3ea4ac94d92a\",\"language\":\"rust\",\"capabilities\":[{}],\"emulates\":[],\"info\":{{\"crates\":\"oneyaml, oneyaml-syntax and oneyaml-core at repository revision 3ea4ac94d92a (after release 1.1.0)\"}}}}",
                 caps.join(",")
             ))
         }
