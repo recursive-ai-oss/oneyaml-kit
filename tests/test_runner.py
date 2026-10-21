@@ -463,18 +463,42 @@ class Deviations(unittest.TestCase):
     def near(self, cid="a", **kw):
         return {**dev(cid, **kw), "near_bound": True}
 
-    def timed(self, cid="a", **kw):
-        return {**result(cid, **kw), "expect": "bounded"}
+    def timed(self, cid="a", secs=30.0, bound=30.0, **kw):
+        r = {**result(cid, **kw), "expect": "bounded"}
+        if secs is not None:
+            r["measured"] = {"seconds": secs, "time_bound": bound, "peak_mb": 10}
+        return r
 
     def test_near_bound_entry_that_passes_is_counted_not_stale(self):
         v = self.check([self.timed(strict="pass")], [self.near()])
         self.assertTrue(v["ok"])
-        self.assertEqual((v["stale"], v["near_bound_passed"]), ([], 1))
+        self.assertEqual((v["stale"], v["near_bound_passed"]), ([], ["a 30 s of 30 s"]))
 
     def test_near_bound_entry_that_fails_is_ok_and_not_counted(self):
         v = self.check([self.timed(strict="fail")], [self.near()])
         self.assertTrue(v["ok"])
-        self.assertEqual(v["near_bound_passed"], 0)
+        self.assertEqual(v["near_bound_passed"], [])
+
+    def test_near_bound_pass_at_two_thirds_of_the_bound_is_counted(self):
+        v = self.check([self.timed(strict="pass", secs=20.0)], [self.near()])
+        self.assertTrue(v["ok"])
+        self.assertEqual(v["near_bound_passed"], ["a 20 s of 30 s"])
+
+    def test_near_bound_fast_pass_is_stale_with_the_figures(self):
+        v = self.check([self.timed(strict="pass", secs=0.4)], [self.near()])
+        self.assertFalse(v["ok"])
+        self.assertIn("passed in 0.4 s of a 30 s bound", v["stale"][0])
+        self.assertEqual(v["near_bound_passed"], [])
+
+    def test_near_bound_fail_well_inside_the_bound_is_stale(self):
+        v = self.check([self.timed(strict="fail", secs=3.0)], [self.near()])
+        self.assertFalse(v["ok"])
+        self.assertIn("failed in 3 s of a 30 s bound", v["stale"][0])
+
+    def test_near_bound_without_a_recorded_time_is_stale(self):
+        for actual in ("pass", "fail"):
+            v = self.check([self.timed(strict=actual, secs=None)], [self.near()])
+            self.assertFalse(v["ok"], actual)
 
     def test_near_bound_entry_that_is_now_unsupported_is_stale(self):
         r = self.timed(strict="unsupported", reason="adapter")
@@ -487,7 +511,7 @@ class Deviations(unittest.TestCase):
             v = self.check([result("a", strict=actual)], [self.near()])
             self.assertFalse(v["ok"], actual)
             self.assertIn("near_bound", v["stale"][0])
-            self.assertEqual(v["near_bound_passed"], 0)
+            self.assertEqual(v["near_bound_passed"], [])
 
     def test_near_bound_is_refused_on_an_unsupported_entry(self):
         r = self.timed(strict="unsupported", reason="adapter")
@@ -498,7 +522,7 @@ class Deviations(unittest.TestCase):
     def test_an_ordinary_entry_on_a_timed_case_that_passes_is_still_stale(self):
         v = self.check([self.timed(strict="pass")], [dev("a")])
         self.assertFalse(v["ok"])
-        self.assertEqual(v["near_bound_passed"], 0)
+        self.assertEqual(v["near_bound_passed"], [])
 
     def test_near_bound_must_be_a_boolean(self):
         t = Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))

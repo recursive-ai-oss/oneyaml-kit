@@ -87,7 +87,7 @@ def cmd_run(args) -> int:
               f"loose {p['loose']}, strict {p['strict']}, in {res['run']['seconds']} s; "
               f"deviations listed {d['listed']}, unlisted {len(d['unlisted'])}, "
               f"stale {len(d['stale']) + len(d['unknown'])}"
-              + (f", near-bound entries that passed this run {d['near_bound_passed']}"
+              + (", near-bound passes: " + "; ".join(d["near_bound_passed"])
                  if d.get("near_bound_passed") else ""))
         if not d["ok"]:
             status = 1

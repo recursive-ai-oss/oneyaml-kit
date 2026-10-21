@@ -175,7 +175,7 @@ def verify_deviations(results: list[dict], deviations: list[dict], complete: boo
     by_id = {r["id"]: r for r in results}
     listed = {(e["case"], e["expectation"], e["mode"]): e for e in deviations}
     unlisted, stale, unknown = [], [], []
-    near_bound_passed = 0
+    near_bound_passed = []
     for key, e in listed.items():
         r = by_id.get(key[0])
         if r is None:
@@ -194,8 +194,21 @@ def verify_deviations(results: list[dict], deviations: list[dict], complete: boo
                 stale.append(f"{label}: invalid near_bound: allowed only on a fail entry for a "
                              "case with a time bound")
                 continue
+            m = r.get("measured")
+            if actual in (compare.PASS, compare.FAIL):
+                # The mark only covers a run that came near the bound; a faster pass means the
+                # library got quicker, and a faster failure is some other failure.
+                if not m or not m.get("time_bound"):
+                    stale.append(f"{label}: marked near the time bound, but the run recorded no time")
+                    continue
+                if m["seconds"] < m["time_bound"] / 2:
+                    stale.append(f"{label}: {actual}ed in {m['seconds']:g} s of a {m['time_bound']:g} s "
+                                 "bound, so it is no longer near the bound")
+                    continue
             if actual == compare.PASS:
-                near_bound_passed += 1
+                note = f"{key[0]} {m['seconds']:g} s of {m['time_bound']:g} s"
+                if note not in near_bound_passed:
+                    near_bound_passed.append(note)
                 continue
         if actual != e["verdict"]:
             stale.append(f"{key[0]} ({key[1]}/{key[2]}): listed as {e['verdict']}, now {actual}")

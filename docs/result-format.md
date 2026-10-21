@@ -28,7 +28,7 @@ generated from these files only.
   {"id": "yts:229Q", "suite": "yaml-test-suite", "category": "parse", "op": "events",
    "expect": "events", "loose": "pass", "strict": "pass", "micros": 41}
  ],
- "deviations": {"listed": 17, "unlisted": [], "stale": [], "unknown": [], "ok": true, "entries": []}
+ "deviations": {"listed": 17, "unlisted": [], "stale": [], "unknown": [], "near_bound_passed": [], "ok": true, "entries": []}
 }
 ```
 
@@ -70,7 +70,7 @@ A crash, a timeout or a malformed answer is a `fail` in both modes, with the rea
 `deviations` is the outcome of checking the adapter's list against the run (see the
 adapter protocol). `ok` is false when anything is unlisted, stale or unknown, and the
 command then exits with a non-zero status. `entries` repeats the list with its
-reasons so the report can show it.
+reasons so the report can show it. `near_bound_passed` lists, as "case seconds of bound", the entries marked `near_bound` whose case passed this run; it is empty when none did.
 
 ## Reports
 
