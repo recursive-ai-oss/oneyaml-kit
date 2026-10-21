@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "diagnostics/undeclared-tag-handle-is-a-syntax-error",
+ "title": "A tag shorthand whose named handle was never declared is a syntax error",
+ "category": "diagnostics",
+ "origin": "bug",
+ "productions": [
+  "89",
+  "97",
+  "99"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.8.2",
+  "YAML 1.2.2 section 6.9.1"
+ ],
+ "notes": "A named tag handle (`!x!`) must be declared by a `%TAG` directive of the same document before it is used; there is none, so the document is invalid. The fault is in the text, the shorthand cannot be read, and not in a well-formed tag that no schema knows (`unresolved-tag`), which is why the category is `syntax`, as for `diagnostics/tag-handle-with-two-exclamation-suffix`. No position is stated: the specification does not say whether the fault is the handle or the suffix.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend reported unresolved-tag at 1:1, the pure backend syntax at 1:4."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "error",
+  "category": "syntax"
+ }
+}

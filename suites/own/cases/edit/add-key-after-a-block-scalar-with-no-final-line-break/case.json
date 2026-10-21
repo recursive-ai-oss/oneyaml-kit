@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-key-after-a-block-scalar-with-no-final-line-break",
+ "title": "A key added after a block scalar that ends the file without a line break",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "170",
+  "187"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "YAML 1.2.2 section 8.1.1",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The scalar ends at the end of the input. The new member needs a line break before it, which ends the scalar line; the scalar keeps its value `bar`. A missing final line break stays missing, as for the other edits of such files (docs/edit-semantics.md, explicit keys). The exact bytes rest on a kit convention (docs/edit-semantics.md).",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend refused the edit as one that would not read back."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/zz",
+    "value": "v"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

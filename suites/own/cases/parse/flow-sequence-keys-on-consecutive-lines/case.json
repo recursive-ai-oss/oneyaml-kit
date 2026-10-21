@@ -1,0 +1,27 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/flow-sequence-keys-on-consecutive-lines",
+ "title": "Flow sequences as implicit keys on two lines",
+ "category": "parse",
+ "origin": "bug",
+ "productions": [
+  "154",
+  "155",
+  "193"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2",
+  "YAML 1.2.2 section 8.2.2"
+ ],
+ "notes": "An implicit key may be a flow collection on one line (productions 154 and 155, with a flow collection as the key node, and 193 in a block mapping). A block mapping may hold several such entries, each on its own line at the same indentation.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the pure parser rejected the second entry at 2:1 with a mapping key expected."
+ },
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

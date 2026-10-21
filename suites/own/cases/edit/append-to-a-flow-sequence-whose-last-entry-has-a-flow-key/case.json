@@ -1,0 +1,38 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/append-to-a-flow-sequence-whose-last-entry-has-a-flow-key",
+ "title": "An item appended to a multi-line flow sequence goes inside it after a flow-keyed last entry",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "137",
+  "138",
+  "150"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "YAML 1.2.2 section 7.4.1",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The sequence holds one single-pair entry whose key is a flow sequence (yaml-test-suite 4FJ6 has the same shape). The new item follows the last entry, separated by `, `, and the closing bracket stays last. `[a]: 1\n], zz` would put the item after the sequence, outside it, which is not a sequence item: the written text does not read back as the sequence plus an item. The exact bytes rest on a kit convention (docs/edit-semantics.md).",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the pure backend wrote the item after the closing bracket."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/-",
+    "value": "zz"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

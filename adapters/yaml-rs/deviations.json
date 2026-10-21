@@ -98,5 +98,7 @@
   {"case": "yts:UGM3@value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"},
   {"case": "yts:UGM3@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"},
   {"case": "yts:X38W", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: \"duplicate mapping key: ('a', 'b')\""},
-  {"case": "yts:X38W", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"duplicate mapping key: ('a', 'b')\""}
+  {"case": "yts:X38W", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"duplicate mapping key: ('a', 'b')\""},
+  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."}
  ]}

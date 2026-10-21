@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-last-entry-takes-an-indented-comment-ending-the-stream",
+ "title": "An indented comment that ends the stream goes with the last entry when it is removed",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "docs/edit-semantics.md",
+  "RFC 6902 section 4.2"
+ ],
+ "tags": [
+  "convention",
+  "comment-ownership"
+ ],
+ "notes": "A comment line directly after an entry and indented more than its key belongs to that entry, even when the entry is the last one (docs/edit-semantics.md, Comments). Here `# note` is indented under `k` and nothing follows it, so it goes with the entry, and the emptied root mapping is written `{}`. YAML gives comments no owner, so the bytes rest on the kit convention.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend wrote `{}` and the pure backend left the comment behind."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/k"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

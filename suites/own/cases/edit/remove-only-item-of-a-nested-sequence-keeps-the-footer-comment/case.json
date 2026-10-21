@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-only-item-of-a-nested-sequence-keeps-the-footer-comment",
+ "title": "The footer comment stays where it was when the last item of a nested sequence is removed",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "RFC 6902 section 4.2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention",
+  "comment-ownership"
+ ],
+ "notes": "The comment is indented as the removed item, not more, so it is a footer of the collection and stays (`edit/remove-last-key-keeps-footer-comment`). The emptied sequence is written `[]` on the line of its parent, never an empty value (docs/edit-semantics.md). The comment keeps its text and its line. The exact bytes rest on a kit convention (docs/edit-semantics.md).",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the engine refused this removal at an earlier revision; the native backend now moves the comment inside the brackets and the pure backend leaves it."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/0/0"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

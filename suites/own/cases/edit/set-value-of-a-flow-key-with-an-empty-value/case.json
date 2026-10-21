@@ -1,0 +1,38 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-value-of-a-flow-key-with-an-empty-value",
+ "title": "A value set on a flow mapping key that has a colon and nothing after it",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "142",
+  "145",
+  "147"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "`b:` before a comma is a key with an empty value (yaml-test-suite 4ABK). Setting the value puts it after the colon, with one space by the kit convention. `b:2` would not do: in a flow mapping that text is one plain scalar.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend refused the edit as one that would not read back; the pure backend wrote `b:2`."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/b",
+    "value": 2
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

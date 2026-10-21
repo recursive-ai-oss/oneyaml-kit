@@ -508,5 +508,9 @@
   {"case": "own:parse/bom-line-after-bare-document-before-directives-end", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: \"yaml: line 3: could not find expected ':'\""},
   {"case": "own:parse/bom-line-after-bare-document-before-directives-end", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"yaml: line 3: could not find expected ':'\""},
   {"case": "own:parse/tab-before-a-document-marker-makes-it-text", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $: expected 2 items, got 1"},
-  {"case": "own:parse/tab-before-a-document-marker-makes-it-text", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $: expected 2 items, got 1"}
+  {"case": "own:parse/tab-before-a-document-marker-makes-it-text", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $: expected 2 items, got 1"},
+  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:parse/flow-sequence-keys-on-consecutive-lines", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: invalid map key: []interface {}{1, 2}'"},
+  {"case": "own:parse/flow-sequence-keys-on-consecutive-lines", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: invalid map key: []interface {}{1, 2}'"}
 ]}

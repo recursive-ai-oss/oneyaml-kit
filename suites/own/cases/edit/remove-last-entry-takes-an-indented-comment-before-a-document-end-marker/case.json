@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-last-entry-takes-an-indented-comment-before-a-document-end-marker",
+ "title": "An indented comment before an end marker goes with the last entry when it is removed",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "docs/edit-semantics.md",
+  "RFC 6902 section 4.2",
+  "YAML 1.2.2 section 9.1.2"
+ ],
+ "tags": [
+  "convention",
+  "comment-ownership"
+ ],
+ "notes": "As for the same input at the end of the stream: a comment indented more than the key of the last entry belongs to it, and the end marker `...` stays. The comment is inside the document, before its end marker. The exact bytes rest on a kit convention (docs/edit-semantics.md).",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend wrote `{}` and the pure backend left the comment behind."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/k"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

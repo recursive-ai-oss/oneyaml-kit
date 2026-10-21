@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "safety/duplicate-keys-nested-200-levels-deep",
+ "title": "Two equal mapping keys, each a flow mapping nested 200 levels, are refused in bounded time",
+ "category": "safety",
+ "origin": "bug",
+ "productions": [
+  "140",
+  "189",
+  "190"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 3.2.1.1",
+  "YAML 1.2.2 section 7.4.2"
+ ],
+ "tags": [
+  "slow"
+ ],
+ "notes": "Both keys are the same flow mapping, nested 200 deep, so the mapping has a duplicate key and no result is allowed: the refusal is a duplicate-key error, or a limit error for nesting. Comparing two such keys by comparing their members one level at a time and again at each level does work that doubles with every level, so the cost is exponential in the depth. The input is about 1.6 KB, and the case is slow-tagged because a reader with that cost runs to its full time limit. The memory and time bounds are the robustness requirement of the kit, not a rule of the specification.",
+ "provenance": {
+  "reference": "A reader whose comparison of two nested mapping keys is exponential in their depth (found in the pure-Python backend of oneyaml-python and fixed there)."
+ },
+ "operation": {
+  "type": "value"
+ },
+ "expect": {
+  "kind": "bounded",
+  "time_seconds": 100,
+  "memory_mb": 256,
+  "error": [
+   "duplicate-key",
+   "limit"
+  ]
+ }
+}

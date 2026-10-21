@@ -1,0 +1,4 @@
+---
+- { single line, a: b}
+- { multi
+  line: 2, a: b}

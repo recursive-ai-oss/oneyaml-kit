@@ -1,0 +1,48 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-strings-that-yaml-1-1-reads-as-other-types-stay-plain-in-core",
+ "title": "Strings that only YAML 1.1 reads as another type are added plain",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "YAML 1.2.2 section 10.3.2",
+  "RFC 6902 section 4.1",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "Under the core schema these four are strings (YAML 1.2.2 section 10.3.2: only the listed forms are booleans, integers or floats; timestamps are not core). A set into a plain scalar leaves `yes` plain (`edit/set-plain-string-yes-stays-plain-in-core`); an added member of the same text follows the same rule, since the kit judges plainness by the core schema on every edit and quotes only what the core schema would read as another type (`edit/add-string-that-cannot-be-plain-next-to-plain-siblings` quotes `true` for that reason). Writing for a YAML 1.1 reader is for `dump`, not for edits. The kit does not require quotes here, and the plain text reads back exactly. The exact bytes rest on a kit convention (docs/edit-semantics.md).",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend wrote each of the four values single-quoted, while the same text set into an existing value stays plain."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/c",
+    "value": "yes"
+   },
+   {
+    "op": "add",
+    "path": "/d",
+    "value": "2024-05-01"
+   },
+   {
+    "op": "add",
+    "path": "/e",
+    "value": "1_000"
+   },
+   {
+    "op": "add",
+    "path": "/f",
+    "value": "0b101"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -2408,6 +2408,9 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reports the encoding error with no position; the case expects 1:4."
-  }
+  },
+  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:safety/duplicate-keys-nested-200-levels-deep", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error category differs: expected one of duplicate-key, limit, got other"}
  ]
 }

@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-key-after-a-block-scalar-ending-in-a-line-of-spaces",
+ "title": "A key added after a block scalar whose last line is only spaces goes after that line",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "170",
+  "187"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "YAML 1.2.2 section 8.1.1.2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The last line has one space more than the content indentation, so it is content: the value is `x\n \n` (yaml-test-suite L24T/01 has the same shape without the final line break). The new key goes after that line. Written before it, the line would no longer belong to the scalar and the value would change to `x\n`. The exact bytes rest on a kit convention (docs/edit-semantics.md).",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the pure backend wrote the key before the line of spaces, which changed the value of `foo`."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/zz",
+    "value": "v"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-item-after-a-keep-scalar-of-one-line-of-spaces-with-no-final-line-break",
+ "title": "An item added after a keep block scalar made of one line of spaces that ends the file",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "170",
+  "183"
+ ],
+ "refs": [
+  "RFC 6902 section 4.1",
+  "YAML 1.2.2 section 8.1.1.2",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "Exactly yaml-test-suite JEF9/02: the value of the first item is one line break. The line break that ends the line of spaces is written before the new item, and the missing final line break stays missing. The exact bytes rest on a kit convention (docs/edit-semantics.md).",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend refused the edit as one that would not read back."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/-",
+    "value": "zz"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -1,0 +1,38 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-value-of-a-flow-key-without-a-colon",
+ "title": "A value set on a flow mapping key that has none is written after a colon",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "142",
+  "145",
+  "147"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "In a flow mapping a key may stand alone and then has the null value (production 145, yaml-test-suite 4ABK and 8KB6). Setting its value writes `: ` and the value after the key; the text of the key and everything else stays. The single space after the colon is a kit convention.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the pure backend wrote `b2`, joining the value to the key."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/b",
+    "value": 2
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

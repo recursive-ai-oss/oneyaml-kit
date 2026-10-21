@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-only-root-entry-takes-the-comment-directly-above",
+ "title": "The comment directly above the only entry goes with it when it is removed",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "docs/edit-semantics.md",
+  "RFC 6902 section 4.2"
+ ],
+ "tags": [
+  "convention",
+  "comment-ownership"
+ ],
+ "notes": "A comment on the line directly above an entry, with no blank line between, goes with it (docs/edit-semantics.md, Comments); `edit/remove-key-with-comment-directly-above` says so for a middle entry, and a first entry with another one after it behaves the same. Nothing changes when the entry is also the only one: the comment goes and the emptied root is written `{}`. The exact bytes rest on a kit convention (docs/edit-semantics.md).",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend wrote `{}`, the pure backend kept `# head` above it; with a second entry both dropped the comment."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/a"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -1,0 +1,38 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-value-of-a-multi-line-flow-key-without-a-colon",
+ "title": "A key without a colon whose text runs over two lines gets its value after the text",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "142",
+  "145",
+  "147"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 7.4.2",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "yaml-test-suite 8KB6. The plain key `multi line` is folded over two lines and has no colon. The pointer token is its folded text. The value goes after the last line of the key. The exact bytes rest on a kit convention (docs/edit-semantics.md).",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the pure backend wrote `line2`; the native backend wrote the colon and value after the key text."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/1/multi line",
+    "value": 2
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-root-mapping-keeps-the-comment-above-it",
+ "title": "Replacing the root value leaves the comment above it",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention",
+  "comment-ownership"
+ ],
+ "notes": "Edits to a value do not touch comments outside the value (docs/edit-semantics.md, Comments), and replacing the document root is an edit of a value, not a removal of its first entry. The comment directly above the first entry stays above the new root. The same replacement after a `---` line keeps the comment before the marker in both backends. The exact bytes rest on a kit convention (docs/edit-semantics.md).",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend dropped the comment, the pure backend kept it."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "",
+    "value": {
+     "q": 1
+    }
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}
