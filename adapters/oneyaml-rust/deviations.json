@@ -1064,6 +1064,34 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reports the error at the start of the properties line (2:1) instead of the line break after them (2:6)"
+  },
+  {
+   "case": "own:edit/remove-last-entry-after-keep-scalar-keeps-its-value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Refuses the removal with \"would not read back as the edited tree\": the blank line after the removed entry is left to the keep scalar before it"
+  },
+  {
+   "case": "own:edit/remove-last-entry-after-keep-scalar-keeps-its-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Same as the loose verdict: the edit is refused"
+  },
+  {
+   "case": "own:edit/set-root-to-mapping-with-keep-scalar-before-a-document-marker",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "whole-document patch"
+  },
+  {
+   "case": "own:edit/set-root-to-mapping-with-keep-scalar-before-a-document-marker",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "whole-document patch"
   }
  ]
 }

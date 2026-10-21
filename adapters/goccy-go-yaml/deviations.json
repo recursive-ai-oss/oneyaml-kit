@@ -594,5 +594,9 @@
   {"case": "own:parse/bom-then-comment-after-document-end-marker", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'unexpected end content' at 3:1"},
   {"case": "own:parse/bom-then-comment-after-document-end-marker", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'unexpected end content' at 3:1"},
   {"case": "own:parse/tab-before-a-document-marker-makes-it-text", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: \"found character '\\t' that cannot start any token\" at 3:1"},
-  {"case": "own:parse/tab-before-a-document-marker-makes-it-text", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"found character '\\t' that cannot start any token\" at 3:1"}
+  {"case": "own:parse/tab-before-a-document-marker-makes-it-text", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: \"found character '\\t' that cannot start any token\" at 3:1"},
+  {"case": "own:edit/set-over-keep-scalar-with-an-empty-line-before-a-comment", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 10: expected b'# end\\n', got b'\\n# end\\n' (lengths 16 and 17)"},
+  {"case": "own:edit/set-over-keep-scalar-with-an-empty-line-before-a-comment", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 10: expected b'# end\\n', got b'\\n# end\\n' (lengths 16 and 17)"},
+  {"case": "own:edit/set-root-to-mapping-with-keep-scalar-before-a-document-marker", "expectation": "primary", "mode": "loose", "verdict": "unsupported", "reason": "a patch of the whole document"},
+  {"case": "own:edit/set-root-to-mapping-with-keep-scalar-before-a-document-marker", "expectation": "primary", "mode": "strict", "verdict": "unsupported", "reason": "a patch of the whole document"}
 ]}
