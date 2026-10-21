@@ -624,8 +624,6 @@
   {"case": "own:parse/flow-sequence-keys-on-consecutive-lines", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'found an invalid key for this map' at 1:7"},
   {"case": "own:parse/flow-sequence-keys-on-consecutive-lines", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'found an invalid key for this map' at 1:7"},
   {"case": "own:safety/duplicate-keys-nested-200-levels-deep", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error category differs: expected one of duplicate-key, limit, got syntax"},
-  {"case": "own:edit/replace-empty-document-with-a-scalar-keeps-marker-comment", "expectation": "primary", "mode": "loose", "verdict": "unsupported", "reason": "Declined by the adapter: a patch of the whole document"},
-  {"case": "own:edit/replace-empty-document-with-a-scalar-keeps-marker-comment", "expectation": "primary", "mode": "strict", "verdict": "unsupported", "reason": "Declined by the adapter: a patch of the whole document"},
   {"case": "own:edit/replace-tab-led-root-flow-mapping-keeps-the-tab", "expectation": "primary", "mode": "loose", "verdict": "unsupported", "reason": "Declined by the adapter: a patch of the whole document"},
   {"case": "own:edit/replace-tab-led-root-flow-mapping-keeps-the-tab", "expectation": "primary", "mode": "strict", "verdict": "unsupported", "reason": "Declined by the adapter: a patch of the whole document"},
   {"case": "own:edit/replace-tagged-scalar-through-a-tag-directive-keeps-the-tag", "expectation": "primary", "mode": "loose", "verdict": "unsupported", "reason": "Declined by the adapter: a patch of the whole document"},

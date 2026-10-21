@@ -13,7 +13,8 @@
   "RFC 6902 section 4.1"
  ],
  "tags": [
-  "convention"
+  "convention",
+  "comment-ownership"
  ],
  "notes": "The comment line is indented more than the key `k`, so it belongs to the entry `k` (docs/edit-semantics.md, Comments: a comment line directly after an entry and indented more than its key belongs to that entry). A member added at the end of the mapping goes after the whole entry, so after that comment; the exception is only for comments before a document marker (`edit/add-before-an-indented-comment-before-a-document-marker`). The exact bytes rest on the kit convention for comment ownership.",
  "provenance": {
