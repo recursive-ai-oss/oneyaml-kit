@@ -466,9 +466,10 @@ def run_step(step: Step, root: Path, out: Path, base_env: dict, index: int) -> d
 # (cold; 252 warm), bench-csharp 444, bench-go 166, bench 131. The figures below are those rounded
 # up. The four largest side by side need about 9 GiB, which is why a fixed job count was killed
 # under a 6 GiB limit.
-# The python area (eight adapters and their kit runs side by side) measured 599 on the hand-over tier;
-# its figure leaves room for the bounded safety cases of the full tier.
-AREA_PEAK_MIB = {"core": 4096, "csharp": 2560, "bench-rust": 1792, "go": 1536, "rust": 1024, "python": 1024,
+# The python area (eight adapters and their kit runs side by side) measured 599 on the hand-over tier.
+# On the full tier (safety cases included) the largest single process was 1965 MiB (ruamel-rt); each
+# adapter is limited to 2048 MiB, so that is the figure.
+AREA_PEAK_MIB = {"core": 4096, "csharp": 2560, "bench-rust": 1792, "go": 1536, "rust": 1024, "python": 2048,
                  "bench-csharp": 512, "bench-go": 256, "bench-python": 512, "bench": 256}
 UNKNOWN_AREA_MIB = 1024
 # A typical big area, about the mean of the four largest, for turning a memory limit into a count.

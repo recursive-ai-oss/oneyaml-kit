@@ -48,6 +48,8 @@
   {"case": "own:safety/deep-block-sequences-100000-value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "adapter exited (killed by signal 11)"},
   {"case": "own:safety/deep-block-sequences-50000", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "adapter exited (killed by signal 11)"},
   {"case": "own:safety/deep-block-sequences-50000", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "adapter exited (killed by signal 11)"},
+  {"case": "own:safety/ten-million-digit-plain-scalar-events", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
+  {"case": "own:safety/ten-million-digit-plain-scalar-events", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
   {"case": "own:schema/code-constructing-tags-are-kept-or-refused", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "accepted with a wrong result: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"},
   {"case": "own:schema/code-constructing-tags-are-kept-or-refused", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "accepted with a wrong result: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"},
   {"case": "own:schema/core-infinity-and-nan-spellings", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0].g: expected '.iNf', got {'$float': 'inf'}"},
