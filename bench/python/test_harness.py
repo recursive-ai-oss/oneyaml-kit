@@ -456,9 +456,9 @@ class OwnLibraries(unittest.TestCase):
             for backend, want in (("pure", "pure"), ("native", None)):
                 lib = libs_own.OwnLib("x", backend, "abc")
                 for task in common.TASKS:
+                    # Every task has a runner; the library is only called when it runs.
                     r, why = lib.runner(task, workload("reference-a"))
-                    self.assertIsNone(r)
-                    self.assertTrue(why)
+                    self.assertIsNotNone(r, (task, why))
                 self.assertEqual(os.environ.get("ONEYAML_BACKEND"), want)
         self.assertEqual(registry.version(libs_own.OwnLib("x", "pure", "abc")), "abc")
 

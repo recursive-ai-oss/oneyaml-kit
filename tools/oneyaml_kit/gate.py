@@ -88,10 +88,11 @@ BENCH_PIPELINE_TESTS = {"rust": "test_pipeline.RustPipeline", "go": "test_pipeli
 # The smoke run: a few small workloads, one of them typed, through one harness.
 SMOKE_WORKLOADS = ("reference-a", "reference-b", "gha-workflow")
 # The Python harness runs every cell in processes of its own (pyperf workers and memory runs), a second or
-# more each, so its smoke run takes only ours in both backends (when a checkout is given), one C extension
-# and one native library. The harness's own tests cover the guard and the referee; the full tier's quick run
-# covers every library.
-PYTHON_SMOKE_LIBRARIES = ("oneyaml-python", "oneyaml-python-pure", "pyyaml-c", "yaml-rs")
+# more each, so its smoke run takes one small workload with every task, and only ours in both backends (when a
+# checkout is given) beside one C extension. The harness's own tests cover the guard and the referee; the full
+# tier's quick run covers every library and workload.
+PYTHON_SMOKE_WORKLOADS = ("reference-a",)
+PYTHON_SMOKE_LIBRARIES = ("oneyaml-python", "oneyaml-python-pure", "pyyaml-c")
 # The hand-over tier's wall-clock budget in seconds. The hard limit is three minutes; the margin
 # covers a slower machine and cold caches.
 BUDGET_SECONDS = 150
@@ -300,8 +301,9 @@ def bench_lang_steps(area: str, root: Path, out: Path, target: str, dotnet: str)
     lang = area[len("bench-"):]
     own = {"CARGO_TARGET_DIR": f"{target}-{area}"}
     d = f"bench/{lang}"
+    workloads = PYTHON_SMOKE_WORKLOADS if lang == "python" else SMOKE_WORKLOADS
     smoke = Step(area, f"benchmark {lang} smoke run",
-                 [py(), "bin/bench", "run", "--lang", lang, *[x for w in SMOKE_WORKLOADS for x in ("--workload", w)],
+                 [py(), "bin/bench", "run", "--lang", lang, *[x for w in workloads for x in ("--workload", w)],
                   "--out", str(out / "bench-smoke" / lang)], env=own,
                  tier="hand-over")  # the full tier's quick run covers every workload
     if lang == "python":
@@ -476,7 +478,7 @@ def run_step(step: Step, root: Path, out: Path, base_env: dict, index: int) -> d
 # On the full tier (safety cases included) the largest single process was 1965 MiB (ruamel-rt), and
 # that tier runs two adapters at a time, so the figure is two adapters' worth.
 AREA_PEAK_MIB = {"core": 4096, "csharp": 2560, "bench-rust": 1792, "go": 1536, "rust": 1024, "python": 4096,
-                 "bench-csharp": 512, "bench-go": 256, "bench-python": 512, "bench": 256}
+                 "bench-csharp": 512, "bench-go": 256, "bench-python": 768, "bench": 256}
 UNKNOWN_AREA_MIB = 1024
 # A typical big area, about the mean of the four largest, for turning a memory limit into a count.
 TYPICAL_AREA_MIB = 2560
