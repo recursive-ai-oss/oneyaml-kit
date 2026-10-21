@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-literal-ending-in-a-line-of-spaces-with-no-final-line-break-to-an-integer",
+ "title": "A literal scalar ending in a line of spaces with no final line break is replaced whole",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "YAML 1.2.2 section 8.1.1",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "As `edit/set-literal-ending-in-a-line-of-spaces-to-an-integer`, with the input ending after the spaces (yaml-test-suite L24T, second input). A final line break the input did not have stays missing (docs/edit-semantics.md, Kit conventions). The exact bytes rest on a kit convention.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the pure backend left the line of spaces after the new value."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/foo",
+    "value": 5
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

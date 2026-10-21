@@ -1,0 +1,33 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-key-after-a-literal-with-a-tab-in-its-content-and-no-final-line-break",
+ "title": "A key added after a strip literal whose content starts with a tab and has no final line break",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "YAML 1.2.2 section 8.1.1",
+  "RFC 6902 section 4.1",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The new key goes after the line break that ends the scalar's last line; the scalar's content, tab included, is untouched, and a final line break the input did not have stays missing (docs/edit-semantics.md, Kit conventions). The scalar is yaml-test-suite 96NN, second input. The exact bytes rest on a kit convention.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend refused the edit as one that would not read back."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/bar",
+    "value": "z"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

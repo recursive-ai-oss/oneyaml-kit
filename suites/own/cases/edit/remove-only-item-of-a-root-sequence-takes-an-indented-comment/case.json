@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/remove-only-item-of-a-root-sequence-takes-an-indented-comment",
+ "title": "An indented comment after the only item of a root sequence goes with it when it is removed",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "docs/edit-semantics.md",
+  "RFC 6902 section 4.2"
+ ],
+ "tags": [
+  "convention",
+  "comment-ownership"
+ ],
+ "notes": "The comment line is indented more than the item's dash, so it belongs to the item (docs/edit-semantics.md, Comments) and goes with it; the emptied root sequence is written `[]`. `edit/remove-only-item-of-a-nested-sequence-keeps-the-footer-comment` is the other side: there the comment is indented as the item, not more, and stays. The exact bytes rest on a kit convention.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the pure backend removed the comment with the item; the native backend left `  # f` behind the `[]`."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "remove",
+    "path": "/0"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

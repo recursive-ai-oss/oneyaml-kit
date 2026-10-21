@@ -49,6 +49,7 @@ having got YAML wrong.
   that the header changes and nothing else does.
 - **Inserting into a flow collection.** A value added to an empty or one-pair flow
   collection is written `[x]` and `{k: v}`, and later members are separated by `, `.
+  A flow collection written in place of another, by `replace` or by a merge patch, uses the same form.
 - **The quote of a string that cannot stay plain.** A plain scalar that would read back as
   another type, as a comment, as a key, or lose its edge spaces becomes single-quoted. The
   specification allows any quoted style; single quotes need no escapes.
@@ -58,7 +59,7 @@ having got YAML wrong.
 - **A key with no value in a flow mapping.** Setting its value writes a colon, one space and the value after the key (setting `a` to 2: `{a, b: 1}` and `{a:, b: 1}` both become `{a: 2, b: 1}`; for a key over several lines the colon follows its last line). The text of the key does not change.
 - **A member or item added after a block scalar** goes after the line break that ends the scalar's last line, even when that line holds only spaces: such a line belongs to the scalar (as content or as a trailing line break), so the new entry follows it and never comes before it. A final line break the input did not have stays missing.
 - **The layout of a new nested block collection** (a sequence or a mapping) copies the indentation of a sibling collection of the same kind. With no sibling sequence to copy (or no sibling mapping, for a mapping), a new block sequence or block mapping under a key or as a sequence item, whether added or set in place of a scalar, is indented by the document's block indentation step, which is how far a block mapping's entries are indented under their key. The step is taken from the mapping that holds the key of the new collection when that mapping is itself nested under a key, and then from the next mapping out that is; so the enclosing mapping's own step wins over the step used elsewhere in the document. When the new key is in the root mapping, no enclosing mapping gives a step, and the step of the nearest preceding nested block mapping is used. The step is two spaces when the document has no nested block mapping.
-- **The empty lines a replaced keep scalar ended with.** When a block scalar with keep chomping (`+`) is replaced by a collection, its trailing empty lines go with it, because they were part of its text. Left in place they would read back the same after the new collection, so this is a convention.
+- **The lines a replaced block scalar ended with.** When a block scalar is replaced by any value, every line that belongs to it goes with it: the trailing empty lines of a keep scalar, and a last line that holds only spaces (as content or as a trailing line break). Left in place they would read back the same after a collection or a plain scalar, so there this is a convention; after a new block scalar they would change its value. A final line break the input did not have stays missing, after a replace as after an add.
 - **A collection replaced by a scalar stays on the key's line.** `a: 5`, not `a:` with the value on the next line, indented. Production [194] allows both and they read back the same.
 - **A whitespace-only line after a removed last entry.** When removing the last entry of a block collection would leave a whitespace-only line directly after a block scalar, where it would read as content of that scalar, the line goes with the removed entry. Keeping it as an empty line reads back the same, so this is a convention.
 - **Indentation of a rewritten block scalar** reuses the old content's indentation.
@@ -152,7 +153,7 @@ When an entry is removed, the kit's convention (tag `comment-ownership`, as well
 above it with no blank line between, and a comment inside its value go with it; a comment
 directly above the next entry, a comment after the last entry, and a header comment
 separated from the first entry by a blank line stay. A comment line directly after an entry
-and indented more than its key belongs to that entry and goes with it, even when the entry
+and indented more than its key (for a sequence item, more than its `-`) belongs to that entry and goes with it, even when the entry
 is the last one. The exception is a document marker: every comment line between the last
 entry of a document and the next `---`, indented or not, is the header of the next document.
 It stays when that entry is removed, and a member added at the end of the document goes

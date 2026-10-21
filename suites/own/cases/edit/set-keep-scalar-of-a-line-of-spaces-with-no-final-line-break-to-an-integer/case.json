@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-keep-scalar-of-a-line-of-spaces-with-no-final-line-break-to-an-integer",
+ "title": "A keep scalar that is one line of spaces with no final line break is replaced whole",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "YAML 1.2.2 section 8.1.1",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The line of spaces belongs to the scalar (value `\\n`, yaml-test-suite JEF9, third input), so it goes with it; `- 5` followed by a line of spaces is the same document but not the minimal edit (docs/edit-semantics.md, Kit conventions). A final line break the input did not have stays missing. The exact bytes rest on a kit convention.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend left the line of spaces after the new item."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/0",
+    "value": 5
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

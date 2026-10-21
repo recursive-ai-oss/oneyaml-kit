@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/patch-of-a-document-with-a-duplicate-key-through-an-alias-key-is-refused",
+ "title": "A patch on a document that has a duplicate key behind an alias key is an error and changes nothing",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "YAML 1.2.2 section 3.2.1.1",
+  "YAML 1.2.2 section 7.1",
+  "RFC 6902 section 5"
+ ],
+ "tags": [],
+ "notes": "A document with a duplicate key is not valid YAML (YAML 1.2.2 section 3.2.1.1), however the duplicate is written: here the key `*a` names the same node as the first key `foo`, with forty other keys between. A library that reads a document for editing must judge it as the loader does; one that accepts it has a document it cannot address by pointer. The patch itself is harmless.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the pure backend accepted the document when it read it for editing, and applied the patch."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/zz",
+    "value": 1
+   }
+  ]
+ },
+ "expect": {
+  "kind": "error",
+  "category": "duplicate-key",
+  "unchanged": true
+ }
+}

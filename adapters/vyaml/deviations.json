@@ -436,6 +436,20 @@
    "reason": "Rejects valid input: while parsing a quoted scalar, found unknown escape character"
   },
   {
+   "case": "own:schema/duplicate-key-through-an-alias-key-in-a-large-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "library crash: System.ArgumentException: An item with the same key has already been added. Key: foo"
+  },
+  {
+   "case": "own:schema/duplicate-key-through-an-alias-key-in-a-large-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "library crash: System.ArgumentException: An item with the same key has already been added. Key: foo"
+  },
+  {
    "case": "own:schema/duplicate-keys-differing-in-style-are-an-error",
    "expectation": "primary",
    "mode": "loose",

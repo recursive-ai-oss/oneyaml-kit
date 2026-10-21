@@ -60,6 +60,8 @@
   {"case": "own:schema/core-yaml-1-1-spellings-are-strings", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].a: expected 'yes', got True"},
   {"case": "own:schema/double-quoted-escapes", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: found unknown escape character'"},
   {"case": "own:schema/double-quoted-escapes", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: found unknown escape character'"},
+  {"case": "own:schema/duplicate-key-through-an-alias-key-in-a-large-mapping", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
+  {"case": "own:schema/duplicate-key-through-an-alias-key-in-a-large-mapping", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:schema/duplicate-keys-differing-in-style-are-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:schema/duplicate-keys-differing-in-style-are-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:schema/duplicate-keys-equal-after-resolution-are-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},

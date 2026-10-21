@@ -499,6 +499,20 @@
    "reason": "Reads the value differently: $[0].a: expected 18446744073709551616, got 1.8446744073709552e+19"
   },
   {
+   "case": "own:schema/duplicate-key-through-an-alias-key-in-a-large-mapping",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:schema/duplicate-key-through-an-alias-key-in-a-large-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
    "case": "own:schema/duplicate-keys-differing-in-style-are-an-error",
    "expectation": "primary",
    "mode": "loose",

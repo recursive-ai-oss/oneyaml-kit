@@ -1,0 +1,32 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-literal-ending-in-a-line-of-spaces-to-text",
+ "title": "A literal scalar whose last line holds only spaces keeps its style when set to text, and the line goes",
+ "category": "edit",
+ "origin": "bug",
+ "refs": [
+  "YAML 1.2.2 section 8.1.1",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The new text has no final line break, so the clip header becomes strip (`edit/set-literal-clip-to-strip-no-newline`). The line of spaces was part of the replaced scalar and goes with it; left behind it would be content of the new scalar and change its value (the line holds one character of content after the two-space indentation). The exact bytes rest on a kit convention.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the pure backend left the line of spaces after the new text, which read back as part of the value."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/foo",
+    "value": "y"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}
