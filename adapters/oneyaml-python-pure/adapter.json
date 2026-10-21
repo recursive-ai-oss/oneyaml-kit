@@ -1,0 +1,11 @@
+{
+  "format": "oneyaml-kit-adapter/1",
+  "name": "oneyaml-python-pure",
+  "language": "python",
+  "build": ["sh", "../pykit/build-oneyaml.sh"],
+  "command": ["sh", "../pykit/run.sh"],
+  "requires_env": ["KIT_ONEYAML_PYTHON_SRC"],
+  "timeout_seconds": 10,
+  "memory_limit_mb": 2048,
+  "deviations": "deviations.json"
+}

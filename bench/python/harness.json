@@ -1,0 +1,13 @@
+{
+ "format": "oneyaml-kit-bench-harness/1",
+ "language": "python",
+ "build": [
+  "sh",
+  "build.sh",
+  "{build}"
+ ],
+ "command": [
+  "{build}/oneyaml-bench-python-venv/bin/python",
+  "main.py"
+ ]
+}

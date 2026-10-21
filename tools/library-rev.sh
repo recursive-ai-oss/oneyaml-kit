@@ -1,6 +1,6 @@
 #!/bin/sh
 # Names the revision of a library checkout, for the build scripts and the benchmark driver, so
-# they all follow one rule. Usage: library-rev.sh LANG SRC     (LANG is GO or CSHARP)
+# they all follow one rule. Usage: library-rev.sh LANG SRC     (LANG is GO, CSHARP or PYTHON)
 # Prints "<revision> <origin>" on one line. The origin says how the revision was found:
 #   git       SRC is the top of a git checkout. Uncommitted changes to tracked files, untracked files
 #             that are not ignored, or a git that cannot tell, add "+modified" to the short commit, so a

@@ -13,9 +13,9 @@
 An area is a part of the repository with its own checks: `core`, one per adapter language
 (`rust`, `go`, `csharp`, ...) and the benchmark areas: `bench` (the driver, report and
 workloads, no toolchain needed) and one per harness language (`bench-rust`, `bench-go`,
-`bench-csharp`), so a change to one harness never builds the others. Areas run side by side
-with `--jobs` (by default as many as the available memory holds, up to four), and their steps
-one after the other. Every step
+`bench-csharp`, `bench-python`), so a change to one harness never builds the others. Areas run
+side by side with `--jobs` (by default as many as the available memory holds, up to four), and
+their steps one after the other. Every step
 runs even after a failure, because the checks are independent and one run should show
 everything that is wrong. Each step's output goes to a log under the output directory
 and is shown only when the step fails.
@@ -37,7 +37,8 @@ from pathlib import Path
 from .cases import ROOT
 
 # Shared directories that belong to a language without being an adapter themselves.
-SHARED = {"gokit": "go", "dotnet-common": "csharp", "Directory.Build.props": "csharp"}
+SHARED = {"gokit": "go", "dotnet-common": "csharp", "Directory.Build.props": "csharp",
+          "pykit": "python"}
 # Paths of the kit itself. A change here can move any adapter's results.
 CORE_CODE = ("tools/", "suites/", "bin/kit", "bin/gate", "tests/support.py", "tests/fixtures/")
 # The benchmark harness imports the kit's package (the public-text check), so kit code also
@@ -45,7 +46,7 @@ CORE_CODE = ("tools/", "suites/", "bin/kit", "bin/gate", "tests/support.py", "te
 BENCH_DEPENDS_ON = ("tools/",)
 # The adapter test module of each language.
 LANG_TESTS = {"rust": "test_adapter_oneyaml_rust.py", "go": "test_adapters_go.py",
-              "csharp": "test_adapter_dotnet.py"}
+              "csharp": "test_adapter_dotnet.py", "python": "test_adapters_python.py"}
 # Checks every project given (the .NET SDK is $0) at the same time and fails if any of them does.
 DOTNET_FORMAT_ALL = (
     'pids=; for p in "$@"; do "$0" format whitespace "$p" --verify-no-changes & pids="$pids $!"; done; '
@@ -58,10 +59,19 @@ GO_OWN_CHECK = (
     'go test -short -mod=readonly -modfile="$tmp/m.mod" -tags oneyaml_go_src -run "Prepared|Sharing|Reads" ./...'
 )
 
+# The Python adapters share one environment and run side by side in a single step. The slowest of
+# them (pure-Python parsers on the deeply nested safety cases) takes minutes alone, so the hand-over
+# tier leaves out the safety category and the full tier runs everything.
+PYTHON_HAND_OVER_CATEGORIES = ("parse", "edit", "schema", "diagnostics", "emit", "roundtrip")
+PYTHON_KIT_RUNS = (
+    'py=$0; out=$1; cats=$2; shift 2; pids=; '
+    'for n in "$@"; do "$py" bin/kit fast --adapter "$n" --out "$out/$n" $cats & pids="$pids $!"; done; '
+    'rc=0; for pid in $pids; do wait "$pid" || rc=1; done; exit $rc')
+
 GO_CHECK = ["sh", "-c", 'test -z "$(gofmt -l .)" && go vet ./... && go test -short ./...']
 REFERENCE = "rust"  # the quick adapter that stands in for the rest on a core change
 # The benchmark harness languages. Each has an area of its own, `bench-<language>`.
-BENCH_LANGS = ("rust", "go", "csharp")
+BENCH_LANGS = ("rust", "go", "csharp", "python")
 BENCH_REFERENCE = "rust"  # the harness that stands in for the rest on a driver change
 # Test modules of the benchmark harness that build and run a real harness end to end. They are
 # full-tier work; the rest of bench/tests is quick enough for the hand-over tier. Each entry is a
@@ -70,9 +80,14 @@ BENCH_SLOW_TESTS = ("pipeline",)
 # The test class that holds each harness's end-to-end tests; the full tier runs them in that
 # harness's area.
 BENCH_PIPELINE_TESTS = {"rust": "test_pipeline.RustPipeline", "go": "test_pipeline.GoPipeline",
-                        "csharp": "test_pipeline.CSharpPipeline"}
+                        "csharp": "test_pipeline.CSharpPipeline", "python": "test_pipeline.PythonPipeline"}
 # The smoke run: a few small workloads, one of them typed, through one harness.
 SMOKE_WORKLOADS = ("reference-a", "reference-b", "gha-workflow")
+# The Python harness runs every cell in processes of its own (pyperf workers and memory runs), a second or
+# more each, so its smoke run takes only ours in both backends (when a checkout is given), one C extension
+# and one native library. The harness's own tests cover the guard and the referee; the full tier's quick run
+# covers every library.
+PYTHON_SMOKE_LIBRARIES = ("oneyaml-python", "oneyaml-python-pure", "pyyaml-c", "yaml-rs")
 # The hand-over tier's wall-clock budget in seconds. The hard limit is three minutes; the margin
 # covers a slower machine and cold caches.
 BUDGET_SECONDS = 150
@@ -285,6 +300,8 @@ def bench_lang_steps(area: str, root: Path, out: Path, target: str, dotnet: str)
                  [py(), "bin/bench", "run", "--lang", lang, *[x for w in SMOKE_WORKLOADS for x in ("--workload", w)],
                   "--out", str(out / "bench-smoke" / lang)], env=own,
                  tier="hand-over")  # the full tier's quick run covers every workload
+    if lang == "python":
+        smoke.argv += [x for lib in PYTHON_SMOKE_LIBRARIES for x in ("--library", lib)]
     pipeline = BENCH_PIPELINE_TESTS[lang]
     pipe = Step(area, f"benchmark {lang} pipeline tests",
                 [py(), "-m", "unittest", "-q", pipeline], "bench/tests", own, tier="full")
@@ -313,6 +330,15 @@ def bench_lang_steps(area: str, root: Path, out: Path, target: str, dotnet: str)
             smoke, pipe,
         ] + ([Step(area, "benchmark go ownership check with oneyaml-go linked",
                    ["sh", "-c", GO_OWN_CHECK], d, tier="full")] if os.environ.get("KIT_ONEYAML_GO_SRC") else [])
+    if lang == "python":
+        # The harness's own environment (uv, exact pins) is built into this area's directory; its tests run in
+        # it, and the lint of its files is part of the driver's unit tests.
+        venv_python = f"{target}-{area}/oneyaml-bench-python-venv/bin/python"
+        return [
+            Step(area, "benchmark python self-test",
+                 ["sh", "-c", f'sh build.sh "{target}-{area}" && "{venv_python}" -m unittest -q test_harness'], d, own),
+            smoke, pipe,
+        ]
     return [
         Step(area, "benchmark .NET harness format",
              [dotnet, "format", "whitespace", "bench/csharp/Bench.csproj", "--verify-no-changes"]),
@@ -363,7 +389,13 @@ def _all_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[S
                 steps.append(Step(area, f"{area} adapters: kit run and checks",
                                   [py(), "-m", "unittest", "discover", "-s", "tests", "-p", test, "-q"],
                                   env={"KIT_ADAPTER_TESTS": "1"}))
-            else:
+            if area == "python":
+                cats = " ".join(f"--category {c}" for c in PYTHON_HAND_OVER_CATEGORIES)
+                run = ["sh", "-c", PYTHON_KIT_RUNS, py(), str(out / "gate")]
+                steps += [Step(area, "python adapters: kit runs (without safety)", [*run, cats, *sel_names],
+                               tier="hand-over"),
+                          Step(area, "python adapters: kit runs", [*run, "", *sel_names], tier="full")]
+            elif not test:
                 for n in sel_names:
                     steps.append(Step(area, f"{n}: kit run", [py(), "bin/kit", "fast", "--adapter", n,
                                                               "--out", str(out / "gate" / n)]))
@@ -434,8 +466,10 @@ def run_step(step: Step, root: Path, out: Path, base_env: dict, index: int) -> d
 # (cold; 252 warm), bench-csharp 444, bench-go 166, bench 131. The figures below are those rounded
 # up. The four largest side by side need about 9 GiB, which is why a fixed job count was killed
 # under a 6 GiB limit.
-AREA_PEAK_MIB = {"core": 4096, "csharp": 2560, "bench-rust": 1792, "go": 1536, "rust": 1024,
-                 "bench-csharp": 512, "bench-go": 256, "bench": 256}
+# The python area (eight adapters and their kit runs side by side) measured 599 on the hand-over tier;
+# its figure leaves room for the bounded safety cases of the full tier.
+AREA_PEAK_MIB = {"core": 4096, "csharp": 2560, "bench-rust": 1792, "go": 1536, "rust": 1024, "python": 1024,
+                 "bench-csharp": 512, "bench-go": 256, "bench-python": 512, "bench": 256}
 UNKNOWN_AREA_MIB = 1024
 # A typical big area, about the mean of the four largest, for turning a memory limit into a count.
 TYPICAL_AREA_MIB = 2560
@@ -552,7 +586,8 @@ def run_areas(areas: list[str], jobs: int, budget_mib: int | None, run_area) -> 
 
 
 # Areas that take the longest go first when they run side by side; the core tests are the longest.
-HEAVY = {"core": 6, "csharp": 5, "bench-csharp": 4, "rust": 3, "bench-rust": 3, "go": 2, "bench-go": 1, "bench": 1}
+HEAVY = {"core": 6, "csharp": 5, "bench-csharp": 4, "rust": 3, "bench-rust": 3, "python": 3, "go": 2, "bench-python": 2,
+         "bench-go": 1, "bench": 1}
 
 
 def weight(area: str) -> int:

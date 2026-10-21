@@ -84,6 +84,8 @@ class Choosing(unittest.TestCase):
         self.assertEqual(areas(["bench/rust/src/main.rs"])[0], ["core", "bench-rust"])
         self.assertEqual(areas(["bench/rust/Cargo.lock"])[0], ["core", "bench-rust"])
         self.assertEqual(areas(["bench/csharp/Bench.csproj"])[0], ["core", "bench-csharp"])
+        self.assertEqual(areas(["bench/python/libs.py"])[0], ["core", "bench-python"])
+        self.assertEqual(areas(["bench/python/libraries.lock"])[0], ["core", "bench-python"])
         self.assertEqual(areas(["bench/tests/test_pipeline.py"])[0], ["core", "bench-rust"])
 
     def test_a_change_to_the_oneyaml_csharp_adapter_also_runs_the_csharp_harness_area(self):
@@ -335,12 +337,14 @@ class Tiers(unittest.TestCase):
         full = {s.name for s in plan(True)}
         for moved in ("benchmark quick run", "benchmark clippy",
                       "benchmark rust pipeline tests", "benchmark go pipeline tests",
-                      "benchmark csharp pipeline tests", "benchmark self-test clippy", "benchmark self-test"):
+                      "benchmark csharp pipeline tests", "benchmark python pipeline tests",
+                      "benchmark self-test clippy", "benchmark self-test"):
             self.assertIn(moved, full)
         # The hand-over tier's only extras are quick stand-ins that the full tier's slow steps subsume.
         extra = {s.name for s in plan(False)} - full
         self.assertEqual(extra, {"benchmark rust smoke run", "benchmark go smoke run",
-                                 "benchmark csharp smoke run"})
+                                 "benchmark csharp smoke run", "benchmark python smoke run",
+                                 "python adapters: kit runs (without safety)"})
 
     def test_only_the_full_tier_runs_the_slow_cases(self):
         langs = [s for s in plan(True) if s.area not in ("core",) and not s.area.startswith("bench")]
@@ -586,7 +590,7 @@ class RunAreas(unittest.TestCase):
         gate.run_areas(areas, jobs, budget_mib, run_area)
         return state
 
-    ALL = ["core", "csharp", "go", "rust", "bench", "bench-rust", "bench-go", "bench-csharp"]
+    ALL = ["core", "csharp", "go", "rust", "bench", "bench-rust", "bench-go", "bench-csharp", "bench-python"]
 
     def test_every_area_runs_once_whatever_the_budget(self):
         for budget in (None, 6000, 1):
@@ -638,13 +642,13 @@ class Workflow(unittest.TestCase):
     def test_a_job_installs_what_its_area_needs(self):
         import re
         blocks = {m.group(1): m.group(2) for m in re.finditer(
-            r"- area: (\S+)\n((?:\s+(?:go|rust|dotnet): true\n)*)", self.text)}
+            r"- area: (\S+)\n((?:\s+(?:go|rust|dotnet|uv): true\n)*)", self.text)}
         needs = {"go": {"go"}, "bench-go": {"go"}, "rust": {"rust"}, "bench-rust": {"rust"},
-                 "csharp": {"dotnet"}, "bench-csharp": {"dotnet"}, "core": set(),
+                 "csharp": {"dotnet"}, "bench-csharp": {"dotnet"}, "bench-python": {"uv"}, "core": set(),
                  # The quick run of the benchmark driver builds every harness.
-                 "bench": {"go", "rust", "dotnet"}}
+                 "bench": {"go", "rust", "dotnet", "uv"}}
         for area, want in needs.items():
-            got = set(re.findall(r"(go|rust|dotnet): true", blocks[area]))
+            got = set(re.findall(r"(go|rust|dotnet|uv): true", blocks[area]))
             self.assertEqual(got, want, area)
 
     def test_the_jobs_do_not_repeat_the_core(self):

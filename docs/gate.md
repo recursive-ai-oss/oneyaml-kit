@@ -62,7 +62,7 @@ An area is a part of the repository with its own checks:
 | Area | What it covers |
 |---|---|
 | `core` | the kit core steps above, run by every hand-over gate; every file outside the other areas belongs to it |
-| `rust`, `go`, `csharp`, ... | the adapters of one language |
+| `rust`, `go`, `csharp`, `python`, ... | the adapters of one language |
 | `bench` | the benchmark driver, report and workloads |
 | `bench-rust`, `bench-go`, `bench-csharp` | one benchmark harness each, so a change to one harness never builds another |
 
@@ -76,6 +76,10 @@ largest process is above its estimate, the gate prints a warning and lists it un
 `estimate_warnings`. The figure is the largest single process, a floor under the area's real peak,
 so a warning is proof the estimate is too low and silence is not proof that it is right. The
 warning does not fail the run.
+
+The `python` area runs its adapters side by side in one step, because they share one virtual
+environment and the slowest of them is slow: the pure-Python parsers take minutes on the deeply nested
+safety cases. The hand-over tier leaves the safety category out of that step; the full tier runs it all.
 
 ## Output
 

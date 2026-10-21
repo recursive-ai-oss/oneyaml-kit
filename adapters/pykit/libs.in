@@ -1,0 +1,10 @@
+# The libraries the Python adapters run, pinned exactly. libs.lock is generated with
+#   uv pip compile --universal --generate-hashes libs.in -o libs.lock
+PyYAML==6.0.3
+ruamel.yaml==0.19.1
+yamlrocks==0.7.1
+yaml-rs==0.1.6
+py-yaml12==0.2.0
+ryaml==0.5.1
+jsonpatch==1.36
+json-merge-patch==0.3.0

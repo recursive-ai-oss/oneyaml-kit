@@ -27,6 +27,7 @@ runs each cell for about as long as a person would wait for one benchmark:
 | Go | `testing.B` with allocation reporting | the standard `-benchtime` of 1 s |
 | Rust | criterion | a 1 s warm-up, 2 s of measurement and its smallest sample size, 10 |
 | C# | BenchmarkDotNet | its `ShortRun` job: 3 warm-up and 3 measured iterations, preceded by 1 s of warm-up batches, with each cell run by a child process of the harness |
+| Python | pyperf | its defaults: 20 worker processes of 3 values after 1 warm-up value, loops calibrated for 100 ms (quick mode: 3 processes of 2 values, 50 ms) |
 
 The tools' own defaults (criterion's 3 s, 5 s and 100 samples; BenchmarkDotNet's default job, which
 iterates until the spread settles) took tens of seconds to minutes per cell on the large inputs, so a
@@ -51,13 +52,13 @@ the same code twice: once for the correctness guard, and then many times under t
 
 | Task | Starting state (not timed) | Timed work | The guard accepts when |
 |---|---|---|---|
-| `typed-load` | the input text | parse into the language's typed model (structs) | the model, serialised to JSON, equals the expected value |
+| `typed-load` | the input text | parse into the language's typed model (structs; in Python, the generic load followed by one plain conversion into dataclasses, because no Python YAML library decodes into a typed model itself) | the model, serialised to JSON, equals the expected value |
 | `generic-load` | the input text | parse into the library's generic value tree; every document of a stream | the tree, converted to JSON, equals the expected value |
 | `dump` | the library's own value tree, parsed from the input | write the tree as YAML text | two independent reference parsers both read the text back to the expected value (or, when the library merges `<<` keys while loading, to the merged value) |
 | `document-parse` | the input text | parse into a lossless document (comments, spacing, styles kept) | the document holds the expected value and writes the input back byte for byte |
 | `unchanged-emit` | a parsed lossless document | write it back | the bytes equal the input |
 | `edit-script` | a parsed lossless document | apply a fixed list of `replace` and `remove` edits through the library's own edit API, write the bytes | the bytes equal the expected bytes exactly: only the edited value changes, and it keeps its own style |
-| `patch` | .NET: the library's parsed document (or, for a baseline that keeps no text, its loaded data tree). Go: the input bytes. Rust: the same as .NET, but no library there has a patch engine yet, so the task has no cells | .NET: apply an RFC 6902 patch atomically, write the bytes. Go: every library's patch is timed from text to text, so the parse and the write are inside the clock (the harness records this as `text_tasks`) | the bytes equal the expected bytes, and a second patch with a failing step leaves the document unchanged and reports an error |
+| `patch` | .NET: the library's parsed document (or, for a baseline that keeps no text, its loaded data tree). Go and Python: the input text. Rust: the same as .NET, but no library there has a patch engine yet, so the task has no cells | .NET: apply an RFC 6902 patch atomically, write the bytes. Go and Python: every library's patch is timed from text to text, so the parse and the write are inside the clock (the harness records this as `text_tasks`) | the bytes equal the expected bytes, and a second patch with a failing step leaves the document unchanged and reports an error |
 
 The state each task starts from is built fresh for every iteration, outside the clock, and
 is released after the clock stops.
@@ -73,7 +74,7 @@ document parsed in setup is parsed from its own copy, and a task that parses ins
 copy its state holds. The same applies to our libraries and to competitors. Each harness has a test that
 inspects the prepared states and fails when two of them reach the same input buffer, or one of them reaches the
 workload's own. The check is strictest where the clock reads the input (typed load, generic load, document
-parse, and the Go text-to-text patch): there every state must hold an input-sized buffer of its own. For states
+parse, and the Go and Python text-to-text patch): there every state must hold an input-sized buffer of its own. For states
 parsed in setup it also fails when two states reach the same object, a parsed document included. The checks run
 over the libraries linked into the build. The C# check includes oneyaml-csharp when `KIT_ONEYAML_CSHARP_SRC` is
 set for the full gate, and the Go check includes oneyaml-go when `KIT_ONEYAML_GO_SRC` is set; CI has no checkout of
@@ -154,11 +155,22 @@ Each language reports what its standard tool reports, and the report names the t
 | Rust | criterion, mean time of one run | bytes and calls requested in one run, counted by a global allocator |
 | Go | `testing.Benchmark`, ns/op | B/op and allocs/op from `ReportAllocs` |
 | .NET | BenchmarkDotNet's ShortRun job, one child process per cell in full mode, mean time per task | bytes allocated per task from `MemoryDiagnoser` |
+| Python | pyperf, mean time per run over its worker processes | peak growth of the resident set during one run, in a fresh process (below) |
 
-None of these is a peak: each is the memory one operation asked for, so the memory columns are
-headed by what the language reports (`Allocated bytes per operation (B/op)` for Go,
+The Go, .NET and Rust figures are not peaks: each is the memory one operation asked for, so the
+memory columns are headed by what the language reports (`Allocated bytes per operation (B/op)` for Go,
 `Allocated bytes per task (MemoryDiagnoser)` for .NET, `Requested bytes per run (allocator count)`
-for Rust) and never "peak memory". The settings a run used (Go's `-benchtime`, criterion's warm-up
+for Rust).
+
+The Python figure is a peak, because half of the Python libraries allocate outside Python's allocator
+(Rust and C code), which an allocation tracer such as `tracemalloc` does not see. Each cell's memory run
+is a fresh process that starts with `PYTHONMALLOC=malloc`, so that Python objects, C and Rust allocations
+all come from one heap; it runs the task once on a 51-byte document (the library's one-time costs),
+builds the starting state, returns the heap's free pages to the kernel, and reports the peak resident
+size of one run minus the resident size before it; the cell is the median of three such processes
+(`Peak resident-set growth of one run (bytes)`).
+The kernel counts in pages, so the figure is a multiple of 4096 bytes, and no allocation count exists.
+It is the same method for every library. The settings a run used (Go's `-benchtime`, criterion's warm-up
 and measurement time, BenchmarkDotNet's job) are recorded in the harness description of that run
 and printed as recorded. A result from before the harnesses recorded the settings of their own
 mode is printed without the clause that describes the other mode; nothing is filled in.
