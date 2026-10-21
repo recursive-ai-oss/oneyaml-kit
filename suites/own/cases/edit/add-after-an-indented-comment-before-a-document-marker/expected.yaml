@@ -1,0 +1,8 @@
+k:
+  - a
+  # note
+n: |-
+  multi
+  line
+---
+x: 1

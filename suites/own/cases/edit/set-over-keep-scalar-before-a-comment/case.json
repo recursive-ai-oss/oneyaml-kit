@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-over-keep-scalar-before-a-comment",
+ "title": "A keep scalar replaced by a mapping leaves the comment line after it a comment",
+ "category": "edit",
+ "origin": "fuzz",
+ "productions": [
+  "168",
+  "169",
+  "170"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1.2",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "A keep scalar ends where the next line is less indented, and a comment line after it is not part of its value. The new mapping is written on the lines after the key, and the comment line stays a comment on its own line: it is not a comment at the end of the key line, and it is not taken as text of the new value.",
+ "provenance": {
+  "reference": "Found by comparing random edits of random documents with a plain model while building a lossless document for a Python library."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": {
+     "k": 1
+    }
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-over-keep-scalar-with-an-empty-line-before-a-comment",
+ "title": "The empty line that ended a keep scalar goes with the old value when a mapping replaces it",
+ "category": "edit",
+ "origin": "fuzz",
+ "productions": [
+  "168",
+  "169",
+  "170"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1.2",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "The empty line after `two` is a line break of the keep scalar (section 8.1.1.2), so it is part of the value that is replaced. Only the comment line after it stays. This is the same reading as `edit/set-literal-keep-drops-the-extra-line`.",
+ "provenance": {
+  "reference": "Found by comparing random edits of random documents with a plain model while building a lossless document for a Python library."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "/a",
+    "value": {
+     "k": 1
+    }
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

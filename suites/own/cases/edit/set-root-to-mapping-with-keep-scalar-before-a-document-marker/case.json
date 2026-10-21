@@ -1,0 +1,42 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-root-to-mapping-with-keep-scalar-before-a-document-marker",
+ "title": "An empty line after the last node of a document is counted by a keep scalar that ends the new document content",
+ "category": "edit",
+ "origin": "fuzz",
+ "productions": [
+  "168",
+  "169",
+  "170",
+  "203"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.1.2",
+  "YAML 1.2.2 section 9.1.2",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The empty line before `---` belongs to the first document. A keep scalar at its end reads that line as part of its value, so `two` followed by that one empty line is the value `two` plus two line feeds, and no further empty line is written. The second document is not touched. The string with line breaks becomes a literal block scalar as for any new multi-line string member.",
+ "provenance": {
+  "reference": "Found by comparing random edits of random documents with a plain model while building a lossless document for a Python library."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "",
+    "value": {
+     "k": "two\n\n"
+    }
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}
