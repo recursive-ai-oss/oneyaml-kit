@@ -98,8 +98,6 @@
   {"case": "own:schema/non-string-key", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$map': [[1, 'a'], [True, 'b'], ['x', 'c']]}, got {'$map': [[1, 'b'], ['x', 'c']]}"},
   {"case": "yts:UGM3@value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"},
   {"case": "yts:UGM3@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].product[0].price: expected 450, got 450.0"},
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:safety/duplicate-keys-nested-200-levels-deep", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case allows only a duplicate-key or limit error."},
   {"case": "own:safety/duplicate-keys-nested-200-levels-deep", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case allows only a duplicate-key or limit error."}
  ]}

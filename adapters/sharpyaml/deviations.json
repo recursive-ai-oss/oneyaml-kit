@@ -4544,8 +4544,6 @@
    "verdict": "fail",
    "reason": "Reports the encoding error with no position; the case expects 1:4."
   },
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:edit/replace-root-mapping-keeps-the-comment-above-it", "expectation": "primary", "mode": "loose", "verdict": "unsupported", "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"},
   {"case": "own:edit/replace-root-mapping-keeps-the-comment-above-it", "expectation": "primary", "mode": "strict", "verdict": "unsupported", "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"},
   {"case": "own:edit/set-value-of-a-flow-key-with-an-empty-value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'no key b'"},
@@ -4554,6 +4552,8 @@
   {"case": "own:edit/set-value-of-a-flow-key-without-a-colon", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 8: expected b': 2, c: 3}\\n', got b'2, c: 3}\\n' (lengths 19 and 17)"},
   {"case": "own:edit/set-value-of-a-multi-line-flow-key-without-a-colon", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 43: expected b': 2, a: b}\\n', got b'2, a: b}\\n' (lengths 54 and 52)"},
   {"case": "own:edit/set-value-of-a-multi-line-flow-key-without-a-colon", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 43: expected b': 2, a: b}\\n', got b'2, a: b}\\n' (lengths 54 and 52)"},
+  {"case": "own:parse/two-byte-order-marks-before-the-first-document", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "line 4: expected '=VAL :a', got '=VAL :\\ufeffa'"},
+  {"case": "own:parse/two-byte-order-marks-before-the-first-document", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "line 4: expected '=VAL :a', got '=VAL :\\ufeffa'"},
   {"case": "own:safety/duplicate-keys-nested-200-levels-deep", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error category differs: expected one of duplicate-key, limit, got other"}
  ]
 }

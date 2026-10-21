@@ -5279,8 +5279,6 @@
    "verdict": "fail",
    "reason": "Reports the encoding error with no position; the case expects 1:4."
   },
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:edit/add-item-after-a-keep-scalar-of-one-line-of-spaces-with-no-final-line-break", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 2: expected b'|+\\n   \\n- zz', got b'\"\"\\n- \"zz\"\\n' (lengths 13 and 12)"},
   {"case": "own:edit/add-item-after-a-keep-scalar-of-one-line-of-spaces-with-no-final-line-break", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 2: expected b'|+\\n   \\n- zz', got b'\"\"\\n- \"zz\"\\n' (lengths 13 and 12)"},
   {"case": "own:edit/add-key-after-a-block-scalar-ending-in-a-line-of-spaces", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b'|\\n  x\\n   \\nzz: v\\n', got b'\"x\\\\n \\\\n\"\\nzz: \"v\"\\n' (lengths 21 and 22)"},

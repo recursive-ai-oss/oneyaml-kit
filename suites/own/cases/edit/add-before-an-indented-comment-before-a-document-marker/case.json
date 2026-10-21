@@ -17,7 +17,7 @@
   "convention",
   "comment-ownership"
  ],
- "notes": "Every comment line between the last entry of a document and the next document marker, indented or not, is the header of the next document (see Comments in docs/edit-semantics.md), so the new member, which goes at the end of the mapping, goes before the comment, and the comment stays directly above `---`. YAML defines comments as presentation detail with no owner, so this placement is a kit convention. The new value is a plain one-line string so that only the placement is tested.",
+ "notes": "Every comment line between the last entry of a document and the next `---`, indented or not, is the header of the next document (see Comments in docs/edit-semantics.md), so the new member, which goes at the end of the mapping, goes before the comment, and the comment stays directly above `---`. YAML defines comments as presentation detail with no owner, so this placement is a kit convention. The new value is a plain one-line string so that only the placement is tested.",
  "provenance": {
   "reference": "Found by comparing random edits of random documents with a plain model while building a lossless document for a Python library."
  },

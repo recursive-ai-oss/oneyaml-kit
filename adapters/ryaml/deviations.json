@@ -412,8 +412,6 @@
   {"case": "yts:YJV2", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "yts:Z67P@value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0].folded: expected 'value\\n', got {'!foo': 'value\\n'}"},
   {"case": "yts:Z67P@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0].folded: expected 'value\\n', got {'!foo': 'value\\n'}"},
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:parse/flow-sequence-keys-on-consecutive-lines", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "ValueError: TypeError: unhashable type: 'list'"},
   {"case": "own:parse/flow-sequence-keys-on-consecutive-lines", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "ValueError: TypeError: unhashable type: 'list'"}
  ]}

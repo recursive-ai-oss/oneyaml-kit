@@ -1,0 +1,25 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "parse/two-byte-order-marks-before-the-first-document",
+ "title": "Two byte order marks before the first document are two document prefixes",
+ "category": "parse",
+ "origin": "spec",
+ "productions": [
+  "3",
+  "202",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 5.2",
+  "YAML 1.2.2 section 9.1.1",
+  "YAML 1.2.2 section 9.2"
+ ],
+ "notes": "A stream starts with any number of document prefixes (production 211, `l-document-prefix*`), and a prefix may be a byte order mark with no comment after it (production 202, `c-byte-order-mark? l-comment*`). So two marks are two prefixes and the bare document `a: 1` follows; section 5.2 allows a byte order mark at the start of any document. The marks are not content.",
+ "operation": {
+  "type": "events"
+ },
+ "expect": {
+  "kind": "events",
+  "file": "expected.events"
+ }
+}

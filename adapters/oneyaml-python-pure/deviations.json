@@ -1,6 +1,8 @@
 {
  "format": "oneyaml-kit-deviations/1",
  "entries": [
+  {"case": "own:parse/two-byte-order-marks-before-the-first-document", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'character not allowed in a YAML stream' at 1:1"},
+  {"case": "own:parse/two-byte-order-marks-before-the-first-document", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'character not allowed in a YAML stream' at 1:1"},
   {"case": "own:safety/integer-keys-beyond-the-digit-limit-in-a-document", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
   {"case": "own:safety/integer-keys-beyond-the-digit-limit-in-a-document", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
   {"case": "own:safety/merge-patch-many-deletions-from-a-large-mapping", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},

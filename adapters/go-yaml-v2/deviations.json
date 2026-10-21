@@ -432,8 +432,6 @@
   {"case": "own:parse/bom-then-comment-after-document-end-marker", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 2: did not find expected <document start>'"},
   {"case": "own:parse/tab-before-a-document-marker-makes-it-text", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: found character that cannot start any token'"},
   {"case": "own:parse/tab-before-a-document-marker-makes-it-text", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: line 3: found character that cannot start any token'"},
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:parse/flow-sequence-keys-on-consecutive-lines", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'yaml: invalid map key: []interface {}{1, 2}'"},
   {"case": "own:parse/flow-sequence-keys-on-consecutive-lines", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'yaml: invalid map key: []interface {}{1, 2}'"}
 ]}

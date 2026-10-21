@@ -105,6 +105,8 @@
   {"case": "own:parse/tag-suffix-utf-8-percent-escape-is-kept", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "line 3: expected '=VAL <tag:x,1:%C3%A9> :a', got '=VAL <tag:x,1:é> :a'"},
   {"case": "own:parse/top-level-literal-with-indentation-indicator", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0]: expected ' foo\\n', got 'foo\\n'"},
   {"case": "own:parse/top-level-literal-with-indentation-indicator", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Value differs at $[0]: expected ' foo\\n', got 'foo\\n'"},
+  {"case": "own:parse/two-byte-order-marks-before-the-first-document", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "line 4: expected '=VAL :a', got '=VAL :\\ufeffa'"},
+  {"case": "own:parse/two-byte-order-marks-before-the-first-document", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "line 4: expected '=VAL :a', got '=VAL :\\ufeffa'"},
   {"case": "own:parse/yaml-directive-version-1-3-is-accepted", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "AssertionError: version minor part can only be 2 or 1, got (1, 3)"},
   {"case": "own:parse/yaml-directive-version-1-3-is-accepted", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "AssertionError: version minor part can only be 2 or 1, got (1, 3)"},
   {"case": "own:safety/alias-byte-expansion-bomb", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Over a bound of the case: the memory bound or the time bound, whichever this machine reaches first"},
@@ -427,8 +429,6 @@
   {"case": "yts:Z9M4@value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'could not determine a constructor for the tag \\'tag:example.com,2000:app/foo\\'\\n in \"<byte string>\", line 3, column 3:\\n - !e!foo \"bar\"\\n ^ (line: 3)' at 3:3"},
   {"case": "yts:Z9M4@value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'could not determine a constructor for the tag \\'tag:example.com,2000:app/foo\\'\\n in \"<byte string>\", line 3, column 3:\\n - !e!foo \"bar\"\\n ^ (line: 3)' at 3:3"},
   {"case": "yts:ZCZ6", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Events before the error differ: got more lines after line 4: '=VAL :b'"},
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:safety/duplicate-keys-nested-200-levels-deep", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "RecursionError: maximum recursion depth exceeded"},
   {"case": "own:safety/duplicate-keys-nested-200-levels-deep", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "RecursionError: maximum recursion depth exceeded"}
  ]}

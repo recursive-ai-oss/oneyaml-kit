@@ -148,8 +148,6 @@
    "verdict": "fail",
    "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
   },
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "own:diagnostics/double-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/undeclared-tag-handle-is-a-syntax-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error category differs: expected syntax, got other"},
   {"case": "own:edit/add-item-after-a-keep-scalar-of-one-line-of-spaces-with-no-final-line-break", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (add) at \"/-\": the edit at . would not read back as the edited tree'"},
   {"case": "own:edit/add-item-after-a-keep-scalar-of-one-line-of-spaces-with-no-final-line-break", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (add) at \"/-\": the edit at . would not read back as the edited tree'"},
