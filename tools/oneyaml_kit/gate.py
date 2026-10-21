@@ -63,10 +63,14 @@ GO_OWN_CHECK = (
 # them (pure-Python parsers on the deeply nested safety cases) takes minutes alone, so the hand-over
 # tier leaves out the safety category and the full tier runs everything.
 PYTHON_HAND_OVER_CATEGORIES = ("parse", "edit", "schema", "diagnostics", "emit", "roundtrip")
+# Runs the named adapters through the kit, `width` at a time. The hand-over tier runs them all side by
+# side (small cases only, about 600 MiB together); the full tier runs two at a time, because its safety
+# cases take up to 2 GiB per adapter and eight at once would not fit a modest memory limit, and fewer
+# processes contending for the cores keeps the timed safety cases well inside their hang guards.
 PYTHON_KIT_RUNS = (
-    'py=$0; out=$1; cats=$2; shift 2; pids=; '
-    'for n in "$@"; do "$py" bin/kit fast --adapter "$n" --out "$out/$n" $cats & pids="$pids $!"; done; '
-    'rc=0; for pid in $pids; do wait "$pid" || rc=1; done; exit $rc')
+    'py=$0; out=$1; cats=$2; width=$3; shift 3; '
+    'printf "%s\\n" "$@" | xargs -P "$width" -I{} "$py" bin/kit fast --adapter {} --out "$out/{}" $cats')
+PYTHON_FULL_WIDTH = 2
 
 GO_CHECK = ["sh", "-c", 'test -z "$(gofmt -l .)" && go vet ./... && go test -short ./...']
 REFERENCE = "rust"  # the quick adapter that stands in for the rest on a core change
@@ -392,9 +396,11 @@ def _all_steps(areas: list[str], touched: dict, root: Path, out: Path) -> list[S
             if area == "python":
                 cats = " ".join(f"--category {c}" for c in PYTHON_HAND_OVER_CATEGORIES)
                 run = ["sh", "-c", PYTHON_KIT_RUNS, py(), str(out / "gate")]
-                steps += [Step(area, "python adapters: kit runs (without safety)", [*run, cats, *sel_names],
+                every = str(max(1, len(sel_names)))
+                steps += [Step(area, "python adapters: kit runs (without safety)", [*run, cats, every, *sel_names],
                                tier="hand-over"),
-                          Step(area, "python adapters: kit runs", [*run, "", *sel_names], tier="full")]
+                          Step(area, "python adapters: kit runs", [*run, "", str(PYTHON_FULL_WIDTH), *sel_names],
+                               tier="full")]
             elif not test:
                 for n in sel_names:
                     steps.append(Step(area, f"{n}: kit run", [py(), "bin/kit", "fast", "--adapter", n,
@@ -467,9 +473,9 @@ def run_step(step: Step, root: Path, out: Path, base_env: dict, index: int) -> d
 # up. The four largest side by side need about 9 GiB, which is why a fixed job count was killed
 # under a 6 GiB limit.
 # The python area (eight adapters and their kit runs side by side) measured 599 on the hand-over tier.
-# On the full tier (safety cases included) the largest single process was 1965 MiB (ruamel-rt); each
-# adapter is limited to 2048 MiB, so that is the figure.
-AREA_PEAK_MIB = {"core": 4096, "csharp": 2560, "bench-rust": 1792, "go": 1536, "rust": 1024, "python": 2048,
+# On the full tier (safety cases included) the largest single process was 1965 MiB (ruamel-rt), and
+# that tier runs two adapters at a time, so the figure is two adapters' worth.
+AREA_PEAK_MIB = {"core": 4096, "csharp": 2560, "bench-rust": 1792, "go": 1536, "rust": 1024, "python": 4096,
                  "bench-csharp": 512, "bench-go": 256, "bench-python": 512, "bench": 256}
 UNKNOWN_AREA_MIB = 1024
 # A typical big area, about the mean of the four largest, for turning a memory limit into a count.
