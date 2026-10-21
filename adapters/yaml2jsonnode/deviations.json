@@ -191,18 +191,18 @@
    "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:5"
   },
   {
-   "case": "own:edit/add-after-an-indented-comment-before-a-document-marker",
+   "case": "own:edit/add-before-an-indented-comment-before-a-document-marker",
    "expectation": "primary",
    "mode": "loose",
    "verdict": "fail",
-   "reason": "Output differs: first difference at byte 3: expected b' - a\\n # note\\nn: |-\\n multi\\n line\\n---\\n', got b'- \"a\"\\nn: \"multi\\\\nline\"\\nx: 1\\n' (lengths 48 and 31)"
+   "reason": "Output differs: first difference at byte 3: expected b' - a\\nm: x\\n # note\\n---\\nx: 1\\n', got b'- \"a\"\\nm: \"x\"\\nx: 1\\n' (lengths 32 and 21)"
   },
   {
-   "case": "own:edit/add-after-an-indented-comment-before-a-document-marker",
+   "case": "own:edit/add-before-an-indented-comment-before-a-document-marker",
    "expectation": "primary",
    "mode": "strict",
    "verdict": "fail",
-   "reason": "Output differs: first difference at byte 3: expected b' - a\\n # note\\nn: |-\\n multi\\n line\\n---\\n', got b'- \"a\"\\nn: \"multi\\\\nline\"\\nx: 1\\n' (lengths 48 and 31)"
+   "reason": "Output differs: first difference at byte 3: expected b' - a\\nm: x\\n # note\\n---\\nx: 1\\n', got b'- \"a\"\\nm: \"x\"\\nx: 1\\n' (lengths 32 and 21)"
   },
   {
    "case": "own:edit/add-sequence-item-in-the-middle",

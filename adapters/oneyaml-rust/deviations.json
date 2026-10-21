@@ -135,20 +135,6 @@
    "reason": "Same as the loose verdict: replacing a root that is an empty node with a tag and a comment after it by a collection is refused (the comment would belong to another owner there); the expected text drops the tag and keeps the comment on the marker line."
   },
   {
-   "case": "own:edit/add-after-an-indented-comment-before-a-document-marker",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "A comment before a document marker is the next document's header, so a member added at the end of the first document goes before it, not after: the expected text keeps the comment above the new member."
-  },
-  {
-   "case": "own:edit/add-after-an-indented-comment-before-a-document-marker",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "A comment before a document marker is the next document's header, so a member added at the end of the first document goes before it, not after: the expected text keeps the comment above the new member."
-  },
-  {
    "case": "yts:BS4K",
    "expectation": "primary",
    "mode": "strict",

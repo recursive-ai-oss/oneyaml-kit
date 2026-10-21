@@ -121,20 +121,6 @@
    "reason": "Same as the loose verdict: replacing a root that is an empty node with a tag and a comment after it by a collection is refused (the comment would belong to another owner there); the expected text drops the tag and keeps the comment on the marker line."
   },
   {
-   "case": "own:edit/add-after-an-indented-comment-before-a-document-marker",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "The engine writes the new member before the indented comment line that follows the last entry, and as a quoted key with a double-quoted value; the case expects it after the comment, in block style"
-  },
-  {
-   "case": "own:edit/add-after-an-indented-comment-before-a-document-marker",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Same as the loose verdict"
-  },
-  {
    "case": "own:emit/non-string-keys",
    "expectation": "primary",
    "mode": "loose",

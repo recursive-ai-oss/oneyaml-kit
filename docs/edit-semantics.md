@@ -150,8 +150,10 @@ above it with no blank line between, and a comment inside its value go with it; 
 directly above the next entry, a comment after the last entry, and a header comment
 separated from the first entry by a blank line stay. A comment line directly after an entry
 and indented more than its key belongs to that entry and goes with it, even when the entry
-is the last one. A member added at the end of a mapping goes after the comment lines that
-belong to its last entry. YAML defines comments as presentation detail with no owner, so these cases
+is the last one. The exception is a document marker: every comment line between the last
+entry of a document and the next `---`, indented or not, is the header of the next document.
+It stays when that entry is removed, and a member added at the end of the document goes
+before it. YAML defines comments as presentation detail with no owner, so these cases
 are few.
 
 ## The `test` operation

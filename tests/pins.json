@@ -59,7 +59,7 @@
    "diagnostics/verbatim-tag-that-is-not-a-uri-is-invalid": "2d4336d25c2ecef7de50b339e8e9e9042828203a92fdf08bfe303f41f1b3dd3f",
    "diagnostics/yaml-directive-after-document-end-needs-a-start-marker": "762acbe2a98c99cea756f3921cc0c0854c5ac7744b1b9c228192b433240642b2",
    "diagnostics/zero-block-scalar-indentation-indicator": "80431f39abccee8cd8ed505fb575e9ae4cc70208470763970900e2f0d29c935d",
-   "edit/add-after-an-indented-comment-before-a-document-marker": "bfbe1a6ec959b1bd63ee08288bd99103163b424c24e72781e58c210e8777564a",
+   "edit/add-before-an-indented-comment-before-a-document-marker": "6df9a71bb29a31e875273ad59e09eb17b28865863bb86934473a730656bb8ad9",
    "edit/add-below-empty-document-root-is-refused": "bea57af53de42cb127dca7103465609f595435d9872f566677641dc6cb72abab",
    "edit/add-boolean": "32cdfd1268c076be222413008b5ab17a56d9668c67e6d0a807829818403c4f6b",
    "edit/add-error-below-null": "b112452e04a3efc008178267d22a5c3ece07fc1c7e92d46a96492df0fc2314e6",

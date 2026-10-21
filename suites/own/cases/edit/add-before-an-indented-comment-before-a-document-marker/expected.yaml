@@ -1,8 +1,6 @@
 k:
   - a
+m: x
   # note
-n: |-
-  multi
-  line
 ---
 x: 1
