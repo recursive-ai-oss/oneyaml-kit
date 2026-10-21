@@ -16,6 +16,55 @@
    "reason": "Accepts input that is not valid YAML"
   },
   {
+   "case": "own:diagnostics/c1-control-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/c1-control-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/closing-quote-at-the-margin-of-a-nested-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 2:1, got 1:4"
+  },
+  {
+   "case": "own:diagnostics/closing-single-quote-at-the-margin-of-a-sequence-entry",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/closing-single-quote-at-the-margin-of-a-sequence-entry",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/del-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/del-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
    "case": "own:diagnostics/directive-then-document-end-is-an-error",
    "expectation": "primary",
    "mode": "strict",
@@ -72,6 +121,13 @@
    "reason": "Reports the error at 2:3; the first character that cannot belong to any document is at 2:4"
   },
   {
+   "case": "own:diagnostics/properties-on-their-own-line-before-a-key-of-an-open-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 2:6, got 2:1"
+  },
+  {
    "case": "own:diagnostics/second-colon-in-a-plain-scalar-value",
    "expectation": "primary",
    "mode": "strict",
@@ -93,6 +149,13 @@
    "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:9"
   },
   {
+   "case": "own:diagnostics/tab-before-a-document-marker-cannot-continue-a-block-mapping",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 2:2, got 1:4"
+  },
+  {
    "case": "own:diagnostics/unclosed-double-quote",
    "expectation": "primary",
    "mode": "strict",
@@ -105,6 +168,13 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reports the error at 2:1; the first character that cannot belong to any document is at 1:6"
+  },
+  {
+   "case": "own:diagnostics/unclosed-single-quote-after-escaped-quote",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error position differs: expected 1:6, got 1:1"
   },
   {
    "case": "own:diagnostics/unclosed-single-quote-without-final-newline",
@@ -280,6 +350,34 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Writes the document again from data instead of changing only the value: first difference at byte 10: expected b'  # dev\\nname: web\\n', got b'\\nname: \"web\"\\n' (lengths 28 and 23)"
+  },
+  {
+   "case": "own:parse/block-scalar-of-only-blank-lines-is-empty",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'While scanning a literal block scalar, found more spaces in lines above first content line.' at 5:1"
+  },
+  {
+   "case": "own:parse/block-scalar-of-only-blank-lines-is-empty",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'While scanning a literal block scalar, found more spaces in lines above first content line.' at 5:1"
+  },
+  {
+   "case": "own:parse/bom-line-after-bare-document-before-directives-end",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'While parsing a block mapping, did not find expected key.' at 2:1"
+  },
+  {
+   "case": "own:parse/bom-line-after-bare-document-before-directives-end",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'While parsing a block mapping, did not find expected key.' at 2:1"
   },
   {
    "case": "own:parse/line-separator-is-not-a-line-break",

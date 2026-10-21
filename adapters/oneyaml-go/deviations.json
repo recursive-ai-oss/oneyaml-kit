@@ -1,5 +1,7 @@
 {"format": "oneyaml-kit-deviations/1",
  "entries": [
+  {"case": "own:parse/block-scalar-of-only-blank-lines-is-empty", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'oneyaml: line 2, column 1: a leading empty line is indented more than the first content line' at 2:1"},
+  {"case": "own:parse/block-scalar-of-only-blank-lines-is-empty", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Rejects valid input: 'oneyaml: line 2, column 1: a leading empty line is indented more than the first content line' at 2:1"},
   {"case": "own:schema/code-constructing-tags-are-kept-or-refused", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "accepted with a wrong result: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"},
   {"case": "own:schema/code-constructing-tags-are-kept-or-refused", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "accepted with a wrong result: $[0]: expected {'$tagged': {'tag': 'tag:yaml.org,2002:python/object/appl..., got ['echo hi']"},
   {"case": "own:schema/global-tag-uri-is-kept", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Value differs at $[0]: expected {'$tagged': {'tag': 'tag:example.com,2000:shape', 'value'..., got [1, 2]"},

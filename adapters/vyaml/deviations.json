@@ -2,6 +2,104 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
+   "case": "own:diagnostics/c1-control-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/c1-control-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/closing-quote-at-the-margin-of-a-nested-scalar",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/closing-quote-at-the-margin-of-a-nested-scalar",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/closing-single-quote-at-the-margin-of-a-sequence-entry",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/closing-single-quote-at-the-margin-of-a-sequence-entry",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/del-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/del-in-a-comment-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/second-yaml-directive-is-an-error",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:diagnostics/second-yaml-directive-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "The library accepted this input; the case expects it to be rejected."
+  },
+  {
+   "case": "own:parse/block-scalar-of-only-blank-lines-is-empty",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Value differs at $[0].k: expected '', got None"
+  },
+  {
+   "case": "own:parse/block-scalar-of-only-blank-lines-is-empty",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Value differs at $[0].k: expected '', got None"
+  },
+  {
+   "case": "own:parse/bom-line-after-bare-document-before-directives-end",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'BOM must be at the beginning of the stream or document. at Line: 2, Col: 0, Idx: 8'"
+  },
+  {
+   "case": "own:parse/bom-line-after-bare-document-before-directives-end",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'BOM must be at the beginning of the stream or document. at Line: 2, Col: 0, Idx: 8'"
+  },
+  {
    "case": "own:parse/cr-blank-line-in-a-double-quoted-scalar-reads-as-line-feed",
    "expectation": "primary",
    "mode": "loose",
@@ -84,6 +182,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Accepts input that is not valid YAML"
+  },
+  {
+   "case": "own:parse/tab-before-a-document-marker-makes-it-text",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'Did not find expected token of `DocumentStart` at Line: 4, Col: 0, Idx: 16'"
+  },
+  {
+   "case": "own:parse/tab-before-a-document-marker-makes-it-text",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Rejects valid input: 'Did not find expected token of `DocumentStart` at Line: 4, Col: 0, Idx: 16'"
   },
   {
    "case": "own:parse/tag-handle-directive",

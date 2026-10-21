@@ -10,7 +10,7 @@
  "refs": [
   "YAML 1.2.2 section 6.8.1"
  ],
- "notes": "It is an error to give more than one YAML directive for the same document; the error is at the second directive.",
+ "notes": "The second directive is well formed (production 83 admits any directive name), so no character is at fault and no position is stated; section 6.8.1 makes a second YAML directive for the same document an error, even with the same version. The input is that of yaml-test-suite SF5V; this case adds the error category.",
  "provenance": {
   "reference": "A reader that reported the error at the end of the second directive instead of its start."
  },
@@ -19,8 +19,6 @@
  },
  "expect": {
   "kind": "error",
-  "category": "syntax",
-  "line": 2,
-  "column": 1
+  "category": "syntax"
  }
 }

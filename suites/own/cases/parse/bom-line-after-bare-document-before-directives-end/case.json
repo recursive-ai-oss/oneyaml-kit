@@ -6,7 +6,6 @@
  "origin": "fuzz",
  "productions": [
   "3",
-  "202",
   "211"
  ],
  "refs": [
@@ -14,7 +13,7 @@
   "YAML 1.2.2 section 9.1.1",
   "YAML 1.2.2 section 9.2"
  ],
- "notes": "A bare document may be followed by another that has a prefix: an optional byte order mark followed by comment lines (production 202), here the mark and its line break. The first document is not closed by an end marker, which the document prefix does not need (production 211). Compare `parse/bom-after-bare-document-before-directives-end`, where the start marker follows the mark on the same line.",
+ "notes": "After a bare document that is not closed by an end marker, the stream may continue with a byte order mark, comment lines and an explicit document (the alternatives of production 211); the mark's line break is a comment line with no text, since a line still starts after the mark (Example 9.1). Compare `parse/bom-after-bare-document-before-directives-end`, where the start marker follows the mark on the same line.",
  "provenance": {
   "reference": "A reader that accepted a byte order mark in front of `---` on the same line but refused one on a line of its own."
  },

@@ -2,6 +2,13 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
+   "case": "own:diagnostics/second-yaml-directive-is-an-error",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Error category differs: expected syntax, got other"
+  },
+  {
    "case": "yts:T833",
    "expectation": "primary",
    "mode": "strict",
@@ -1001,13 +1008,6 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Reports the error at the first anchor (1:4) instead of the second (1:7)"
-  },
-  {
-   "case": "own:diagnostics/second-yaml-directive-is-an-error",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Reports the error as other instead of syntax, at the end of the second directive (2:10) instead of its start (2:1)"
   },
   {
    "case": "own:diagnostics/unclosed-single-quote-after-escaped-quote",

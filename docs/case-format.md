@@ -162,6 +162,10 @@ A position is a 1-based `line` and `column`.
   one. A sequence that is merely incomplete at that byte is not counted as a
   character.
 
+The specification does not rank faults, so neither does the kit: an error case has one
+fault, and an input with two (say, a duplicate key and then an unclosed flow mapping) may be
+reported by either, depending on whether a reader checks keys while it reads or after.
+
 ## Expectations
 
 | `kind` | Fields | Passes when |

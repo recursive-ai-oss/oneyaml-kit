@@ -585,7 +585,6 @@
   {"case": "own:diagnostics/del-in-a-comment-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/del-in-a-comment-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/properties-on-their-own-line-before-a-key-of-an-open-mapping", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error position differs: expected 2:6, got 2:1"},
-  {"case": "own:diagnostics/second-yaml-directive-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error position differs: expected 2:1, got 1:1"},
   {"case": "own:diagnostics/tab-before-a-document-marker-cannot-continue-a-block-mapping", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error position differs: expected 2:2, got 2:1"},
   {"case": "own:diagnostics/unclosed-single-quote-after-escaped-quote", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error position differs: expected 1:6, got 1:1"},
   {"case": "own:parse/block-scalar-of-only-blank-lines-is-empty", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Rejects valid input: 'non-map value is specified' at 5:1"},

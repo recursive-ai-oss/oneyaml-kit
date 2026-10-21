@@ -16,7 +16,6 @@
   {"case": "own:diagnostics/closing-single-quote-at-the-margin-of-a-sequence-entry", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/del-in-a-comment-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/del-in-a-comment-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
-  {"case": "own:diagnostics/duplicate-key-before-a-later-syntax-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error category differs: expected duplicate-key, got syntax"},
   {"case": "own:diagnostics/second-bare-document-after-a-byte-order-mark-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/second-bare-document-after-a-byte-order-mark-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/second-yaml-directive-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error category differs: expected syntax, got duplicate-key"},

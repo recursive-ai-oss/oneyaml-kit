@@ -9,7 +9,6 @@
   {"case": "own:diagnostics/bom-inside-a-plain-scalar-is-an-error", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/bom-inside-a-plain-scalar-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/directive-then-document-end-is-an-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error position differs: expected 4:1, got 3:1"},
-  {"case": "own:diagnostics/duplicate-key-before-a-later-syntax-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error category differs: expected duplicate-key, got syntax"},
   {"case": "own:diagnostics/empty-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/empty-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
   {"case": "own:diagnostics/explicit-key-with-adjacent-flow-value-is-invalid", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library accepted this input; the case expects it to be rejected."},
