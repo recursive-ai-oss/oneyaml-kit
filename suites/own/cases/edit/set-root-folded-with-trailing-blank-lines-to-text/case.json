@@ -1,0 +1,35 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/set-root-folded-with-trailing-blank-lines-to-text",
+ "title": "A root folded scalar set to text with no final line break becomes strip and keeps its trailing empty lines",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "174",
+  "164"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 8.1.3",
+  "YAML 1.2.2 section 8.1.1.2",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "notes": "The input is a folded scalar with clip chomping, `folded text` and one final line break, followed by two empty lines. With clip chomping, trailing empty lines are not content (section 8.1.1.2), so they are not part of the value that is replaced and stay where they are, as in `edit/replace-literal-followed-by-blank-line-with-list-keeps-literal` (only the empty lines of a keep scalar go with it). The new value `n` has no final line break, so the header becomes `>-`; the content indentation of one space is the old one.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend dropped the folded style and wrote a plain scalar `n` followed by the two empty lines; the pure backend wrote the expected bytes."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "",
+    "value": "n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

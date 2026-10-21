@@ -1,0 +1,38 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-tagged-scalar-through-a-tag-directive-keeps-the-tag",
+ "title": "A scalar tagged through a %TAG handle keeps its tag and its directive when its value is replaced",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "97",
+  "89"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.8.2",
+  "YAML 1.2.2 section 6.9.1",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The tag `!e!foo` resolves through the `%TAG` directive to `tag:example.com,2000:foo`. The new value `yes` is a string and still a scalar, so reading it back under that tag gives exactly the value that was set and the tag stays (a kit convention, docs/edit-semantics.md: a custom tag on a scalar stays while the new value is a scalar). The directive is outside the node and is not touched. `yes` is a string in the core schema, so it is written plain.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend dropped the tag and wrote `yes`; the pure backend wrote the expected bytes."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "",
+    "value": "yes"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

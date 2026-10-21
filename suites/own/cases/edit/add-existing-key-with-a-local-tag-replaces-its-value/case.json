@@ -3,7 +3,7 @@
  "id": "edit/add-existing-key-with-a-local-tag-replaces-its-value",
  "title": "An add at the text of a key that carries a local tag replaces that key's value",
  "category": "edit",
- "origin": "bug",
+ "origin": "spec",
  "refs": [
   "RFC 6902 section 4.1",
   "RFC 6901 section 4",

@@ -2,20 +2,6 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
-   "case": "own:edit/add-key-after-a-literal-with-a-tab-in-its-content-and-no-final-line-break",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "The library refused the patch: 'patch-edit: operation 0 (add) at \"/bar\": the edit at bar would not read back as the edited tree'"
-  },
-  {
-   "case": "own:edit/add-key-after-a-literal-with-a-tab-in-its-content-and-no-final-line-break",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "The library refused the patch: 'patch-edit: operation 0 (add) at \"/bar\": the edit at bar would not read back as the edited tree'"
-  },
-  {
    "case": "own:edit/merge-patch-array-replaces-a-flow-sequence-member-in-flow-style",
    "expectation": "primary",
    "mode": "loose",
@@ -233,20 +219,6 @@
    "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
   },
   {
-   "case": "own:edit/merge-into-tagged-marker-keeps-marker-comment",
-   "expectation": "primary",
-   "mode": "loose",
-   "verdict": "fail",
-   "reason": "Replacing a root that is an empty node with a tag and a comment after it by a collection is refused (the comment would belong to another owner there); the expected text drops the tag and keeps the comment on the marker line."
-  },
-  {
-   "case": "own:edit/merge-into-tagged-marker-keeps-marker-comment",
-   "expectation": "primary",
-   "mode": "strict",
-   "verdict": "fail",
-   "reason": "Same as the loose verdict: replacing a root that is an empty node with a tag and a comment after it by a collection is refused (the comment would belong to another owner there); the expected text drops the tag and keeps the comment on the marker line."
-  },
-  {
    "case": "own:emit/non-string-keys",
    "expectation": "primary",
    "mode": "loose",
@@ -274,22 +246,19 @@
    "verdict": "fail",
    "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
   },
-  {"case": "own:diagnostics/undeclared-tag-handle-is-a-syntax-error", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error category differs: expected syntax, got unresolved-tag"},
-  {"case": "own:edit/add-item-after-a-keep-scalar-of-one-line-of-spaces-with-no-final-line-break", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (add) at \"/-\": the edit at . would not read back as the edited tree'"},
-  {"case": "own:edit/add-item-after-a-keep-scalar-of-one-line-of-spaces-with-no-final-line-break", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (add) at \"/-\": the edit at . would not read back as the edited tree'"},
-  {"case": "own:edit/add-key-after-a-block-scalar-ending-in-a-line-of-spaces-with-no-final-line-break", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (add) at \"/zz\": the edit at zz would not read back as the edited tree'"},
-  {"case": "own:edit/add-key-after-a-block-scalar-ending-in-a-line-of-spaces-with-no-final-line-break", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (add) at \"/zz\": the edit at zz would not read back as the edited tree'"},
-  {"case": "own:edit/add-key-after-a-block-scalar-with-no-final-line-break", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (add) at \"/zz\": the edit at zz would not read back as the edited tree'"},
-  {"case": "own:edit/add-key-after-a-block-scalar-with-no-final-line-break", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (add) at \"/zz\": the edit at zz would not read back as the edited tree'"},
-  {"case": "own:edit/add-strings-that-yaml-1-1-reads-as-other-types-stay-plain-in-core", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 13: expected b'yes\\nd: 2024-05-01\\ne: 1_000\\nf: 0b101\\n', got b\"'yes'\\nd: '2024-05-01'\\ne: '1_000'\\nf: '0b1\" (lengths 49 and 57)"},
-  {"case": "own:edit/add-strings-that-yaml-1-1-reads-as-other-types-stay-plain-in-core", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 13: expected b'yes\\nd: 2024-05-01\\ne: 1_000\\nf: 0b101\\n', got b\"'yes'\\nd: '2024-05-01'\\ne: '1_000'\\nf: '0b1\" (lengths 49 and 57)"},
-  {"case": "own:edit/merge-patch-on-a-sequence-writes-plain-keys", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 0: expected b'n: 1\\n', got b\"'n': 1\\n\" (lengths 5 and 7)"},
-  {"case": "own:edit/merge-patch-on-a-sequence-writes-plain-keys", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 0: expected b'n: 1\\n', got b\"'n': 1\\n\" (lengths 5 and 7)"},
-  {"case": "own:edit/remove-only-item-of-a-nested-sequence-keeps-the-footer-comment", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 3: expected b']\\n  # note\\n', got b'\\n  # note\\n  ]\\n' (lengths 14 and 17)"},
-  {"case": "own:edit/remove-only-item-of-a-nested-sequence-keeps-the-footer-comment", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 3: expected b']\\n  # note\\n', got b'\\n  # note\\n  ]\\n' (lengths 14 and 17)"},
-  {"case": "own:edit/replace-root-mapping-keeps-the-comment-above-it", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 0: expected b'# head\\nq: 1\\n', got b'q: 1\\n' (lengths 12 and 5)"},
-  {"case": "own:edit/replace-root-mapping-keeps-the-comment-above-it", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 0: expected b'# head\\nq: 1\\n', got b'q: 1\\n' (lengths 12 and 5)"},
-  {"case": "own:edit/set-value-of-a-flow-key-with-an-empty-value", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (replace) at \"/b\": the edit at . would not read back as the edited tree'"},
-  {"case": "own:edit/set-value-of-a-flow-key-with-an-empty-value", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (replace) at \"/b\": the edit at . would not read back as the edited tree'"}
+  {"case": "own:edit/add-key-after-an-indented-comment-owned-by-the-last-entry", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b' # n\\nnk: n\\n', got b'nk: n\\n # n\\n' (lengths 17 and 17)"},
+  {"case": "own:edit/add-key-after-an-indented-comment-owned-by-the-last-entry", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b' # n\\nnk: n\\n', got b'nk: n\\n # n\\n' (lengths 17 and 17)"},
+  {"case": "own:edit/remove-only-key-of-a-flow-mapping-leaves-empty-braces", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 4: expected b'}\\n', got b' }\\n' (lengths 6 and 7)"},
+  {"case": "own:edit/remove-only-key-of-a-flow-mapping-leaves-empty-braces", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 4: expected b'}\\n', got b' }\\n' (lengths 6 and 7)"},
+  {"case": "own:edit/replace-empty-document-with-a-scalar-keeps-marker-comment", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (replace) at \"\": the comment would belong to another owner there (rule 5: trailing: after content on its line)'"},
+  {"case": "own:edit/replace-empty-document-with-a-scalar-keeps-marker-comment", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (replace) at \"\": the comment would belong to another owner there (rule 5: trailing: after content on its line)'"},
+  {"case": "own:edit/replace-tab-led-root-flow-mapping-keeps-the-tab", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (replace) at \"\": the edit at . would not read back as the edited tree'"},
+  {"case": "own:edit/replace-tab-led-root-flow-mapping-keeps-the-tab", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (replace) at \"\": the edit at . would not read back as the edited tree'"},
+  {"case": "own:edit/replace-tagged-scalar-through-a-tag-directive-keeps-the-tag", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 35: expected b'!e!foo yes\\n', got b'yes\\n' (lengths 46 and 39)"},
+  {"case": "own:edit/replace-tagged-scalar-through-a-tag-directive-keeps-the-tag", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 35: expected b'!e!foo yes\\n', got b'yes\\n' (lengths 46 and 39)"},
+  {"case": "own:edit/set-root-folded-with-trailing-blank-lines-to-text", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 0: expected b'>-\\n n\\n\\n\\n', got b'n\\n\\n\\n' (lengths 8 and 4)"},
+  {"case": "own:edit/set-root-folded-with-trailing-blank-lines-to-text", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 0: expected b'>-\\n n\\n\\n\\n', got b'n\\n\\n\\n' (lengths 8 and 4)"},
+  {"case": "own:edit/set-root-literal-to-text-without-a-newline-becomes-strip", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 4: expected b'|-\\n n\\n', got b'n\\n' (lengths 11 and 6)"},
+  {"case": "own:edit/set-root-literal-to-text-without-a-newline-becomes-strip", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 4: expected b'|-\\n n\\n', got b'n\\n' (lengths 11 and 6)"}
  ]
 }

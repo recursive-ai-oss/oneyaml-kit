@@ -4,6 +4,10 @@
  "title": "A literal scalar whose last line holds only spaces keeps its style when set to text, and the line goes",
  "category": "edit",
  "origin": "bug",
+ "productions": [
+  "170",
+  "171"
+ ],
  "refs": [
   "YAML 1.2.2 section 8.1.1",
   "docs/edit-semantics.md"

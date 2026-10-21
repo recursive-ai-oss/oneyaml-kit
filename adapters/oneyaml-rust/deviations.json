@@ -245,6 +245,20 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Upstream events before the error are defective; the corrected expectation passes (see corrections.json)"
-  }
+  },
+  {"case": "own:edit/add-key-after-an-indented-comment-owned-by-the-last-entry", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b' # n\\nnk: n\\n', got b'nk: n\\n # n\\n' (lengths 17 and 17)"},
+  {"case": "own:edit/add-key-after-an-indented-comment-owned-by-the-last-entry", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b' # n\\nnk: n\\n', got b'nk: n\\n # n\\n' (lengths 17 and 17)"},
+  {"case": "own:edit/remove-only-key-of-a-flow-mapping-leaves-empty-braces", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 4: expected b'}\\n', got b' }\\n' (lengths 6 and 7)"},
+  {"case": "own:edit/remove-only-key-of-a-flow-mapping-leaves-empty-braces", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 4: expected b'}\\n', got b' }\\n' (lengths 6 and 7)"},
+  {"case": "own:edit/replace-empty-document-with-a-scalar-keeps-marker-comment", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (replace) at \"\": the comment would belong to another owner there (rule 5: trailing: after content on its line)'"},
+  {"case": "own:edit/replace-empty-document-with-a-scalar-keeps-marker-comment", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (replace) at \"\": the comment would belong to another owner there (rule 5: trailing: after content on its line)'"},
+  {"case": "own:edit/replace-tab-led-root-flow-mapping-keeps-the-tab", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (replace) at \"\": the edit at . would not read back as the edited tree'"},
+  {"case": "own:edit/replace-tab-led-root-flow-mapping-keeps-the-tab", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "The library refused the patch: 'patch-edit: operation 0 (replace) at \"\": the edit at . would not read back as the edited tree'"},
+  {"case": "own:edit/replace-tagged-scalar-through-a-tag-directive-keeps-the-tag", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 35: expected b'!e!foo yes\\n', got b'yes\\n' (lengths 46 and 39)"},
+  {"case": "own:edit/replace-tagged-scalar-through-a-tag-directive-keeps-the-tag", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 35: expected b'!e!foo yes\\n', got b'yes\\n' (lengths 46 and 39)"},
+  {"case": "own:edit/set-root-folded-with-trailing-blank-lines-to-text", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 0: expected b'>-\\n n\\n\\n\\n', got b'n\\n\\n\\n' (lengths 8 and 4)"},
+  {"case": "own:edit/set-root-folded-with-trailing-blank-lines-to-text", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 0: expected b'>-\\n n\\n\\n\\n', got b'n\\n\\n\\n' (lengths 8 and 4)"},
+  {"case": "own:edit/set-root-literal-to-text-without-a-newline-becomes-strip", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 4: expected b'|-\\n n\\n', got b'n\\n' (lengths 11 and 6)"},
+  {"case": "own:edit/set-root-literal-to-text-without-a-newline-becomes-strip", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 4: expected b'|-\\n n\\n', got b'n\\n' (lengths 11 and 6)"}
  ]
 }

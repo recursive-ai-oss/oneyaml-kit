@@ -1,0 +1,39 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-empty-document-with-a-scalar-keeps-marker-comment",
+ "title": "Replacing an empty document with a scalar writes it after the start marker, before the marker comment",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "203",
+  "207",
+  "211"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 9.1.4",
+  "YAML 1.2.2 section 6.6",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "The document is `---` with a comment and no content, so its root is empty (null). A scalar root is written on the marker line after `---`, and the comment, which is outside the node, stays after it, still separated from the scalar by a space. The specification also allows the scalar on the next line (`edit/replace-empty-document-keeps-marker-comment` puts a mapping there, which cannot share the marker line); that a scalar goes on the marker line is a kit convention.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend refused the edit, saying the comment would belong to another owner; the pure backend wrote the expected bytes."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "",
+    "value": "n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

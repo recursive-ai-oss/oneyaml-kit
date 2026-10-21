@@ -1,0 +1,42 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/replace-tab-led-root-flow-mapping-keeps-the-tab",
+ "title": "A root flow mapping that starts after a tab is replaced by a flow mapping in place",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "137",
+  "140"
+ ],
+ "refs": [
+  "YAML 1.2.2 section 6.2",
+  "YAML 1.2.2 section 7.4",
+  "RFC 6902 section 4.3",
+  "docs/edit-semantics.md"
+ ],
+ "tags": [
+  "convention"
+ ],
+ "notes": "A tab may separate a flow collection from the start of its line (the yaml-test-suite case Q5MG), and it is not indentation, so the tab belongs to the document and stays. The root is an empty flow mapping; a flow collection written in place of another uses the flow form `{k: v}` and `, ` (Kit conventions: inserting into a flow collection), here with the inner sequence `[1]` in flow form too.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend refused the edit as one that would not read back; the pure backend wrote the expected bytes."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "replace",
+    "path": "",
+    "value": {
+     "q": [
+      1
+     ]
+    }
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

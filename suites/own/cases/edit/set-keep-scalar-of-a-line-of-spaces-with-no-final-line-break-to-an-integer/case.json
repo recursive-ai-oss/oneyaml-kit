@@ -4,6 +4,10 @@
  "title": "A keep scalar that is one line of spaces with no final line break is replaced whole",
  "category": "edit",
  "origin": "bug",
+ "productions": [
+  "170",
+  "164"
+ ],
  "refs": [
   "YAML 1.2.2 section 8.1.1",
   "docs/edit-semantics.md"
