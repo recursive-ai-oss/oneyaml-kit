@@ -308,6 +308,11 @@ class SubprocessAdapter:
                 os.kill(pid, 9)
             except OSError:
                 pass
+        # A killed process takes a moment to exit; wait for it, so that nothing of this session is
+        # still running (or still counted in a memory reading) when the next case starts.
+        deadline = time.monotonic() + 5
+        while tree_pids(session) and time.monotonic() < deadline:
+            time.sleep(0.01)
 
     def stop(self) -> None:
         p = self.proc
