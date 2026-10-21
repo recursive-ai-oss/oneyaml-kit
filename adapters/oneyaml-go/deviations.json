@@ -42,5 +42,7 @@
   {"case": "own:edit/remove-last-entry-takes-an-indented-comment-ending-the-stream", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 3: expected b'', got b'  # note\\n' (lengths 3 and 12)"},
   {"case": "own:edit/remove-only-root-entry-takes-the-comment-directly-above", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 0: expected b'{}\\n', got b'# head\\n{}\\n' (lengths 3 and 10)"},
   {"case": "own:edit/remove-only-root-entry-takes-the-comment-directly-above", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 0: expected b'{}\\n', got b'# head\\n{}\\n' (lengths 3 and 10)"},
-  {"case": "own:safety/duplicate-keys-nested-200-levels-deep", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error category differs: expected one of duplicate-key, limit, got other"}
+  {"case": "own:safety/duplicate-keys-nested-200-levels-deep", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Error category differs: expected one of duplicate-key, limit, got other"},
+  {"case": "own:edit/add-key-after-an-indented-comment-owned-by-the-last-entry", "expectation": "primary", "mode": "loose", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b' # n\\nnk: n\\n', got b'nk: n\\n # n\\n' (lengths 17 and 17)"},
+  {"case": "own:edit/add-key-after-an-indented-comment-owned-by-the-last-entry", "expectation": "primary", "mode": "strict", "verdict": "fail", "reason": "Output differs: first difference at byte 5: expected b' # n\\nnk: n\\n', got b'nk: n\\n # n\\n' (lengths 17 and 17)"}
  ]}

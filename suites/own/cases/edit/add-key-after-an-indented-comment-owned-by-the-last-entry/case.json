@@ -1,0 +1,37 @@
+{
+ "format": "oneyaml-kit-case/2",
+ "id": "edit/add-key-after-an-indented-comment-owned-by-the-last-entry",
+ "title": "A member added at the end of a mapping goes after the indented comment its last entry owns",
+ "category": "edit",
+ "origin": "bug",
+ "productions": [
+  "187",
+  "75"
+ ],
+ "refs": [
+  "docs/edit-semantics.md",
+  "RFC 6902 section 4.1"
+ ],
+ "tags": [
+  "convention",
+  "comment-ownership"
+ ],
+ "notes": "The comment line is indented more than the key `k`, so it belongs to the entry `k` (docs/edit-semantics.md, Comments: a comment line directly after an entry and indented more than its key belongs to that entry). A member added at the end of the mapping goes after the whole entry, so after that comment; the exception is only for comments before a document marker (`edit/add-before-an-indented-comment-before-a-document-marker`). The exact bytes rest on the kit convention for comment ownership.",
+ "provenance": {
+  "reference": "Differential testing of the oneyaml-python native and pure backends; the native backend put the new member between the entry and its comment; the pure backend wrote the expected bytes."
+ },
+ "operation": {
+  "type": "patch",
+  "patch": [
+   {
+    "op": "add",
+    "path": "/nk",
+    "value": "n"
+   }
+  ]
+ },
+ "expect": {
+  "kind": "bytes",
+  "file": "expected.yaml"
+ }
+}

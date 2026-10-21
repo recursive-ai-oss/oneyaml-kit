@@ -3,7 +3,7 @@
  "id": "edit/replace-pointer-matches-a-key-with-a-local-tag-by-its-text",
  "title": "A pointer token matches a key that carries a local tag by its text",
  "category": "edit",
- "origin": "bug",
+ "origin": "spec",
  "refs": [
   "RFC 6901 section 4",
   "YAML 1.2.2 section 3.2.1.3",

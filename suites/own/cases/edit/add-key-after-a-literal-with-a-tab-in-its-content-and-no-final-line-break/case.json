@@ -4,6 +4,10 @@
  "title": "A key added after a strip literal whose content starts with a tab and has no final line break",
  "category": "edit",
  "origin": "bug",
+ "productions": [
+  "170",
+  "171"
+ ],
  "refs": [
   "YAML 1.2.2 section 8.1.1",
   "RFC 6902 section 4.1",
