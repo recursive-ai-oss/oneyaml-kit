@@ -11,12 +11,11 @@ name = "oneyaml-kit-adapter"
 path = "src/main.rs"
 
 [dependencies]
-# The library under test, pinned to an exact revision of its repository (the patch API the
-# adapter uses is newer than the last release). Moving the pin is a deliberate change that is
+# The library under test, pinned to an exact release. Moving the pin is a deliberate change that is
 # checked together with the deviation list.
-oneyaml = { git = "https://github.com/recursive-ai-oss/oneyaml-rust", rev = "3ea4ac94d92a4c66382a7601c15ce1e987020533", default-features = false } # engine revision
-oneyaml-syntax = { git = "https://github.com/recursive-ai-oss/oneyaml-rust", rev = "3ea4ac94d92a4c66382a7601c15ce1e987020533" } # engine revision
-oneyaml-core = { git = "https://github.com/recursive-ai-oss/oneyaml-rust", rev = "3ea4ac94d92a4c66382a7601c15ce1e987020533" } # engine revision
+oneyaml = { version = "=1.2.0", default-features = false }
+oneyaml-syntax = "=0.2.0"
+oneyaml-core = "=1.2.0"
 serde_json = "=1.0.149"
 base64 = "=0.22.1"
 

@@ -13,7 +13,7 @@ path = "src/main.rs"
 [dependencies]
 # Every library under measurement is pinned to an exact release; moving a pin is a
 # deliberate change and shows up in the results (each result records the versions).
-oneyaml = { version = "=1.1.0", default-features = false }
+oneyaml = { version = "=1.2.0", default-features = false }
 serde_yaml_ng = "=0.10.0"
 saphyr = "=0.2.1"
 saphyr-parser = "=0.2.1"
