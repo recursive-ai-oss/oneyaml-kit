@@ -55,6 +55,7 @@ having got YAML wrong.
 - **A new multi-line string member.** A string with a line break that is written as new content (an added member, or an item of a collection that replaces another node) is a literal block scalar, with the chomping indicator its final line breaks need. A multi-line string that replaces an inline scalar stays on its line, double-quoted (below). The specification allows quoted styles too, so this is a convention.
 - **Comments of a removed entry.** See *Comments* below.
 - **The layout of a new nested block collection** (a sequence or a mapping) copies the indentation of a sibling collection of the same kind. With no sibling sequence to copy (or no sibling mapping, for a mapping), a new block sequence or block mapping under a key or as a sequence item, whether added or set in place of a scalar, is indented by the document's block indentation step, which is how far a block mapping's entries are indented under their key. The step is taken from the mapping that holds the key of the new collection when that mapping is itself nested under a key, and then from the next mapping out that is; so the enclosing mapping's own step wins over the step used elsewhere in the document. When the new key is in the root mapping, no enclosing mapping gives a step, and the step of the nearest preceding nested block mapping is used. The step is two spaces when the document has no nested block mapping.
+- **The empty lines a replaced keep scalar ended with.** When a block scalar with keep chomping (`+`) is replaced by a collection, its trailing empty lines go with it, because they were part of its text. Left in place they would read back the same after the new collection, so this is a convention.
 - **A collection replaced by a scalar stays on the key's line.** `a: 5`, not `a:` with the value on the next line, indented. Production [194] allows both and they read back the same.
 - **A whitespace-only line after a removed last entry.** When removing the last entry of a block collection would leave a whitespace-only line directly after a block scalar, where it would read as content of that scalar, the line goes with the removed entry. Keeping it as an empty line reads back the same, so this is a convention.
 - **Indentation of a rewritten block scalar** reuses the old content's indentation.
@@ -149,7 +150,8 @@ above it with no blank line between, and a comment inside its value go with it; 
 directly above the next entry, a comment after the last entry, and a header comment
 separated from the first entry by a blank line stay. A comment line directly after an entry
 and indented more than its key belongs to that entry and goes with it, even when the entry
-is the last one. YAML defines comments as presentation detail with no owner, so these cases
+is the last one. A member added at the end of a mapping goes after the comment lines that
+belong to its last entry. YAML defines comments as presentation detail with no owner, so these cases
 are few.
 
 ## The `test` operation

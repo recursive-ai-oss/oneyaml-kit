@@ -17,7 +17,7 @@
   "convention",
   "comment-ownership"
  ],
- "notes": "The comment is indented more than the key `k`, so it belongs to that entry (see Comments in the edit rules) and the new member goes after it. The comment must not be separated from the entry by the document marker, and must never end up directly after the new literal block scalar, where it would read as the text `# note`.",
+ "notes": "The comment is indented more than the key `k`, so under the kit's comment-ownership convention it belongs to that entry (see Comments in docs/edit-semantics.md), and the new member, which goes at the end of the mapping, goes after it. Writing the new multi-line string as a literal block scalar is also a kit convention. The comment must not be separated from the entry by the document marker, and must never end up directly after the new literal block scalar at its content indentation, where it would read as the text `# note`.",
  "provenance": {
   "reference": "Found by comparing random edits of random documents with a plain model while building a lossless document for a Python library."
  },

@@ -2,6 +2,48 @@
  "format": "oneyaml-kit-deviations/1",
  "entries": [
   {
+   "case": "own:edit/add-after-an-indented-comment-before-a-document-marker",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 9: expected b' # note\\nn: |-\\n multi\\n line\\n---\\nx: 1\\n', got b'n: \"multi\\\\nline\"\\n # note\\n---\\nx: 1\\n' (lengths 48 and 44)"
+  },
+  {
+   "case": "own:edit/add-after-an-indented-comment-before-a-document-marker",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 9: expected b' # note\\nn: |-\\n multi\\n line\\n---\\nx: 1\\n', got b'n: \"multi\\\\nline\"\\n # note\\n---\\nx: 1\\n' (lengths 48 and 44)"
+  },
+  {
+   "case": "own:edit/set-over-keep-scalar-with-an-empty-line-before-a-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 10: expected b'# end\\n', got b'\\n# end\\n' (lengths 16 and 17)"
+  },
+  {
+   "case": "own:edit/set-over-keep-scalar-with-an-empty-line-before-a-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 10: expected b'# end\\n', got b'\\n# end\\n' (lengths 16 and 17)"
+  },
+  {
+   "case": "own:edit/set-root-to-mapping-with-keep-scalar-before-a-document-marker",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|+\\n two\\n\\n---\\nb: 1\\n', got b'\"two\\\\n\\\\n\"\\n\\n---\\nb: 1\\n' (lengths 22 and 23)"
+  },
+  {
+   "case": "own:edit/set-root-to-mapping-with-keep-scalar-before-a-document-marker",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|+\\n two\\n\\n---\\nb: 1\\n', got b'\"two\\\\n\\\\n\"\\n\\n---\\nb: 1\\n' (lengths 22 and 23)"
+  },
+  {
    "case": "yts:UGM3@value",
    "expectation": "primary",
    "mode": "loose",

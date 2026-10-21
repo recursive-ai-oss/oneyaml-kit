@@ -5,7 +5,8 @@
  "category": "edit",
  "origin": "fuzz",
  "productions": [
-  "187"
+  "187",
+  "140"
  ],
  "refs": [
   "RFC 7396 section 2",

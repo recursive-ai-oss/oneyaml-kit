@@ -19,7 +19,7 @@
  "tags": [
   "convention"
  ],
- "notes": "The empty line before `---` belongs to the first document. A keep scalar at its end reads that line as part of its value, so `two` followed by that one empty line is the value `two` plus two line feeds, and no further empty line is written. The second document is not touched. The string with line breaks becomes a literal block scalar as for any new multi-line string member.",
+ "notes": "The empty line before `---` belongs to the first document. A keep scalar at its end reads that line as part of its value, so `two` followed by that one empty line is the value `two` plus two line feeds, and no further empty line is written. The second document is not touched. Writing the string with line breaks as a literal block scalar is the kit convention for a new multi-line string member (see Kit conventions in docs/edit-semantics.md); a double-quoted `\"two\\n\\n\"` would read back the same.",
  "provenance": {
   "reference": "Found by comparing random edits of random documents with a plain model while building a lossless document for a Python library."
  },

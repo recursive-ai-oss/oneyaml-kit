@@ -14,7 +14,7 @@
   "RFC 6902 section 4.3",
   "docs/edit-semantics.md"
  ],
- "notes": "A keep scalar ends where the next line is less indented, and a comment line after it is not part of its value. The new mapping is written on the lines after the key, and the comment line stays a comment on its own line: it is not a comment at the end of the key line, and it is not taken as text of the new value.",
+ "notes": "A keep scalar ends where the next line is less indented, and a comment line after it is not part of its value. The new mapping is written on the lines after the key, and the comment line stays a comment on its own line: it is not a comment at the end of the key line, and it is not taken as text of the new value. Writing the new mapping as a block mapping indented by the document's block indentation step (two spaces, as the document has no nested block mapping) is a kit convention (see Kit conventions in docs/edit-semantics.md); `a: {k: 1}` would read back the same.",
  "provenance": {
   "reference": "Found by comparing random edits of random documents with a plain model while building a lossless document for a Python library."
  },
@@ -33,5 +33,8 @@
  "expect": {
   "kind": "bytes",
   "file": "expected.yaml"
- }
+ },
+ "tags": [
+  "convention"
+ ]
 }

@@ -14,7 +14,7 @@
   "RFC 6902 section 4.3",
   "docs/edit-semantics.md"
  ],
- "notes": "The empty line after `two` is a line break of the keep scalar (section 8.1.1.2), so it is part of the value that is replaced. Only the comment line after it stays. This is the same reading as `edit/set-literal-keep-drops-the-extra-line`.",
+ "notes": "The empty line after `two` is a line break of the keep scalar (section 8.1.1.2), so it is part of the text of the value that is replaced, and it goes with that value; only the comment line after it stays. Left in place it would read back the same after the new mapping, so dropping it is a kit convention (see Kit conventions in docs/edit-semantics.md), unlike `edit/set-literal-keep-drops-the-extra-line`, where exact read-back requires it. The new block mapping is indented by the document's block indentation step, two spaces here, also a convention.",
  "provenance": {
   "reference": "Found by comparing random edits of random documents with a plain model while building a lossless document for a Python library."
  },
@@ -33,5 +33,8 @@
  "expect": {
   "kind": "bytes",
   "file": "expected.yaml"
- }
+ },
+ "tags": [
+  "convention"
+ ]
 }

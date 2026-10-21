@@ -191,6 +191,20 @@
    "reason": "Reports the error at 1:4; the first character that cannot belong to any document is at 1:5"
   },
   {
+   "case": "own:edit/add-after-an-indented-comment-before-a-document-marker",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b' - a\\n # note\\nn: |-\\n multi\\n line\\n---\\n', got b'- \"a\"\\nn: \"multi\\\\nline\"\\nx: 1\\n' (lengths 48 and 31)"
+  },
+  {
+   "case": "own:edit/add-after-an-indented-comment-before-a-document-marker",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b' - a\\n # note\\nn: |-\\n multi\\n line\\n---\\n', got b'- \"a\"\\nn: \"multi\\\\nline\"\\nx: 1\\n' (lengths 48 and 31)"
+  },
+  {
    "case": "own:edit/add-sequence-item-in-the-middle",
    "expectation": "primary",
    "mode": "loose",
@@ -310,6 +324,20 @@
    "reason": "Accepts input that is not valid YAML"
   },
   {
+   "case": "own:edit/remove-last-entry-after-keep-scalar-keeps-its-value",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|+\\n two\\n\\n# end\\n', got b'\"two\\\\n\\\\n\"\\n' (lengths 19 and 13)"
+  },
+  {
+   "case": "own:edit/remove-last-entry-after-keep-scalar-keeps-its-value",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|+\\n two\\n\\n# end\\n', got b'\"two\\\\n\\\\n\"\\n' (lengths 19 and 13)"
+  },
+  {
    "case": "own:edit/second-document",
    "expectation": "primary",
    "mode": "loose",
@@ -336,6 +364,48 @@
    "mode": "strict",
    "verdict": "fail",
    "reason": "Writes the document again from data instead of changing only the value: first difference at byte 2: expected b'a\\n- x # keep\\n- c\\n', got b'\"a\"\\n- \"x\"\\n- \"c\"\\n' (lengths 19 and 18)"
+  },
+  {
+   "case": "own:edit/set-over-keep-scalar-before-a-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 10: expected b'# end\\n', got b'' (lengths 16 and 10)"
+  },
+  {
+   "case": "own:edit/set-over-keep-scalar-before-a-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 10: expected b'# end\\n', got b'' (lengths 16 and 10)"
+  },
+  {
+   "case": "own:edit/set-over-keep-scalar-with-an-empty-line-before-a-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 10: expected b'# end\\n', got b'' (lengths 16 and 10)"
+  },
+  {
+   "case": "own:edit/set-over-keep-scalar-with-an-empty-line-before-a-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 10: expected b'# end\\n', got b'' (lengths 16 and 10)"
+  },
+  {
+   "case": "own:edit/set-root-to-mapping-with-keep-scalar-before-a-document-marker",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|+\\n two\\n\\n---\\nb: 1\\n', got b'\"two\\\\n\\\\n\"\\nb: 1\\n' (lengths 22 and 18)"
+  },
+  {
+   "case": "own:edit/set-root-to-mapping-with-keep-scalar-before-a-document-marker",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "fail",
+   "reason": "Output differs: first difference at byte 3: expected b'|+\\n two\\n\\n---\\nb: 1\\n', got b'\"two\\\\n\\\\n\"\\nb: 1\\n' (lengths 22 and 18)"
   },
   {
    "case": "own:edit/trailing-comment-kept",

@@ -212,6 +212,48 @@
    "reason": "Accepts input that is not valid YAML"
   },
   {
+   "case": "own:edit/set-over-keep-scalar-before-a-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: a collection value needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/set-over-keep-scalar-before-a-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: a collection value needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/set-over-keep-scalar-with-an-empty-line-before-a-comment",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: a collection value needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/set-over-keep-scalar-with-an-empty-line-before-a-comment",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: a collection value needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/set-root-to-mapping-with-keep-scalar-before-a-document-marker",
+   "expectation": "primary",
+   "mode": "loose",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"
+  },
+  {
+   "case": "own:edit/set-root-to-mapping-with-keep-scalar-before-a-document-marker",
+   "expectation": "primary",
+   "mode": "strict",
+   "verdict": "unsupported",
+   "reason": "Declined by the adapter: replacing a collection needs the adapter to write block or flow YAML"
+  },
+  {
    "case": "own:parse/bom-line-after-bare-document-before-directives-end",
    "expectation": "primary",
    "mode": "loose",
