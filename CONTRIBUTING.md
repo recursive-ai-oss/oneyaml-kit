@@ -17,7 +17,7 @@ By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 ## Set up
 
 You need Python 3.10 or newer and `git`; the kit itself uses the standard library only. Each area
-you touch needs its own toolchain (Rust, Go or the .NET SDK), as described in
+you touch needs its own toolchain (Rust, Go, the .NET SDK or uv), as described in
 [running the kit](docs/running.md#what-you-need); a change to the kit's code or cases also runs
 the Rust reference adapter.
 
@@ -35,7 +35,7 @@ bin/gate
 | `suites/own/cases/` | The kit's own cases: parse, schema, edits by patch, diagnostics, safety. |
 | `adapters/` | One directory per library under test: manifest, adapter program, known deviations. |
 | `tools/oneyaml_kit/` | Loader, runner, comparison, report generator (Python standard library only). |
-| `bench/` | The benchmark harness: workloads, the Rust, Go and .NET harnesses, the driver and the report generator. See [benchmarks](docs/benchmarks.md). |
+| `bench/` | The benchmark harness: workloads, the Rust, Go, .NET and Python harnesses, the driver and the report generator. See [benchmarks](docs/benchmarks.md). |
 | `tests/` | The kit's own tests. |
 | `docs/` | The documentation linked from the [README](README.md#where-to-go). |
 

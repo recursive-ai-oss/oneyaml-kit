@@ -33,12 +33,15 @@ jobs:
             go: true
             rust: true
             dotnet: true
+            uv: true
           - area: bench-rust
             rust: true
           - area: bench-go
             go: true
           - area: bench-csharp
             dotnet: true
+          - area: bench-python
+            uv: true
     env:
       # Build output stays under out/, which is not part of the repository; the cargo directories
       # are cached from there.
@@ -84,6 +87,9 @@ jobs:
           cache-dependency-path: |
             adapters/*/packages.lock.json
             bench/csharp/packages.lock.json
+      - name: uv
+        if: matrix.uv
+        run: python -m pip install uv==0.12.10
       - name: Gate
         # The kit core has a job of its own, so the other jobs leave it out.
         run: bin/gate --full --areas ${{ matrix.area }} ${{ matrix.area != 'core' && '--without-core' || '' }}

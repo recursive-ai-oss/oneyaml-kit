@@ -62,12 +62,14 @@ MARK = {"win": "▲ win", "tie": "● tie", "loss": "▼ loss"}
 MARK_NOT_BEST = " †"
 
 
-# What each language's memory figure is, named for the tool that reports it. None of them is a peak:
-# Go and .NET report bytes allocated by one operation, Rust the bytes requested in one counted run.
+# What each language's memory figure is, named for the tool that reports it. Go and .NET report bytes
+# allocated by one operation and Rust the bytes requested in one counted run; Python's is the growth of
+# the process's resident set at the peak of one run, because its libraries allocate outside the language.
 MEMORY_LABEL = {
     "go": "Allocated bytes per operation (B/op)",
     "csharp": "Allocated bytes per task (MemoryDiagnoser)",
     "rust": "Requested bytes per run (allocator count)",
+    "python": "Peak resident-set growth of one run (bytes)",
 }
 
 

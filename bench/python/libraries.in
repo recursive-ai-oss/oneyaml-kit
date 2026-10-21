@@ -1,0 +1,12 @@
+# The libraries the harness measures, and the tools it measures with, pinned exactly.
+# libraries.lock is this file resolved, with hashes: uv pip compile --generate-hashes --no-header libraries.in
+pyperf==2.9.0
+PyYAML==6.0.3
+ruamel.yaml==0.19.1
+yamlrocks==0.7.1
+yaml-rs==0.1.6
+py-yaml12==0.2.0
+ryaml==0.5.1
+yaml-edit==0.1.3
+jsonpatch==1.36
+json-merge-patch==0.3.0
