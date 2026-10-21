@@ -23,8 +23,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 [[package]]
 name = "oneyaml"
 version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "195b02b4d47040cc4d81dae1b8a572d915fc3fa3dee4f33059f7f436fb668a61"
+source = "git+https://github.com/recursive-ai-oss/oneyaml-rust?rev=3ea4ac94d92a4c66382a7601c15ce1e987020533#3ea4ac94d92a4c66382a7601c15ce1e987020533"
 dependencies = [
  "oneyaml-core",
  "oneyaml-syntax",
@@ -34,8 +33,7 @@ dependencies = [
 [[package]]
 name = "oneyaml-core"
 version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "288a91d0716b0d21cfacb871a246f1dab13bee608f28afdfd9fb829c66258834"
+source = "git+https://github.com/recursive-ai-oss/oneyaml-rust?rev=3ea4ac94d92a4c66382a7601c15ce1e987020533#3ea4ac94d92a4c66382a7601c15ce1e987020533"
 
 [[package]]
 name = "oneyaml-kit-adapter"
@@ -51,8 +49,7 @@ dependencies = [
 [[package]]
 name = "oneyaml-syntax"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ab1a791d1bbf18e632ee72b44279608d04471e36ffd5a32012698adba83f408"
+source = "git+https://github.com/recursive-ai-oss/oneyaml-rust?rev=3ea4ac94d92a4c66382a7601c15ce1e987020533#3ea4ac94d92a4c66382a7601c15ce1e987020533"
 dependencies = [
  "oneyaml-core",
 ]

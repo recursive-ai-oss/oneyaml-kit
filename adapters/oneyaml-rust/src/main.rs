@@ -1,13 +1,14 @@
 //! Kit adapter for oneyaml-rust.
 //!
 //! Speaks the kit's JSON Lines protocol on stdin and stdout (one request per
-//! line, one response per line). The library has no patch engine, so edits are
-//! translated onto its document API for the operations that map directly
-//! (`replace` and `remove`); everything else is declared unsupported.
+//! line, one response per line). Patches go to the library's own patch engine
+//! (RFC 6902 and RFC 7396, with RFC 6901 pointers); the adapter only turns the
+//! case's JSON into the library's patch types and the library's error kinds into
+//! the kit's categories. Nothing about a patch is supplied by the adapter.
 
 use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine as _;
-use oneyaml::{Document, Mapping, NodeKind, Path, Stream, Value};
+use oneyaml::{Mapping, MergePatch, Patch, PatchErrorKind, Stream, Value};
 use oneyaml_core::{ColumnUnit, Diagnostic, LineIndex};
 use oneyaml_syntax::event::{CollectionStyle, EventKind, ScalarStyle};
 use serde_json::Value as Json;
@@ -17,8 +18,13 @@ const CAPABILITIES: &[&str] = &[
     "events",
     "value",
     "dump",
-    "patch:replace",
+    "patch:add",
     "patch:remove",
+    "patch:replace",
+    "patch:move",
+    "patch:copy",
+    "patch:test",
+    "patch:merge",
     "error-category",
     "error-position",
     "error-events",
@@ -30,18 +36,7 @@ struct Failure {
     category: &'static str,
     position: Option<(usize, usize)>,
     message: String,
-    /// Behaviours this adapter supplied itself, not the library (see `EMULATES`).
-    emulated: &'static [&'static str],
 }
-
-/// What the adapter does on the library's behalf. Declared in the hello and named in
-/// every response that relied on it, so a report never credits the library for it.
-///
-/// - `unchanged`: the library applies one edit at a time and has no atomic patch, so
-///   the adapter edits a working copy and reports the original bytes when any step fails.
-/// - `error`: the error itself came from the adapter (a missing path, a malformed
-///   pointer, an unknown operation name), not from the library.
-const EMULATES: &[&str] = &["unchanged", "error"];
 
 enum Outcome {
     Events(Vec<String>),
@@ -118,7 +113,6 @@ fn events(bytes: &[u8]) -> Outcome {
                 category: "encoding",
                 position: decode_position(&decoded_so_far, &diag),
                 message: diag.message,
-                emulated: &[],
             };
             return Outcome::Failed(f, Extra::Events(Vec::new()));
         }
@@ -140,7 +134,6 @@ fn events(bytes: &[u8]) -> Outcome {
                         category,
                         position: pos,
                         message,
-                        emulated: &[],
                     },
                     Extra::Events(lines),
                 );
@@ -238,7 +231,6 @@ fn error_failure(e: &oneyaml::Error) -> Failure {
         category,
         position,
         message: e.diagnostic().message.clone(),
-        emulated: &[],
     }
 }
 
@@ -451,7 +443,6 @@ fn dump(args: &Json) -> Outcome {
                 category: "other",
                 position: None,
                 message: e.to_string(),
-                emulated: &[],
             },
             Extra::None,
         ),
@@ -460,156 +451,59 @@ fn dump(args: &Json) -> Outcome {
 
 // ---- patch ----------------------------------------------------------------
 
-/// A failed patch. `own` is true when the adapter produced the error itself.
-fn fail(category: &'static str, message: impl Into<String>, original: &[u8], own: bool) -> Outcome {
-    let emulated: &'static [&'static str] = if own {
-        &["unchanged", "error"]
-    } else {
-        &["unchanged"]
-    };
+/// The kit's category for a patch error kind.
+fn patch_category(kind: PatchErrorKind) -> &'static str {
+    match kind {
+        PatchErrorKind::Edit => "other",
+        // `name` is the kit's own spelling for the other kinds.
+        other => other.name(),
+    }
+}
+
+/// A failed patch: the library's error, and the stream as the library left it (the
+/// kit checks that a failed patch changed nothing).
+fn patch_failed(e: &oneyaml::PatchError, stream: &Stream) -> Outcome {
     Outcome::Failed(
         Failure {
-            category,
+            category: patch_category(e.kind()),
             position: None,
-            message: message.into(),
-            emulated,
+            message: e.to_string(),
         },
-        Extra::Output(original.to_vec()),
+        Extra::Output(stream.to_bytes()),
     )
-}
-
-fn pointer_tokens(p: &str) -> Option<Vec<String>> {
-    if p.is_empty() {
-        return Some(Vec::new());
-    }
-    let rest = p.strip_prefix('/')?;
-    Some(
-        rest.split('/')
-            .map(|t| t.replace("~1", "/").replace("~0", "~"))
-            .collect(),
-    )
-}
-
-/// Turns pointer tokens into the library's path by looking at what each step
-/// lands on: an index into a sequence, a key into a mapping. Aliases are
-/// followed for that decision only; whether the library then writes through
-/// them is the library's own behaviour.
-fn build_path(doc: &Document, tokens: &[String]) -> Result<Path, &'static str> {
-    let mut path = Path::default();
-    for t in tokens {
-        let node = if path.is_empty() {
-            doc.root()
-        } else {
-            doc.get_path(path.clone())
-        };
-        let mut node = node.ok_or("patch-path")?;
-        if node.kind() == NodeKind::Alias {
-            node = node.alias_target().ok_or("patch-path")?;
-        }
-        match node.kind() {
-            NodeKind::Sequence => {
-                let ok = !t.is_empty()
-                    && t.bytes().all(|b| b.is_ascii_digit())
-                    && (t == "0" || !t.starts_with('0'));
-                if !ok {
-                    return Err("patch-path");
-                }
-                path.push_index(t.parse::<usize>().map_err(|_| "patch-path")?);
-            }
-            NodeKind::Mapping => path.push_key(t.clone()),
-            _ => return Err("patch-path"),
-        }
-    }
-    Ok(path)
 }
 
 fn patch(bytes: &[u8], args: &Json) -> Outcome {
-    if args
+    let merge = match args
         .get("format")
         .and_then(Json::as_str)
         .unwrap_or("json-patch")
-        != "json-patch"
     {
-        return Outcome::Unsupported("merge patch".into());
-    }
-    let index = args.get("document").and_then(Json::as_u64).unwrap_or(0) as usize;
-    let Some(ops) = args.get("patch").and_then(Json::as_array) else {
-        return fail("patch-invalid", "patch is not an array", bytes, true);
+        "json-patch" => false,
+        "merge-patch" => true,
+        other => return Outcome::Unsupported(format!("patch format {other:?}")),
     };
-    // Atomic by construction: edits go to a working copy that is dropped on
-    // any failure, because the library applies one edit at a time.
+    let index = args.get("document").and_then(Json::as_u64).unwrap_or(0) as usize;
     let mut stream = match Stream::from_slice(bytes) {
         Ok(s) => s,
         Err(e) => {
-            return Outcome::Failed(
-                Failure {
-                    emulated: &["unchanged"],
-                    ..error_failure(&e)
-                },
-                Extra::Output(bytes.to_vec()),
-            )
+            return Outcome::Failed(error_failure(&e), Extra::Output(bytes.to_vec()));
         }
     };
-    let Some(mut doc) = stream.document_mut(index) else {
-        return fail("patch-path", "no such document", bytes, true);
+    // The patch is handed over as JSON text, which the library reads with its own
+    // reader: an integer stays an integer and a float a float.
+    let text = args
+        .get("patch")
+        .map_or_else(|| "null".to_string(), Json::to_string);
+    let result = if merge {
+        MergePatch::from_json(&text).and_then(|p| stream.apply_merge_patch(index, &p))
+    } else {
+        Patch::from_json(&text).and_then(|p| stream.apply_patch(index, &p))
     };
-    for op in ops {
-        let name = op.get("op").and_then(Json::as_str).unwrap_or("");
-        if !matches!(
-            name,
-            "add" | "remove" | "replace" | "move" | "copy" | "test"
-        ) {
-            return fail(
-                "patch-invalid",
-                format!("unknown operation {name:?}"),
-                bytes,
-                true,
-            );
-        }
-        let Some(ptr) = op.get("path").and_then(Json::as_str) else {
-            return fail("patch-invalid", "operation without a path", bytes, true);
-        };
-        let Some(tokens) = pointer_tokens(ptr) else {
-            return fail("patch-invalid", "not a JSON Pointer", bytes, true);
-        };
-        if tokens.is_empty() {
-            return Outcome::Unsupported("whole-document patch".into());
-        }
-        let path = match build_path(&doc, &tokens) {
-            Ok(p) => p,
-            Err(c) => return fail(c, "path does not resolve", bytes, true),
-        };
-        let exists = doc.get_path(path.clone()).is_some();
-        let result = match name {
-            "replace" => {
-                if !exists {
-                    return fail("patch-path", "replace target does not exist", bytes, true);
-                }
-                let Some(v) = op.get("value") else {
-                    return fail("patch-invalid", "replace without a value", bytes, true);
-                };
-                doc.set_path(path, v).map(|_| ())
-            }
-            "remove" => {
-                if !exists {
-                    return fail("patch-path", "remove target does not exist", bytes, true);
-                }
-                doc.remove_path(path).map(|_| ())
-            }
-            other => return Outcome::Unsupported(format!("patch operation {other}")),
-        };
-        if let Err(e) = result {
-            let category = match e {
-                oneyaml::EditError::NotFound { .. }
-                | oneyaml::EditError::NotAMapping { .. }
-                | oneyaml::EditError::NotASequence { .. }
-                | oneyaml::EditError::IndexOutOfBounds { .. } => "patch-path",
-                _ => "other",
-            };
-            return fail(category, format!("{e}"), bytes, false);
-        }
+    match result {
+        Ok(()) => Outcome::Output(stream.to_bytes()),
+        Err(e) => patch_failed(&e, &stream),
     }
-    Outcome::Output(stream.to_bytes())
 }
 
 // ---- protocol -------------------------------------------------------------
@@ -641,13 +535,7 @@ fn respond(id: &str, o: Outcome) -> String {
                 Extra::Events(l) => format!(",\"events\":{}", js_lines(&l)),
                 Extra::Output(b) => format!(",\"output\":\"{}\"", B64.encode(b)),
             };
-            let emu = if f.emulated.is_empty() {
-                String::new()
-            } else {
-                let names: Vec<String> = f.emulated.iter().map(|n| js(n)).collect();
-                format!(",\"emulated\":[{}]", names.join(","))
-            };
-            format!("{head},\"status\":\"error\",\"error\":{err}{tail}{emu}}}")
+            format!("{head},\"status\":\"error\",\"error\":{err}{tail}}}")
         }
     }
 }
@@ -668,11 +556,9 @@ fn handle(req: &Json) -> Option<String> {
     match req.get("type").and_then(Json::as_str) {
         Some("hello") => {
             let caps: Vec<String> = CAPABILITIES.iter().map(|c| js(c)).collect();
-            let emu: Vec<String> = EMULATES.iter().map(|c| js(c)).collect();
             Some(format!(
-                "{{\"type\":\"hello\",\"protocol\":2,\"name\":\"oneyaml-rust\",\"version\":\"1.1.0\",\"language\":\"rust\",\"capabilities\":[{}],\"emulates\":[{}],\"info\":{{\"crates\":\"oneyaml 1.1.0, oneyaml-syntax 0.1.2, oneyaml-core 1.1.0\"}}}}",
-                caps.join(","),
-                emu.join(",")
+                "{{\"type\":\"hello\",\"protocol\":2,\"name\":\"oneyaml-rust\",\"version\":\"1.1.0\",\"language\":\"rust\",\"capabilities\":[{}],\"emulates\":[],\"info\":{{\"crates\":\"oneyaml 1.1.0, oneyaml-syntax 0.1.2, oneyaml-core 1.1.0\"}}}}",
+                caps.join(",")
             ))
         }
         Some("run") => {

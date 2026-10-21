@@ -26,12 +26,11 @@ class OneyamlRust(unittest.TestCase):
         d = self.res["deviations"]
         self.assertEqual((d["unlisted"], d["stale"], d["unknown"]), ([], [], []))
 
-    def test_reference_case_a_passes_and_b_fails(self):
-        a = self.by_id["own:edit/block-literal-keeps-style-with-newline"]
-        b = self.by_id["own:edit/block-literal-strip-when-no-trailing-newline"]
-        self.assertEqual((a["loose"], a["strict"]), ("pass", "pass"))
-        self.assertEqual((b["loose"], b["strict"]), ("fail", "fail"))
-        self.assertIn("|-", b["detail"])
+    def test_reference_edit_cases_pass(self):
+        for cid in ("own:edit/block-literal-keeps-style-with-newline",
+                    "own:edit/block-literal-strip-when-no-trailing-newline"):
+            r = self.by_id[cid]
+            self.assertEqual((r["loose"], r["strict"]), ("pass", "pass"), cid)
 
     def test_repeated_keys_are_named_and_only_they_are(self):
         support.check_duplicate_key_category(self, "oneyaml-rust")
@@ -40,15 +39,17 @@ class OneyamlRust(unittest.TestCase):
         ev = [r for r in self.res["cases"] if r["suite"] == "yaml-test-suite" and r["op"] == "events"]
         self.assertEqual(len(ev), 402)
         self.assertEqual(sum(r["loose"] == "pass" for r in ev), 402)
-        self.assertEqual(sum(r["strict"] == "pass" for r in ev), 393)
-        self.assertEqual(sum(r.get("corrected", r)["strict"] == "pass" for r in ev), 400)
+        # Two cases whose upstream events end the document before an error: the engine follows the
+        # corrected expectation, which the strict primary score does not.
+        self.assertEqual(sum(r["strict"] == "pass" for r in ev), 391)
+        self.assertEqual(sum(r.get("corrected", r)["strict"] == "pass" for r in ev), 402)
 
-    def test_refusals_and_unsupported_operations_are_reported_as_such(self):
-        self.assertEqual(self.by_id["own:edit/refuse-write-through-alias"]["loose"], "fail")
-        self.assertEqual(self.by_id["own:edit/refuse-ambiguous-key"]["loose"], "fail")
-        self.assertEqual(self.by_id["own:edit/atomic-failure"]["strict"], "pass")
-        self.assertEqual(self.by_id["own:edit/failed-test-changes-nothing"]["loose"], "unsupported")
-        self.assertEqual(self.by_id["own:edit/merge-patch"]["loose"], "unsupported")
+    def test_the_library_applies_every_patch_operation_and_makes_its_own_refusals(self):
+        for cid in ("own:edit/refuse-write-through-alias", "own:edit/refuse-ambiguous-key",
+                    "own:edit/atomic-failure", "own:edit/failed-test-changes-nothing",
+                    "own:edit/merge-patch"):
+            r = self.by_id[cid]
+            self.assertEqual((r["loose"], r["strict"]), ("pass", "pass"), cid)
 
     def test_safety_cases_record_the_outcome_and_the_measurements(self):
         for cid in ("own:safety/deeply-nested-flow-sequences", "own:safety/alias-expansion-bomb"):
@@ -64,19 +65,10 @@ class OneyamlRust(unittest.TestCase):
         self.assertEqual([r["id"] for r in v if r["loose"] != "pass"], ["yts:UGM3@value"])
         self.assertEqual(self.by_id["yts:UGM3@value"]["corrected"]["loose"], "pass")
 
-    def test_adapter_made_behaviour_is_marked(self):
-        self.assertEqual(self.res["adapter"]["emulates"], ["error", "unchanged"])
-        marked = sorted(r["id"] for r in self.res["cases"] if r.get("emulated"))
-        self.assertTrue({"own:edit/atomic-failure", "own:edit/pointer-without-leading-slash",
-                         "own:edit/replace-missing-path", "own:edit/unknown-operation"} <= set(marked))
-        # Only refusals are ever the adapter's: no edit that succeeded is credited to it.
-        for r in self.res["cases"]:
-            if r.get("emulated"):
-                self.assertEqual((r["suite"], r["op"]), ("own", "patch"), r["id"])
-                # A bounded case may accept a refusal too (a `limit` error), and that refusal passes.
-                self.assertTrue(r["expect"] in ("error", "bounded") or r["loose"] == "fail", r["id"])
-        # A failure that the library itself reports is not marked as the adapter's.
-        self.assertEqual(self.by_id["own:edit/failed-test-changes-nothing"].get("emulated"), None)
+    def test_nothing_is_emulated(self):
+        # The library does the patching, refusals and all-or-nothing included.
+        self.assertEqual(self.res["adapter"]["emulates"], [])
+        self.assertEqual([r["id"] for r in self.res["cases"] if r.get("emulated")], [])
 
     def test_report_mentions_the_scored_suite(self):
         self.assertIn("data-2022-01-17", report.render([self.res]))
