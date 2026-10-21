@@ -304,6 +304,12 @@ is `fail` or `unsupported`. The run fails when:
   verdict the case cannot have;
 - an entry names a case that is not in a complete run.
 
+An entry may also carry `"near_bound": true`, for a `fail` entry on a case with a time
+bound whose answer arrives close to the limit, so that some runs finish inside it. On such an
+entry a `pass` is not stale; it is counted and shown in the summary and the report. Scores
+still count the verdict as it came out, and any other verdict is stale. On any other entry
+the field makes the run fail.
+
 A listed failure still counts as a failure in every score. Unsupported because of an
 undeclared capability is not listed.
 

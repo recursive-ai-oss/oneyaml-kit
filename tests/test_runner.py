@@ -460,6 +460,54 @@ class Deviations(unittest.TestCase):
         # A corrected entry for a case without a correction is stale.
         self.assertFalse(self.check([result("b", strict="fail")], [dev("b"), dev("b", expectation="corrected")])["ok"])
 
+    def near(self, cid="a", **kw):
+        return {**dev(cid, **kw), "near_bound": True}
+
+    def timed(self, cid="a", **kw):
+        return {**result(cid, **kw), "expect": "bounded"}
+
+    def test_near_bound_entry_that_passes_is_counted_not_stale(self):
+        v = self.check([self.timed(strict="pass")], [self.near()])
+        self.assertTrue(v["ok"])
+        self.assertEqual((v["stale"], v["near_bound_passed"]), ([], 1))
+
+    def test_near_bound_entry_that_fails_is_ok_and_not_counted(self):
+        v = self.check([self.timed(strict="fail")], [self.near()])
+        self.assertTrue(v["ok"])
+        self.assertEqual(v["near_bound_passed"], 0)
+
+    def test_near_bound_entry_that_is_now_unsupported_is_stale(self):
+        r = self.timed(strict="unsupported", reason="adapter")
+        v = self.check([r], [self.near()])
+        self.assertFalse(v["ok"])
+        self.assertIn("now unsupported", v["stale"][0])
+
+    def test_near_bound_is_refused_without_a_time_bound(self):
+        for actual in ("pass", "fail"):
+            v = self.check([result("a", strict=actual)], [self.near()])
+            self.assertFalse(v["ok"], actual)
+            self.assertIn("near_bound", v["stale"][0])
+            self.assertEqual(v["near_bound_passed"], 0)
+
+    def test_near_bound_is_refused_on_an_unsupported_entry(self):
+        r = self.timed(strict="unsupported", reason="adapter")
+        v = self.check([r], [self.near(verdict="unsupported")])
+        self.assertFalse(v["ok"])
+        self.assertIn("near_bound", v["stale"][0])
+
+    def test_an_ordinary_entry_on_a_timed_case_that_passes_is_still_stale(self):
+        v = self.check([self.timed(strict="pass")], [dev("a")])
+        self.assertFalse(v["ok"])
+        self.assertEqual(v["near_bound_passed"], 0)
+
+    def test_near_bound_must_be_a_boolean(self):
+        t = Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))
+        self.addCleanup(shutil.rmtree, t)
+        (t / "d.json").write_text(json.dumps({"format": R.DEVIATIONS_FORMAT,
+                                              "entries": [{**dev("a"), "near_bound": "yes"}]}))
+        with self.assertRaises(R.RunError):
+            R.load_deviations({"_dir": t, "deviations": "d.json"})
+
     def test_deviation_file_is_validated(self):
         t = Path(tempfile.mkdtemp(dir=os.environ.get("TMPDIR") or None))
         self.addCleanup(shutil.rmtree, t)

@@ -187,7 +187,9 @@ def render_one(res: dict) -> str:
     d = res["deviations"]
     entries = d.get("entries", [])
     lines.append(f"Known deviations listed: {len(entries)}. "
-                 f"Unlisted failures: {len(d['unlisted'])}. Stale entries: {len(d['stale']) + len(d['unknown'])}.")
+                 f"Unlisted failures: {len(d['unlisted'])}. Stale entries: {len(d['stale']) + len(d['unknown'])}."
+                 + (f" Near-bound entries that passed this run: {d['near_bound_passed']}."
+                    if d.get("near_bound_passed") else ""))
     lines.append("")
     if entries:
         lines.append("| Case | Expectation | Mode | Verdict | Reason |")

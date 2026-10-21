@@ -86,7 +86,9 @@ def cmd_run(args) -> int:
         print(f"{res['adapter']['name']} {res['adapter']['version']}: {n} cases, "
               f"loose {p['loose']}, strict {p['strict']}, in {res['run']['seconds']} s; "
               f"deviations listed {d['listed']}, unlisted {len(d['unlisted'])}, "
-              f"stale {len(d['stale']) + len(d['unknown'])}")
+              f"stale {len(d['stale']) + len(d['unknown'])}"
+              + (f", near-bound entries that passed this run {d['near_bound_passed']}"
+                 if d.get("near_bound_passed") else ""))
         if not d["ok"]:
             status = 1
             for line in (d["unlisted"] + d["stale"] + d["unknown"])[:20]:

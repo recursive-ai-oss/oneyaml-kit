@@ -62,13 +62,14 @@ def load_deviations(manifest: dict) -> list[dict]:
     out = []
     seen = set()
     for e in d["entries"]:
-        extra = set(e) - {"case", "expectation", "mode", "verdict", "reason"}
+        extra = set(e) - {"case", "expectation", "mode", "verdict", "reason", "near_bound"}
         if extra:
             raise RunError(f"deviations: unknown keys {sorted(extra)} in {e.get('case')}")
         e.setdefault("expectation", "primary")
         if (e["expectation"] not in EXPECTATIONS or e.get("mode") not in MODES
                 or e.get("verdict") not in (compare.FAIL, compare.UNSUPPORTED)
-                or not e.get("reason") or not e.get("case")):
+                or not e.get("reason") or not e.get("case")
+                or not isinstance(e.get("near_bound", False), bool)):
             raise RunError(f"deviations: malformed entry {e!r}")
         key = (e["case"], e["expectation"], e["mode"])
         if key in seen:
@@ -174,6 +175,7 @@ def verify_deviations(results: list[dict], deviations: list[dict], complete: boo
     by_id = {r["id"]: r for r in results}
     listed = {(e["case"], e["expectation"], e["mode"]): e for e in deviations}
     unlisted, stale, unknown = [], [], []
+    near_bound_passed = 0
     for key, e in listed.items():
         r = by_id.get(key[0])
         if r is None:
@@ -185,6 +187,16 @@ def verify_deviations(results: list[dict], deviations: list[dict], complete: boo
             stale.append(f"{key[0]} ({key[1]}/{key[2]}): case has no corrected expectation")
             continue
         actual = src[key[2]]
+        label = f"{key[0]} ({key[1]}/{key[2]})"
+        if e.get("near_bound"):
+            # Only a failed time bound can land on either side of the limit from run to run.
+            if e["verdict"] != compare.FAIL or r.get("expect") != "bounded":
+                stale.append(f"{label}: invalid near_bound: allowed only on a fail entry for a "
+                             "case with a time bound")
+                continue
+            if actual == compare.PASS:
+                near_bound_passed += 1
+                continue
         if actual != e["verdict"]:
             stale.append(f"{key[0]} ({key[1]}/{key[2]}): listed as {e['verdict']}, now {actual}")
         elif actual == compare.UNSUPPORTED and r.get("reason") != "adapter":
@@ -202,6 +214,7 @@ def verify_deviations(results: list[dict], deviations: list[dict], complete: boo
                 if (r["id"], exp, mode) not in listed:
                     unlisted.append(f"{r['id']} ({exp}/{mode}): {v}: {src.get('detail') or r.get('detail', '')}"[:300])
     return {"listed": len(deviations), "unlisted": unlisted, "stale": stale, "unknown": unknown,
+            "near_bound_passed": near_bound_passed,
             "ok": not (unlisted or stale or unknown)}
 
 
