@@ -1,8 +1,10 @@
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -339,6 +341,33 @@ class Subprocess(unittest.TestCase):
             res = R.execute(a2, set(h["capabilities"]), [self.bounded(seconds=20, mb=50)])
             self.assertEqual((res[0]["loose"], res[0]["strict"]), ("fail", "fail"), how)
             self.assertGreater(res[0]["measured"]["peak_mb"], 100, how)
+
+    @unittest.skipUnless(os.path.exists("/proc/self/clear_refs"), "needs Linux /proc")
+    def test_a_zombie_is_not_a_live_process_of_the_session(self):
+        # The shell forks a child that exits at once, then becomes `sleep`, which never collects
+        # it: the child stays a zombie of the session until the session ends.
+        p = subprocess.Popen(["sh", "-c", "(exit 0) & exec sleep 30"], start_new_session=True)
+        try:
+            def zombies():
+                out = []
+                for n in os.listdir("/proc"):
+                    try:
+                        with open(f"/proc/{n}/stat") as f:
+                            rest = f.read().rsplit(")", 1)[1].split()
+                    except (OSError, IndexError):
+                        continue
+                    if rest[0] == "Z" and int(rest[1]) == p.pid:
+                        out.append(int(n))
+                return out
+            for _ in range(500):
+                if zombies():
+                    break
+                time.sleep(0.01)
+            self.assertTrue(zombies(), "the test could not make a zombie")
+            self.assertEqual(P.tree_pids(p.pid), [p.pid])
+        finally:
+            p.kill()
+            p.wait()
 
     @unittest.skipUnless(os.path.exists("/proc/self/clear_refs"), "needs Linux /proc")
     def test_nothing_of_the_adapter_session_survives_a_failure(self):

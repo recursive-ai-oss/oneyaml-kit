@@ -75,7 +75,9 @@ def tree_pids(session: int) -> list[int] | None:
                 stat = f.read()
             # Fields after the command name, which may itself contain spaces or brackets.
             rest = stat[stat.rindex(")") + 2:].split()
-            if int(rest[3]) == session:
+            # A zombie has exited and holds no memory; it only waits for its parent (or init) to
+            # collect it, which on a busy machine can lag behind a kill.
+            if int(rest[3]) == session and rest[0] != "Z":
                 out.append(int(n))
         except (OSError, ValueError, IndexError):
             continue

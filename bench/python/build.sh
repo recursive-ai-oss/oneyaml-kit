@@ -11,6 +11,8 @@ out=$(cd "$out" && pwd)
 venv=$out/oneyaml-bench-python-venv
 py=$venv/bin/python
 if [ ! -x "$py" ]; then
+	# A directory restored from a cache can lack its interpreter; replace it rather than fail.
+	rm -rf "$venv"
 	uv venv --quiet --python 3.13 --python-preference only-managed "$venv"
 fi
 uv pip install --quiet --python "$py" --require-hashes -r libraries.lock
