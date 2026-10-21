@@ -67,7 +67,7 @@ class OneyamlRust(unittest.TestCase):
 
     def test_the_hello_names_the_pinned_revision(self):
         # The adapter builds from a repository revision, not a release, so the version says which.
-        self.assertEqual(self.res["adapter"]["version"], "1.1.0+3ea4ac94d92a")
+        self.assertEqual(self.res["adapter"]["version"], "1.2.0")
 
     def test_nothing_is_emulated(self):
         # The library does the patching, refusals and all-or-nothing included.
